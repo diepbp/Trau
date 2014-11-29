@@ -617,7 +617,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
@@ -626,7 +626,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 			}
 			else {
 			}
@@ -1741,15 +1741,16 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (const auto _eq : equalMap) {
-
-		__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
-		for (const auto vec : _eq.second) {
-			for (const auto s : vec) {
-				__debugPrint(logFile, "\t%s ",  s.c_str());
+		if (_eq.second.size() > 1) {
+			__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
+			for (const auto vec : _eq.second) {
+				for (const auto s : vec) {
+					__debugPrint(logFile, "\t%s ",  s.c_str());
+				}
+				__debugPrint(logFile, "\n");
 			}
 			__debugPrint(logFile, "\n");
 		}
-		__debugPrint(logFile, "\n");
 	}
 }
 
@@ -3960,6 +3961,7 @@ void init(std::map<StringOP, std::string> &rewriterStrMap){
 	addConnectedVarToEQmap();
 	sumConstString();
 	createConstMap();
+	refineEqualMap(rewriterStrMap);
 }
 
 /*

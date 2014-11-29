@@ -1611,10 +1611,10 @@ void Th_init_search(Z3_theory t) {
  */
 void Th_push(Z3_theory t) {
 	sLevel++;
-//	__debugPrint(logFile, "\n*******************************************\n");
-//	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
-//	__debugPrint(logFile, "\n*******************************************\n");
-	if (sLevel == 1 && initLength.size() == 0) {
+	__debugPrint(logFile, "\n*******************************************\n");
+	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
+	__debugPrint(logFile, "\n*******************************************\n");
+	if (sLevel == 1) {
 		initLength = collectCurrentLength(t);
 		for (const auto& s : initLength){
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);

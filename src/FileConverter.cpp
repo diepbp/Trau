@@ -261,11 +261,18 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens){
 			bool eqType = false;
 			for (int i = found - 2; i >= 0; --i) {
 				if (tokens[i].second == 92) {
-					eqType = true;
-					found = i;
-					endCond = findCorrespondRightParentheses(i, tokens);
+					if (tokens[i + 1].first.compare("=") == 0) {
+
+						eqType = true;
+						found = i;
+						endCond = findCorrespondRightParentheses(i, tokens);
+					}
+					else {
+
+					}
+					break;
 				}
-				break;
+
 			}
 			std::vector<std::pair<std::string, int>> addingTokens;
 			if (eqType) {
