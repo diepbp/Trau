@@ -268,7 +268,6 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens){
 						endCond = findCorrespondRightParentheses(i, tokens);
 					}
 					else {
-
 					}
 					break;
 				}
