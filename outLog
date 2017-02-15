@@ -1,0 +1,18 @@
+Running time:0.0482630729675sat
+T_2 -> true
+T_c -> false
+T_a -> false
+T_9 -> true
+T_4 -> true
+T_6 -> true
+T_b -> true
+T_3 -> true
+T_1 -> true
+T_7 -> true
+var_0xINPUT_124186 -> YY8CBEMy6Q
+T_8 -> true
+T_d -> true
+T_5 -> false
+
+Checked file in: /Users/diepbp/Downloads/benchmarks/Kaluza/Z3STR/double-checked/sat/small/1965.corecstrs.readable.smt2
+
