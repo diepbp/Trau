@@ -8,15 +8,10 @@
 
 #include <iomanip>
 
+#include "fileutils.h"
+#include "GrmOverApprox.h"
 #include "StringTheory.h"
-#include "MakeDir.h"
 #include "FileConverter.h"
-
-#define INPUT_DIR "tests/"
-//#define INPUT "1001.corecstrs.readable.smt2"
-#define INPUT "converted_largestFile"
-//#define INPUT "converted_largeFile"
-#define DOUBLE_CHECK 1
 
 std::string orgInput;
 std::string inputFile;
@@ -162,31 +157,37 @@ void loadGrammar(std::string grammarFile) {
   __debugPrint(logFile, "*                 initGrammar                 *\n");
   __debugPrint(logFile, "-----------------------------------------------\n");
 #endif
-	FILE* pipe = fopen(grammarFile.c_str(), "r");
-	char buffer[2000];
+  ourGrm = CFG_parser(grammarFile);
 
-	std::string cmdLine = "";
-	while (!feof(pipe))
-	{
-		if (fgets(buffer, 2000, pipe) != NULL)
-		{
-			unsigned int pos = 0;
-			std::string line = buffer;
-			std::string name = "";
-			for (pos = 0; pos < line.length(); ++pos)
-				if (line[pos] == ':')
-					break;
-				else {
-					name = name + line[pos];
-				}
-
-			std::string reg = line.substr(pos + 2, line.length() - pos - 3);
-			__debugPrint(logFile, "%s --> %s\n", name.c_str(), reg.c_str());
-
-			ourGrm[name] = reg;
-		}
-	}
-	pclose(pipe);
+#ifdef DEBUGLOG
+  for (std::map<std::string, std::string>::iterator it = ourGrm.begin(); it != ourGrm.end(); ++it)
+  	__debugPrint(logFile, "%d %s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
+#endif
+//	FILE* pipe = fopen(grammarFile.c_str(), "r");
+//	char buffer[2000];
+//
+//	std::string cmdLine = "";
+//	while (!feof(pipe))
+//	{
+//		if (fgets(buffer, 2000, pipe) != NULL)
+//		{
+//			int pos = 0;
+//			std::string line = buffer;
+//			std::string name = "";
+//			for (pos = 0; pos < line.length(); ++pos)
+//				if (line[pos] == ':')
+//					break;
+//				else {
+//					name = name + line[pos];
+//				}
+//
+//			std::string reg = line.substr(pos + 2, line.length() - pos - 3);
+//			__debugPrint(logFile, "%s --> %s\n", name.c_str(), reg.c_str());
+//
+//			ourGrm[name] = reg;
+//		}
+//	}
+//	pclose(pipe);
 }
 
 
@@ -276,8 +277,6 @@ int main(int argc, char* argv[])
 
 	logFile = NULL;
 	logAxiom = NULL;
-	inputFile = argv[1];
-	orgInput = inputFile;
 	std::string grammarFile = "";
 
 #ifdef DEBUGLOG
@@ -285,22 +284,41 @@ int main(int argc, char* argv[])
 	logAxiom = fopen("logAxiom.smt2", "w");
 #endif
 
+	if (argc >= 3) {
+		bool foundGrm = false;
+		for (int i = 1; i < argc; ++i) {
+			std::string tmp = std::string(argv[i]);
+			if (tmp.compare("-grm") == 0){
+				i++;
+				grammarFile = argv[i];
+				foundGrm = true;
+			}
+			else {
+				inputFile = argv[i];
+				orgInput = inputFile;
+			}
+		}
+		if (argc > 4 || foundGrm == false)
+			throw std::runtime_error("Incorrect arguments.\n ./FAT [-grm grammarFile] smtFile\n");
+		grammarFile = argv[2];
+		loadGrammar(grammarFile);
+	}
+	else {
+		inputFile = argv[1];
+		orgInput = inputFile;
+	}
+
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "Input file: %s\n\n", inputFile.c_str());
 	if (argc >= 3)
 		__debugPrint(logFile, "Grammar file: %s\n\n", argv[2]);
 #endif
-
-	if (argc >= 3) {
-		grammarFile = argv[2];
-		loadGrammar(grammarFile);
-	}
-
 	inputFile = convertToRemoveSpecialConstCharacters(inputFile);
 	initGraph(inputFile);
 	inputFile_converted = convertFileToReplaceConst(inputFile);
 	overApproxController();
 
+	removeFile(inputFile);
 #ifdef DEBUGLOG
 	fclose(logFile);
 	fclose(logAxiom);

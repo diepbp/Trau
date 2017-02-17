@@ -21,7 +21,8 @@
 
 #include "TimeLapse.h"
 
-// #define DEBUGLOG 1
+#define DEBUGLOG 1
+#define REMOVINGLOG 1
 //#define PRINTTEST_UNDERAPPROX 1
 #define NUM_THREADS	16
 #define FLATMAX 100;

@@ -869,6 +869,10 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
  */
 void readFileEquality(std::string inputFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
+	if (!in) {
+		printf("%d %s", __LINE__, inputFile.c_str());
+		throw std::runtime_error("Cannot open input file!");
+	}
 	std::map<std::string, std::vector<std::vector<std::string>>> equalMapTmp;
 	char buffer[1000];
 
@@ -1441,7 +1445,7 @@ bool Z3_run(std::string fileName) {
 
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
-		throw std::runtime_error("popen() failed!");
+		throw std::runtime_error("Z3 failed!");
 
 	std::map<std::string, std::string> results;
 	char buffer[5000];
@@ -1512,7 +1516,7 @@ bool S3_assist(std::string fileName){
 
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
-		throw std::runtime_error("popen() failed!");
+		throw std::runtime_error("S3 failed!");
 
 	std::map<std::string, std::string> results;
 	char buffer[5000];
@@ -1532,8 +1536,8 @@ bool S3_assist(std::string fileName){
 				else {
 					if (line.substr(0, 6).compare(">> SAT") == 0)
 						sat = true;
-
-					printf("%s", buffer);
+					if (line.find("String!val!") == std::string::npos)
+						printf("%s", buffer);
 				}
 			}
 

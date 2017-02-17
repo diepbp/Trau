@@ -42,5 +42,16 @@ extern FILE * logFile;
 extern FILE * logAxiom;
 
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);
+
 std::string getFileNameFromFileDir(std::string fileDir);
+
+void displayListString(std::vector<std::string> l, std::string msg);
+
+void displayListString(std::set<std::string> l, std::string msg);
+
+void displayListString(std::map<std::string, int> l, std::string msg);
+
+void displayListNumber(std::set<int> l, std::string msg);
+
+void displayListNumber(std::vector<int> l, std::string msg);
 #endif /* UTILS_H_ */

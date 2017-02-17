@@ -4,7 +4,7 @@
  *  Created on: Feb 1, 2017
  *      Author: diepbp
  */
-#include "MakeDir.h"
+#include "fileutils.h"
 
 bool isDirExist(const std::string& path)
 {
@@ -65,6 +65,25 @@ bool makePath(const std::string& path)
     default:
         return false;
     }
+}
+
+void removeFile(const std::string& fileName){
+	/*get fileName from fileDir */
+	std::string name = "";
+	for (int i = fileName.length() - 1; i >= 0; --i)
+		if (fileName[i] != '/')
+			name = fileName[i] + name;
+		else
+			break;
+
+	std::string filePath = "/tmp/fat_str_convert/" + name;
+	remove(filePath.c_str());
+
+	filePath = "/tmp/fat_str_convert/w_l_" + name;
+	remove(filePath.c_str());
+
+	filePath = "/tmp/fat_str_convert/converted_" + name;
+	remove(filePath.c_str());
 }
 
 

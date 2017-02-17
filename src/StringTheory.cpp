@@ -21,6 +21,8 @@ int varCnt = 0;
 int value_count = 0;
 Z3_ast emptyConstStr;
 
+bool havingGrmConstraints = false;
+
 //std::set<char> charSet;
 std::vector<Z3_ast> consideredVars;
 std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
@@ -884,9 +886,9 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-//	Z3_app arg1_func_app = Z3_to_app(ctx, args[1]);
 
 	std::string grmStr = getStdGrmStr(t, args[1]);
+	havingGrmConstraints = true;
 
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "\n>> GrammarIn(");
@@ -4053,8 +4055,11 @@ Z3_bool Th_final_check(Z3_theory t) {
 #endif
 
   calculateConcatLength(t);
+  if (havingGrmConstraints == false){
+	  ourGrm.clear();
+	  return Z3_TRUE;
+  }
 
-  return Z3_TRUE;
 //  displayStringSolverInformation(t);
 
   if (done)
@@ -4563,7 +4568,7 @@ bool assignConcreteValue(Z3_theory t){
 		Automaton ton = getPreCalculatedValue(t, it->first);
 		std::string frame = ton.getFrame();
 		std::string s0 = Z3_ast_to_string(ctx, it->first);
-		printf("(assert (>= (Length %s) %d))\n", s0.c_str(), (int)frame.length());
+		__debugPrint(logFile, "(assert (>= (Length %s) %d))\n", s0.c_str(), (int)frame.length());
 	}
 
   //**************************************************************
@@ -4709,7 +4714,7 @@ void assignOtherValue(Z3_theory t){
 			if (length < 0)
 				length = 0;
 
-			std::set<std::string> values = ton.createStringWithLengthRange(length, length);
+			std::set<std::string> values = ton.createStringWithLengthRange(length, length + 10);
 			if (values.size() > 0) {
 				std::string value = *values.begin();
 				Z3_ast axiomToAdd01 = axiom_FinalValue(t, it->first, value);
@@ -5501,7 +5506,7 @@ Z3_ast axiom_FinalValue(Z3_theory t, Z3_ast node, std::string value){
 
 	Z3_ast axiomToAdd01 = Z3_mk_eq(ctx, node, constStr);
 
-	printf("(assert (= %s \"%s\"))\n", Z3_ast_to_string(ctx, node), value.c_str());
+	__debugPrint(logFile, "%d (assert (= %s \"%s\"))\n", __LINE__, Z3_ast_to_string(ctx, node), value.c_str());
 
 	return axiomToAdd01;
 }
@@ -7360,8 +7365,17 @@ std::string getStdGrmStr(Z3_theory t, Z3_ast grammar) {
   }
 }
 
+/*
+ * Find overapprox of cfg
+ */
 std::string lookUpGrammar(std::string name){
-	return ourGrm[name];
+	/* replace the first cha of name */
+	std::string tmpName = name;
+	if (tmpName[0] != 'Q'){
+		printf("%d %s\n", __LINE__, tmpName.c_str());
+		throw std::runtime_error("CFG variable is incorrect\n");
+	}
+	return ourGrm["$" + tmpName.substr(1)];
 }
 
 /*
@@ -7660,24 +7674,30 @@ void check(Z3_theory t)
 
 	switch (result) {
 	case Z3_L_FALSE:
-		printf(">> UNSAT\n\n");
+		printf("================================================\n");
+		printf(">> UNSAT\n");
+		printf("================================================\n");
 		break;
 	case Z3_L_UNDEF:
 		printf(">> unknown\n");
 		printf("potential model:\n%s\n", Z3_model_to_string(ctx, m));
 		break;
 	case Z3_L_TRUE:
-		printf(">> SAT\n\n");
+		if (ourGrm.size() == 0) {
+			printf("OverApprox: sat\n");
+			std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables = collectCombinationOverVariables(t);
+			std::map<std::string, int> currentLength = collectCurrentLength(t);
 
-		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables = collectCombinationOverVariables(t);
-		std::map<std::string, int> currentLength = collectCurrentLength(t);
-
-		underapproxController(combinationOverVariables, currentLength, inputFile);
-
-		// printf("sat\n%s\n", Z3_model_to_string(ctx, m));
-		for (std::map<Z3_ast, std::string>::iterator it = finalValues.begin(); it != finalValues.end(); ++it){
-			printf("(assert (= %s \"%s\"))\n", Z3_ast_to_string(ctx, it->first), it->second.c_str());
+			underapproxController(combinationOverVariables, currentLength, inputFile);
 		}
+		else {
+			printf("================================================\n");
+			printf(">> SAT\n");
+			printf("------------------------------------------------\n");
+			printf("%s\n", Z3_model_to_string(ctx, m));
+			printf("================================================\n");
+		}
+
 		break;
 	}
 	if (m) {
@@ -7726,5 +7746,6 @@ void overApproxController() {
   check(Th);
 
   // clean up
+
   Z3_del_context(ctx);
 }

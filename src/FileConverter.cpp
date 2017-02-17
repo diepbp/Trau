@@ -271,40 +271,7 @@ void customizeLine_ToCreateLengthLine(
 
 			}
 			else if (textState == 1 || textState == 3) {
-				if (strTmp[i] == '~') {
-					strTmp[i] = '0';
-				}
-				else if (strTmp[i] == '!') {
-					strTmp[i] = '1';
-				}
-				else if (strTmp[i] == '@') {
-					strTmp[i] = '2';
-				}
-				else if (strTmp[i] == '#') {
-					strTmp[i] = '3';
-				}
-				else if (strTmp[i] == '$') {
-					strTmp[i] = '4';
-				}
-				else if (strTmp[i] == '%') {
-					strTmp[i] = '5';
-				}
-				else if (strTmp[i] == '^') {
-					strTmp[i] = '6';
-				}
-				else if (strTmp[i] == '&') {
-					strTmp[i] = '7';
-				}
-				else if (strTmp[i] == '*') {
-					strTmp[i] = '8';
-				}
-				else if (strTmp[i] == '+') {
-					strTmp[i] = '9';
-				}
-				else if (strTmp[i] == '=') {
-					strTmp[i] = 'C';
-				}
-				else if (strTmp[i] == '?') {
+				if (strTmp[i] == '?') {
 					strTmp[i] = 'D';
 				}
 				else if (strTmp[i] == '|') {
@@ -327,6 +294,36 @@ void customizeLine_ToCreateLengthLine(
 				}
 				else if (strTmp[i] == '_') {
 					strTmp[i] = 'L';
+				}
+				else if (strTmp[i] == '~') {
+					strTmp[i] = 'M';
+				}
+				else if (strTmp[i] == '!') {
+					strTmp[i] = 'N';
+				}
+				else if (strTmp[i] == '@') {
+					strTmp[i] = 'O';
+				}
+				else if (strTmp[i] == '#') {
+					strTmp[i] = 'P';
+				}
+				else if (strTmp[i] == '$') {
+					strTmp[i] = 'Q';
+				}
+				else if (strTmp[i] == '%') {
+					strTmp[i] = 'R';
+				}
+				else if (strTmp[i] == '^') {
+					strTmp[i] = 'S';
+				}
+				else if (strTmp[i] == '&') {
+					strTmp[i] = 'T';
+				}
+				else if (strTmp[i] == '*') {
+					strTmp[i] = 'U';
+				}
+				else if (strTmp[i] == '+') {
+					strTmp[i] = 'V';
 				}
 				constStr = constStr + strTmp[i];
 			}
@@ -451,40 +448,7 @@ std::string customizeLine_removeSpecialChars(std::string str){
 
 		}
 		else if (textState == 1 || textState == 3) {
-			if (strTmp[i] == '~') {
-				strTmp[i] = '0';
-			}
-			else if (strTmp[i] == '!') {
-				strTmp[i] = '1';
-			}
-			else if (strTmp[i] == '@') {
-				strTmp[i] = '2';
-			}
-			else if (strTmp[i] == '#') {
-				strTmp[i] = '3';
-			}
-			else if (strTmp[i] == '$') {
-				strTmp[i] = '4';
-			}
-			else if (strTmp[i] == '%') {
-				strTmp[i] = '5';
-			}
-			else if (strTmp[i] == '^') {
-				strTmp[i] = '6';
-			}
-			else if (strTmp[i] == '&') {
-				strTmp[i] = '7';
-			}
-			else if (strTmp[i] == '*') {
-				strTmp[i] = '8';
-			}
-			else if (strTmp[i] == '+') {
-				strTmp[i] = '9';
-			}
-			else if (strTmp[i] == '=') {
-				strTmp[i] = 'C';
-			}
-			else if (strTmp[i] == '?') {
+			if (strTmp[i] == '?') {
 				strTmp[i] = 'D';
 			}
 			else if (strTmp[i] == '|') {
@@ -507,6 +471,36 @@ std::string customizeLine_removeSpecialChars(std::string str){
 			}
 			else if (strTmp[i] == '_') {
 				strTmp[i] = 'L';
+			}
+			else if (strTmp[i] == '~') {
+				strTmp[i] = 'M';
+			}
+			else if (strTmp[i] == '!') {
+				strTmp[i] = 'N';
+			}
+			else if (strTmp[i] == '@') {
+				strTmp[i] = 'O';
+			}
+			else if (strTmp[i] == '#') {
+				strTmp[i] = 'P';
+			}
+			else if (strTmp[i] == '$') {
+				strTmp[i] = 'Q';
+			}
+			else if (strTmp[i] == '%') {
+				strTmp[i] = 'R';
+			}
+			else if (strTmp[i] == '^') {
+				strTmp[i] = 'S';
+			}
+			else if (strTmp[i] == '&') {
+				strTmp[i] = 'T';
+			}
+			else if (strTmp[i] == '*') {
+				strTmp[i] = 'U';
+			}
+			else if (strTmp[i] == '+') {
+				strTmp[i] = 'V';
 			}
 		}
 
@@ -560,6 +554,11 @@ std::string customizeLine_replaceConst(std::string str, std::set<std::string> &c
  */
 void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
+	if (!in)
+	{
+		printf("%d %s", __LINE__, inputFile.c_str());
+		throw std::runtime_error("Cannot open input file!");
+	}
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
@@ -589,6 +588,8 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
  */
 void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("Cannot open input file!");
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
@@ -632,6 +633,11 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints){
 	FILE* in = fopen(inputFile.c_str(), "r");
+	if (!in)
+	{
+			printf("%d %s", __LINE__, inputFile.c_str());
+			throw std::runtime_error("Cannot open input file!");
+	}
 
 	char buffer[5000];
 	std::vector<std::string> strVars;
@@ -656,6 +662,11 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
  */
 void addLengthConstraintsToSMTFile(std::string inputFile, std::vector<std::string> lengthConstraints, std::string outFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
+	if (!in)
+	{
+			printf("%d %s", __LINE__, inputFile.c_str());
+			throw std::runtime_error("Cannot open input file!");
+	}
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 

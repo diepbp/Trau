@@ -620,6 +620,9 @@ std::string Automaton::getFrame(){
  * Find the shortest string of an automata
  */
 void Automaton::DFS_Frame(int pos, std::string currentStr, bool &stop) {
+	/* skip */
+	frame = "";
+	return;
 	if (stop)
 		return;
 

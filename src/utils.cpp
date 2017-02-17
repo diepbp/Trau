@@ -51,6 +51,15 @@ void displayListString(std::set<std::string> l, std::string msg) {
 	__debugPrint(logFile, "\n");
 }
 
+void displayListString(std::map<std::string, int> l, std::string msg) {
+	if (msg.length() > 0)
+		__debugPrint(logFile, "%s\n", msg.c_str());
+	for (std::map<std::string, int>::iterator it = l.begin(); it != l.end(); ++it){
+		__debugPrint(logFile, "%s\n", it->first.c_str());
+	}
+	__debugPrint(logFile, "\n");
+}
+
 
 void displayListString(std::vector<std::string> l, std::string msg) {
 	if (msg.length() > 0)

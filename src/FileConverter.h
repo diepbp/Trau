@@ -106,11 +106,4 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
  */
 void addLengthConstraintsToSMTFile(std::string inputFile, std::vector<std::string> lengthConstraints, std::string outFile);
 
-void displayListString(std::vector<std::string> l, std::string msg);
-
-void displayListString(std::set<std::string> l, std::string msg);
-
-void displayListNumber(std::set<int> l, std::string msg);
-
-void displayListNumber(std::vector<int> l, std::string msg);
 #endif /* FILECONVERTER_H_ */
