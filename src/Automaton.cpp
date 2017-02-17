@@ -827,12 +827,12 @@ void Automaton::DFS_LengthRange(int pos,
 																std::set<std::string> &ret,
 																int components) {
 //	if (ret.size() >= value_count)
-	if (ret.size() >= 4)
+	if (ret.size() >= 1)
 		return;
 
 	std::vector<int>::iterator it = std::find(acceptStates.begin(), acceptStates.end(), pos);
-//	if (it != acceptStates.end() && currentStr.length() >= lengthMin && currentStr.length() <= lengthMax) {
-	if (it != acceptStates.end() && (int)currentStr.length() == lengthMin && (int)currentStr.length() <= lengthMax) {
+	if (it != acceptStates.end() && (int)currentStr.length() >= lengthMin && (int)currentStr.length() <= lengthMax) {
+//	if (it != acceptStates.end() && (int)currentStr.length() == lengthMin && (int)currentStr.length() <= lengthMax) {
 		ret.insert(currentStr);
 	}
 

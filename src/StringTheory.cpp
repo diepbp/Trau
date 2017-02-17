@@ -4769,7 +4769,7 @@ bool guessLanguage(Z3_theory t, Z3_ast node) {
 
 	if (flats.size() > 0) {
 		displayListString(flats, "Set of flats:");
-
+		__debugPrint(logFile, "%d Set of flats\n", __LINE__)
 		// add new language
 		std::string newLanguage = "";
 		for (unsigned int i = 0; i < flats.size(); ++i)
@@ -5075,8 +5075,8 @@ bool determindConcat(Z3_theory t,
 
 					__debugPrint(logFile, "%d Case doesnt know anything (%d, %d) -- (%d, %d) (%d-->%d)\n", __LINE__, domain00.first, domain00.second, domain01.first, domain01.second, domain00.first, std::min(domain00.second, (int)it->length() - domain01.first));
 
-//					for (unsigned int k = domain00.first; k <= std::min(domain00.second, (int)it->length() - domain01.first); ++k) {
-					for (unsigned int k = 0; k <= it->length(); ++k) {
+					for (int k = domain00.first; k <= std::min(domain00.second, (int)it->length() - domain01.first); ++k) {
+//					for (unsigned int k = 0; k <= it->length(); ++k) {
 						len_values[arg0] = k;
 						split_knownHeadLength(t, *it, arg0, arg1, arg0_str, arg1_str, str_values, len_values);
 
@@ -5102,35 +5102,20 @@ bool determindConcat(Z3_theory t,
 							update_constValue(t, arg1, arg1_str, str_values, len_values, __LINE__);
 
 							__debugPrint(logFile, "%d Finish update const\n", __LINE__);
+
 							// 2. update list of concat nodes to extend
 							std::vector<Z3_ast> tmp_leavesList = leaves_list;
 							update_ExtendList(t, eq0, tmp_leavesList, pos);
 							update_ExtendList(t, eq1, tmp_leavesList, pos);
 							__debugPrint(logFile, "%d Finish update leave list\n", __LINE__);
+
 							// 3. continue running
-////							bool ret = determindConcat(t, tmp_leavesList, pos + 1, tmp_str_values, tmp_len_values, axiomToAdd, errorNodes);
-//							bool ret = determindConcat(t, tmp_leavesList, pos + 1, str_values, len_values, axiomToAdd, errorNodes);
+							determindConcat(t, tmp_leavesList, pos + 1, str_values, len_values, axiomToAdd, errorNodes);
 
 							undo_update_constValue(t, arg0, str_values, __LINE__);
 							undo_update_LengthValue(t, arg0, len_values, __LINE__);
 							undo_update_constValue(t, arg1, str_values, __LINE__);
 							undo_update_LengthValue(t, arg1, len_values, __LINE__);
-//							__debugPrint(logFile, "%d \nBACK \n\n", __LINE__);
-//							if (ret == false) {
-//								undo_update_constValue(t, arg0, str_values, __LINE__);
-//								undo_update_LengthValue(t, arg0, len_values, __LINE__);
-//								undo_update_constValue(t, arg1, str_values, __LINE__);
-//								undo_update_LengthValue(t, arg1, len_values, __LINE__);
-//								if (foundErrorPath == true)
-//									return false;
-//								else {
-//									__debugPrint(logFile, "%d \nRE-DO \n\n", __LINE__);
-//									continue;
-//								}
-//							}
-//							else {
-//								return true;
-//							}
 						}
 						else {
 							/*
@@ -5207,7 +5192,7 @@ bool determindConcat(Z3_theory t,
 		if (node == global_leaves_list[leavePos] && axiomToAdd.size() == 0)
 			foundErrorPath = true;
 		if (axiomToAdd.size() == 0) {
-			__debugPrint(logFile, "%d \nNO WAY TO SOLVE IT \n\n", __LINE__);
+			__debugPrint(logFile, "%d NO WAY TO SOLVE IT \n\n", __LINE__);
 			return false;
 		}
 		else return true;
