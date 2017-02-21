@@ -21,6 +21,7 @@ Getting & Building FAT
 - Update makefile by changing the path to customized Z3 library, line 47. Then,
 
 	make
+	
 - Update LD_LIBRARY_PATH:
 
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 

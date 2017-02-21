@@ -615,7 +615,7 @@ void reformulateRegex(std::map<std::string, std::string> &regex) {
 			}
 		}
 
-//		printf("%s: %s\n", it->first.c_str(), sum.c_str());
+//		printf("%d %s: %s\n", __LINE__, it->first.c_str(), sum.c_str());
 		regex[it->first] = varRegex;
 	}
 }

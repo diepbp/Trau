@@ -3359,7 +3359,7 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 		}
 		tonton.name = known;
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n\n>> @%d at __%s: Result intersection: %s ", __LINE__, __FILE__, tonton.toString(true).c_str());
+		__debugPrint(logFile, "\n\n>> @%d at __%s: Result intersection: %s ", __LINE__, __FILE__, tonton.toString(false).c_str());
 #endif
 		return tonton;
 
@@ -4145,7 +4145,6 @@ bool checkDone(Z3_theory t) {
 			return false;
 		}
 	}
-	return true;
 
 	for (std::map<Z3_ast, int>::iterator it = inputVarMap.begin(); it != inputVarMap.end(); ++it) {
 		std::string value = getConstStrValue(t, it->first);
@@ -7691,7 +7690,7 @@ void check(Z3_theory t)
 }
 
 void overApproxController() {
-	printf("Running Over Approxmation...\n");
+	printf("Running Over Approximation...\n");
 #ifdef DEBUGLOG
   __debugPrint(logFile, "***********************************************\n");
   __debugPrint(logFile, "*              fat_theory                     *\n");

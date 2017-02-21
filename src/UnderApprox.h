@@ -18,6 +18,7 @@
 #define ALLVAR 0
 
 extern std::string orgInput;
+extern bool getModel;
 static pthread_mutex_t smt_mutex;
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, int> global_smtVars;
@@ -262,7 +263,7 @@ void updatePossibleArrangements(
 	/*
 	 *
 	 */
-	bool Z3_run(std::string fileName);
+	bool Z3_run(std::string fileName, bool finalCall);
 
 	/*
 	 *

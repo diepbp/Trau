@@ -16,7 +16,8 @@
 std::string orgInput;
 std::string inputFile;
 std::string inputFile_converted;
-
+bool getModel = false;
+bool cleanLog = true;
 int cnt = 0;
 std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
@@ -293,15 +294,20 @@ int main(int argc, char* argv[])
 				grammarFile = argv[i];
 				foundGrm = true;
 			}
+			else if (tmp.compare("-model") == 0){
+				getModel = true;
+			}
+			else if (tmp.compare("-noCleanLog") == 0){
+				cleanLog = false;
+			}
 			else {
 				inputFile = argv[i];
 				orgInput = inputFile;
 			}
 		}
-		if (argc > 4 || foundGrm == false)
-			throw std::runtime_error("Incorrect arguments.\n ./FAT [-grm grammarFile] smtFile\n");
-		grammarFile = argv[2];
-		loadGrammar(grammarFile);
+		if (foundGrm == true){
+			loadGrammar(grammarFile);
+		}
 	}
 	else {
 		inputFile = argv[1];
@@ -318,7 +324,9 @@ int main(int argc, char* argv[])
 	inputFile_converted = convertFileToReplaceConst(inputFile);
 	overApproxController();
 
-	removeFile(inputFile);
+	if (cleanLog == true)
+		removeFile(inputFile);
+
 #ifdef DEBUGLOG
 	fclose(logFile);
 	fclose(logAxiom);

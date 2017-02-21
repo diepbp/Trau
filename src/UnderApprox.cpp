@@ -451,18 +451,17 @@ std::vector<std::string> collectAllPossibleArrangements(
 				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-			// arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-			// printf("%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
-			// arrangements[std::make_pair(lhs - 1, rhs - 1)][i].printTest("Error case");
 		}
 	}
 #else
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
+
 		std::string tmp = possibleCases[i].
 				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
+
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
 //			   arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
@@ -729,7 +728,7 @@ void writeOutput_basic(std::string outFile){
  * write to file output
  */
 void writeLengthOutput(std::string outFile, std::map<std::string, std::string> lengthResultMap){
-
+	assert(lengthResultMap.size() > 0);
 	std::vector<std::string> lengthValues;
 	/* length assertions */
 	for (std::vector<std::string>::iterator it = smtVarDefinition.begin(); it != smtVarDefinition.end(); ++it){
@@ -764,7 +763,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 	printf("= ");
 	for (unsigned int i = 0; i < rhs_elements.size(); ++i)
 		printf("%s.%d ", rhs_elements[i].first.c_str(), rhs_elements[i].second);
-	 printf("\nNumber of flats: %ld flats = %ld flats", lhs_elements.size(), rhs_elements.size());
+	 printf("\nNumber of flats: %ld flats = %ld flats\n", lhs_elements.size(), rhs_elements.size());
 #endif
 
 
@@ -775,7 +774,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 			lhs, rhs,
 			lhs_elements, rhs_elements,
 			newVars);
-	// printf("\n%d Total: %ld, var = %ld\n\n", __LINE__, cases.size(), newVars.size());
+//	 printf("\n%d Total: %ld, var = %ld\n\n", __LINE__, cases.size(), newVars.size());
 	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
 	if (cases.size() == 0)
 		newVars.clear();
@@ -1016,7 +1015,7 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 
 #ifdef PRINTTEST_UNDERAPPROX
 	/* print test the equal map*/
-	// printEqualMap(equalitiesMap);
+	 printEqualMap(equalitiesMap);
 #endif
 }
 /*
@@ -1294,7 +1293,7 @@ void *convertEqualities(void *tid){
 
 		/* different tactic for size of it->second */
 		const int flatP = 1;
-		const int maxPConsidered = 5;
+		const int maxPConsidered = 6;
 		unsigned int maxLocal = 0;
 		for (unsigned int i = 0; i < it->second.size(); ++i) {
 			maxLocal = it->second[i].size() > maxLocal ? it->second[i].size() : maxLocal;
@@ -1439,7 +1438,7 @@ void testEqualityToSMT(){
 /*
  *
  */
-bool Z3_run(std::string fileName) {
+bool Z3_run(std::string fileName, bool finalCall = true) {
 	std::string cmd = std::string(Z3_PATH) + "-smt2 " + fileName;
 	printf(">> Running Z3...\n");
 
@@ -1462,7 +1461,8 @@ bool Z3_run(std::string fileName) {
 			sat = true;
 		}
 		else {
-			printf(">> UNSAT\n\n");
+			if (finalCall == true)
+				printf(">> UNSAT\n\n");
 			return sat;
 		}
 		/* the concrete values */
@@ -1502,7 +1502,7 @@ bool Z3_run(std::string fileName) {
 	printf("%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 	writeLengthOutput(lengthFile, results);
-	if (sat)
+	if (sat && getModel)
 		sat = S3_assist(lengthFile);
 	return sat;
 }
@@ -1624,21 +1624,25 @@ void underapproxController(
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
 	init();
-	bool handleNotOp = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		handleNotOp = true;
-		convertSMTFileToLengthFile(fileDir, handleNotOp, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(fileDir, true, smtVarDefinition, smtLenConstraints, notConstraints);
 		writeOutput_basic(OUTPUT);
+		bool val = Z3_run(OUTPUT, false);
+		if (val == false){
+			convertSMTFileToLengthFile(fileDir, false, smtVarDefinition, smtLenConstraints, notConstraints);
+			writeOutput_basic(OUTPUT);
+			Z3_run(OUTPUT);
+		}
 	}
 	else {
-		convertSMTFileToLengthFile(fileDir, handleNotOp, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(fileDir, false, smtVarDefinition, smtLenConstraints, notConstraints);
 		pthreadController();
 		std::cout << ">> Generated SMT\n\n";
 //		std::cout << ">> Finished Under Appproximation in " << tim::measure<>::execution(pthreadController) << " seconds\n";
 		writeOutput02(OUTPUT);
+		Z3_run(OUTPUT);
 	}
-	Z3_run(OUTPUT);
 }
 
 

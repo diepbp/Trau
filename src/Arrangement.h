@@ -123,7 +123,9 @@ public:
 				std::string str,
 				std::vector<std::pair<std::string, int> > elementNames,
 				std::vector<int> currentSplit){
-
+//#ifdef PRINTTEST_UNDERAPPROX
+//			printf("%d Checking split\n", __LINE__);
+//#endif
 			/* check general split */
 			/* x_i == 0 --> x_i+1 == 0 */
 			for (unsigned int i = 1; i < currentSplit.size(); ++i)
@@ -339,32 +341,50 @@ public:
 				std::vector<std::vector<int> > &allPossibleSplits
 				) {
 			/* reach end */
+//#ifdef PRINTTEST_UNDERAPPROX
+//			printf("%d New iteration\n", __LINE__);
+//#endif
 			if (currentSplit.size() == elementNames.size() &&
 					pos == (int)str.length() &&
 					feasibleSplit_const(str, elementNames, currentSplit)) {
 
-				// splitPrintTest(currentSplit, "Accepted");
+//				 splitPrintTest(currentSplit, "Accepted");
 				 allPossibleSplits.push_back(currentSplit);
 				return;
 			}
 			else if (currentSplit.size() >= elementNames.size()) {
-				// splitPrintTest(currentSplit, "Rejected");
+//				 splitPrintTest(currentSplit, "Rejected");
 				return;
 			}
 
 			unsigned int textLeft = str.length() - pos;
-
+//#ifdef PRINTTEST_UNDERAPPROX
+//			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
+//				printf("(%s, %d)", elementNames[i].first.c_str(), elementNames[i].second);
+//			printf("\n%d collectAllPossibleSplits_const 1: %s %d %d %s\n", __LINE__, str.c_str(), textLeft, elementNames[currentSplit.size()].second, elementNames[currentSplit.size()].first.c_str());
+//#endif
 			/* special case for const: leng = leng */
 			if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
+//#ifdef PRINTTEST_UNDERAPPROX
+//				printf("%d collectAllPossibleSplits_const 2: %ld %ld\n", __LINE__, currentSplit.size(), elementNames.size());
+//				printf("%d %ld <= %ld\n", __LINE__, elementNames[currentSplit.size()].first.length(), textLeft);
+//#endif
 				if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 					currentSplit.push_back(elementNames[currentSplit.size()].first.length());
-					collectAllPossibleSplits_const(pos + elementNames[currentSplit.size()].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+//#ifdef PRINTTEST_UNDERAPPROX
+//					printf("%d call one more %d %d\n", __LINE__, pos, pos + elementNames[currentSplit.size() - 1].first.length());
+//#endif
+					collectAllPossibleSplits_const(pos + elementNames[currentSplit.size() - 1].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
+//#ifdef PRINTTEST_UNDERAPPROX
+//				printf("%d collectAllPossibleSplits_const Done 2\n", __LINE__);
+//#endif
 			}
 
 			/* special case for const tail, when we know the length of const head */
 			else if (elementNames[currentSplit.size()].second == -2 && currentSplit.size() > 0 && QCONSTMAX == 2) /* const */ {
+
 				assert (elementNames[currentSplit.size() - 1].second == -1);
 				unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
@@ -373,9 +393,11 @@ public:
 					collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
+
 			}
 
 			else if (currentSplit.size() == elementNames.size() - 1) /* the last one */ {
+
 				if ((elementNames[currentSplit.size()].second < 0 && elementNames[currentSplit.size()].first.length() >= textLeft) || /* const */
 						(elementNames[currentSplit.size()].second >= 0)) {
 					currentSplit.push_back(str.length() - pos);
@@ -386,7 +408,7 @@ public:
 				}
 			}
 
-			else
+			else {
 				for (unsigned int i = 0; i <= textLeft; ++i) {
 					unsigned int length = i;
 					if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
@@ -410,6 +432,7 @@ public:
 						currentSplit.pop_back();
 					}
 				}
+			}
 		}
 
 		void collectAllPossibleSplits_regex(
@@ -858,7 +881,9 @@ public:
 				}
 				else for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 					std::vector<int> curr;
+
 					collectAllPossibleSplits_const(0, lhs.first.substr(0, i), 10, alias, curr, allPossibleSplits);
+
 				}
 			}
 			else if (lhs.second == REGEX_CODE) /* regex */ {
@@ -1292,12 +1317,12 @@ public:
   				if (QCONSTMAX == 1) {
   					resultParts.push_back("(= " + subLen + " " + std::to_string(a.first.length()) + ")");
   					/* forall ((i Int)) (and (< i a.first.length()))*/
-  					char strTmp[1000];
+//  					char strTmp[1000];
 
-  					sprintf(strTmp, "(forall ((i Int)) (and (< i %ld) (= (select %s (+ i %s)) (select %s (+ i %s)))))",
-  							a.first.length(),
-  							arrayLhs.c_str(), prefix_lhs.c_str(),
-  							arrayRhs.c_str(), prefix_rhs.c_str());
+//  					sprintf(strTmp, "(forall ((i Int)) (and (< i %ld) (= (select %s (+ i %s)) (select %s (+ i %s)))))",
+//  							a.first.length(),
+//  							arrayLhs.c_str(), prefix_lhs.c_str(),
+//  							arrayRhs.c_str(), prefix_rhs.c_str());
 
   					for (unsigned int k = 0; k < a.first.length(); ++k){
   						resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
@@ -1520,14 +1545,14 @@ public:
 
   	/* optimize length of generated string */
   	std::string tmp01 = generateFlatArray(a, lhs_str);
-  	char tmpStr[1000];
-  	sprintf(tmpStr, "(forall ((i Int)) (implies (and (>= i 0) (< i %d)) (= (select %s (+ i %s)) (select arr_%s (+ i %d)))))",
-  			finish - start,
-  			tmp01.c_str(),
-  			startPos.c_str(),
-  			constMap[value].c_str(),
-  			start
-  			);
+//  	char tmpStr[1000];
+//  	sprintf(tmpStr, "(forall ((i Int)) (implies (and (>= i 0) (< i %d)) (= (select %s (+ i %s)) (select arr_%s (+ i %d)))))",
+//  			finish - start,
+//  			tmp01.c_str(),
+//  			startPos.c_str(),
+//  			constMap[value].c_str(),
+//  			start
+//  			);
 
   	if (startPos.size() == 1 && startPos[0] == '0') {
   		for (int i = start; i < finish; ++i) {
@@ -1810,10 +1835,12 @@ public:
 				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
 			}
 			else {
+
 				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
 
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
 				std::set<std::string> strSplits;
+
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
 
@@ -1821,6 +1848,7 @@ public:
 					// strSplits.emplace(fromSplitToSMT(a, elementNames, allPossibleSplits[i], connectedVariables, newVars)); /* without Z3 array */
 					// assert(strSplits[strSplits.size() - 1].length() > 5); /* not empty string */
 				}
+
 				if (strSplits.size() > 0)
 					result = result + " " + orConstraint(strSplits);
 				else
@@ -1882,6 +1910,7 @@ public:
 		/* do the left */
 		for (unsigned int i = 0; i < left_arr.size(); ++i)
 			if (left_arr[i] == SUMFLAT) { /* a = bx + cy */
+
 				checkLeft[i] = true;
 
 				std::vector<std::pair<std::string, int>> elements;
@@ -1892,6 +1921,7 @@ public:
 					}
 
 				std::string tmp = generateConstraint02(lhs_elements[i], elements, lhs_str, rhs_str, pMax, connectedVariables, newVars);
+
 				if (tmp.length() == 0) { /* cannot happen due to const */
 //					printf("%d 02 because of lhs[%d]\n", __LINE__, i);
 					return "";
@@ -1900,6 +1930,7 @@ public:
 
 			}
 			else if (left_arr[i] == EMPTYFLAT) {
+
 				/* empty */
 				/* some first flats can be empty */
 				if (lhs_elements[i].second == -1) /* head of const */ {
@@ -1909,6 +1940,7 @@ public:
 				}
 				checkLeft[i] = true;
 				std::string tmp = generateConstraint00(lhs_elements[i], lhs_str, newVars);
+
 				if (tmp.length() == 0) {/* cannot happen due to const */
 					return "";
 				}

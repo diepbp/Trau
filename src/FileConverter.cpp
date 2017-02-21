@@ -146,7 +146,7 @@ void checkAssignWellForm(std::string &s){
 					int tokens = 0;
 
 					int j = i;
-					for (unsigned j = i; j < s.length(); ++j) {
+					for (j = i; j < s.length(); ++j) {
 						if (s[j] == '('){
 							parentheses++;
 							tokens++;
@@ -166,9 +166,9 @@ void checkAssignWellForm(std::string &s){
 					// check (= A)
 //					printf("Tokens of %s : %d\n", newS.c_str(), tokens);
 					if (tokens <= 2) {
-						 // printf("%d Before s: %s\n", __LINE__, s.c_str());
+//						  printf("%d Before s: %s\n", __LINE__, s.c_str());
 						s.replace(i - 1, j - i + 2, "");
-						 // printf("%d After s: %s\n", __LINE__, s.c_str());
+//						  printf("%d After s: %s\n", __LINE__, s.c_str());
 
 						change = true;
 						break;
@@ -385,11 +385,12 @@ void customizeLine_ToCreateLengthLine(
 			}
 		}
 
-		// printf("%d before 00 %s\n", __LINE__, newStr.c_str());
+//		 printf("%d before 00 %s\n", __LINE__, newStr.c_str());
 		if (changeByNotOp) {
 			checkAssignWellForm(newStr);
 			changeByNotOp = false;
 		}
+//		printf("%d after 01 %s\n", __LINE__, newStr.c_str());
 		/* skip this assertion because of NotOp*/
 		if (newStr.find("(assert )") != std::string::npos)
 			return;
@@ -632,6 +633,9 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints){
+	smtVarDefinition.clear();
+	smtLenConstraints.clear();
+	notConstraints.clear();
 	FILE* in = fopen(inputFile.c_str(), "r");
 	if (!in)
 	{
@@ -681,6 +685,7 @@ void addLengthConstraintsToSMTFile(std::string inputFile, std::vector<std::strin
 					/* add length constraints */
 					out << lengthConstraints[i];
 					out.flush();
+//					printf("%d %s\n", __LINE__, lengthConstraints[i].c_str());
 				}
 				out << buffer;
 				out.flush();
