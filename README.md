@@ -21,9 +21,8 @@ Getting & Building FAT
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
 	
 - Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
-
-	z3 -version
 	
+	z3 -version
 Command-line Usage
 ---------------------------------
 	./FAT [option] fileName
@@ -41,6 +40,7 @@ where the file "examples/concat-006" contents are the following:
 	(declare-fun a () String)
 	(assert (= (Concat a "hello") "testhello"))
 	(check-sat)
+	
 When FAT terminates, it prints results as follows:
 
 	=================================
