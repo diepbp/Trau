@@ -23,6 +23,7 @@ Getting & Building FAT
 - Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
 	
 	z3 -version
+	
 Command-line Usage
 ---------------------------------
 	./FAT [option] fileName

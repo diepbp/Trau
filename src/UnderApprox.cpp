@@ -440,7 +440,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 	t = clock() - t;
 
 #ifdef PRINTTEST_UNDERAPPROX
-	printf("\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)].size());
+	__debugPrint(logFile, "\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)].size());
 #endif
 
 	std::vector<std::string> cases;
@@ -464,8 +464,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-//			   arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//			 printf("%d %s\n", __LINE__, tmp.c_str());
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//			printf("%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -597,8 +597,10 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 		lenX = "(+ " + lenX + ")";
 
 	/*(= len_X (+ sum(len_y)) */
-	lenX = "(= len_" + x + " " + lenX  + ")";
-
+	if (x[0] != '\"')
+		lenX = "(= len_" + x + " " + lenX  + ")";
+	else
+		lenX = "(= " + std::to_string(x.length() - 2) + " " + lenX  + ")";
 //	printf("%d createLengthConstraintForAssignment: %s\n", __LINE__, lenX.c_str());
 
 	return lenX;
@@ -757,13 +759,13 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements){
 #ifdef DEBUGLOG
-	printf(">> equalities to SMT \n");
+	__debugPrint(logFile, ">> equalities to SMT \n");
 	for (unsigned int i = 0; i < lhs_elements.size(); ++i)
-		printf("%s.%d ", lhs_elements[i].first.c_str(), lhs_elements[i].second);
-	printf("= ");
+		__debugPrint(logFile, "%s.%d ", lhs_elements[i].first.c_str(), lhs_elements[i].second);
+	__debugPrint(logFile, "= ");
 	for (unsigned int i = 0; i < rhs_elements.size(); ++i)
-		printf("%s.%d ", rhs_elements[i].first.c_str(), rhs_elements[i].second);
-	 printf("\nNumber of flats: %ld flats = %ld flats\n", lhs_elements.size(), rhs_elements.size());
+		__debugPrint(logFile, "%s.%d ", rhs_elements[i].first.c_str(), rhs_elements[i].second);
+	__debugPrint(logFile, "\nNumber of flats: %ld flats = %ld flats\n", lhs_elements.size(), rhs_elements.size());
 #endif
 
 
@@ -774,7 +776,6 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 			lhs, rhs,
 			lhs_elements, rhs_elements,
 			newVars);
-//	 printf("\n%d Total: %ld, var = %ld\n\n", __LINE__, cases.size(), newVars.size());
 	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
 	if (cases.size() == 0)
 		newVars.clear();
@@ -787,14 +788,14 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalMap.begin();
 			it != equalMap.end(); ++it) {
-		printf("%s =\n", it->first.c_str());
+		__debugPrint(logFile, "%s =\n", it->first.c_str());
 		for (unsigned int i = 0; i < it->second.size(); ++i) {
 			for (unsigned int j = 0; j < it->second[i].size(); ++j) {
-				printf("\t%s ",  it->second[i][j].c_str());
+				__debugPrint(logFile, "\t%s ",  it->second[i][j].c_str());
 			}
-			printf("\n");
+			__debugPrint(logFile, "\n");
 		}
-		printf("\n");
+		__debugPrint(logFile, "\n");
 	}
 }
 
@@ -989,7 +990,8 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 	equalitiesMap.clear();
 
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = _equalMap.begin(); it != _equalMap.end(); ++it) {
-		allVariables.emplace(it->first);
+		if (it->first[0] != '\"')
+			allVariables.emplace(it->first);
 		std::vector<std::vector<std::string>> setOfEQ;
 		for (unsigned int i = 0 ; i < it->second.size(); ++i) {
 			std::vector<std::string> anEq;
@@ -1066,7 +1068,6 @@ void sumConstString(){
 
 #ifdef PRINTTEST_UNDERAPPROX
 	if (equalitiesMap.size() > 0) {
-		printf("%d Equalities:\n", __LINE__);
 		printEqualMap(equalitiesMap);
 	}
 #endif
@@ -1096,12 +1097,11 @@ void createConstMap(){
 #ifdef PRINTTEST_UNDERAPPROX
 	if (constMap.size() > 0) {
 		/* print test const map */
-		printf("%d Const map:\n", __LINE__);
-//		for (std::map<std::pair<std::string, std::string>, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it) {
+		__debugPrint(logFile, "%d Const map:\n", __LINE__);
 		for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it) {
-			printf("%s: %s\n", it->first.c_str(), it->second.c_str());
+			__debugPrint(logFile, "%s: %s\n", it->first.c_str(), it->second.c_str());
 		}
-		printf("\n");
+		__debugPrint(logFile, "\n");
 	}
 #endif
 }
@@ -1154,12 +1154,12 @@ void collectConnectedVariables(){
 #ifdef PRINTTEST_UNDERAPPROX
 	/* print test connected var */
 	if (connectedVariables.size() > 0) {
-		printf("%d Connected Variables:\n", __LINE__);
+		__debugPrint(logFile, "%d Connected Variables:\n", __LINE__);
 
 		for (std::set<std::string>::iterator it = connectedVariables.begin(); it != connectedVariables.end(); ++it){
-			printf("%s at %s\n", it->c_str(), usedComponents[*it].c_str());
+			__debugPrint(logFile, "%s at %s\n", it->c_str(), usedComponents[*it].c_str());
 		}
-		printf("\n");
+		__debugPrint(logFile, "\n");
 	}
 #endif
 }
@@ -1299,7 +1299,7 @@ void *convertEqualities(void *tid){
 			maxLocal = it->second[i].size() > maxLocal ? it->second[i].size() : maxLocal;
 		}
 #ifdef PRINTTEST_UNDERAPPROX
-		printf("%d Max list size: %d\n", __LINE__, maxLocal);
+		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
 #endif
 		if (maxLocal >= maxPConsidered) {
 			/* add an eq = flat . flat . flat, then other equalities will compare will it*/
@@ -1318,7 +1318,7 @@ void *convertEqualities(void *tid){
 				t = clock() - t;
 
 #ifdef PRINTTEST_UNDERAPPROX
-				printf("%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
+				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
 				if (result.first.size() != 0) {
 					if (lengthRecord == false) {
@@ -1358,7 +1358,7 @@ void *convertEqualities(void *tid){
 					);
 					t = clock() - t;
 #ifdef PRINTTEST_UNDERAPPROX
-					printf("%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
+					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
 					if (result.first.size() != 0) {
 						if (lengthRecord == false) {
@@ -1452,7 +1452,7 @@ bool Z3_run(std::string fileName, bool finalCall = true) {
 	bool sat = false;
 	try {
 		/* the first line */
-		fgets(buffer, 5000, in);
+		fgets(buffer, 4000, in);
 		std::string getSat = buffer;
 		getSat = getSat.substr(0, 3);
 
@@ -1468,8 +1468,7 @@ bool Z3_run(std::string fileName, bool finalCall = true) {
 		/* the concrete values */
 		while (!feof(in)) {
 			std::string line = "";
-			if (fgets(buffer, 5000, in) != NULL) {
-				//				printf("%s\n", buffer);
+			if (fgets(buffer, 4000, in) != NULL) {
 				line = buffer;
 				if (line.find("(define") != std::string::npos) {
 					/* collect variable */
@@ -1478,8 +1477,7 @@ bool Z3_run(std::string fileName, bool finalCall = true) {
 					std::string name = tokens[1];
 
 					/* read the value in the next line */
-					fgets(buffer, 5000, in);
-					//					printf("%s\n", buffer);
+					fgets(buffer, 4000, in);
 					tokens = parse_string_language(buffer, " (),.");
 					if (tokens[0][0] == '-')
 						results[name] = "(" + tokens[0] + " " + tokens[1] + ")";
@@ -1499,7 +1497,7 @@ bool Z3_run(std::string fileName, bool finalCall = true) {
 	/* collect length of all string variables*/
 	std::string lengthFile = std::string(TMPDIR) + "w_l_" + getFileNameFromFileDir(orgInput);
 #ifdef PRINTTEST_UNDERAPPROX
-	printf("%d output with length: %s\n", __LINE__, lengthFile.c_str());
+	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 	writeLengthOutput(lengthFile, results);
 	if (sat && getModel)
@@ -1594,10 +1592,6 @@ void pthreadController(){
 	}
 
 	pthread_mutex_destroy(&smt_mutex);
-
-#ifdef DEBUGLOG
-	printf("Main: program completed. Exiting. %ld\n", equalitiesMap.size());
-#endif
 
 	//	pthread_exit(NULL);
 }

@@ -342,6 +342,18 @@ void Th_new_relevant(Z3_theory t, Z3_ast n);
 */
 void Th_new_assignment(Z3_theory t, Z3_ast n, Z3_bool v);
 
+/*
+ * if
+ * 		it is Concat -->
+ * 		it is equal to AutomataDef -->
+ */
+void extendVariableToFindAllPossibleEqualities(
+		Z3_theory t, Z3_ast node,
+		std::set<Z3_ast> connectedVariables,
+		std::set<std::string> &variableBelongToOthers,
+		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
+		int level);
+
 /**
    \brief Callback: invoked before Z3 starts building a model.
    This callback can be used to perform expensive operations lazily.

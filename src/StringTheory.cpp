@@ -916,7 +916,7 @@ Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) 
 /*
  *Z3_bool Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result);
  */
-Z3_bool Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result) {
+int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result) {
   Z3_context ctx = Z3_theory_get_context(t);
   AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
@@ -3811,32 +3811,42 @@ bool isEqualVector(std::vector<Z3_ast> a, std::vector<Z3_ast> b) {
 	return true;
 }
 
+/**
+ * Collect const in a list
+ */
+Z3_ast findConstInList(Z3_theory t, std::vector<Z3_ast> list){
+	for (unsigned int i = 0 ; i < list.size(); ++i)
+		if (isAutomatonFunc(t, list[i]))
+			return list[i];
+	return NULL;
+}
 /*
  * if
  * 		it is Concat -->
  * 		it is equal to AutomataDef -->
  */
-std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
-		Z3_theory t, Z3_ast node,
+void extendVariableToFindAllPossibleEqualities(
+		Z3_theory t,
+		Z3_ast node,
 		std::set<Z3_ast> connectedVariables,
 		std::set<std::string> &variableBelongToOthers,
+		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
 		int level) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	// __debugPrint(logFile, "%d extend concat %s\n", __LINE__, Z3_ast_to_string(ctx, node));
-	std::vector<std::vector<Z3_ast>> final_result;
+//	__debugPrint(logFile, "%d extend concat %s\n", __LINE__, Z3_ast_to_string(ctx, node));
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
 
-	/* if one of them is const --> stop */
-	/* no, we cannot stop here because if we stop, we cannot handle the case "abcdef" = x + "def" + y*/
 	/* TODO handle regex */
-	for (unsigned int i = 0 ; i < eqNode.size(); ++i){
-		if (isAutomatonFunc(t, eqNode[i])) {
-			std::vector<Z3_ast> tmp;
-			tmp.push_back(eqNode[i]);
-			final_result.push_back(tmp);
-			break;
+	Z3_ast constNode = findConstInList(t, eqNode);
+
+	if (constNode != NULL) {
+		if (allEqPossibilities.find(constNode) != allEqPossibilities.end()) {
+			/* const has been evaluated */
+			/* --> update: he = const */
+			allEqPossibilities[node].push_back({constNode});
+			return;
 		}
 	}
 
@@ -3848,12 +3858,12 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, eqNode[i]), 1);
 
 			if (isStrVariable(t, arg0)) {
-				/* mark non-root variable */
+				/* mark non-root variable --> dont care about him */
 				variableBelongToOthers.emplace(std::string(Z3_ast_to_string(ctx, arg0)));
 			}
 
 			if (isStrVariable(t, arg1)) {
-				/* mark non-root variable */
+				/* mark non-root variable --> dont care about him */
 				variableBelongToOthers.emplace(std::string(Z3_ast_to_string(ctx, arg1)));
 			}
 
@@ -3873,11 +3883,11 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 
 			if (duplicateConcat == false) {
 				refined_eqNode.push_back(eqNode[i]);
-				// __debugPrint(logFile, "\t%d look at %s\n", __LINE__, Z3_ast_to_string(ctx, eqNode[i]));
 			}
 		}
 		/* mark non-root variable */
 		else if (eqNode[i] != node) {
+			/* skip */
 		}
 
 	/* if none of them is const --> continue with Concat*/
@@ -3889,23 +3899,33 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_eqNode[i]), 1);
 
 			if (isStrVariable(t, arg0)) { /* variable */
-				// __debugPrint(logFile, "\t%d look inside %s\n", __LINE__, Z3_ast_to_string(ctx, arg0));
-				arg0_eq = extendVariableToFindAllPossibleEqualities(t, arg0, connectedVariables, variableBelongToOthers, level + 1);
+				if (allEqPossibilities.find(arg0) == allEqPossibilities.end())
+					// __debugPrint(logFile, "\t%d look inside %s\n", __LINE__, Z3_ast_to_string(ctx, arg0));
+					extendVariableToFindAllPossibleEqualities(t,
+																arg0,
+																connectedVariables,
+																variableBelongToOthers,
+																allEqPossibilities,
+																level + 1);
+				arg0_eq = allEqPossibilities[arg0];
 			}
 			else if (isAutomatonFunc(t, arg0)) { /* const */
-				std::vector<Z3_ast> tmp;
-				tmp.push_back(arg0);
-				arg0_eq.push_back(tmp);
+				arg0_eq.push_back({arg0});
 			}
 
 			if (isStrVariable(t, arg1)) { /* variable */
-				// __debugPrint(logFile, "\t%d look inside %s\n", __LINE__, Z3_ast_to_string(ctx, arg1));
-				arg1_eq = extendVariableToFindAllPossibleEqualities(t, arg1, connectedVariables, variableBelongToOthers, level + 1);
+				if (allEqPossibilities.find(arg1) == allEqPossibilities.end())
+					// __debugPrint(logFile, "\t%d look inside %s\n", __LINE__, Z3_ast_to_string(ctx, arg1));
+					extendVariableToFindAllPossibleEqualities(t,
+																arg1,
+																connectedVariables,
+																variableBelongToOthers,
+																allEqPossibilities,
+																level + 1);
+				arg1_eq = allEqPossibilities[arg1];
 			}
 			else if (isAutomatonFunc(t, arg1)) { /* const */
-				std::vector<Z3_ast> tmp;
-				tmp.push_back(arg1);
-				arg1_eq.push_back(tmp);
+				arg1_eq.push_back({arg1});
 			}
 
 			/* combine */
@@ -3918,7 +3938,6 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 				}
 			}
 		}
-
 	std::vector<std::vector<Z3_ast>> refined_result;
 	/* check
 	 * 1. containt const or not
@@ -3930,9 +3949,6 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 		bool added = false;
 		for (unsigned int j = 0; j < result[i].size(); ++j) {
 			if (isAutomatonFunc(t, result[i][j]) || connectedVariables.find(result[i][j]) != connectedVariables.end()) {
-//				__debugPrint(logFile, "%d level %d return ", __LINE__, level);
-//				printZ3Node(t, node);
-//				__debugPrint(logFile, " because of %s \n", Z3_ast_to_string(ctx, result[i][j]));
 				refined_result.push_back(result[i]);
 				added = true;
 				break;
@@ -3941,27 +3957,29 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
 		}
 		/* do not need to print this case because it can be implied from SMT file */
 		if (added == false) {
-			// __debugPrint(logFile, "level: %d ---length %s\n", level, Z3_ast_to_string(ctx, node));
-			displayListNode(t, result[i], "");
 		}
 	}
 
-	if (final_result.size() > 0) /* found a const at the beginning */ {
+	if (constNode != NULL) /* found a const at the beginning */ {
 		/* create a new combination for const */
+		/* update: const = lhs . rhs */
+		if (refined_result.size() > 0) {
+			refined_result.push_back({constNode});
+			allEqPossibilities[constNode] = refined_result;
+		}
 
-//		.
-		/* return that const */
-		return final_result;
+		/* --> update: he = const */
+		allEqPossibilities[node].push_back({constNode});
 	}
+	else {
+		/* he = himself */
+		if (refined_result.size() == 0) {
+			refined_result.push_back({node});
+		}
 
-	/* return node itself */
-	if (refined_result.size() == 0) {
-		std::vector<Z3_ast> tmp;
-		tmp.push_back(node);
-		refined_result.push_back(tmp);
+		/* update */
+		allEqPossibilities[node] = refined_result;
 	}
-	return refined_result;
-	/* isEqualVector */
 }
 
 /**
@@ -3999,18 +4017,28 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> allEqPossibilities;
 	for (std::map<Z3_ast, int>::iterator itor = inputVarMap.begin(); itor != inputVarMap.end(); itor++) {
 		std::string currentVarName = Z3_ast_to_string(ctx, itor->first);
-		if (variableBelongToOthers.find(itor->first) == variableBelongToOthers.end()){
-			allEqPossibilities[itor->first] = extendVariableToFindAllPossibleEqualities(t, itor->first, connectedVariables, variableBelongToOthers, 0);
+		if (variableBelongToOthers.find(currentVarName) == variableBelongToOthers.end()){
+			extendVariableToFindAllPossibleEqualities(	t,
+														itor->first,
+														connectedVariables,
+														variableBelongToOthers,
+														allEqPossibilities,
+														0);
 		}
 	}
 
-	/* print all equal possibilities of root variables */
-	for (std::map<Z3_ast, int>::iterator itor = inputVarMap.begin(); itor != inputVarMap.end(); itor++) {
+	/* collect all equal possibilities of root variables */
+	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
+		if (varName.find("AutomataDef") != std::string::npos) {
+			varName = varName.substr(13, varName.length() - 14);
+			if (varName[0] == '|')
+				varName = varName.substr(1, varName.length() - 2);
+			varName = "\"" + varName + "\"";
+		}
 		if (variableBelongToOthers.find(varName) == variableBelongToOthers.end()){
 			/* add them to the result set */
-			std::vector<std::vector<Z3_ast>> eqPossibilities = allEqPossibilities[itor->first];
-			std::string varName = Z3_ast_to_string(ctx, itor->first);
+			std::vector<std::vector<Z3_ast>> eqPossibilities = itor->second;
 			for (unsigned int i = 0; i < eqPossibilities.size(); ++i) {
 				std::vector<std::string> tmp;
 				for (unsigned int j = 0; j < eqPossibilities[i].size(); ++j) {
@@ -4031,9 +4059,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* clean the result again to remove some variables */
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
 		if (variableBelongToOthers.find(it->first) == variableBelongToOthers.end()){
-			__debugPrint(logFile, "%d %s = :\n", __LINE__, it->first.c_str());
-			for (unsigned int i = 0 ; i < it->second.size(); ++i)
-				displayListString(it->second[i], "Start \n");
+			__debugPrint(logFile, "%d %s is a root.\n", __LINE__, it->first.c_str());
 		}
 		else
 			combinationOverVariables[it->first].clear();
