@@ -12,20 +12,22 @@ Getting & Building FAT
 ---------------------------------
 	git clone https://github.com/diepbp/FAT.git
 	cd FAT	
+	
 - Install customized Z3 by following the instruction
 	
 - Update makefile by changing the path to customized Z3 library, line 47. Then,
 
 	make
-- Update LD_LIBRARY_PATH:
-
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
+	
 - Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
 
 	z3 -version
+	
 Command-line Usage
 ---------------------------------
 	./FAT [option] fileName
+	
 The folllowing options are avaiable:
 - -model: print the concrete model if it is SAT
 - -grm grammarFile: specify a grammar file
@@ -33,6 +35,7 @@ The folllowing options are avaiable:
 Running Example(s)
 ---------------------------------
 	./FAT -model examples/concat-006
+	
 where the file "examples/concat-006" contents are the following:
 
 	(declare-fun a () String)
