@@ -17,7 +17,9 @@ Getting & Building FAT
 	
 - Update makefile by changing the path to customized Z3 library, line 47. Then,
 
+
 	make
+	
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
 	
 - Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
