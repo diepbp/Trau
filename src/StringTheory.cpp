@@ -3816,24 +3816,27 @@ bool isEqualVector(std::vector<Z3_ast> a, std::vector<Z3_ast> b) {
  * 		it is Concat -->
  * 		it is equal to AutomataDef -->
  */
-std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(Z3_theory t, Z3_ast node,
+std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(
+		Z3_theory t, Z3_ast node,
 		std::set<Z3_ast> connectedVariables,
 		std::set<std::string> &variableBelongToOthers,
 		int level) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	// __debugPrint(logFile, "%d extend concat %s\n", __LINE__, Z3_ast_to_string(ctx, node));
-
+	std::vector<std::vector<Z3_ast>> final_result;
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
 
 	/* if one of them is const --> stop */
+	/* no, we cannot stop here because if we stop, we cannot handle the case "abcdef" = x + "def" + y*/
+	/* TODO handle regex */
 	for (unsigned int i = 0 ; i < eqNode.size(); ++i){
 		if (isAutomatonFunc(t, eqNode[i])) {
 			std::vector<Z3_ast> tmp;
 			tmp.push_back(eqNode[i]);
-			result.push_back(tmp);
-			return result;
+			final_result.push_back(tmp);
+			break;
 		}
 	}
 
@@ -3943,6 +3946,14 @@ std::vector<std::vector<Z3_ast>> extendVariableToFindAllPossibleEqualities(Z3_th
 		}
 	}
 
+	if (final_result.size() > 0) /* found a const at the beginning */ {
+		/* create a new combination for const */
+
+//		.
+		/* return that const */
+		return final_result;
+	}
+
 	/* return node itself */
 	if (refined_result.size() == 0) {
 		std::vector<Z3_ast> tmp;
@@ -3967,7 +3978,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* detect connected variables */
 	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
 
-		/* check connected for 1st variable */
+		/* chec`k connected for 1st variable */
 		if (concat_belong_map.find(it->first.first) != concat_belong_map.end() &&
 				concat_belong_map[it->first.first] != it->second)
 			connectedVariables.emplace(it->first.first);
@@ -3987,7 +3998,10 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* find all equal possibilities*/
 	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> allEqPossibilities;
 	for (std::map<Z3_ast, int>::iterator itor = inputVarMap.begin(); itor != inputVarMap.end(); itor++) {
-		allEqPossibilities[itor->first] = extendVariableToFindAllPossibleEqualities(t, itor->first, connectedVariables, variableBelongToOthers, 0);
+		std::string currentVarName = Z3_ast_to_string(ctx, itor->first);
+		if (variableBelongToOthers.find(itor->first) == variableBelongToOthers.end()){
+			allEqPossibilities[itor->first] = extendVariableToFindAllPossibleEqualities(t, itor->first, connectedVariables, variableBelongToOthers, 0);
+		}
 	}
 
 	/* print all equal possibilities of root variables */
@@ -4016,8 +4030,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 
 	/* clean the result again to remove some variables */
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
-		if (variableBelongToOthers.find(it->first) == variableBelongToOthers.end())
-		{
+		if (variableBelongToOthers.find(it->first) == variableBelongToOthers.end()){
 			__debugPrint(logFile, "%d %s = :\n", __LINE__, it->first.c_str());
 			for (unsigned int i = 0 ; i < it->second.size(); ++i)
 				displayListString(it->second[i], "Start \n");

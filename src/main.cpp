@@ -266,7 +266,19 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	rewriteFileSMTToRemoveSpecialChar(fileDir, outFile);
 	return outFile;
 }
+/**
+ *
+ */
+void printHelp(){
+	printf("FAT string solver [version 0.9]\n");
+	printf("Usage ./FAT [option] file.smt2\n\n");
 
+	printf("Input format:\n");
+	printf("\t -model 	\t print the concrete model if it is SAT.\n");
+	printf("\t -grm 	\t\t specify the grammar file.\n");
+
+	printf("\n");
+}
 /**
  *
  */
@@ -285,33 +297,31 @@ int main(int argc, char* argv[])
 	logAxiom = fopen("logAxiom.smt2", "w");
 #endif
 
-	if (argc >= 3) {
-		bool foundGrm = false;
-		for (int i = 1; i < argc; ++i) {
-			std::string tmp = std::string(argv[i]);
-			if (tmp.compare("-grm") == 0){
-				i++;
-				grammarFile = argv[i];
-				foundGrm = true;
-			}
-			else if (tmp.compare("-model") == 0){
-				getModel = true;
-			}
-			else if (tmp.compare("-noCleanLog") == 0){
-				cleanLog = false;
-			}
-			else {
-				inputFile = argv[i];
-				orgInput = inputFile;
-			}
+	bool foundGrm = false;
+	for (int i = 1; i < argc; ++i) {
+		std::string tmp = std::string(argv[i]);
+		if (tmp.compare("-grm") == 0){
+			i++;
+			grammarFile = argv[i];
+			foundGrm = true;
 		}
-		if (foundGrm == true){
-			loadGrammar(grammarFile);
+		else if (tmp.compare("-model") == 0){
+			getModel = true;
+		}
+		else if (tmp.compare("-noCleanLog") == 0){
+			cleanLog = false;
+		}
+		else if (tmp.compare("-help") == 0){
+			printHelp();
+			return 0;
+		}
+		else {
+			inputFile = argv[i];
+			orgInput = inputFile;
 		}
 	}
-	else {
-		inputFile = argv[1];
-		orgInput = inputFile;
+	if (foundGrm == true){
+		loadGrammar(grammarFile);
 	}
 
 #ifdef DEBUGLOG

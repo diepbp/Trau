@@ -1,0 +1,8 @@
+(declare-fun y () String)
+(declare-fun y () String)
+
+(assert (or (= (Concat a b) "te" )  (= (Concat b a) "te" ) ) )
+(assert (= b "t" ) )
+
+(check-sat)
+(get-model)

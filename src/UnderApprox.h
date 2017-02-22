@@ -8,7 +8,6 @@
 #ifndef UNDERAPPROX_H_
 #define UNDERAPPROX_H_
 
-#include "libs.h"
 #include "utils.h"
 #include "Arrangement.h"
 #include "FileConverter.h"

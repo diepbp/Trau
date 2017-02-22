@@ -7,10 +7,6 @@ Before attempting to build FAT, you must have the following installed:
 - git (must be on your PATH)
 - python (must be on your PATH)
 - openfst (must be on your PATH). You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
-- Z3 4.5.0 (must be on your PATH). You can find the Z3 [here](https://github.com/Z3Prover/z3/releases). Checking whether Z3 was successfully installed
-
-	z3 -version
-	
 
 Getting & Building FAT
 ---------------------------------
@@ -21,11 +17,33 @@ Getting & Building FAT
 - Update makefile by changing the path to customized Z3 library, line 47. Then,
 
 	make
-	
 - Update LD_LIBRARY_PATH:
 
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
+- Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
 
+	z3 -version
 Command-line Usage
 ---------------------------------
-	./FAT [fileName]
+	./FAT [option] fileName
+The folllowing options are avaiable:
+- -model: print the concrete model if it is SAT
+- -grm grammarFile: specify a grammar file
+
+Running Example(s)
+---------------------------------
+	./FAT -model examples/concat-006
+where the file "examples/concat-006" contents are the following:
+
+	(declare-fun a () String)
+	(assert (= (Concat a "hello") "testhello"))
+	(check-sat)
+When FAT terminates, it prints results as follows:
+
+	=================================
+	>> SAT
+	---------------------------------
+	a: string -> "test"
+	=================================
+	
+More examples are in the subfolder "examples". We create those examples based on examples we found in Z3-str2 tool.
