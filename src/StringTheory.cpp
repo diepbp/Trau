@@ -275,15 +275,6 @@ inline int twoHexDigitToChar(char a, char b) {
   return (hexDigitToInt(a) * 16 + hexDigitToInt(b));
 }
 
-void printTest(Z3_theory t, Z3_ast node, int line) {
-	__debugPrint(logFile, "\n%d Print Test: \n", line);
-	printZ3Node(t, node);
-	__debugPrint(logFile, ":\n");
-	for (std::vector<std::string>::iterator it = eqMap[node].begin(); it != eqMap[node].end(); it++){
-		__debugPrint(logFile, "@%d\t %s \n", line, it->c_str());
-	}
-}
-
 /*
  *
  */
@@ -871,9 +862,6 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 		if (regexStr.find("__NotConstStr__") == std::string::npos && regexStr.find("__Contain_Vars__") == std::string::npos) {
 
 			Z3_ast newapp = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, regexStr.c_str()));
-			eqMap[args[0]].push_back(regexStr);
-			printTest(t, args[0], __LINE__);
-
 			return Z3_mk_eq(ctx, args[0], newapp);
 		}
 	}
@@ -902,11 +890,16 @@ Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) 
 
 	if (grmStr.length() > 0) {
 
-		Z3_ast newapp = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, grmStr.c_str()));
-		eqMap[args[0]].push_back(grmStr);
-		printTest(t, args[0], __LINE__);
+		Z3_ast rhs = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, grmStr.c_str()));
 
-		return Z3_mk_eq(ctx, args[0], newapp);
+		if (isConstStr(t, args[0])){
+			std::string constStr = Z3_ast_to_string(ctx, args[0]);
+			Z3_ast lhs = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, constStr.c_str()));
+			return Z3_mk_eq(ctx, lhs, rhs);
+		}
+		else {
+			return Z3_mk_eq(ctx, args[0], rhs);
+		}
 	}
 	else {
 		std::cerr << "Grammar is not defined!\n\n\n";
@@ -3346,12 +3339,12 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 		// intersect with concats
 		Automaton tonton = elements[0];
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, 0, elements[0].toString(true).c_str());
+		__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, 0, elements[0].toString(false).c_str());
 #endif
 
 		for (unsigned int i = 1; i < elements.size(); ++i) {
 #ifdef DEBUGLOG
-			__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, i, elements[i].toString(true).c_str());
+			__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, i, elements[i].toString(false).c_str());
 #endif
 			tonton = tonton.Intersect(known, elements[i]);
 			if (tonton.isError())
@@ -7376,16 +7369,16 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
  */
 std::string getStdGrmStr(Z3_theory t, Z3_ast grammar) {
 	Z3_context ctx = Z3_theory_get_context(t);
-  AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-  Z3_func_decl grmFuncDecl = Z3_get_app_decl(ctx, Z3_to_app(ctx, grammar));
-  if (grmFuncDecl == td->Str2Grm) {
-    Z3_ast grmAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, grammar), 0);
-    std::string grmStr = lookUpGrammar(Z3_ast_to_string(ctx, grmAst));
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	Z3_func_decl grmFuncDecl = Z3_get_app_decl(ctx, Z3_to_app(ctx, grammar));
+	if (grmFuncDecl == td->Str2Grm) {
+		Z3_ast grmAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, grammar), 0);
+		std::string grmStr = lookUpGrammar(Z3_ast_to_string(ctx, grmAst));
 
-    return grmStr;
-  } else {
-  	return "__Contain_Vars__";
-  }
+		return grmStr;
+	} else {
+		return "__Contain_Vars__";
+	}
 }
 
 /*

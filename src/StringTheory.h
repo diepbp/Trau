@@ -53,7 +53,6 @@ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 
 static std::map<std::string, std::set<char>> charSet;
 
-static std::map<Z3_ast, std::vector<std::string>> eqMap;
 static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
 /**
    \brief Data-structure for storing theory specific data.

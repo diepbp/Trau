@@ -8,7 +8,7 @@
 #include "GrmOverApprox.h"
 
 void printNonTerminal(std::map<std::string, std::vector<std::string>> list, std::string name, std::string endStr) {
-	printf("%s: \n", name.c_str());
+	printf("%d %s: \n", __LINE__, name.c_str());
 	for (std::map<std::string, std::vector<std::string>>::iterator it = list.begin(); it != list.end(); ++it) {
 		printf(" %s: ", it->first.c_str());
 		for (unsigned int j = 0 ; j < it->second.size(); ++j)
@@ -93,6 +93,7 @@ std::map<std::string, std::string> CFG_parser(std::string inputFile){
 				if (component[0] != '$') /* not non-terminal*/ {
 					for (unsigned int t = 0; t < component.length(); ++t)
 						if (component[t] >= 'A' && component[t] <= 'W') {
+							printf("%d %s\n", __LINE__, component.c_str());
 							throw std::runtime_error("Do not accept UPPER CHARACTERS in CFG!\n");
 						}
 				}
@@ -113,9 +114,6 @@ std::map<std::string, std::string> CFG_parser(std::string inputFile){
 				component = component + lines[i][k];
 			}
 	}
-
-	//print
-	displayListString(nonTerminal, "nonterminal");
 
 	// build graph
 	for (unsigned int i = 0 ; i < lines.size(); ++i){
@@ -185,41 +183,43 @@ std::string mapBack(std::map<std::string, int> nonTerminal, int index) {
  *
  */
 std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::string lsh, std::vector<std::string> rhs) {
-//	printf("%d rewrite: %s --> ...(%ld)\n", __LINE__, lsh.c_str(), rhs.size());
 	std::vector<Rule> ret;
 	unsigned int pos = 0;
 	std::string left = lsh;
 	while (pos < rhs.size()){
-		// start by nonterminal
 		if (std::find(nonTerminals.begin(), nonTerminals.end(), rhs[pos]) != nonTerminals.end()) {
-			if (pos != rhs.size() - 1)
+			/* nonterminal */
+			if (pos != rhs.size() - 1) {
+				/* not the last element */
 				ret.push_back(Rule(left, "", rhs[pos]));
+				left = "__" + rhs[pos];
+				pos = pos + 1;
+			}
 			else {
+				/* the last element */
 				ret.push_back(Rule(left, "", rhs[pos]));
-				ret.push_back(Rule("__" + rhs[pos], "", "__" + left));
+				ret.push_back(Rule("__" + rhs[pos], "", "__" + lsh));
 				break;
 			}
-			left = "__" + rhs[pos];
-			// printf("%d Left = %s\n", __LINE__, left.c_str());
-			pos = pos + 1;
+
 		}
 		else {
-			//start by terminal
+			/* terminal */
 			if (pos == rhs.size() - 1) {
+				/* the last element */
 				ret.push_back(Rule(left, rhs[pos], "__" + lsh));
 				break;
 			}
 			else {
+				/* not the last element */
+				assert (std::find(nonTerminals.begin(), nonTerminals.end(), rhs[pos + 1]) != nonTerminals.end());
 				ret.push_back(Rule(left, rhs[pos], rhs[pos + 1]));
-				if (pos + 1 == rhs.size() - 1)
-					ret.push_back(Rule("__" + rhs[pos + 1], "", "__" + lsh));
+				left = "__" + rhs[pos + 1];
+				pos = pos + 2;
+
 			}
-			pos = pos + 2;
-			left = "__" + rhs[pos - 1];
-			// printf("%d Left = %s\n", __LINE__, left.c_str());
 		}
 	}
-//	printf("%d finish rewrite: %s --> ...(%ld)\n", __LINE__, lsh.c_str(), rhs.size());
 	return ret;
 }
 
@@ -242,7 +242,7 @@ std::string evalNode(std::vector<Rule> rules, std::string name) {
 		if (rules[i].start == "__starter__")
 			rules[i].finish = name;
 
-//	printf("Start\n");
+//	printf("%d Start\n", __LINE__);
 //	for (unsigned int i = 0 ; i < rules.size(); ++i)
 //		printf("%s\n", rules[i].toString().c_str());
 
@@ -270,7 +270,7 @@ std::string evalNode(std::vector<Rule> rules, std::string name) {
 
 		removeANode(rules, removeNode);
 
-//		printf("Update: remove %s\n", removeNode.c_str());
+//		printf("%d Update: remove %s\n", __LINE__, removeNode.c_str());
 //		for (unsigned int i = 0 ; i < rules.size(); ++i)
 //			printf("%s\n", rules[i].toString().c_str());
 	}
@@ -294,7 +294,7 @@ std::string evalNode(std::vector<Rule> rules, std::string name) {
  *
  */
 void removeANode(std::vector<Rule> &rules, std::string removeNode) {
-	//		 check itself
+	// check itself
 	std::string itself = "";
 	for (unsigned int i = 0 ; i < rules.size(); ++i)
 		if (rules[i].finish.compare(removeNode) == 0 &&
@@ -304,9 +304,11 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 			else
 				itself = itself + rules[i].label;
 		}
+
 	// remove all itself-s
 	if (itself.length() > 0) {
-		itself = "(" + itself + ")*";
+		if (!(itself.length() > 3 && itself[0] == '(' && itself[itself.length() - 1] == '*' && itself[itself.length() - 2] == ')'))
+			itself = "(" + itself + ")*";
 
 		for (std::vector<Rule>::iterator it = rules.begin(); it != rules.end();)
 			if (it->finish.compare(removeNode) == 0 &&
@@ -354,7 +356,6 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 	}
 
 	rules.clear();
-//	rules.insert(rules.end(), newRules.begin(), newRules.end());
 
 	// combine
 	std::map<std::pair<std::string, std::string>, std::string> transition;
@@ -368,7 +369,7 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 				transition[tmp] = "";
 		}
 		else if (newRules[i].label.length() > 0) {
-			if (transition[tmp][0] == '(')
+			if (transition[tmp][0] == '(' && transition[tmp][transition[tmp].length() - 1] == ')')
 				transition[tmp] = transition[tmp] +	"|(" + newRules[i].label + ")";
 			else
 				transition[tmp] = "(" + transition[tmp] +	")|(" + newRules[i].label + ")";
@@ -482,51 +483,13 @@ void constructAutomataForStronglyConnectedComponent(
 					newTokens.push_back(terminal);
 				}
 
-				/* textState = 1 - $abc; 2 - other */
-//				int textState = 2;
-//				for (int t = 0 ; t < rhs.length(); ++t) {
-//					if (rhs[t] == '$') {
-//						textState = 1;
-//						if (terminal.length() > 1 && terminal[0] != '$') {
-//							newTokens.push_back(terminal);
-//							terminal = "";
-//						}
-//						currentToken = "$";
-//					}
-//					else if (rhs[t] == ' ' && textState == 1) {
-//						textState = 2;
-//						if (currentToken.length() > 1) {
-//							if (std::find(components[i].begin(), components[i].end(), tokens[t]) != components[i].end()) {
-//								if (terminal.length() > 1) {
-//									newTokens.push_back(terminal);
-//									terminal = " ";
-//								}
-//								newTokens.push_back(currentToken);
-//							}
-//							else {
-//								terminal = terminal + " " + currentToken;
-//							}
-//						}
-//						currentToken = "";
-//					}
-//					else if (textState == 1) {
-//						currentToken = currentToken + rhs[t];
-//					}
-//					else {
-//						terminal = terminal + rhs[t];
-//					}
-//				}
-//				if (terminal.length() > 1)
-//					newTokens.push_back(terminal);
-				displayListString(newTokens, ">> ");
-
 				// rewrite the rule
 				std::vector<Rule> tmp_rules = rewriteTransition(components[i], components[i][j], newTokens);
 				rules.insert(rules.end(), tmp_rules.begin(), tmp_rules.end());
 
-//				printf("%d Rewriting \n", __LINE__);
+//				printf("%d Result \n", __LINE__);
 //				for (unsigned int t = 0; t < tmp_rules.size(); ++t)
-//							printf("%d %s\n", __LINE__, tmp_rules[t].toString().c_str());
+//					printf("%d %s\n", __LINE__, tmp_rules[t].toString().c_str());
 			}
 //			printf("%d\n", __LINE__);
 

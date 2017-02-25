@@ -1545,25 +1545,15 @@ public:
 
   	/* optimize length of generated string */
   	std::string tmp01 = generateFlatArray(a, lhs_str);
-//  	char tmpStr[1000];
-//  	sprintf(tmpStr, "(forall ((i Int)) (implies (and (>= i 0) (< i %d)) (= (select %s (+ i %s)) (select arr_%s (+ i %d)))))",
-//  			finish - start,
-//  			tmp01.c_str(),
-//  			startPos.c_str(),
-//  			constMap[value].c_str(),
-//  			start
-//  			);
 
   	if (startPos.size() == 1 && startPos[0] == '0') {
   		for (int i = start; i < finish; ++i) {
-  			locationConstraint.push_back("(= (select " + tmp01 + " " + std::to_string(i) + ") " + std::to_string(value[i]) + ")");
-//  			locationConstraint.push_back("(= (select " + tmp01 + " " + std::to_string(i) + ") (select arr_" + constMap[value] + " " + std::to_string(i) +  "))");
+  			locationConstraint.push_back("(= (select " + tmp01 + " " + std::to_string(i - start) + ") " + std::to_string(value[i]) + ")");
   		}
   	}
 
   	else for (int i = start; i < finish; ++i) {
-//  		locationConstraint.push_back("(= (select " + tmp01 + " (+ " + std::to_string(i) + " " + startPos + ")) (select arr_" + constMap[value] + " " + std::to_string(i) +  "))");
-  		locationConstraint.push_back("(= (select " + tmp01 + " (+ " + std::to_string(i) + " " + startPos + ")) " + std::to_string(value[i]) + ")");
+  		locationConstraint.push_back("(= (select " + tmp01 + " (+ " + std::to_string(i - start) + " " + startPos + ")) " + std::to_string(value[i]) + ")");
   	}
 
   	assert (locationConstraint.size() > 0);
@@ -2107,14 +2097,14 @@ public:
 
 	void printArrangement(std::string msg = ""){
 		if (msg.length() > 0)
-			printf("%s\n", msg.c_str());
+			__debugPrint(logFile, "%s\n", msg.c_str());
 
 		for (unsigned int i = 0; i < left_arr.size(); ++i)
-			printf("%*d ", 3, left_arr[i]);
-		printf("\n");
+			__debugPrint(logFile, "%*d ", 3, left_arr[i]);
+		__debugPrint(logFile, "\n");
 		for (unsigned int i = 0; i < right_arr.size(); ++i)
-			printf("%*d ", 3, right_arr[i]);
-		printf("\n");
+			__debugPrint(logFile, "%*d ", 3, right_arr[i]);
+		__debugPrint(logFile, "\n");
 	}
 };
 
