@@ -23,38 +23,38 @@ $STRING = [a-z]+
 $QUOTE = "\"" 
 
 
-165 $COMPARAISON: ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*) (((" > ")|(" = ")|(" < "))) ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*)
-165 $COMPOP: ((" > ")|(" = ")|(" < "))
-165 $EXPRESSION: ((" not "))*((" not "))*(((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*) (((" > ")|(" = ")|(" < "))) ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*))((" or ")((" not "))*((" not "))*(((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*) (((" > ")|(" = ")|(" < "))) ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*)))*
-165 $NOTOP: " not "
+165 $COMPARAISON: (((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)
+165 $COMPOP: (( > )~( = )~( < ))
+165 $EXPRESSION: (( not ))*(( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*))(( or )(( not ))*(( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)))*
+165 $NOTOP:  not 
 165 $NUMBER: [0-9]+
-165 $OREXPRESSION: ((" not "))*(((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*) (((" > ")|(" = ")|(" < "))) ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*))((" or ")((" not "))*((" not "))*(((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*) (((" > ")|(" = ")|(" < "))) ((((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*)))*
-165 $OROP: " or "
-165 $QUOTE: "\""
+165 $OREXPRESSION: (( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*))(( or )(( not ))*(( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)))*
+165 $OROP:  or 
+165 $QUOTE: \"
 165 $STRING: [a-z]+
-165 $TERM: (((("\""))*([0-9]+))|((("\""))*([a-z]+)))(("\""))*
-Input file: nonsql.smt2
+165 $TERM: ((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*
+Input file: grmTest.smt2
 
-Grammar file: -model
+Grammar file: sql.grm
 
 262 creating /tmp/fat_str_convert/: OK
 ***********************************************
 *              initGraph             *
 -----------------------------------------------
  w,
-(assert (RegexIn w (RegexStar (Str2Reg "abcabc"))))
+(assert (GrammarIn w (Str2Grm "QOREXPRESSION")))     
 
- w,
-(assert (RegexIn w (RegexStar (Str2Reg "abcabcabc"))))
+ g,
+(assert (GrammarIn g (Str2Grm "QTERM")))
 
- w, j,
-(assert (= w (Concat "abc" j)))
 
- g, w,
-(assert (= g (Concat "def" w)))
+(assert (GrammarIn "samsung" (Str2Grm "QTERM")))
 
- g, h, i,
-(assert (= g (Concat h i)))
+ j,
+(assert (= j " > samsung"))   
+
+ w, g, j,
+(assert (= w (Concat g j)))    
 (check-sat)
 ***********************************************
 *              convertFile             *
@@ -66,197 +66,176 @@ Grammar file: -model
 String Input Var Set
 ***********************************************
 w
-j
 g
-h
-i
+j
 
 ***********************************************
 Input loaded:
 -----------------------------------------------
-(and (RegexIn w (RegexStar (Str2Reg __cOnStStR__x61_x62_x63_x61_x62_x63)))
-     (RegexIn w
-              (RegexStar (Str2Reg __cOnStStR__x61_x62_x63_x61_x62_x63_x61_x62_x63)))
-     (= w (Concat __cOnStStR__x61_x62_x63 j))
-     (= g (Concat __cOnStStR__x64_x65_x66 w))
-     (= g (Concat h i)))
+(and (GrammarIn w
+                (Str2Grm __cOnStStR__x51_x4f_x52_x45_x58_x50_x52_x45_x53_x53_x49_x4f_x4e))
+     (GrammarIn g (Str2Grm __cOnStStR__x51_x54_x45_x52_x4d))
+     (GrammarIn __cOnStStR__x73_x61_x6d_x73_x75_x6e_x67
+                (Str2Grm __cOnStStR__x51_x54_x45_x52_x4d))
+     (= j __cOnStStR__x20_x3e_x20_x73_x61_x6d_x73_x75_x6e_x67)
+     (= w (Concat g j)))
 -----------------------------------------------
 
 
->> cb_reduce_app(): Str2Reg("abcabc")
+>> cb_reduce_app(): Others --> (Str2Grm QOREXPRESSION)
 
 
->> cb_reduce_app(): RegexStar((Str2Reg abcabc)) --> NULL
-
-
->> RegexIn(w, (RegexStar (Str2Reg abcabc)))
+>> GrammarIn(w, (Str2Grm QOREXPRESSION))
  --> 
-w  \in  (abcabc)*
+w  \in  (( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*))(( or )(( not ))*(( not ))*((((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)((( > )~( = )~( < )))(((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*)))*
 
 
->> cb_reduce_app(): RegexIn(w, (RegexStar (Str2Reg abcabc))) ==> (= w (NonDet_AutomataDef |(abcabc)*| 0))
+>> cb_reduce_app(): GrammarIn(w, (Str2Grm QOREXPRESSION)) ==> (= w
+   (NonDet_AutomataDef
+     |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+     0))
 
 
->> cb_reduce_app(): Str2Reg("abcabcabc")
+>> cb_reduce_app(): Others --> (Str2Grm QTERM)
 
 
->> cb_reduce_app(): RegexStar((Str2Reg abcabcabc)) --> NULL
-
-
->> RegexIn(w, (RegexStar (Str2Reg abcabcabc)))
+>> GrammarIn(g, (Str2Grm QTERM))
  --> 
-w  \in  (abcabcabc)*
+g  \in  ((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*
 
 
->> cb_reduce_app(): RegexIn(w, (RegexStar (Str2Reg abcabcabc))) ==> (= w (NonDet_AutomataDef |(abcabcabc)*| 1))
+>> cb_reduce_app(): GrammarIn(g, (Str2Grm QTERM)) ==> (= g (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1))
 
 
->> cb_reduce_app(): Concat("abc", j)
->> cb_reduce_app(): Concat((AutomataDef abc), j)
+>> GrammarIn("samsung", (Str2Grm QTERM))
+ --> 
+"samsung"  \in  ((((\"))*([0-9]+))~(((\"))*([a-z]+)))((\"))*
+
+
+>> cb_reduce_app(): GrammarIn("samsung", (Str2Grm QTERM)) ==> (= (AutomataDef samsung)
+   (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2))
+
+
+>> cb_reduce_eq: j = __cOnStStR__x20_x3e_x20_x73_x61_x6d_x73_x75_x6e_x67
+
+---------------------
+Assertion Add(@1202, Level 0):
+(= (Length (AutomataDef | > samsung|)) 10)
+---------------------
+
+
+ converted to : (and (>= (Length j) 0)
+     (>= (Length __cOnStStR__x20_x3e_x20_x73_x61_x6d_x73_x75_x6e_x67) 0)
+     (=> (= j (AutomataDef | > samsung|)) (= (Length j) 10))
+     (= j (AutomataDef | > samsung|)))
+
+>> cb_reduce_app(): Concat(g, j)
+>> cb_reduce_app(): Concat(g, j)
 False update 
 ---------------------
 Assertion Add(@1422, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef abc) j)) 0))
-      (a!2 (= (Length (Concat (AutomataDef abc) j))
-              (+ (Length (AutomataDef abc)) (Length j)))))
-  (and (= (Length (AutomataDef abc)) 3)
-       (>= (Length (AutomataDef abc)) 0)
-       (>= (Length j) 0)
-       a!1
-       a!2))
+(and (>= (Length g) 0)
+     (>= (Length j) 0)
+     (>= (Length (Concat g j)) 0)
+     (= (Length (Concat g j)) (+ (Length g) (Length j))))
 ---------------------
 
 
-convert to: (Concat (AutomataDef abc) j)
+convert to: (Concat g j)
 
 
->> cb_reduce_eq: w = (Concat (AutomataDef abc) j)
+>> cb_reduce_eq: w = (Concat g j)
 
 
- converted to : (and (>= (Length w) 0) (= w (Concat (AutomataDef abc) j)))
+ converted to : (and (>= (Length w) 0) (= w (Concat g j)))
 
->> cb_reduce_app(): Concat("def", w)
->> cb_reduce_app(): Concat((AutomataDef def), w)
-False update 
----------------------
-Assertion Add(@1422, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef def) w)) 0))
-      (a!2 (= (Length (Concat (AutomataDef def) w))
-              (+ (Length (AutomataDef def)) (Length w)))))
-  (and (= (Length (AutomataDef def)) 3)
-       (>= (Length (AutomataDef def)) 0)
-       (>= (Length w) 0)
-       a!1
-       a!2))
----------------------
-
-
-convert to: (Concat (AutomataDef def) w)
-
-
->> cb_reduce_eq: g = (Concat (AutomataDef def) w)
-
-
- converted to : (and (>= (Length g) 0) (= g (Concat (AutomataDef def) w)))
-
->> cb_reduce_app(): Concat(h, i)
->> cb_reduce_app(): Concat(h, i)
-False update 
----------------------
-Assertion Add(@1422, Level 0):
-(and (>= (Length h) 0)
-     (>= (Length i) 0)
-     (>= (Length (Concat h i)) 0)
-     (= (Length (Concat h i)) (+ (Length h) (Length i))))
----------------------
-
-
-convert to: (Concat h i)
-
-
->> cb_reduce_eq: g = (Concat h i)
-
-
- converted to : (and (>= (Length g) 0) (= g (Concat h i)))
-
->> cb_reduce_app(): Concat((AutomataDef abc), j)
+>> cb_reduce_app(): Concat(g, j)
 False update 
 
->> cb_reduce_app(): Concat((AutomataDef def), w)
-False update 
-
->> cb_reduce_app(): Concat(h, i)
-False update 
-
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabc)*| 0)
+>> cb_reduce_eq: w = (NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
 
 
  converted to : (and (>= (Length w) 0)
-     (>= (Length (NonDet_AutomataDef |(abcabc)*| 0)) 0)
-     (= w (NonDet_AutomataDef |(abcabc)*| 0)))
+     (>= (Length (NonDet_AutomataDef
+                   |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+                   0))
+         0)
+     (= w
+        (NonDet_AutomataDef
+          |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+          0)))
 
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabcabc)*| 1)
-
-
- converted to : (and (>= (Length w) 0)
-     (>= (Length (NonDet_AutomataDef |(abcabcabc)*| 1)) 0)
-     (= w (NonDet_AutomataDef |(abcabcabc)*| 1)))
-
->> cb_reduce_eq: w = (Concat (AutomataDef abc) j)
-
-
->> cb_reduce_eq: g = (Concat (AutomataDef def) w)
+>> cb_reduce_eq: g = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
 
 
->> cb_reduce_eq: g = (Concat h i)
+ converted to : (and (>= (Length g) 0)
+     (>= (Length (NonDet_AutomataDef
+                   |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+                   1))
+         0)
+     (= g
+        (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)))
+
+>> cb_reduce_eq: (AutomataDef samsung) = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2)
 
 
->> cb_reduce_app(): Concat((AutomataDef abc), j)
+ converted to : (and (>= (Length (AutomataDef samsung)) 0)
+     (>= (Length (NonDet_AutomataDef
+                   |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+                   2))
+         0)
+     (= (AutomataDef samsung)
+        (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2)))
+
+>> cb_reduce_app(): Length( "| > samsung|" ) = 12
+
+
+>> cb_reduce_eq: j = (AutomataDef | > samsung|)
+
+
+>> cb_reduce_eq: w = (Concat g j)
+
+
+>> cb_reduce_app(): Concat(g, j)
 False update 
 
->> cb_reduce_app(): Concat((AutomataDef def), w)
+>> cb_reduce_eq: w = (NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
+
+
+>> cb_reduce_eq: g = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
+
+
+>> cb_reduce_eq: (AutomataDef samsung) = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2)
+
+
+>> cb_reduce_eq: j = (AutomataDef | > samsung|)
+
+
+>> cb_reduce_eq: w = (Concat g j)
+
+
+>> cb_reduce_app(): Concat(g, j)
 False update 
 
->> cb_reduce_app(): Concat(h, i)
-False update 
-
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabc)*| 0)
-
-
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabcabc)*| 1)
+>> cb_reduce_eq: w = (NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
 
 
->> cb_reduce_eq: w = (Concat (AutomataDef abc) j)
+>> cb_reduce_eq: g = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
 
 
->> cb_reduce_eq: g = (Concat (AutomataDef def) w)
+>> cb_reduce_eq: (AutomataDef samsung) = (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2)
 
 
->> cb_reduce_eq: g = (Concat h i)
+>> cb_reduce_eq: j = (AutomataDef | > samsung|)
 
 
->> cb_reduce_app(): Concat((AutomataDef abc), j)
-False update 
-
->> cb_reduce_app(): Concat((AutomataDef def), w)
-False update 
-
->> cb_reduce_app(): Concat(h, i)
-False update 
-
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabc)*| 0)
-
-
->> cb_reduce_eq: w = (NonDet_AutomataDef |(abcabcabc)*| 1)
-
-
->> cb_reduce_eq: w = (Concat (AutomataDef abc) j)
-
-
->> cb_reduce_eq: g = (Concat (AutomataDef def) w)
-
-
->> cb_reduce_eq: g = (Concat h i)
+>> cb_reduce_eq: w = (Concat g j)
 
 
 
@@ -264,54 +243,69 @@ Var In Length = {}
 ***********************************************
 *               Starting Search               *
 -----------------------------------------------
-(let ((a!1 (* (- 1) (Length (Concat (AutomataDef abc) j))))
-      (a!3 (* (- 1) (Length (Concat (AutomataDef def) w))))
-      (a!5 (+ (Length h) (Length i) (* (- 1) (Length (Concat h i)))))
-      (a!6 (>= (Length (Concat (AutomataDef abc) j)) 0))
-      (a!7 (>= (Length (Concat (AutomataDef def) w)) 0)))
-(let ((a!2 (= (+ (Length (AutomataDef abc)) (Length j) a!1) 0))
-      (a!4 (= (+ (Length w) (Length (AutomataDef def)) a!3) 0)))
-  (and (= (Length (AutomataDef abc)) 3)
-       a!2
-       (= (Length (AutomataDef def)) 3)
-       a!4
-       (= a!5 0)
-       (>= (Length j) 0)
-       a!6
-       (>= (Length w) 0)
-       a!7
-       (>= (Length h) 0)
-       (>= (Length i) 0)
-       (>= (Length (Concat h i)) 0)
-       (>= (Length (NonDet_AutomataDef |(abcabc)*| 0)) 0)
-       (= w (NonDet_AutomataDef |(abcabc)*| 0))
-       (>= (Length (NonDet_AutomataDef |(abcabcabc)*| 1)) 0)
-       (= w (NonDet_AutomataDef |(abcabcabc)*| 1))
-       (= w (Concat (AutomataDef abc) j))
-       (= g (Concat (AutomataDef def) w))
+(let ((a!1 (+ (Length j) (Length g) (* (- 1) (Length (Concat g j))))))
+  (and (= (Length (AutomataDef | > samsung|)) 10)
+       (= a!1 0)
        (>= (Length g) 0)
-       (= g (Concat h i)))))
+       (>= (Length j) 0)
+       (>= (Length (Concat g j)) 0)
+       (>= (Length w) 0)
+       (>= (Length (NonDet_AutomataDef
+                     |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+                     0))
+           0)
+       (= w
+          (NonDet_AutomataDef
+            |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+            0))
+       (>= (Length (NonDet_AutomataDef
+                     |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+                     1))
+           0)
+       (= g
+          (NonDet_AutomataDef
+            |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+            1))
+       (>= (Length (AutomataDef samsung)) 0)
+       (>= (Length (NonDet_AutomataDef
+                     |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+                     2))
+           0)
+       (= (AutomataDef samsung)
+          (NonDet_AutomataDef
+            |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*|
+            2))
+       (= j (AutomataDef | > samsung|))
+       (= w (Concat g j))))
 
 
 
 
 =================================================================================
 ** cb_new_eq(): @0
-(NonDet_AutomataDef |(abcabc)*| 0)  = w
+(NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)  = w
 
 
 ** @2702 checkLengthConsistency
 
 >> checkLengthConsistency: Passed
 < = > A B C D E F G H I J K L M N O P Q R S T U V W X Y a b c d e f g h i j k l m n o p q r s t u v w x y 
-** @3406 Cross Check and Update: (NonDet_AutomataDef |(abcabc)*| 0) == w
+** @3406 Cross Check and Update: (NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0) == w
 
 >> @3226 Eval Intersection size = 2
 >> @3272 at Number of elements: 1 
-(NonDet_AutomataDef |(abcabc)*| 0)
+(NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
 
 
->> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |(abcabc)*| 0)
+>> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
 532 at ../src/regex.cpp: Create Automaton of: known
 
 
@@ -321,150 +315,41 @@ Var In Length = {}
 >> @3310  Element 0: 
  Automaton known:
 States: 
-0 1 3 4 5 6 7 
+0 1 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 
 Labels: 
-97 98 99 
+32 34 48 49 50 51 52 53 54 55 56 57 60 61 62 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-0 7 
+47 48 49 50 51 52 53 54 55 56 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 86 135 136 137 138 139 140 141 142 143 144 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 173 
 
 >> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
 States: 
-0 1 3 4 5 6 7 
+0 1 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 
 Labels: 
-97 98 99 
+32 34 48 49 50 51 52 53 54 55 56 57 60 61 62 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-0 7  @3415 at After all: 
+47 48 49 50 51 52 53 54 55 56 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 86 135 136 137 138 139 140 141 142 143 144 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 173  @3415 at After all: 
 Automaton known:
 States: 
-0 1 3 4 5 6 7 
+0 1 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 
 Labels: 
-97 98 99 
+32 34 48 49 50 51 52 53 54 55 56 57 60 61 62 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-0 7 
+47 48 49 50 51 52 53 54 55 56 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 86 135 136 137 138 139 140 141 142 143 144 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 173 
 
 >> @2876 update Equal Map
 w
-(NonDet_AutomataDef |(abcabc)*| 0)
+(NonDet_AutomataDef
+  |(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*))(( or )(( not ))*(( not ))*((((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)((( > )~( = )~( < )))(((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*)))*|
+  0)
 
 
 ** 2797 Propagate node: w
- parents_filtered 
-(Concat (AutomataDef def) w)
-
-
-
->> @2919 at __../src/StringTheory.cpp: Update Node: @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-532 at ../src/regex.cpp: Create Automaton of: known
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 5 6 7 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 7 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
-(Concat (AutomataDef def) w)
->> @2981 at __../src/StringTheory.cpp: updated Concat value
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 12 
-@3444 at ../src/StringTheory.cpp Cross Check: (Concat (AutomataDef def) w)
-
->> @3226 Eval Intersection size = 1
->> @3272 at Number of elements: 1 
-(Concat (AutomataDef def) w)
-
-
->> @3031 Eval Node (isIndependence = true): @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 
-Labels: 
-100 101 102 
-Inits: 
-0 
-Accepts: 
-4 
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 5 6 7 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 7 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 1 -->  1
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 12 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 12  @3453 at __../src/StringTheory.cpp: After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 12 
-
-** 2797 Propagate node: (Concat (AutomataDef def) w)
  parents_filtered 
 
 
@@ -473,174 +358,22 @@ Accepts:
 
 =================================================================================
 ** cb_new_eq(): @0
-w  = (NonDet_AutomataDef |(abcabcabc)*| 1)
+(NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)  = g
 
 
 ** @2702 checkLengthConsistency
 
 >> checkLengthConsistency: Passed
 < = > A B C D E F G H I J K L M N O P Q R S T U V W X Y a b c d e f g h i j k l m n o p q r s t u v w x y 
-** @3406 Cross Check and Update: w == (NonDet_AutomataDef |(abcabcabc)*| 1)
+** @3406 Cross Check and Update: (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1) == g
 
->> @3226 Eval Intersection size = 3
->> @3272 at Number of elements: 2 
-(NonDet_AutomataDef |(abcabc)*| 0)
-(NonDet_AutomataDef |(abcabcabc)*| 1)
-
-
->> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |(abcabc)*| 0)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 5 6 7 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 7 
-
->> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |(abcabcabc)*| 1)
-532 at ../src/regex.cpp: Create Automaton of: known
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 2 -->  2
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 3 4 5 6 7 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 7 
-
->> @3315  Element 1: 
- Automaton known:
-States: 
-0 1 3 4 5 6 7 8 9 10 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 10 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18  @3415 at After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @2876 update Equal Map
-(NonDet_AutomataDef |(abcabcabc)*| 1)
-w
-(NonDet_AutomataDef |(abcabc)*| 0)
-
-
-** 2797 Propagate node: w
- parents_filtered 
-(Concat (AutomataDef def) w)
-
-
-
->> @2919 at __../src/StringTheory.cpp: Update Node: @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 
-Labels: 
-100 101 102 
-Inits: 
-0 
-Accepts: 
-4 
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
-(Concat (AutomataDef def) w)
->> @2981 at __../src/StringTheory.cpp: updated Concat value
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-@3444 at ../src/StringTheory.cpp Cross Check: (Concat (AutomataDef def) w)
-
->> @3226 Eval Intersection size = 1
+>> @3226 Eval Intersection size = 2
 >> @3272 at Number of elements: 1 
-(Concat (AutomataDef def) w)
+(NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
 
 
->> @3031 Eval Node (isIndependence = true): @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 
-Labels: 
-100 101 102 
-Inits: 
-0 
-Accepts: 
-4 
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
+>> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
+532 at ../src/regex.cpp: Create Automaton of: known
 
 
 >> @3295 at __../src/StringTheory.cpp:Update interstion list = 1 -->  1
@@ -649,91 +382,60 @@ Accepts:
 >> @3310  Element 0: 
  Automaton known:
 States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
+0 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 
 Labels: 
-0 97 98 99 100 101 102 
+34 48 49 50 51 52 53 54 55 56 57 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-5 23 
+2 3 4 5 6 7 8 9 10 11 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 40 
 
 >> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
 States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
+0 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 
 Labels: 
-0 97 98 99 100 101 102 
+34 48 49 50 51 52 53 54 55 56 57 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-5 23  @3453 at __../src/StringTheory.cpp: After all: 
+2 3 4 5 6 7 8 9 10 11 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 40  @3415 at After all: 
 Automaton known:
 States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
+0 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 
 Labels: 
-0 97 98 99 100 101 102 
+34 48 49 50 51 52 53 54 55 56 57 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-5 23 
+2 3 4 5 6 7 8 9 10 11 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 40 
 
-** 2797 Propagate node: (Concat (AutomataDef def) w)
+>> @2876 update Equal Map
+g
+(NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 1)
+
+
+** 2797 Propagate node: g
  parents_filtered 
+(Concat g j)
 
 
 
+>> @2919 at __../src/StringTheory.cpp: Update Node: @0 (Concat g j)
 
+>> @3167 Eval Concat: g *concat* j
 
-=================================================================================
-** cb_new_eq(): @0
-w  = (Concat (AutomataDef abc) j)
-(AutomataDef abc): length = 3 
-
-
-** @2702 checkLengthConsistency
-
->> checkLengthConsistency: Passed
-< = > A B C D E F G H I J K L M N O P Q R S T U V W X Y a b c d e f g h i j k l m n o p q r s t u v w x y 
-** @3406 Cross Check and Update: w == (Concat (AutomataDef abc) j)
-
->> @3226 Eval Intersection size = 4
->> @3272 at Number of elements: 3 
-(NonDet_AutomataDef |(abcabcabc)*| 1)
-(NonDet_AutomataDef |(abcabc)*| 0)
-(Concat (AutomataDef abc) j)
-
-
->> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |(abcabcabc)*| 1)
+>> @3034 Eval Node (isIndependence = false): @0 g
 
 
 >> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
 States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
+0 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 
 Labels: 
-97 98 99 
+34 48 49 50 51 52 53 54 55 56 57 92 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 
 Inits: 
 0 
 Accepts: 
-0 18 
-
->> @3034 Eval Node (isIndependence = false): @0 (NonDet_AutomataDef |(abcabc)*| 0)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3034 Eval Node (isIndependence = false): @0 (Concat (AutomataDef abc) j)
-
->> @3167 Eval Concat: (AutomataDef abc) *concat* j
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef abc)
-532 at ../src/regex.cpp: Create Automaton of: known
+2 3 4 5 6 7 8 9 10 11 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 40 
 
 >> @3034 Eval Node (isIndependence = false): @0 j
 
@@ -744,448 +446,18 @@ Accepts:
 >> @3289 at __../src/StringTheory.cpp: UNKNOWN (0 elements)
 
 >> @3045 Value of variable: @0: uNkNoWn 
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 2 -->  1
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18  @3415 at After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @2876 update Equal Map
-(Concat (AutomataDef abc) j)
-(NonDet_AutomataDef |(abcabcabc)*| 1)
-w
-(NonDet_AutomataDef |(abcabc)*| 0)
-
-
-** 2797 Propagate node: w
- parents_filtered 
-(Concat (AutomataDef def) w)
-
-
-
->> @2919 at __../src/StringTheory.cpp: Update Node: @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 
-Labels: 
-100 101 102 
-Inits: 
-0 
-Accepts: 
-4 
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
-(Concat (AutomataDef def) w)
->> @2981 at __../src/StringTheory.cpp: updated Concat value
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-@3444 at ../src/StringTheory.cpp Cross Check: (Concat (AutomataDef def) w)
-
->> @3226 Eval Intersection size = 1
->> @3272 at Number of elements: 1 
-(Concat (AutomataDef def) w)
-
-
->> @3031 Eval Node (isIndependence = true): @0 (Concat (AutomataDef def) w)
-
->> @3167 Eval Concat: (AutomataDef def) *concat* w
-
->> @3034 Eval Node (isIndependence = false): @0 (AutomataDef def)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 3 4 
-Labels: 
-100 101 102 
-Inits: 
-0 
-Accepts: 
-4 
-
->> @3034 Eval Node (isIndependence = false): @0 w
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 
-Labels: 
-97 98 99 
-Inits: 
-0 
-Accepts: 
-0 18 
-
->> @3190 at __../src/StringTheory.cpp: Finish Concat
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 1 -->  1
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23  @3453 at __../src/StringTheory.cpp: After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
-** 2797 Propagate node: (Concat (AutomataDef def) w)
- parents_filtered 
-
+(Concat g j)
+>> @2978 at __../src/StringTheory.cpp: updated Concat value
+ uNkNoWn
 
 
 
 
 =================================================================================
 ** cb_new_eq(): @0
-(Concat (AutomataDef def) w)  = g
+(NonDet_AutomataDef |((((\\"))*([0-9]+))~(((\\"))*([a-z]+)))((\\"))*| 2)  = (AutomataDef samsung)
 
 
 ** @2702 checkLengthConsistency
 
 >> checkLengthConsistency: Passed
-< = > A B C D E F G H I J K L M N O P Q R S T U V W X Y a b c d e f g h i j k l m n o p q r s t u v w x y 
-** @3406 Cross Check and Update: (Concat (AutomataDef def) w) == g
-
->> @3226 Eval Intersection size = 2
->> @3272 at Number of elements: 1 
-(Concat (AutomataDef def) w)
-
-
->> @3034 Eval Node (isIndependence = false): @0 (Concat (AutomataDef def) w)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 1 -->  1
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23  @3415 at After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @2876 update Equal Map
-g
-(Concat (AutomataDef def) w)
-
-
-** 2797 Propagate node: (Concat (AutomataDef def) w)
- parents_filtered 
-
-
-
-
-
-=================================================================================
-** cb_new_eq(): @0
-g  = (Concat h i)
-
-
-** @2702 checkLengthConsistency
-
->> checkLengthConsistency: Passed
-< = > A B C D E F G H I J K L M N O P Q R S T U V W X Y a b c d e f g h i j k l m n o p q r s t u v w x y 
-** @3406 Cross Check and Update: g == (Concat h i)
-
->> @3226 Eval Intersection size = 3
->> @3272 at Number of elements: 2 
-(Concat (AutomataDef def) w)
-(Concat h i)
-
-
->> @3034 Eval Node (isIndependence = false): @0 (Concat (AutomataDef def) w)
-
-
->> @3094 at __../src/StringTheory.cpp:known node value Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @3034 Eval Node (isIndependence = false): @0 (Concat h i)
-
->> @3167 Eval Concat: h *concat* i
-
->> @3034 Eval Node (isIndependence = false): @0 h
-
->> @3226 Eval Intersection size = 1
->> @3272 at Number of elements: 0 
-
-
->> @3289 at __../src/StringTheory.cpp: UNKNOWN (0 elements)
-
->> @3045 Value of variable: @0: uNkNoWn 
-
-
->> @3295 at __../src/StringTheory.cpp:Update interstion list = 1 -->  1
-
-
->> @3310  Element 0: 
- Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @3323 at __../src/StringTheory.cpp: Result intersection: Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23  @3415 at After all: 
-Automaton known:
-States: 
-0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
-Labels: 
-0 97 98 99 100 101 102 
-Inits: 
-0 
-Accepts: 
-5 23 
-
->> @2876 update Equal Map
-(Concat h i)
-g
-(Concat (AutomataDef def) w)
-
-
-** 2797 Propagate node: g
- parents_filtered 
-
-
-
-
-vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                cb_final_check @ Level [0] 
-=============================================================
-Connected Variables
-
-4037 "(abcabcabc)*" is a root.
-4037 g is a root.
- parse regex 
-abc
-(abc)*
-
-"(abcabcabc)*" =
-	"abc" 	j 
-	"(abcabc)*" 
-	"(abcabcabc)*" 
-
-g =
-	"def" 	"(abcabcabc)*" 
-
-"(abcabcabc)*" =
-	"abc" 	j 
-	"(abcabc)*__0" 
-	"(abcabcabc)*__1" 
-
-1215 Const map:
-(abcabc)*__0: const_1
-(abcabcabc)*__1: const_2
-abc: const_0
-
-1624 Max list size: 2
->> equalities to SMT 
-abc.-1 abc.-2 j.0 j.1 = (abcabc)*__0.-100 
-Number of flats: 4 flats = 1 flats
-
-454 Calculating all possible cases: 0.000 seconds, 1 cases.
-Checking case
-  0   0   0   0 
-100000000 
-876Accepted
-1 - 2 - -3 - 
-------------
-Accepted
-2 - 1 - -3 - 
-------------
-Correct case
-  0   0   0   0 
-100000000 
-479 (and 
- (= len_const_1_100 (+ len_const_0_1 len_const_0_2 len_j_0 len_j_1 ))  (and (= (+ len_const_0_1 len_const_0_2) 3) (= (mod (+ len_j_0 len_j_1 ) 6) 3) )
-)
- print cases
-(and 
- (= len_const_1_100 (+ len_const_0_1 len_const_0_2 len_j_0 len_j_1 ))  (and (= (+ len_const_0_1 len_const_0_2) 3) (= (mod (+ len_j_0 len_j_1 ) 6) 3) )
-)
-
-1683 Convert to SMT: 0.000 seconds.
-
->> equalities to SMT 
-abc.-1 abc.-2 j.0 j.1 = (abcabcabc)*__1.-100 
-Number of flats: 4 flats = 1 flats
-
-454 Calculating all possible cases: 0.000 seconds, 1 cases.
-Checking case
-  0   0   0   0 
-100000000 
-876Accepted
-1 - 2 - -6 - 
-------------
-Accepted
-2 - 1 - -6 - 
-------------
-Correct case
-  0   0   0   0 
-100000000 
-479 (and 
- (= len_const_2_100 (+ len_const_0_1 len_const_0_2 len_j_0 len_j_1 ))  (and (= (+ len_const_0_1 len_const_0_2) 3) (= (mod (+ len_j_0 len_j_1 ) 9) 6) )
-)
- print cases
-(and 
- (= len_const_2_100 (+ len_const_0_1 len_const_0_2 len_j_0 len_j_1 ))  (and (= (+ len_const_0_1 len_const_0_2) 3) (= (mod (+ len_j_0 len_j_1 ) 9) 6) )
-)
-
-1683 Convert to SMT: 0.000 seconds.
-
->> equalities to SMT 
-(abcabc)*__0.-100 = (abcabcabc)*__1.-100 
-Number of flats: 1 flats = 1 flats
-
-454 Calculating all possible cases: 0.000 seconds, 1 cases.
-Checking case
-  0 
-  0 
-Correct case
-  0 
-  0 
-479 (and 
-(= len_const_1_100 len_const_2_100) (= (mod len_const_1_100 18) 0) 
-)
- print cases
-(and 
-(= len_const_1_100 len_const_2_100) (= (mod len_const_1_100 18) 0) 
-)
-
-1683 Convert to SMT: 0.000 seconds.
-
-1822 output with length: /tmp/fat_str_convert/w_l_nonsql.smt2
-
-** Reset():
-
-** Delete()
