@@ -11,6 +11,8 @@
 
 #include "utils.h"
 
+#include "GRMParser.h"
+
 struct Rule{
 	std::string start;
 	std::string label;
@@ -30,7 +32,7 @@ struct Rule{
 /*
  *
  */
-void printNonTerminal(std::map<std::string, std::vector<std::string>> list, std::string name, std::string endStr);
+void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name);
 
 
 /*
@@ -59,6 +61,16 @@ std::string evalNode(std::vector<Rule> rules, std::string name);
 /*
  *
  */
+int findRightParenthesis(std::string str);
+
+/*
+ *
+ */
+bool hasAlternativeComponents(std::string str);
+
+/*
+ *
+ */
 void removeANode(std::vector<Rule> &rules, std::string removeNode);
 
 /*
@@ -73,7 +85,7 @@ std::vector<std::vector<std::string>> findStronglyConnectedComponent(
  */
 void constructAutomataForStronglyConnectedComponent(
 		std::vector<std::vector<std::string>> components,
-		std::map<std::string, std::vector<std::string>> nonTerminalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap,
 		std::vector<std::vector<Rule>> &automata);
 
 /*

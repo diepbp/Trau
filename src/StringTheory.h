@@ -86,6 +86,8 @@ typedef struct _AutomatonStringData
     Z3_func_decl Unroll;
 
     Z3_func_decl AutomataDef;
+    Z3_func_decl NonDet_AutomataDef;
+
     Z3_func_decl Parikh;
 
     Z3_func_decl GrammarIn;
@@ -260,6 +262,8 @@ void Th_restart(Z3_theory t);
 */
 void Th_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
+std::vector<Z3_ast> initLengthPropagation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
 bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx);
 void updateLengthNode_fromSolver(Z3_theory t, Z3_ast node);
 void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList);
@@ -273,6 +277,10 @@ int haveEQLength(Z3_theory t, Z3_ast n1, Z3_ast n2);
 void strEqLengthAxiom(Z3_theory t, Z3_ast varAst, Z3_ast strAst, int line);
 
 bool checkLengthConsistency(Z3_theory t, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq02);
+
+/*
+ * check satisfiable of 'nn1 = nn2'
+ */
 bool checkEqualConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 bool propagate(Z3_theory t, Z3_ast node);
 
@@ -306,7 +314,6 @@ void updateInternalVarMap_independence(Z3_ast node, Automaton value);
 Automaton getPreCalculatedValue(Z3_theory t, Z3_ast node);
 Automaton getPreCalculatedValue_independence(Z3_theory t, Z3_ast node);
 std::vector<Z3_ast> getEqualValues(Z3_ast node);
-Automaton nodeToAutomaton(Z3_theory t, Z3_ast node, std::string name);
 
 Z3_ast handleAutomaton_VarKnownLength_lazy(Z3_theory t, int len, Z3_ast node);
 Z3_ast handleAutomaton_VarKnownLength(Z3_theory t, int len, Z3_ast nn2);

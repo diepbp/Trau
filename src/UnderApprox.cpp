@@ -32,6 +32,12 @@ void updatePossibleArrangements(
 			possibleCases.push_back(tmp[i]);
 }
 
+/*
+ *
+ */
+bool isRegexStr(std::string str){
+	return str.find('*') != std::string::npos || str.find('+') != std::string::npos;
+}
 
 /*
  * First base case
@@ -54,11 +60,12 @@ void handleCase_0_0(
 void handleCase_0_0_general(){
 	std::vector<int> tmpLeft;
 	std::vector<int> tmpRight;
-
-	/* left = right */
-	tmpLeft.push_back(0);
-	tmpRight.push_back(0);
-	arrangements[std::make_pair(0, 0)].push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+	if (arrangements[std::make_pair(0, 0)].size() == 0) {
+		/* left = right */
+		tmpLeft.push_back(0);
+		tmpRight.push_back(0);
+		arrangements[std::make_pair(0, 0)].push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+	}
 }
 
 /*
@@ -113,14 +120,16 @@ void handleCase_n_0_general(
 	tmpLeft.push_back(0);
 
 	for (int i = 1; i < lhs; ++i) {
-			tmpLeft.push_back(0);
+		tmpLeft.push_back(0);
 
-			std::vector<Arrangment> tmp04;
-			tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		std::vector<Arrangment> tmp04;
+		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
-			/* add directly without checking */
+		/* add directly without checking */
+		if (arrangements[std::make_pair(i, 0)].size() == 0) {
 			arrangements[std::make_pair(i, 0)] = tmp04;
 		}
+	}
 }
 
 /*
@@ -181,7 +190,9 @@ void handleCase_0_n_general(
 
 			/* update */
 			/* add directly without checking */
-			arrangements[std::make_pair(0, i)] = tmp04;
+			if (arrangements[std::make_pair(0, i)].size() == 0) {
+				arrangements[std::make_pair(0, i)] = tmp04;
+			}
 		}
 }
 
@@ -440,7 +451,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 	t = clock() - t;
 
 #ifdef PRINTTEST_UNDERAPPROX
-	__debugPrint(logFile, "\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)].size());
+	__debugPrint(logFile, "\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, possibleCases.size());
 #endif
 
 	std::vector<std::string> cases;
@@ -458,7 +469,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 #else
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-
+		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		std::string tmp = possibleCases[i].
 				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
 
@@ -495,10 +506,33 @@ void create_const_array(
 //	for (std::map<std::pair<std::string, std::string>, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
 	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
 		defines.push_back("(declare-const arr_" + it->second + " (Array Int Int))");
-//		for (int i = 0 ; i < it->first.first.length(); ++i) {
-		for (unsigned int i = 0 ; i < it->first.length(); ++i) {
-			constraints.push_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
+		if (!isRegexStr(it->first))
+			for (unsigned int i = 0 ; i < it->first.length(); ++i) {
+				constraints.push_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
+			}
+		else {
+			std::string regexContent = parse_regex_content(it->first);
+			for (unsigned int i = 0 ; i < regexContent.length(); ++i) {
+				constraints.push_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(regexContent[i]) + "))");
+			}
 		}
+	}
+}
+
+/*
+ *
+ */
+/*
+ *
+ * (declare-const __regex_x Int)
+ *
+ * __regex_x >= 0
+ *
+ */
+void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<std::string> &constraints){
+	for (int i = 0 ; i < regexCnt; ++i) {
+		defines.push_back("(declare-const __regex_" + std::to_string(i) + " Int)");
+		constraints.push_back("(assert (>= __regex_" + std::to_string(i) + " 0))");
 	}
 }
 
@@ -513,28 +547,36 @@ void create_const_array(
  */
 void create_constraints_const(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 
-//	for (std::map<std::pair<std::string, std::string>, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
-	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
+	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it)
+		if (!isRegexStr(it->first)){
 
-		/* len_x = sum(len_x_i)*/
-		std::string lenX = "";
-		std::string varName = "len_" + it->second + "_";
-		for (int i = 1; i <= QCONSTMAX; ++i) {
-			defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(i) + " Int)");
-			constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(i) + " 0))");
-			lenX = lenX + varName + std::to_string(i) + " ";
+			/* len_x = sum(len_x_i)*/
+			std::string lenX = "";
+			std::string varName = "len_" + it->second + "_";
+			for (int i = 1; i <= QCONSTMAX; ++i) {
+				defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(i) + " Int)");
+				constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(i) + " 0))");
+				lenX = lenX + varName + std::to_string(i) + " ";
+			}
+
+			/* (+ sum(len_x_i) */
+			if (QCONSTMAX > 1)
+				lenX = "(+ " + lenX + ")";
+
+			std::string lenName = std::to_string(it->first.length());
+			/*(assert (= const (+ sum(len_x_i)))) */
+			lenX = "(assert (= " + lenName + " " + lenX  + "))";
+
+			constraints.push_back(lenX);
 		}
+		else {
+			defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
+			constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
 
-		/* (+ sum(len_x_i) */
-		if (QCONSTMAX > 1)
-			lenX = "(+ " + lenX + ")";
+			std::string regexContent = parse_regex_content(it->first);
 
-		std::string lenName = std::to_string(it->first.length());
-		/*(assert (= const (+ sum(len_x_i)))) */
-		lenX = "(assert (= " + lenName + " " + lenX  + "))";
-
-		constraints.push_back(lenX);
-	}
+			constraints.push_back("(assert (= (mod len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) +  " " + std::to_string(regexContent.length()) + ") 0))");
+		}
 }
 
 /*
@@ -587,8 +629,15 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 			cnt ++;
 		}
 		else if (components[i].length() > 2) { /* const is not an empty string */
-			lenX = lenX + " " + std::to_string(components[i].length() - 2);
-			cnt ++;
+			if(!isRegexStr(components[i])) {
+				lenX = lenX + " " + std::to_string(components[i].length() - 2);
+				cnt ++;
+			}
+			else {
+				/* regex */
+				lenX = lenX + " " + std::to_string(parse_regex_content(components[i].substr(1, components[i].length() - 2)).length());
+				cnt ++;
+			}
 		}
 	}
 
@@ -599,8 +648,12 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 	/*(= len_X (+ sum(len_y)) */
 	if (x[0] != '\"')
 		lenX = "(= len_" + x + " " + lenX  + ")";
-	else
-		lenX = "(= " + std::to_string(x.length() - 2) + " " + lenX  + ")";
+	else {
+		if(!isRegexStr(x))
+			lenX = "(= " + std::to_string(x.length() - 2) + " " + lenX  + ")";
+		else
+			lenX = "(= " + std::to_string(parse_regex_content(x.substr(1, x.length() - 2)).length()) + " " + lenX  + ")";
+	}
 //	printf("%d createLengthConstraintForAssignment: %s\n", __LINE__, lenX.c_str());
 
 	return lenX;
@@ -648,6 +701,7 @@ void writeOutput02(std::string outFile){
 	std::vector<std::string> defines;
 	std::vector<std::string> constraints;
 
+	create_constraints_RegexCnt(defines, constraints);
 	create_constraints_const(defines, constraints);
 	create_constraints_strVar(defines, constraints);
 	create_constraints_array(defines, constraints);
@@ -776,6 +830,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 			lhs, rhs,
 			lhs_elements, rhs_elements,
 			newVars);
+	displayListString(cases, " print cases");
 	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
 	if (cases.size() == 0)
 		newVars.clear();
@@ -834,6 +889,20 @@ std::string collectConst(std::string str) {
 
 			str = "\"" + str + "\"";
 		}
+	}
+	else {
+		assert (str[0] == '\"' && str[str.length() - 1] == '\"');
+		str = str.substr(1, str.length() - 2);
+		if (str[0] == '$') {
+			if (str[1] == '$') {
+				/* find !! */
+				std::size_t found = str.find("!!");
+				assert (found != std::string::npos);
+				found = found + 2;
+				str = str.substr(found);
+			}
+		}
+		str = "\"" + str + "\"";
 	}
 	// printf("OUt: %s\n",str.c_str());
 	return str;
@@ -996,7 +1065,7 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 		for (unsigned int i = 0 ; i < it->second.size(); ++i) {
 			std::vector<std::string> anEq;
 			for (unsigned int j = 0; j < it->second[i].size(); ++j) {
-				if (it->second[i][j][0] == '(') { /* AutomataDef */
+				if (it->second[i][j][0] == '\"') { /* AutomataDef */
 					std::string constStr = collectConst(it->second[i][j]);
 					if (constStr.length() > 0)
 						anEq.push_back(collectConst(it->second[i][j]));
@@ -1034,6 +1103,8 @@ std::string sumStringVector(std::vector<std::string> list){
 /*
  * sum const strings
  * "a" . "b" = "ab"
+ *
+ * and update regex to make it to be deterministic
  */
 void sumConstString(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
@@ -1044,9 +1115,47 @@ void sumConstString(){
 			std::string tmpStr = "";
 			/* push to map */
 			for (unsigned int k = 0; k < it->second[j].size(); ++k) {
-				if (it->second[j][k][0] == '\"')
-					tmpStr = tmpStr + it->second[j][k].substr(1, it->second[j][k].length() - 2);
-				else {
+				if (it->second[j][k][0] == '\"') {
+					/* prevent the case: (abc)*  + def */
+					if (isRegexStr(it->second[j][k])) {
+						/* update regex */
+						std::string content = it->second[j][k].substr(1, it->second[j][k].length() - 2);
+						/* parse this regex */
+						std::vector<std::vector<std::string>> regexElements = refineVectors(parseRegexComponents(underApproxRegex(content)));
+
+						/* assume that regexElements size is 1 */
+						assert(regexElements.size() >= 1);
+
+						/* add header string to tmpStr */
+						unsigned int pos = 0;
+						for (pos = 0; pos < regexElements[0].size(); ++pos)
+							if (!isRegexStr(regexElements[0][pos]))
+								tmpStr = tmpStr + regexElements[0][pos];
+							else
+								break;
+
+						/* push to vector*/
+						if (tmpStr.length() > 0) {
+							elements.push_back("\"" + tmpStr + "\"");
+							tmpStr = "";
+						}
+
+						/* add the rest  to vector */
+						while (pos < regexElements[0].size()){
+							if (isRegexStr(regexElements[0][pos])) {
+								elements.push_back("\"" + regexElements[0][pos] + "__" + std::to_string(regexCnt++) + "\"");
+							}
+							else {
+								elements.push_back(regexElements[0][pos]);
+							}
+							pos++;
+						}
+
+					}
+					else /* meet const str */
+						tmpStr = tmpStr + it->second[j][k].substr(1, it->second[j][k].length() - 2);
+				}
+				else { /* meet variable */
 					if (tmpStr.length() > 0) {
 						elements.push_back("\"" + tmpStr + "\"");
 						tmpStr = "";
@@ -1080,6 +1189,7 @@ void sumConstString(){
  */
 void createConstMap(){
 	int constCnt = 0;
+
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
 		for (unsigned int j = 0; j < it->second.size(); ++j){
 
@@ -1088,9 +1198,14 @@ void createConstMap(){
 
 			/* push to map */
 			for (unsigned int k = 0; k < it->second[j].size(); ++k)
-				if (it->second[j][k][0] == '\"')
-					constMap[it->second[j][k].substr(1, it->second[j][k].length() - 2)] = "const_" + std::to_string(constCnt++);
-//					constMap[std::make_pair(it->second[j][k].substr(1, it->second[j][k].length() - 2), value)] = "const_" + std::to_string(constCnt++);
+				if (it->second[j][k][0] == '\"'){
+					std::string content = it->second[j][k].substr(1, it->second[j][k].length() - 2);
+					/* string is regex ? */
+					if (content[content.length() - 1] == '*' || content[content.length() - 1] == '+') {
+						content = content + "__" + std::to_string(constCnt);
+					}
+					constMap[content] = "const_" + std::to_string(constCnt++);
+				}
 		}
 	}
 
@@ -1195,46 +1310,253 @@ void refineEqualMap(){
 }
 
 /*
+ *
+ */
+int findCorrespondRightParenthesis(int leftParenthesis, std::string str){
+	assert (str[leftParenthesis] == '(');
+	int counter = 1;
+	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+			if (counter == 0){
+				return j;
+			}
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+	}
+	return -1;
+}
+
+/*
+ *
+ */
+std::vector<std::string> collectAlternativeComponents(std::string str){
+	std::vector<std::string> result;
+	int counter = 0;
+	unsigned int startPos = 0;
+	for (unsigned int j = 0; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+		else if ((str[j] == '|' || str[j] == '~') && counter == 0) {
+			result.push_back(str.substr(startPos, j - startPos));
+			startPos = j + 1;
+		}
+	}
+	if (startPos != 0)
+		result.push_back(str.substr(startPos, str.length() - startPos));
+	return result;
+}
+
+/*
+ *
+ */
+std::string underApproxRegex(std::string str){
+	/* remove all star-in-star */
+	for (unsigned int i = 0 ; i < str.length(); ++i) {
+		if (str[i] == '('){
+			int counter = 1;
+			bool hasStar = false;
+			for (unsigned int j = i + 1; j < str.length(); ++j) {
+				if (str[j] == ')'){
+					counter--;
+					if (counter == 0 && str[j + 1] == '*' && hasStar == true) {
+						// str.replace(i, j - i + 2, str.substr(i + 1, j - i - 1));
+						str.replace(j + 1, 1, "");
+						return underApproxRegex(str);
+					}
+					else if (counter == 0){
+						break;
+					}
+				}
+				else if (str[j] == '('){
+					counter++;
+				}
+				else if (str[j] == '*')
+					hasStar = true;
+			}
+		}
+	}
+	return str;
+}
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
+//	printf("%d parsing: \"%s\"\n", __LINE__, str.c_str());
+	if (str.length() == 0)
+		return {};
+
+	std::vector<std::vector<std::string>> result;
+
+	std::vector<std::string> alternativeRegex = collectAlternativeComponents(str);
+	if (alternativeRegex.size() != 0){
+		for (unsigned int i = 0; i < alternativeRegex.size(); ++i) {
+			std::vector<std::vector<std::string>> tmp = parseRegexComponents(alternativeRegex[i]);
+			assert(tmp.size() <= 1);
+			if (tmp.size() == 1)
+				result.push_back(tmp[0]);
+		}
+		return result;
+	}
+
+	size_t leftParenthesis = str.find('(');
+//	if (leftParenthesis == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
+	if (leftParenthesis == std::string::npos)
+		return {{str}};
+
+	/* abc(def)* */
+	if (leftParenthesis != 0) {
+		std::string header = str.substr(0, leftParenthesis);
+		std::vector<std::vector<std::string>> rightComponents = parseRegexComponents(str.substr(leftParenthesis));
+		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
+			std::vector<std::string> tmp = {header};
+			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
+			result.push_back(tmp);
+		}
+		return result;
+	}
+
+	int rightParenthesis = findCorrespondRightParenthesis(leftParenthesis, str);
+	if (rightParenthesis < 0) {
+		assert (false);
+	}
+	else if (rightParenthesis == (int)str.length() - 1){
+		/* (a) */
+		return parseRegexComponents(str.substr(1, str.length() - 2));
+	}
+	else if (rightParenthesis == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
+		/* (a)* */
+		return {{str}};
+	}
+
+	else {
+		int pos = rightParenthesis;
+		std::string left, right;
+		if (str[rightParenthesis + 1] == '*' || str[rightParenthesis + 1] == '+'){
+			pos++;
+			left = str.substr(leftParenthesis, pos - leftParenthesis + 1);
+			right = str.substr(pos + 1);
+		}
+		else if (str[pos] != '|' || str[pos] != '~') {
+			left = str.substr(leftParenthesis + 1, pos - leftParenthesis - 1);
+			right = str.substr(pos + 1);
+		}
+		else {
+			assert (false);
+			/* several options ab | cd | ef */
+		}
+
+		if (str[pos] != '|' || str[pos] != '~') {
+			std::vector<std::vector<std::string>> leftComponents = parseRegexComponents(left);
+			std::vector<std::vector<std::string>> rightComponents = parseRegexComponents(right);
+			if (leftComponents.size() > 0) {
+				if (rightComponents.size() > 0) {
+					for (unsigned int i = 0; i < leftComponents.size(); ++i)
+						for (unsigned int j = 0; j < rightComponents.size(); ++j) {
+							std::vector<std::string> tmp;
+							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
+							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
+							result.push_back(tmp);
+						}
+				}
+				else {
+					result.insert(result.end(), leftComponents.begin(), leftComponents.end());
+				}
+			}
+			else {
+				if (rightComponents.size() > 0) {
+					result.insert(result.end(), rightComponents.begin(), rightComponents.end());
+				}
+			}
+
+			return result;
+		}
+	}
+	return {};
+}
+
+/*
+ *
+ */
+bool equalVector(std::vector<std::string> a, std::vector<std::string> b){
+	if (a.size() != b.size()) {
+		return false;
+	}
+	for (unsigned int i = 0; i < a.size(); ++i)
+		if (a[i].compare(b[i]) != 0) {
+			return false;
+		}
+	return true;
+}
+
+/*
+ * remove duplication
+ */
+std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list){
+	bool duplicated[1000];
+	memset(duplicated, false, sizeof duplicated);
+	for (unsigned int i = 0; i < list.size(); ++i)
+		if (!duplicated[i])
+			for (unsigned int j = i + 1; j < list.size(); ++j)
+				if (!duplicated[j]) {
+					if (equalVector(list[i], list[j])) {
+						duplicated[j] = true;
+					}
+				}
+
+	std::vector<std::vector<std::string>> result;
+	for (unsigned int i = 0 ; i < list.size(); ++i)
+		if (!duplicated[i])
+			result.push_back(list[i]);
+	return result;
+}
+/*
  * Input: x . y
  * Output: flat . flat . flat . flat . flat . flat
  */
 std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string> list){
 	std::vector<std::pair<std::string, int>> elements;
-	/* tricky thing: if only 01 variables, QMAX + 1 */
-	int constCnt = 0;
-	for (unsigned int k = 0; k < list.size(); ++k) {
-		if (list[k][0] == '\"') {
-			if (list[k].length() > 2) {/* const string */
-				constCnt++;
-			}
-		}
-	}
 
 	for (unsigned int k = 0; k < list.size(); ++k)
 		if (list[k][0] == '\"') {
-			if (list[k].length() > 3) /* const string */ {
-				for (int j = 0; j < QCONSTMAX; ++j) { /* split variables into QMAX parts */
-					elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
+			size_t starPos = list[k].find('*');
+			if (starPos == std::string::npos)
+				starPos = list[k].find('+');
+
+			if (starPos == std::string::npos) {
+				if (list[k].length() > 3) /* const string */ {
+					for (int j = 0; j < QCONSTMAX; ++j) { /* split variables into QMAX parts */
+						elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
+					}
+				}
+				else {
+					/* length = 1*/
+					elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
 				}
 			}
 			else {
-				elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
+				/* regex */
+				std::string content = list[k].substr(1, list[k].length() - 2);
+
+				elements.push_back(std::make_pair(content, REGEX_CODE));
 			}
 		}
 		else {
-			/* continue do trick: increase Qmax by 1 if number of variables = 1*/
-			int qmax = QMAX;
-			//			if (list.size() - constCnt <= 1)
-			//				qmax = qmax + 1;
-			// printf("%d Qmax %d %s size:%ld, constCnt: %d\n", __LINE__, qmax, list[k].c_str(), list.size(), constCnt);
-			for (int j = 0; j < qmax; ++j) { /* split variables into QMAX parts */
+			for (int j = 0; j < QMAX; ++j) { /* split variables into QMAX parts */
 				elements.push_back(std::make_pair(list[k], j));
 			}
 		}
 
-	//	for (int i = 0; i < elements.size(); ++i)
-	//		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
-	//	printf("%d\n",__LINE__);
+	for (unsigned int i = 0; i < elements.size(); ++i)
+		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
+	printf("%d\n",__LINE__);
 
 	return elements;
 }
@@ -1321,11 +1643,11 @@ void *convertEqualities(void *tid){
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
 				if (result.first.size() != 0) {
-					if (lengthRecord == false) {
-						/* (= len_X (+ sum(len_y)) --> DO NOT need it, because it belongs to the original SMT */
-						lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
-						lengthRecord = true;
-					}
+//					if (lengthRecord == false) {
+//						/* (= len_X (+ sum(len_y)) --> DO NOT need it, because it belongs to the original SMT */
+//						 lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
+//						lengthRecord = true;
+//					}
 					/* sync result*/
 					pthread_mutex_lock (&smt_mutex);
 					for (std::map<std::string, int>::iterator iter = result.second.begin(); iter != result.second.end(); ++iter) {
@@ -1334,7 +1656,7 @@ void *convertEqualities(void *tid){
 					global_smtStatements.push_back(result.first);
 
 					if (lenConstraint.size() > 0) {
-						global_smtStatements.push_back(lenConstraint);
+//						 global_smtStatements.push_back(lenConstraint);
 						lenConstraint.clear();
 					}
 					pthread_mutex_unlock (&smt_mutex);
@@ -1352,10 +1674,10 @@ void *convertEqualities(void *tid){
 					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[j]);
 					t = clock();
 					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(it->second[i]),
-							sumStringVector(it->second[j]),
-							lhs_elements,
-							rhs_elements
-					);
+																											sumStringVector(it->second[j]),
+																											lhs_elements,
+																											rhs_elements
+																										);
 					t = clock() - t;
 #ifdef PRINTTEST_UNDERAPPROX
 					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
@@ -1363,7 +1685,7 @@ void *convertEqualities(void *tid){
 					if (result.first.size() != 0) {
 						if (lengthRecord == false) {
 							/* (= len_X (+ sum(len_y)) --> DO NOT need it, because it belongs to the original SMT */
-							lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
+//							lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
 							lengthRecord = true;
 						}
 						/* sync result*/
@@ -1374,7 +1696,7 @@ void *convertEqualities(void *tid){
 						global_smtStatements.push_back(result.first);
 
 						if (lenConstraint.size() > 0) {
-							global_smtStatements.push_back(lenConstraint);
+//							global_smtStatements.push_back(lenConstraint);
 							lenConstraint.clear();
 						}
 						pthread_mutex_unlock (&smt_mutex);
@@ -1608,29 +1930,36 @@ void underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir) {
+	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("(abc)((abc)*)")));
+	for (unsigned int i = 0; i < test.size(); ++i)
+		displayListString(test[i], " parse regex ");
+
 	printf("Running Under Approximation...\n");
 	/* init varLength */
 	varLength.clear();
 	varLength.insert(_currentLength.begin(), _currentLength.end());
 
 
-
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
 	init();
 
+	/* init regexCnt */
+	regexCnt = 0;
+
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		convertSMTFileToLengthFile(fileDir, true, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(fileDir, true, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		writeOutput_basic(OUTPUT);
 		bool val = Z3_run(OUTPUT, false);
 		if (val == false){
-			convertSMTFileToLengthFile(fileDir, false, smtVarDefinition, smtLenConstraints, notConstraints);
+			regexCnt = 0;
+			convertSMTFileToLengthFile(fileDir, false, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 			writeOutput_basic(OUTPUT);
 			Z3_run(OUTPUT);
 		}
 	}
 	else {
-		convertSMTFileToLengthFile(fileDir, false, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(fileDir, false, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		pthreadController();
 		std::cout << ">> Generated SMT\n\n";
 //		std::cout << ">> Finished Under Appproximation in " << tim::measure<>::execution(pthreadController) << " seconds\n";

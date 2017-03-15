@@ -7,12 +7,16 @@
 
 #include "GrmOverApprox.h"
 
-void printNonTerminal(std::map<std::string, std::vector<std::string>> list, std::string name, std::string endStr) {
+void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name) {
 	printf("%d %s: \n", __LINE__, name.c_str());
-	for (std::map<std::string, std::vector<std::string>>::iterator it = list.begin(); it != list.end(); ++it) {
+	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = list.begin(); it != list.end(); ++it) {
 		printf(" %s: ", it->first.c_str());
-		for (unsigned int j = 0 ; j < it->second.size(); ++j)
-			printf(" ---%s--- ||", it->second[j].c_str());
+		for (unsigned int j = 0 ; j < it->second.size(); ++j) {
+			printf("\t");
+			for (unsigned int k = 0 ; k < it->second[j].size(); ++k)
+				printf(" ---%s---", it->second[j][k].c_str());
+			printf("\n");
+		}
 		printf("\n");
 	}
 	printf("\n");
@@ -55,87 +59,61 @@ std::map<std::string, std::string> CFG_parser(std::string inputFile){
 	std::map<std::string, std::string> regex;
 	std::vector<std::set<int>> graph;
 	std::vector<std::string> lines = readGrm(inputFile);
+	GRMParser parser("GRM_token_automata.dat");
 	displayListString(lines, "Input");
 
 	// find nonterminal
-	std::map<std::string, std::vector<std::string>> nonTerminalMap;
+	std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap;
 	std::map<std::string, int> nonTerminal;
 	int cnt = 0;
 	for (unsigned int i = 0 ; i < lines.size(); ++i){
-		std::vector<std::string> tokens = parse_string_language(lines[i], " \n");
-		if (nonTerminal.find(tokens[0]) == nonTerminal.end()) {
-			nonTerminal[tokens[0]] = cnt++;
+		std::vector<TokenElement> components = parser.tokenHandler(lines[i], 0);
+
+		if (components[0].type.compare("nonterminal") != 0 || components[1].type.compare("equal_operator") != 0)
+			throw std::runtime_error("Grammar error.\n");
+
+		/* init */
+		if (nonTerminal.find(components[0].content) == nonTerminal.end()) {
+			nonTerminal[components[0].content] = cnt++;
 			graph.push_back(std::set<int>());
 		}
 
-		unsigned int j = 0;
-		/* find = */
-		for (j = 0; j < lines[i].length(); ++j)
-			if (lines[i][j] == '=')
-				break;
-
-		if (j >= lines[i].length() - 1) {
-			printf("Grammar error at line %d!\n", i);
-			return regex;
-		}
-
-		if (lines[i][j + 1] != ' ') {
-			printf("Grammar error at line %d!\n", i);
-			return regex;
-		}
-
 		/* find parts */
-		std::vector<std::string> components;
-		std::string component = "";
-		for (unsigned int k = j + 2; k < lines[i].length(); ++k)
-			if (lines[i][k] == '|' || lines[i][k] == '\n') {
-				/* check component */
-				if (component[0] != '$') /* not non-terminal*/ {
-					for (unsigned int t = 0; t < component.length(); ++t)
-						if (component[t] >= 'A' && component[t] <= 'W') {
-							printf("%d %s\n", __LINE__, component.c_str());
-							throw std::runtime_error("Do not accept UPPER CHARACTERS in CFG!\n");
-						}
-				}
-				if (component[component.length() - 1] == ' ')
-					nonTerminalMap[tokens[0]].push_back(component.substr(0, component.length() - 1));
-				else
-					nonTerminalMap[tokens[0]].push_back(component);
-				component = "";
-				if (lines[i][k] == '|' && lines[i][k + 1] != ' ' ) {
-					printf("Grammar error at line %d!\n", i);
-					throw std::runtime_error("Grammar error!\n");
-					return regex;
-				}
-				else
-					k++;
+		std::vector<std::string> subPart;
+		for (unsigned int j = 2; j < components.size(); ++j) {
+			if (components[j].type.compare("or_operator") == 0) {
+				nonTerminalMap[components[0].content].push_back(subPart);
+				subPart.clear();
 			}
-			else {
-				component = component + lines[i][k];
-			}
+			else
+				subPart.push_back(components[j].content);
+
+		}
+
+		if (subPart.size() > 0)
+			nonTerminalMap[components[0].content].push_back(subPart);
 	}
 
 	// build graph
 	for (unsigned int i = 0 ; i < lines.size(); ++i){
-		std::vector<std::string> tokens = parse_string_language(lines[i], " \n");
-//		printf("%d %s\n", __LINE__, lines[i].c_str());
-		for (unsigned int j = 1 ; j < tokens.size(); ++j) {
-			if (tokens[j].length() > 0)
-				if (nonTerminal.find(tokens[j]) != nonTerminal.end()) {
-					int pos = nonTerminal[tokens[j]];
-					graph[nonTerminal[tokens[0]]].insert(pos);
-//					printf("%d %s w. %s (%ld)\n", __LINE__, tokens[0].c_str(), tokens[j].c_str(), tokens[j].length());
-				}
+		std::vector<TokenElement> components = parser.tokenHandler(lines[i], 0);
+		printf("%d --%s--\n", __LINE__, lines[i].c_str());
+		for (unsigned int j = 2 ; j < components.size(); ++j) {
+			if (components[j].type.compare("nonterminal") == 0) {
+				int pos = nonTerminal[components[j].content];
+				graph[nonTerminal[components[0].content]].insert(pos);
+				printf("%d --%s-- w. --%s--\n", __LINE__, components[0].content.c_str(), components[j].content.c_str());
+			}
 		}
 	}
 
 
-//	printNonTerminal(nonTerminalMap, "nonTerminalMap", " ");
-//	printGraph(graph, nonTerminal);
+	printNonTerminal(nonTerminalMap, "nonTerminalMap");
+	printGraph(graph, nonTerminal);
 
-	std::vector<std::vector<std::string>> components = findStronglyConnectedComponent(graph, nonTerminal);
+	std::vector<std::vector<std::string>> graphComponents = findStronglyConnectedComponent(graph, nonTerminal);
 	std::vector<std::vector<Rule>> automata;
-	constructAutomataForStronglyConnectedComponent(components, nonTerminalMap, automata);
+	constructAutomataForStronglyConnectedComponent(graphComponents, nonTerminalMap, automata);
 
 	for (unsigned int i = 0; i < automata.size(); ++i)
 		expandAutomaton(automata[i], nonTerminal, regex);
@@ -293,6 +271,47 @@ std::string evalNode(std::vector<Rule> rules, std::string name) {
 /*
  *
  */
+int findRightParenthesis(std::string str){
+	int leftParenthesis = 0;
+	assert (str[leftParenthesis] == '(');
+	int counter = 1;
+	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+			if (counter == 0){
+				return j;
+			}
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+	}
+	return -1;
+}
+
+/*
+ *
+ */
+bool hasAlternativeComponents(std::string str){
+	std::vector<std::string> result;
+	int counter = 0;
+	for (unsigned int j = 0; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+		else if ((str[j] == '|' || str[j] == '~') && counter == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ *
+ */
 void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 	// check itself
 	std::string itself = "";
@@ -369,7 +388,15 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 				transition[tmp] = "";
 		}
 		else if (newRules[i].label.length() > 0) {
-			if (transition[tmp][0] == '(' && transition[tmp][transition[tmp].length() - 1] == ')')
+			bool addParenthesis = true;
+//			printf("%d transition: %s\n", __LINE__, transition[tmp].c_str());
+			if (transition[tmp][0] == '('){
+				int rightParenthesis = findRightParenthesis(transition[tmp]);
+				if (rightParenthesis == (int)transition[tmp].length() - 1 || hasAlternativeComponents(transition[tmp]))
+					addParenthesis = false;
+			}
+
+			if (addParenthesis == false)
 				transition[tmp] = transition[tmp] +	"|(" + newRules[i].label + ")";
 			else
 				transition[tmp] = "(" + transition[tmp] +	")|(" + newRules[i].label + ")";
@@ -377,7 +404,11 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 	}
 
 	for (std::map<std::pair<std::string, std::string>, std::string>::iterator it = transition.begin(); it != transition.end(); ++it) {
-		rules.push_back(Rule(it->first.first, it->second, it->first.second));
+		if (hasAlternativeComponents(it->second)) {
+			rules.push_back(Rule(it->first.first, "(" + it->second + ")", it->first.second));
+		}
+		else
+			rules.push_back(Rule(it->first.first, it->second, it->first.second));
 	}
 }
 
@@ -417,7 +448,7 @@ std::vector<std::vector<std::string>> findStronglyConnectedComponent(
 	std::vector<std::vector<std::string>> components;
 	for (int i = 0 ; i < (int)nonTerminal.size(); ++i)
 		if (check[i] == false) {
-			// find all memebers of its component
+			// find all members of its component
 			std::vector<std::string> component;
 			component.push_back(mapBack(nonTerminal, i));
 
@@ -438,35 +469,29 @@ std::vector<std::vector<std::string>> findStronglyConnectedComponent(
  */
 void constructAutomataForStronglyConnectedComponent(
 		std::vector<std::vector<std::string>> components,
-		std::map<std::string, std::vector<std::string>> nonTerminalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap,
 		std::vector<std::vector<Rule>> &automata){
-	//
 	for (unsigned int i = 0 ; i < components.size(); ++i) {
-//		displayListString(components[i], "Component: ");
 
 		std::vector<Rule> rules;
 		for (unsigned int j = 0 ; j < components[i].size(); ++j) {
-		// rewrite the rule
+		/* rewrite the rule */
 			for (unsigned int k = 0; k < nonTerminalMap[components[i][j]].size(); ++k) {
-				std::string rhs = nonTerminalMap[components[i][j]][k];
-//				printf("%d Rewrite: --%s--\n", __LINE__, rhs.c_str());
-				std::vector<std::string> tokens = parse_string_language(rhs, " \n");
+				std::vector<std::string> tokens = nonTerminalMap[components[i][j]][k];
 
-				// merge all terminals
+				/* merge all terminals */
 				std::vector<std::string> newTokens;
 				std::string terminal = "";
 				std::string currentToken = "";
 				for (unsigned int t = 0 ; t < tokens.size(); ++t) {
 					if (std::find(components[i].begin(), components[i].end(), tokens[t]) == components[i].end()) {
-						// terminal
+						/* terminal */
 						terminal = terminal + tokens[t] + " ";
 					}
 					else {
 						if (terminal.length() > 0) {
 							if (terminal[terminal.length() - 1] == ' ')
 								terminal = terminal.substr(0, terminal.length() - 1);
-							if (terminal[0] != '$' && rhs[0] == ' ' && rhs[rhs.length() - 1] == ' ')
-								terminal = " "  + terminal + " ";
 							newTokens.push_back(terminal);
 
 							terminal = "";
@@ -478,33 +503,27 @@ void constructAutomataForStronglyConnectedComponent(
 				if (terminal[terminal.length() - 1] == ' ')
 					terminal = terminal.substr(0, terminal.length() - 1);
 				if (terminal.length() > 0) {
-					if (terminal[0] != '$' && rhs[0] == ' ' && rhs[rhs.length() - 1] == ' ')
-						terminal = " "  + terminal + " ";
 					newTokens.push_back(terminal);
 				}
 
-				// rewrite the rule
+				/* rewrite the rule */
 				std::vector<Rule> tmp_rules = rewriteTransition(components[i], components[i][j], newTokens);
 				rules.insert(rules.end(), tmp_rules.begin(), tmp_rules.end());
 
-//				printf("%d Result \n", __LINE__);
-//				for (unsigned int t = 0; t < tmp_rules.size(); ++t)
-//					printf("%d %s\n", __LINE__, tmp_rules[t].toString().c_str());
+				printf("%d Result \n", __LINE__);
+				for (unsigned int t = 0; t < tmp_rules.size(); ++t)
+					printf("%d %s\n", __LINE__, tmp_rules[t].toString().c_str());
 			}
-//			printf("%d\n", __LINE__);
 
 		}
 		for (unsigned int j = 0; j < components[i].size(); ++j)
 			rules.push_back(Rule("__" + components[i][j], "", "__epsilon__"));
 		rules.push_back(Rule("__starter__", "", components[i][0]));
-//		for (unsigned int t = 0; t < rules.size(); ++t)
-//			printf("%d %s\n", __LINE__, rules[t].toString().c_str());
+		for (unsigned int t = 0; t < rules.size(); ++t)
+			printf("%d %s\n", __LINE__, rules[t].toString().c_str());
 
 		automata.push_back(rules);
 	}
-
-
-//	printf("%d FINISH\n", __LINE__);
 }
 
 /*
@@ -564,21 +583,38 @@ void finalUpdate(
 void reformulateRegex(std::map<std::string, std::string> &regex) {
 	for (std::map<std::string, std::string>::iterator it = regex.begin(); it != regex.end(); ++it) {
 		std::string varRegex = it->second;
-		for (unsigned int i = 0 ; i < varRegex.length(); ++i)
-			if (varRegex[i] == '|')
-				varRegex[i] = '~';
-		std::vector<std::string> tokens = parse_string_language(varRegex, " ");
-
-		std::string sum = "";
-		for (unsigned int j = 0; j < tokens.size(); ++j) {
-			if (j == 0)
-				sum = tokens[j];
+		printf("%d value before: %s\n", __LINE__, varRegex.c_str());
+		int state = 0; // 1: " ; 2: ""; 0: otherwise
+		std::string constStr = "";
+		std::string replaced = "";
+		for (unsigned int i = 0 ; i < varRegex.length(); ++i) {
+			if (varRegex[i] == '"' && !(i > 0 && varRegex[i - 1] == '\\')) {
+				if (state == 0) {
+					state = 1;
+				}
+				else if (state == 1) {
+					replaced = replaced + constStr;
+					constStr = "";
+					state = 0;
+				}
+			}
 			else {
-				sum = sum + " " + tokens[j];
+				if (state == 1) {
+					if (varRegex[i] == '"') {
+						assert(varRegex[i - 1] == '\\');
+						constStr = constStr + varRegex[i - 1] + varRegex[i];
+					}
+					else if (varRegex[i] != '\\')
+						constStr = constStr + varRegex[i];
+				}
+				else if (varRegex[i] == '|')
+					replaced = replaced + '~';
+				else if (varRegex[i] != ' ')
+					replaced = replaced + varRegex[i];
 			}
 		}
 
-//		printf("%d %s: %s\n", __LINE__, it->first.c_str(), sum.c_str());
-		regex[it->first] = varRegex;
+		printf("%d value: %s\n", __LINE__, replaced.c_str());
+		regex[it->first] = replaced;
 	}
 }

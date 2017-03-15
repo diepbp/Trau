@@ -82,7 +82,8 @@ void updateLength(std::string &s) {
  * "abcdef" --> 6
  */
 void updateConst(std::string &s, std::set<std::string> constList) {
-	// replace const --> its length
+	/* replace const --> its length */
+
 	for (std::set<std::string>:: iterator it = constList.begin(); it != constList.end(); ++it) {
 		while(true) {
 			std::size_t found = s.find(*it);
@@ -94,6 +95,110 @@ void updateConst(std::string &s, std::set<std::string> constList) {
 		}
 	}
 
+}
+
+/*
+ * RegexIn  --> =
+ */
+void updateRegexIn(std::string &str){
+	std::size_t found = str.find("(RegexIn ");
+	while (found != std::string::npos) {
+		str.replace(found + 1, 7, "=");
+		found = str.find("(RegexIn ");
+	}
+
+	found = str.find("RegexIn ");
+	while (found != std::string::npos) {
+		str.replace(found, 7, "=");
+		found = str.find("RegexIn ");
+	}
+}
+
+/*
+ * (Str2Regex x)-->
+ */
+void updateStr2Regex(std::string &str){
+	std::size_t found = str.find("Str2Reg ");
+	while (found != std::string::npos) {
+		/* go back to find ( */
+		unsigned int leftParenthesis = found;
+		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
+			leftParenthesis--;
+		assert(leftParenthesis >= 0);
+
+		/* go forward to find ) */
+		unsigned int rightParenthesis = found;
+		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
+			rightParenthesis++;
+
+		assert(rightParenthesis < str.length());
+
+		std::string content = "";
+		for (unsigned int i = found + 7; i < rightParenthesis; ++i)
+			if (str[i] >= '0' && str[i] <= '9') {
+				content = content + str[i];
+			}
+
+		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, content);
+		found = str.find("Str2Reg ");
+	}
+
+}
+
+/*
+ *
+ */
+void updateRegexStar(std::string &str, int &regexCnt){
+	std::size_t found = str.find("RegexStar ");
+	while (found != std::string::npos) {
+		/* go back to find ( */
+		unsigned int leftParenthesis = found;
+		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
+			leftParenthesis--;
+		assert(leftParenthesis >= 0);
+
+		/* go forward to find ) */
+		unsigned int rightParenthesis = found;
+		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
+			rightParenthesis++;
+
+		assert(rightParenthesis < str.length());
+		std::string content = "";
+		for (unsigned int i = found + 9; i < rightParenthesis; ++i)
+			if (str[i] >= '0' && str[i] <= '9') {
+				content = content + str[i];
+			}
+		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
+		found = str.find("RegexStar ");
+	}
+}
+
+/*
+ *
+ */
+void updateRegexPlus(std::string &str, int &regexCnt){
+	std::size_t found = str.find("RegexPlus ");
+	while (found != std::string::npos) {
+		/* go back to find ( */
+		unsigned int leftParenthesis = found;
+		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
+			leftParenthesis--;
+		assert(leftParenthesis >= 0);
+
+		/* go forward to find ) */
+		unsigned int rightParenthesis = found;
+		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
+			rightParenthesis++;
+
+		assert(rightParenthesis < str.length());
+		std::string content = "";
+		for (unsigned int i = found + 9; i < rightParenthesis; ++i)
+			if (str[i] >= '0' && str[i] <= '9') {
+				content = content + str[i];
+			}
+		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
+		found = str.find("RegexPlus ");
+	}
 }
 
 /*
@@ -146,7 +251,7 @@ void checkAssignWellForm(std::string &s){
 					int tokens = 0;
 
 					int j = i;
-					for (j = i; j < s.length(); ++j) {
+					for (j = i; j < (int)s.length(); ++j) {
 						if (s[j] == '('){
 							parentheses++;
 							tokens++;
@@ -188,6 +293,7 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
+		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints){
@@ -395,9 +501,17 @@ void customizeLine_ToCreateLengthLine(
 		if (newStr.find("(assert )") != std::string::npos)
 			return;
 
-		// printf("%d before 01 %s\n", __LINE__, newStr.c_str());
+		printf("%d step 01 %s\n", __LINE__, newStr.c_str());
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
-		// printf("%d afterConst %s\n", __LINE__, newStr.c_str());
+		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
+		updateStr2Regex(newStr);
+		printf("%d step 03 %s\n", __LINE__, newStr.c_str());
+		updateRegexStar(newStr, regexCnt);
+		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
+		updateRegexPlus(newStr, regexCnt);
+		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
+		updateRegexIn(newStr);
+		printf("%d step 06 %s\n", __LINE__, newStr.c_str());
 		updateConcat(newStr); /* Concat --> + */
 		updateLength(newStr); /* Length --> "" */
 		updateVariables(newStr, strVars); /* xyz --> len_xyz */
@@ -630,6 +744,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints){
@@ -645,6 +760,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 
 	char buffer[5000];
 	std::vector<std::string> strVars;
+
 	while (!feof(in))
 	{
 		/* read a line */
@@ -654,7 +770,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, smtVarDefinition, smtLenConstraints, notConstraints);
+			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		}
 	}
 	pclose(in);

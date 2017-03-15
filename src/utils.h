@@ -60,7 +60,11 @@
 extern FILE * logFile;
 extern FILE * logAxiom;
 
+int lcd(int x, int y);
+
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);
+
+std::string parse_regex_content(std::string str);
 
 std::string getFileNameFromFileDir(std::string fileDir);
 

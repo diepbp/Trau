@@ -6,6 +6,23 @@
  */
 #include "utils.h"
 
+int lcd(int x, int y) {
+	int x1 = x;
+	int y1 = y;
+	if (x < y) {
+		x1 = y;
+		y1 = x;
+	}
+
+	int r = y1;
+	while (r != 0) {
+		r = x1 % y1;
+		x1 = y1;
+		y1 = r;
+	}
+
+	return x * y / x1;
+}
 /*
  * string to tokens
  */
@@ -26,6 +43,18 @@ std::vector<std::string> parse_string_language(std::string s, std::string delimi
 	}
 
 	return result;
+}
+
+/*
+ *
+ */
+std::string parse_regex_content(std::string str){
+	size_t pos = str.find('*');
+	if (pos == std::string::npos)
+		pos = str.find('+');
+	assert (pos != std::string::npos);
+
+	return str.substr(1, pos - 2);
 }
 
 /*

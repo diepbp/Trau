@@ -27,6 +27,7 @@ static std::vector<std::vector<std::string>> global_smtStatements;
 static std::set<std::string> allVariables;
 #endif
 
+static int regexCnt;
 static std::vector<std::string> smtVarDefinition;
 static std::vector<std::string> smtLenConstraints;
 
@@ -51,6 +52,11 @@ void updatePossibleArrangements(
 void updatePossibleArrangements(
 		std::vector<Arrangment> tmp,
 		std::vector<Arrangment> &possibleCases);
+
+/*
+ *
+ */
+bool isRegexStr(std::string str);
 
 	/*
 	 * First base case
@@ -118,6 +124,15 @@ void updatePossibleArrangements(
 	 * define array for connected variable
 	 */
 	void create_const_array(std::vector<std::string> &defines, std::vector<std::string> &constraints);
+
+	/*
+	 *
+	 * (declare-const __regex_x Int)
+	 *
+	 * __regex_x >= 0
+	 *
+	 */
+	void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<std::string> &constraints);
 
 	/*
 	 * var name -> define var
@@ -234,6 +249,31 @@ void updatePossibleArrangements(
 	 */
 
 	void refineEqualMap();
+
+	/*
+	 *
+	 */
+	std::vector<std::string> collectAlternativeComponents(std::string str);
+
+	/*
+	 *
+	 */
+	std::string underApproxRegex(std::string str);
+
+	/*
+	 *
+	 */
+	std::vector<std::vector<std::string>> parseRegexComponents(std::string str);
+
+	/*
+	 *
+	 */
+	bool equalVector(std::vector<std::string> a, std::vector<std::string> b);
+
+	/*
+	 *
+	 */
+	std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list);
 
 	/*
 	 * Input: x . y

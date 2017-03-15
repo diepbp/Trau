@@ -44,6 +44,26 @@ void updateLength(std::string &s);
 void updateConst(std::string &s, std::set<std::string> constList);
 
 /*
+ * RegexIn --> =
+ */
+void updateRegexIn(std::string &str);
+
+/*
+ * (Str2Regex x)--> = | x |
+ */
+void updateStr2Regex(std::string &str);
+
+/*
+ *
+ */
+void updateRegexStar(std::string &str, int &regexCnt);
+
+/*
+ *
+ */
+void updateRegexPlus(std::string &str, int &regexCnt);
+
+/*
  * xyz --> len_xyz
  */
 void updateVariables(std::string &s, std::vector<std::string> strVars);
@@ -67,6 +87,7 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
+		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints);
@@ -96,6 +117,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile);
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints);
