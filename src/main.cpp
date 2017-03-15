@@ -279,17 +279,11 @@ void printHelp(){
 
 	printf("\n");
 }
-/**
+
+/*
  *
  */
-
-int main(int argc, char* argv[])
-{
-	if (argc < 2)
-		std::cerr << "Specify the input file!\n";
-
-	logFile = NULL;
-	logAxiom = NULL;
+void parseUserInput(int argc, char* argv[]){
 	std::string grammarFile = "";
 
 #ifdef DEBUGLOG
@@ -313,30 +307,46 @@ int main(int argc, char* argv[])
 		}
 		else if (tmp.compare("-help") == 0){
 			printHelp();
-			return 0;
+			return;
 		}
 		else {
 			inputFile = argv[i];
 			orgInput = inputFile;
 		}
 	}
+
 	if (foundGrm == true){
 		loadGrammar(grammarFile);
 	}
 
+	if (inputFile.length() == 0)
+		std::cerr << "Specify the input file!\n";
+
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "Input file: %s\n\n", inputFile.c_str());
-	if (argc >= 3)
-		__debugPrint(logFile, "Grammar file: %s\n\n", argv[2]);
+	if (foundGrm)
+		__debugPrint(logFile, "Grammar file: %s\n\n", grammarFile.c_str());
 #endif
-	inputFile = convertToRemoveSpecialConstCharacters(inputFile);
-	initGraph(inputFile);
-	inputFile_converted = convertFileToReplaceConst(inputFile);
-	overApproxController();
+}
+/**
+ *
+ */
 
-	if (cleanLog == true)
-		removeFile(inputFile);
+int main(int argc, char* argv[])
+{
+	logFile = NULL;
+	logAxiom = NULL;
 
+	parseUserInput(argc, argv);
+	if (inputFile.length() > 0) {
+		inputFile = convertToRemoveSpecialConstCharacters(inputFile);
+		initGraph(inputFile);
+		inputFile_converted = convertFileToReplaceConst(inputFile);
+		overApproxController();
+
+		if (cleanLog == true)
+			removeFile(inputFile);
+	}
 #ifdef DEBUGLOG
 	fclose(logFile);
 	fclose(logAxiom);
