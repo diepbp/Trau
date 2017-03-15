@@ -614,7 +614,7 @@ void reformulateRegex(std::map<std::string, std::string> &regex) {
 			}
 		}
 
-		printf("%d value: %s\n", __LINE__, replaced.c_str());
+//		printf("%d value: %s\n", __LINE__, replaced.c_str());
 		regex[it->first] = replaced;
 	}
 }
