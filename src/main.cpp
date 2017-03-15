@@ -281,7 +281,7 @@ void printHelp(){
 }
 
 /*
- *
+ * parse user's command line
  */
 void parseUserInput(int argc, char* argv[]){
 	std::string grammarFile = "";
