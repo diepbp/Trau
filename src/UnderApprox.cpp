@@ -598,7 +598,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.push_back("(declare-const len_" + *it + "_" + std::to_string(i) + " Int)");
 			constraints.push_back("(assert (>= len_" + *it + "_" + std::to_string(i) + " 0))");
-			constraints.push_back("(assert (< len_" + *it + "_" + std::to_string(i) + " 500))");
+			constraints.push_back("(assert (< len_" + *it + "_" + std::to_string(i) + " 30))");
 			lenX = lenX + varName + std::to_string(i) + " ";
 		}
 
@@ -1554,9 +1554,9 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 			}
 		}
 
-	for (unsigned int i = 0; i < elements.size(); ++i)
-		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
-	printf("%d\n",__LINE__);
+//	for (unsigned int i = 0; i < elements.size(); ++i)
+//		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
+//	printf("%d\n",__LINE__);
 
 	return elements;
 }

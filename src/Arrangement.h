@@ -188,29 +188,6 @@ public:
 		return true;
 	}
 
-	bool feasibleSplit_regex(
-			std::string str,
-			std::vector<std::pair<std::string, int> > elementNames,
-			std::vector<int> currentSplit){
-
-		/* check general split */
-		/* x_i == 0 --> x_i+1 == 0 */
-		for (unsigned int i = 1; i < currentSplit.size(); ++i)
-			if (currentSplit[i] != 0){
-				if (elementNames[i].second > 0) /* var */ {
-					if (currentSplit[i - 1] == 0) /* empty */
-						return false;
-				}
-				else if (elementNames[i].second == -2) /* const */{
-					if (currentSplit[i - 1] == 0) /* empty */
-						return false;
-				}
-
-			}
-
-		return true;
-	}
-
 	/*
 	 * (lhs)* = (rhs)* where lhs starts at posLHS
 	 */
@@ -429,14 +406,12 @@ public:
 	) {
 		/* reach end */
 		if (currentSplit.size() == elementNames.size() &&
-				pos == 0 &&
-				feasibleSplit_regex(str, elementNames, currentSplit)) {
+				pos == 0) {
 
 			allPossibleSplits.push_back(currentSplit);
 			return;
 		}
 		else if (currentSplit.size() >= elementNames.size()) {
-			// splitPrintTest(currentSplit, "Rejected");
 			return;
 		}
 
@@ -535,7 +510,10 @@ public:
 //			printf("%d Case 07.\n", __LINE__);
 			for (unsigned int i = 0; i < str.length(); ++i) { /* assign value < 0 because it can iterate many times */
 				int length = i;
-				currentSplit.push_back(- length);
+				if (length == 0)
+					currentSplit.push_back(MINUSZERO);
+				else
+					currentSplit.push_back(- length);
 				collectAllPossibleSplits_regex((pos + length) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -561,6 +539,39 @@ public:
 		return result;
 	}
 
+	/*
+	 * Given a flat,
+	 * generate its array name
+	 */
+	std::string generateFlatArray(std::pair<std::string, int> a, std::string l_r_hs = ""){
+		std::string result = "";
+		if (a.second >= 0) {
+			/* simpler version */
+			result = result + "arr_" + a.first;
+		}
+		else {
+			/* const string */
+			assert (l_r_hs.length() > 0);
+			//			result = result + "arr_" + constMap[std::make_pair(a.first, l_r_hs)];
+			result = result + "arr_" + constMap[a.first];
+			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
+		}
+		return result;
+	}
+
+	/*
+	 * Given a flat,
+	 * generate its array name
+	 */
+	std::string generateFlatArray_forComponent(std::pair<std::string, int> a, std::string l_r_hs = ""){
+		assert(a.second != REGEX_CODE);
+		std::string result =  generateFlatArray(a, l_r_hs) + "_" + std::to_string(a.second);
+		return result;
+	}
+
+	/*
+	 *
+	 */
 	std::string orConstraint(std::set<std::string> possibleCases){
 		std::string result = "";
 		if (possibleCases.size() > 1) {
@@ -641,183 +652,6 @@ public:
 	}
 
 	/*
-	 * Input: split a string
-	 * Output: SMT
-	 */
-	std::string fromSplitToLengConstraint_const(
-			std::pair<std::string, int> a, /* const */
-			std::vector<std::pair<std::string, int> > elementNames,
-			std::vector<int> split,
-			std::string lhs, std::string rhs){
-
-		int totalLength = 0;
-		for (unsigned int j = 0; j < split.size(); ++j)
-			totalLength = totalLength + split[j];
-
-		std::vector<std::string> strAnd;
-		strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
-
-		std::vector<std::string> addElements;
-
-		/* check if size of all consts = 0 */
-		bool sumConst_0 = true, metVar = false;
-		unsigned int splitPos = 0;
-		for (unsigned int i = 0; i < elementNames.size(); ++i) {
-			if (elementNames[i].second < 0) { /* const or regex */
-				if (metVar) /* check the next one */
-					splitPos++;
-				if (split[splitPos++] > 0){
-					sumConst_0 = false;
-					break;
-				}
-				addElements.push_back(generateFlatSize(elementNames[i], rhs));
-				metVar = false;
-			}
-			else
-				metVar = true;
-		}
-
-		if (sumConst_0 == true) {
-			return "(= 0 " + addConstraint_full(addElements) + ")";
-		}
-		else {
-		}
-
-		/* work as usual */
-		addElements.clear();
-		splitPos = 0;
-
-		for (unsigned int i = 0; i < elementNames.size(); ++i){
-			if (elementNames[i].second >= 0) /* not const */ {
-				addElements.push_back(generateFlatSize(elementNames[i]));
-			}
-			else { /* const or regex */
-				if (addElements.size() > 0){ /* create a sum for previous elements */
-					strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
-					splitPos++;
-					addElements.clear();
-				}
-
-				if (elementNames[i].second == -1 && i < elementNames.size() - 1) { /* const and not at the end */
-					if (QCONSTMAX == 1) {
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
-						splitPos++;
-					}
-					else {
-						assert(elementNames[i + 1].second == -2);
-						strAnd.push_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
-						i++;
-						splitPos += 2;
-					}
-				}
-				else { /* const at the end or regex */
-					strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
-				}
-			}
-		}
-
-		if (addElements.size() > 0) {
-			/* create a sum for previous elements */
-
-			strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos++]) + ")");
-		}
-		assert(splitPos == split.size());
-		return andConstraint(strAnd);
-	}
-
-	/*
-	 * Input: split a string
-	 * Output: SMT
-	 */
-	std::string fromSplitToLengConstraint_regex(
-			std::pair<std::string, int> a, /* regex */
-			std::vector<std::pair<std::string, int> > elementNames,
-			std::vector<int> split,
-			std::string lhs, std::string rhs){
-
-		std::vector<std::string> strAnd;
-
-		std::vector<std::string> addElements;
-
-		/* check if size of all consts = 0 */
-		bool sumConst_0 = true, metVar = false;
-		unsigned int splitPos = 0;
-		for (unsigned int i = 0; i < elementNames.size(); ++i) {
-			if (elementNames[i].second < 0) { /* const or regex */
-				if (metVar) /* check the next one */
-					splitPos++;
-				if (split[splitPos++] != 0){
-					sumConst_0 = false;
-					break;
-				}
-				addElements.push_back(generateFlatSize(elementNames[i], rhs));
-				metVar = false;
-			}
-			else
-				metVar = true;
-		}
-
-		if (sumConst_0 == true) {
-			return "(= 0 " + addConstraint_full(addElements) + ")";
-		}
-		else {
-		}
-
-		/* work as usual */
-		addElements.clear();
-		splitPos = 0;
-
-		for (unsigned int i = 0; i < elementNames.size(); ++i){
-			if (elementNames[i].second >= 0) /* not const */ {
-				addElements.push_back(generateFlatSize(elementNames[i]));
-			}
-			else { /* const or regex */
-				if (addElements.size() > 0){ /* create a sum for previous elements */
-					strAnd.push_back("(= (% " + addConstraint_full(addElements) + " " +  std::to_string(a.first.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
-					splitPos++;
-					addElements.clear();
-				}
-
-				if (elementNames[i].second == -1 && i < elementNames.size() - 1) { /* const and not at the end */
-					if (QCONSTMAX == 1) {
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
-						splitPos++;
-					}
-					else {
-						assert(elementNames[i + 1].second == -2);
-						strAnd.push_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
-						i++;
-						splitPos += 2;
-					}
-				}
-				else if (elementNames[i].second == REGEX_CODE) {/* regex */
-					if (split[splitPos] >= 0 && split[splitPos] != MINUSZERO) { /* do not repeat */
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
-						splitPos++;
-					}
-					else { /* can repeat many times */
-						if (split[splitPos] == MINUSZERO)
-							split[splitPos] = 0;
-						strAnd.push_back("(= (% " + generateFlatSize(elementNames[i], rhs) + " " +  std::to_string(a.first.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
-						splitPos++;
-					}
-				}
-				else { /* const at the end */
-					strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
-				}
-			}
-		}
-
-		if (addElements.size() > 0) {
-			/* create a sum for previous elements */
-
-			strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos++]) + ")");
-		}
-		assert(splitPos == split.size());
-		return andConstraint(strAnd);
-	}
-
-	/*
 	 * Input: constA and a number of flats
 	 * Output: all possible ways to split constA
 	 */
@@ -877,22 +711,6 @@ public:
 		for (unsigned int i = 0; i < allPossibleSplits.size(); ++i){
 			splitPrintTest(allPossibleSplits[i], "Accepted");
 		}
-		//
-		//			printf("%d cases: %ld\n", __LINE__, allPossibleSplits.size());
-
-		//			std::set<std::string> resultParts;
-		//			if (lhs.second != REGEX_CODE)
-		//				for (int i = 0; i < allPossibleSplits.size(); ++i){
-		//					resultParts.emplace(fromSplitToLengConstraint_const(lhs, elementNames, allPossibleSplits[i], "", ""));
-		//				}
-		//			else
-		//				for (int i = 0; i < allPossibleSplits.size(); ++i){
-		//					resultParts.emplace(fromSplitToLengConstraint_regex(lhs, elementNames, allPossibleSplits[i], "", ""));
-		//				}
-		//
-		//
-		//			for (std::set<std::string>::iterator it = resultParts.begin(); it != resultParts.end(); ++it)
-		//				printf("%d %s\n", __LINE__, it->c_str());
 
 		return allPossibleSplits;
 	}
@@ -957,12 +775,18 @@ public:
 			std::string lhs, std::string rhs,
 			int pos) {
 		std::vector<std::string> addElements;
-		for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
-			addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
-		}
 
-		for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-			addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+		if (a.second != REGEX_CODE) {
+			for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
+				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+			}
+
+			for (int i = a.second - 1; i >= 0; --i){ /* a is var */
+				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+			}
+		}
+		else {
+			// skip
 		}
 
 		for (int i = 0 ; i < pos; ++i) { /* pre-elements */
@@ -978,12 +802,17 @@ public:
 	std::string leng_prefix_rhs(std::pair<std::string, int> a, /* var */
 			std::string rhs) {
 		std::vector<std::string> addElements;
-		for (int i = a.second + 1; i < 0; ++i){ /* a is const */
-			addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
-		}
+		if (a.second != REGEX_CODE) {
+			for (int i = a.second + 1; i < 0; ++i){ /* a is const */
+				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+			}
 
-		for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-			addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+			for (int i = a.second - 1; i >= 0; --i){ /* a is var */
+				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+			}
+		}
+		else {
+			// skip
 		}
 
 		return addConstraint_half(addElements);
@@ -1006,122 +835,106 @@ public:
 	//  }
 
 	/*
-	 * Given a flat,
-	 * generate its size constraint
-	 */
-	std::string generateFlatArray(std::pair<std::string, int> a, std::string l_r_hs = ""){
-		std::string result = "";
-		if (a.second >= 0) {
-			/* simpler version */
-			result = result + "arr_" + a.first;
-		}
-		else {
-			/* const string */
-			assert (l_r_hs.length() > 0);
-			//			result = result + "arr_" + constMap[std::make_pair(a.first, l_r_hs)];
-			result = result + "arr_" + constMap[a.first];
-			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
-		}
-		return result;
-	}
-
-	/*
 	 * 0: No const, No connected var
-	 * 1: No const
-	 * 2: Otherwise
+	 * 1: const		No connected var
+	 * 2: no const, connected var
+	 * 3: have both
 	 */
 	int checkTheBestSplitType(
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::set<std::string> connectedVariables){
-		int result = 0;
-		/* 0: No const, No connected var */
+
+		bool havingConst = false;
+		bool havingConnectedVar = false;
+
+		/* check if containing const | regex */
 		for (unsigned int i = 0 ; i < elementNames.size(); ++i)
-			if (elementNames[i].second < 0 || connectedVariables.find(elementNames[i].first) != connectedVariables.end()) {
-				result = 1;
+			if (elementNames[i].second < 0) {
+				havingConst = true;
 				break;
 			}
 
-		/* 1: No const */
-		if (result == 1) {
-			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
-				if (elementNames[i].second < 0) {
-					result = 2;
-					break;
-				}
-		}
-		return result;
-	}
-
-	/*
-	 * No const,
-	 * No Connected var
-	 */
-	bool isFreeToSplit_haveConnected(
-			std::vector<std::pair<std::string, int>> elementNames,
-			std::set<std::string> connectedVariables){
+		/* check if containing connected vars */
 		for (unsigned int i = 0 ; i < elementNames.size(); ++i)
-			if (elementNames[i].second < 0 || connectedVariables.find(elementNames[i].first) != connectedVariables.end())
-				return false;
-		return true;
+			if (connectedVariables.find(elementNames[i].first) != connectedVariables.end()) {
+				havingConnectedVar = true;
+				break;
+			}
+
+		/* 0: No const, No connected var */
+		/* 1: No const */
+		if (!havingConnectedVar && !havingConst)
+			return 0;
+		else if (!havingConnectedVar && havingConst)
+			return 1;
+		else if (havingConnectedVar && !havingConst)
+			return 2;
+		else return 3;
 	}
 
 	/*
-	 * Input: split a string
-	 * Output: SMT
+	 *
 	 */
-	std::string fromSplitToLengConstraint(
+	std::string lengthConstraint_toConnectedVarConstraint(
+			std::pair<std::string, int> a, /* const || regex */
+			std::vector<std::pair<std::string, int> > elementNames,
+			std::vector<std::string> subElements,
+			int currentPos,
+			int subLength,
+			std::string lhs, std::string rhs,
+			std::set<std::string> connectedVariables){
+
+		/*TODO: only hande 1 connected var here. Need to extend. Or re-write the alias step*/
+		int connectedVarPos = -1;
+		for (int i = currentPos - subElements.size() + 1; i <= currentPos; ++i)
+			if (connectedVariables.find(elementNames[i].first) != connectedVariables.end()) {
+				connectedVarPos = i;
+				break;
+			}
+
+		/* have a connected var*/
+		if (connectedVarPos != -1)
+
+			return connectedVar_atSpecificLocation(
+					a, /* const or regex */
+					elementNames, /* have connected var */
+					connectedVarPos,
+					subLength,
+					lhs, rhs,
+					connectedVariables);
+		else
+			return "";
+	}
+
+	/*
+		 * Input: split a string
+		 * Output: SMT
+		 */
+	std::string fromSplitToLengConstraint_havingConnectedVar(
 			std::pair<std::string, int> a, /* const || regex */
 			std::vector<std::pair<std::string, int> > elementNames,
 			std::vector<int> split,
-			std::string lhs, std::string rhs){
+			std::string lhs, std::string rhs,
+			std::set<std::string> connectedVariables){
 
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
-			if (split[j] > 0)
+			if (split[j] > 0 && split[j] != MINUSZERO)
 				totalLength = totalLength + split[j];
 			else {
 				totalLength = -1;
 				break;
 			}
-		std::vector<std::string> strAnd;
-		if (totalLength > 0) /* only has const, does not have regex */
-			strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
 
+		std::vector<std::string> strAnd;
+		if (totalLength > 0) /* only has const, does not have regex */ {
+			strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
+		}
 		std::vector<std::string> addElements;
 
-		/* check if size of all consts = 0 */
-		bool sumConst_0 = true, metVar = false;
-		unsigned int splitPos = 0;
-		for (unsigned int i = 0; i < elementNames.size(); ++i) {
-			if (elementNames[i].second < 0) {
-				if (metVar)
-					splitPos++;
-				if (split[splitPos++] > 0){
-					sumConst_0 = false;
-					break;
-				}
-				addElements.push_back(generateFlatSize(elementNames[i], rhs));
-				metVar = false;
-			}
-			else
-				metVar = true;
-		}
-
-		if (sumConst_0 == true) {
-			return "(= 0 " + addConstraint_full(addElements) + ")";
-		}
-		else {
-			//  		for (int i = 0; i < elementNames.size(); ++i)
-			//  			printf("%s.%d ", elementNames[i].first.c_str(), elementNames[i].second);
-			//  		printf("\n");
-			//  		for (int i = 0; i < split.size(); ++i)
-			//  			printf("%d ", split[i]);
-			//  		printf("\n");
-		}
-
-		/* work as usual */
 		addElements.clear();
-		splitPos = 0;
+		unsigned int splitPos = 0;
+
 		std::string content = "";
 		if (a.second == REGEX_CODE)
 			content = parse_regex_content(a.first);
@@ -1132,10 +945,25 @@ public:
 			}
 			else { /* const */
 				if (addElements.size() > 0){ /* create a sum for previous elements */
-					if (split[splitPos] < 0) {
+					std::string constraintForConnectedVar = lengthConstraint_toConnectedVarConstraint(
+							a, /* const or regex */
+							elementNames, /* have connected var */
+							addElements,
+							i - 1,
+							split[splitPos],
+							lhs, rhs,
+							connectedVariables);
+					__debugPrint(logFile, "%d constraintForConnectedVar: %s\n", __LINE__, constraintForConnectedVar.c_str());
+					strAnd.push_back(constraintForConnectedVar);
+					if (split[splitPos] == MINUSZERO) {
 						/* looping */
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
+						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+					}
+					else if (split[splitPos] < 0) {
+						/* looping */
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
 					}
 					else {
 						strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
@@ -1158,7 +986,15 @@ public:
 					}
 				}
 				else {
-					if (split[splitPos] < 0) {
+					if (split[splitPos] == MINUSZERO) {
+						/* looping at 0 */
+						assert(elementNames[i].second == REGEX_CODE);
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+								") 0)");
+						splitPos++;
+					}
+					else if (split[splitPos] < 0) {
 						/* looping */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
@@ -1172,8 +1008,24 @@ public:
 		}
 
 		if (addElements.size() > 0) {
+			std::string constraintForConnectedVar = lengthConstraint_toConnectedVarConstraint(
+					a, /* const or regex */
+					elementNames, /* have connected var */
+					addElements,
+					elementNames.size() - 1,
+					split[splitPos],
+					lhs, rhs,
+					connectedVariables);
+
+			strAnd.push_back(constraintForConnectedVar);
+
 			/* create a sum for previous elements */
-			if (split[splitPos] < 0) {
+			if (split[splitPos] == MINUSZERO) {
+				/* looping */
+				assert(a.second == REGEX_CODE);
+				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+			}
+			else if (split[splitPos] < 0) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
 				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
@@ -1191,95 +1043,162 @@ public:
 	 * Input: split a string
 	 * Output: SMT
 	 */
-	std::string fromSplitToSMT(
-			std::pair<std::string, int> a, /* const */
-			std::vector<std::pair<std::string, int>> elementNames,
+	std::string fromSplitToLengConstraint_NoConnectedVar(
+			std::pair<std::string, int> a, /* const || regex */
+			std::vector<std::pair<std::string, int> > elementNames,
 			std::vector<int> split,
-			std::set<std::string> connectedVariables,
-			std::map<std::string, int> &newVars){
+			std::string lhs, std::string rhs){
 
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
-			totalLength = totalLength + split[j];
-
-		std::string value = "";
-		if (a.second == -1) /* head */
-			value = a.first.substr(0, totalLength);
-		else if (a.second == -2) /* tail */
-			value = a.first.substr(a.first.length() - totalLength, totalLength);
+			if (split[j] > 0)
+				totalLength = totalLength + split[j];
+			else {
+				totalLength = -1;
+				break;
+			}
 
 		std::vector<std::string> strAnd;
+		if (totalLength > 0) /* only has const, does not have regex */
+			strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
 
 		std::vector<std::string> addElements;
-		int addLength = 0;
 
-		std::vector<std::string> connectedParts;
-		int addConnected = 0;
+		/* simple case: check if size of all consts = 0 */
+		bool sumConst_0 = true, metVar = false;
+		unsigned int splitPos = 0;
+		for (unsigned int i = 0; i < elementNames.size(); ++i) {
+			if (elementNames[i].second < 0) {
+				if (metVar)
+					splitPos++;
+				if (split[splitPos++] > 0){
+					sumConst_0 = false;
+					break;
+				}
+				addElements.push_back(generateFlatSize(elementNames[i], rhs));
+				metVar = false;
+			}
+			else
+				metVar = true;
+		}
+
+		if (sumConst_0 == true) {
+			return "(= 0 " + addConstraint_full(addElements) + ")";
+		}
+		else {
+		}
+
+		/* work as usual */
+		addElements.clear();
+		splitPos = 0;
+		std::string content = "";
+		if (a.second == REGEX_CODE)
+			content = parse_regex_content(a.first);
 
 		for (unsigned int i = 0; i < elementNames.size(); ++i){
 			if (elementNames[i].second >= 0) /* not const */ {
-				/* connected variable */
-				if (connectedVariables.find(elementNames[i].first) != connectedVariables.end()) { /* connected variable */
+				addElements.push_back(generateFlatSize(elementNames[i]));
+			}
+			else { /* const */
+				if (addElements.size() > 0){ /* create a sum for previous elements */
+					if (split[splitPos] == MINUSZERO) {
+						/* looping */
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
 
-					/* create a sum for previous elements */
-					if (addElements.size() > 0) {
-						strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(addLength) + ")");
-
-						/* reset previous elements*/
-						addElements.clear();
-						addLength = 0;
 					}
-
-					/* check if it is the same variable */
-					bool sameVar = false;
-					if (i > 0 && elementNames[i].second == elementNames[i - 1].second + 1) {
-						sameVar = true;
+					else if (split[splitPos] < 0) {
+						/* looping */
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
 					}
-
-					/* if it is the same, we skip. Otherwise, we create constraints, AND reset list */
-					if (sameVar == false) {
-						strAnd.push_back("(= " + addConstraint_full(connectedParts) + " " + std::to_string(addConnected) + ")");
-						int pos = 0;
-						for (unsigned int j = 0; j <= i; ++j)
-							pos = pos + split[j];
-						pos = pos - addConnected;
-
-						strAnd.push_back(const_to_var(elementNames[i], value.substr(pos, addConnected), newVars));
-
-						/* reset */
-						connectedParts.clear();
-						addConnected = 0;
+					else {
+						strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
 					}
+					splitPos++;
+					addElements.clear();
 
-					/* push element to list */
-					connectedParts.push_back(generateFlatSize(elementNames[i]));
-					addConnected += split[i];
+				}
+
+				if (elementNames[i].second == -1 && i < elementNames.size() - 1) {
+					if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
+						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
+						splitPos++;
+					}
+					else {
+						assert(elementNames[i + 1].second == -2);
+						strAnd.push_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
+						i++;
+						splitPos += 2;
+					}
 				}
 				else {
-					addElements.push_back(generateFlatSize(elementNames[i]));
-					addLength += split[i];
+					if (split[splitPos] == MINUSZERO) {
+						/* looping at 0 */
+						assert(elementNames[i].second == REGEX_CODE);
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+								") 0)");
+						splitPos++;
+					}
+					else if (split[splitPos] < 0) {
+						/* looping */
+						assert(elementNames[i].second == REGEX_CODE);
+						assert(a.second == REGEX_CODE);
+						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+								") " + std::to_string(std::abs(split[splitPos++])) + ")");
+					}
+					else
+						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
 				}
 			}
-			else
-				assert (false);
 		}
 
 		if (addElements.size() > 0) {
+			__debugPrint(logFile, "%d addElements size = %ld, length = %d\n", __LINE__, addElements.size(), split[splitPos]);
 			/* create a sum for previous elements */
-			strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(addLength) + ")");
-
-			/* DONOT need to reset previous elements*/
+			if (split[splitPos] == MINUSZERO) {
+				/* looping */
+				assert(a.second == REGEX_CODE);
+				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+			}
+			else if (split[splitPos] < 0) {
+				/* looping */
+				assert(a.second == REGEX_CODE);
+				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
+			}
+			else {
+				strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
+			}
+			splitPos++;
 		}
-
-		// TODO:
-		if (connectedParts.size() > 0) {
-			/* create a sum for previous elements */
-			strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(addLength) + ")");
-
-			/* DONOT need to reset previous elements*/
-		}
-		assert (strAnd.size() > 0);
+		assert(splitPos == split.size());
 		return andConstraint(strAnd);
+	}
+
+	/*
+	 * elementNames[pos] is a connected.
+	 * how many parts of that connected variable are in the const | regex
+	 */
+	int find_partsOfConnectedVariablesInAVector(
+			int pos,
+			std::vector<std::pair<std::string, int>> elementNames,
+			std::set<std::string> connectedVariables,
+			std::string &subLen){
+		int partCnt = 1;
+		std::vector<std::string> addElements; addElements.push_back(generateFlatSize(elementNames[pos]));
+		unsigned int j = pos + 1;
+		for (j = pos + 1; j < elementNames.size(); ++j)
+			if (elementNames[j].second > elementNames[j - 1].second && elementNames[j].second > 0 && elementNames[j].second != REGEX_CODE) {
+				partCnt++;
+				addElements.push_back(generateFlatSize(elementNames[j]));
+			}
+			else
+				break;
+
+		/* sublen = part_1 + part2 + .. */
+		subLen = addConstraint_full(addElements);
+		return partCnt;
 	}
 
 	/*
@@ -1287,7 +1206,7 @@ public:
 	 */
 	std::string connectedVar_anywhere(
 			std::pair<std::string, int> a, /* const or regex */
-			std::vector<std::pair<std::string, int>> elementNames, /* no const */
+			std::vector<std::pair<std::string, int>> elementNames, /* have connected var */
 			std::string lhs, std::string rhs,
 			std::set<std::string> connectedVariables,
 			std::map<std::string, int> &newVars){
@@ -1306,18 +1225,10 @@ public:
 
 				/* connected variable */
 				if (connectedVariables.find(elementNames[i].first) != connectedVariables.end()) {
-					/* how many parts of that connected variable are in the const | regex */
-					int partCnt = 1;
-					std::vector<std::string> addElements; addElements.push_back(generateFlatSize(elementNames[i]));
-					for (unsigned int j = i + 1; j < elementNames.size(); ++j)
-						if (elementNames[j].second > elementNames[j - 1].second && elementNames[j].second > 0) {
-							partCnt++;
-							// printf("%d %s.%d\n", __LINE__, elementNames[j].first.c_str(), elementNames[j].second);
-							addElements.push_back(generateFlatSize(elementNames[j]));
-						}
 
 					/* sublen = part_1 + part2 + .. */
-					std::string subLen = addConstraint_full(addElements);
+					std::string subLen = "";
+					int partCnt = find_partsOfConnectedVariablesInAVector(i, elementNames, connectedVariables, subLen);
 
 					std::string prefix_rhs = leng_prefix_rhs(elementNames[i], rhs);
 					std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, i);
@@ -1334,41 +1245,13 @@ public:
 					if (QCONSTMAX == 1) {
 						resultParts.push_back("(= " + subLen + " " + std::to_string(content.length()) + ")");
 						/* forall ((i Int)) (and (< i a.first.length()))*/
-//						char strTmp[1000];
-//						sprintf(strTmp, "(forall ((i Int)) (and (< i %ld) (= (select %s (+ i %s)) (select %s (+ i %s)))))",
-//								a.first.length(),
-//								arrayLhs.c_str(), prefix_lhs.c_str(),
-//								arrayRhs.c_str(), prefix_rhs.c_str());
 						for (unsigned int k = 0; k < content.length(); ++k){
 							resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 									"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 						}
 					}
 					else {
-						std::vector<std::string> possibleCases; /* sublen = 0 || sublen = 1 || .. */
-//						int minNumber = std::min(LOCALSPLITMAX, (int)a.first.length());
-//						char strTmp[1000];
-//						sprintf(strTmp, "(exists ((j Int)) (implies (and (< j %d) (= j %s)) (forall ((i Int)) (implies (and (>= i 0) (< i j)) (= (select %s (+ i %s)) (select %s (+ i %s)))))))",
-//								minNumber,
-//								subLen.c_str(),
-//								arrayLhs.c_str(), prefix_lhs.c_str(),
-//								arrayRhs.c_str(), prefix_rhs.c_str());
-//						__debugPrint(logFile, "%d %s \n", __LINE__, strTmp);
-//						possibleCases.push_back(strTmp);
-
-						/* clone to optimize leng of generated string */
-						if (lhs_zero && rhs_zero) {
-							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
-								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
-								for (int k = 0; k < j; ++k){
-									subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
-											"(select " + arrayRhs + " " + std::to_string(k) + "))");
-								}
-								possibleCases.push_back(andConstraint(subpossibleCases));
-							}
-
-							/* exists and forall */
+						/* exists and forall */
 //							char strTmp[1000];
 //							sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s i) (select %s i)))))",
 //									subLen.c_str(),
@@ -1379,6 +1262,20 @@ public:
 //									arrayLhs.c_str(),
 //									arrayRhs.c_str());
 //							__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
+
+						std::vector<std::string> possibleCases; /* sublen = 0 || sublen = 1 || .. */
+
+						/* clone to optimise length of generated string */
+						if (lhs_zero && rhs_zero) {
+							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
+								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+								for (int k = 0; k < j; ++k){
+									subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
+											"(select " + arrayRhs + " " + std::to_string(k) + "))");
+								}
+								possibleCases.push_back(andConstraint(subpossibleCases));
+							}
 						}
 						else if (lhs_zero && !rhs_zero){
 							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
@@ -1390,18 +1287,6 @@ public:
 								}
 								possibleCases.push_back(andConstraint(subpossibleCases));
 							}
-
-							/* exists and forall */
-//							char strTmp[1000];
-//							sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s i) (select %s (+ i %s))))))",
-//									subLen.c_str(),
-//									subLen.c_str(),
-//									LOCALSPLITMAX,
-//									a.first.length(),
-//									subLen.c_str(),
-//									arrayLhs.c_str(),
-//									arrayRhs.c_str(), prefix_rhs.c_str());
-//							__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 						}
 						else if (!lhs_zero && rhs_zero){
 							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
@@ -1413,16 +1298,6 @@ public:
 								}
 								possibleCases.push_back(andConstraint(subpossibleCases));
 							}
-							/* exists and forall */
-//							char strTmp[1000];
-//							sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s (+ i %s)) (select %s (+ i %s))))))",
-//									subLen.c_str(),
-//									subLen.c_str(),
-//									LOCALSPLITMAX,
-//									a.first.length(),
-//									subLen.c_str(),
-//									arrayLhs.c_str(), prefix_lhs.c_str(),
-//									arrayRhs.c_str());
 						}
 						else for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 							std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
@@ -1445,31 +1320,119 @@ public:
 	}
 
 	/*
-	 * maximum length the string can be until sum[i]
-	 * 1. count the remaining const
-	 * return sumConst - count
+	 *
 	 */
-	int maxLengthUntilPos(std::vector<std::pair<std::string, int>> sum, int pos){
-		int result = 0;
-		for (int i = sum.size() - 2; i >= pos; --i)
-			if (sum[i].second == -1 && sum[i + 1].second == -2) /* const string */ {
-				result = result + sum[i].first.length();
+	std::string connectedVar_atSpecificLocation(
+			std::pair<std::string, int> a, /* const or regex */
+			std::vector<std::pair<std::string, int>> elementNames, /* have connected var */
+			int connectedVarPos,
+			int connectedVarLength,
+			std::string lhs, std::string rhs,
+			std::set<std::string> connectedVariables){
+
+
+		std::vector<std::string> resultParts;
+
+		std::string content = "";
+		if (a.second == REGEX_CODE)
+			content = parse_regex_content(a.first);
+		else
+			content = a.first;
+
+		assert(connectedVariables.find(elementNames[connectedVarPos].first) != connectedVariables.end());
+
+		/* how many parts of that connected variable are in the const | regex */
+		/* sublen = part_1 + part2 + .. */
+		std::string subLen = "";
+		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, connectedVariables, subLen);
+
+		std::string prefix_rhs = leng_prefix_rhs(elementNames[connectedVarPos], rhs);
+		std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, connectedVarPos);
+
+		std::string arrayRhs = generateFlatArray(elementNames[connectedVarPos], rhs);
+		std::string arrayLhs = generateFlatArray(a, lhs);
+
+		if (connectedVarLength >= 0 && connectedVarLength != MINUSZERO) {
+			/* sublen = connectedVarLength */
+			/* at_0 = x && at_1 == y && ..*/
+			for (int k = 0; k < connectedVarLength; ++k){
+				resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+						"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 			}
-		return PMAX - result;
+		}
+		else {
+			assert(a.second == REGEX_CODE);
+			// connectedVarLength == MINUSZERO --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
+			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
+			/* at_0 = x && at_1 == y && ..*/
+			char strTmp[1000];
+			sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod (+ i %s) %ld)))))",
+					subLen.c_str(),
+					arrayRhs.c_str(),
+					prefix_rhs.c_str(),
+					arrayLhs.c_str(),
+					prefix_lhs.c_str(),
+					content.length());
+			resultParts.push_back(strTmp);
+		}
+
+		return andConstraint(resultParts);
 	}
 
 	/*
-	 * minimum length the string can be until sum[i]
-	 * 1. count the remaining const
-	 * return sumConst
+	 * Connected var belongs to Regex
 	 */
-	int minLengthUntilPos(std::vector<std::pair<std::string, int>> sum, int pos){
-		int result = 0;
-		for (int i = 0; i < pos - 1; ++i)
-			if (sum[i].second == -1 && sum[i + 1].second == -2) /* const string */ {
-				result = result + sum[i].first.length();
+	std::string connectedVar_belongToRegex(
+			std::pair<std::string, int> a, /* regex */
+			std::vector<std::pair<std::string, int>> elementNames, /* have connected var */
+			int connectedVarPos,
+			int connectedVarLength,
+			std::string lhs, std::string rhs,
+			std::set<std::string> connectedVariables){
+
+		assert(a.second == REGEX_CODE);
+		std::vector<std::string> resultParts;
+
+		std::string content = parse_regex_content(a.first);
+
+		assert(connectedVariables.find(elementNames[connectedVarPos].first) != connectedVariables.end());
+
+		/* how many parts of that connected variable are in the const | regex */
+		/* sublen = part_1 + part2 + .. */
+		std::string subLen = "";
+		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, connectedVariables, subLen);
+
+		std::string prefix_rhs = leng_prefix_rhs(elementNames[connectedVarPos], rhs);
+		std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, connectedVarPos);
+
+		std::string arrayRhs = generateFlatArray(elementNames[connectedVarPos], rhs);
+		std::string arrayLhs = generateFlatArray(a, lhs);
+
+		if (connectedVarLength >= 0 && connectedVarLength != MINUSZERO) {
+			/* sublen = connectedVarLength */
+			/* at_0 = x && at_1 == y && ..*/
+			for (int k = 0; k < connectedVarLength; ++k){
+				resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+						"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 			}
-		return result;
+		}
+		else {
+			assert(a.second == REGEX_CODE);
+			// connectedVarLength == MINUSZERO --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
+			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
+			/* at_0 = x && at_1 == y && ..*/
+			char strTmp[1000];
+			sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod (+ i %s) %ld)))))",
+					subLen.c_str(),
+					arrayRhs.c_str(),
+					prefix_rhs.c_str(),
+					arrayLhs.c_str(),
+					prefix_lhs.c_str(),
+					content.length());
+			resultParts.push_back(strTmp);
+		}
+
+		return andConstraint(resultParts);
 	}
 
 	/*
@@ -1535,6 +1498,62 @@ public:
 
 	/*
 	 * Generate constraints for the case
+	 * X = T . "abc"* . Y . Z
+	 * regexPos: position of regex element
+	 * return: forAll (i Int) and (i < |abc*|) (y[i + |T|] == a | b | c)
+	 */
+	std::string handle_Regex_WithPosition_array(
+			std::pair<std::string, int> a,
+			std::vector<std::pair<std::string, int>> elementNames,
+			std::string lhs_str, std::string rhs_str,
+			int regexPos,
+			std::string extraConstraint = "" /* length = ? */) {
+		assert (elementNames[regexPos].second < 0);
+
+		std::vector<std::string> locationConstraint;
+		if (extraConstraint.length() > 0)
+			locationConstraint.push_back(extraConstraint);
+
+		if (elementNames.size() == 1) {
+			/* base case: X = "abc"* */
+
+			std::string content = parse_regex_content(elementNames[regexPos].first);
+			std::vector<std::string> andElements;
+
+			/* (mod |X| |abc|) = 0 */
+			char strTmp[1000];
+			sprintf(strTmp, "(= (mod %s %ld) 0)",
+					generateFlatSize(a, lhs_str).c_str(),
+					content.length());
+			andElements.push_back(strTmp);
+
+			/* TODO */
+		}
+
+		/* find the start position --> */
+		std::string pre_lhs = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, regexPos);
+
+		/* optimize length of generated string */
+		std::string lhs_array = generateFlatArray(a, lhs_str);
+		std::string rhs_array = generateFlatArray(elementNames[regexPos], rhs_str);
+
+		std::string regex_length = generateFlatSize(elementNames[regexPos], rhs_str);
+
+		/* forall ((i Int)) (and (< i a.first.length()))*/
+		char strTmp[1000];
+		sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod i %ld)))))",
+				regex_length.c_str(),
+				lhs_array.c_str(),
+				pre_lhs.c_str(),
+				rhs_array.c_str(),
+				parse_regex_content(elementNames[regexPos].first).length());
+
+		printf("%d %s\n", __LINE__, strTmp);
+		return strTmp;
+	}
+
+	/*
+	 * Generate constraints for the case
 	 * X = T . "abc" . Y . Z
 	 * constPos: position of const element
 	 * return: (or (and length header = i && X_i = a && X_[i+1] = b && X_[i+2] = c))
@@ -1544,7 +1563,7 @@ public:
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string lhs_str, std::string rhs_str,
 			int constPos,
-			std::string value, /* value of string */
+			std::string value, /* value of regex */
 			int start, int finish,
 			std::map<std::string, int> &newVars,
 			std::string extraConstraint = "" /* length = ? */) {
@@ -1589,25 +1608,33 @@ public:
 			std::map<std::string, int> &newVars) {
 		assert (elementNames[constPos].second < 0);
 
+		/* regex */
+		std::string content = "";
+		if (elementNames[constPos].second != REGEX_CODE)
+			content = elementNames[constPos].first;
+		else
+			content = parse_regex_content(elementNames[constPos].first);
+
 		/* find the start position --> */
 		std::vector<std::string> locationConstraint;
 
 		std::vector<std::string> possibleCases;
 		if (elementNames[constPos].second == -1) {
 
-			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)elementNames[constPos].first.length()); ++i) {
+			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				/*length = i*/
 				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i) + ")";
-				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, elementNames[constPos].first, 0, i, newVars, tmp));
-				//  			possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, elementNames[constPos].first.substr(0, i), newVars, tmp));
+				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, 0, i, newVars, tmp));
 			}
 		}
+		else if (elementNames[constPos].second == REGEX_CODE) {
+			possibleCases.push_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
+		}
 		else {
-			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)elementNames[constPos].first.length()); ++i) {
+			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				/*length = i*/
-				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(elementNames[constPos].first.length() - i) + ")";
-				//  			possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, elementNames[constPos].first.substr(i), newVars, tmp));
-				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, elementNames[constPos].first, i, elementNames[constPos].first.length(), newVars, tmp));
+				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(content.length() - i) + ")";
+				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, i, content.length(), newVars, tmp));
 			}
 		}
 
@@ -1910,8 +1937,9 @@ public:
 
 			/*
 			 * 0: No const, No connected var
-			 * 1: No const
-			 * 2: Otherwise
+			 * 1: const		No connected var
+			 * 2: no const, connected var
+			 * 3: have both
 			 */
 			int splitType = checkTheBestSplitType(elementNames, connectedVariables);
 
@@ -1919,21 +1947,35 @@ public:
 				/* do not do anything */
 			}
 			else if (splitType == 1) {
-				/* connected var can be anywhere */
-				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
-			}
-			else {
-
-				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
-
+				/* handle const */
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
-					/* check feasibility */
 
-					strSplits.emplace(fromSplitToLengConstraint(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str));
-					// strSplits.emplace(fromSplitToSMT(a, elementNames, allPossibleSplits[i], connectedVariables, newVars)); /* without Z3 array */
-					// assert(strSplits[strSplits.size() - 1].length() > 5); /* not empty string */
+					/* check feasibility */
+					strSplits.emplace(fromSplitToLengConstraint_NoConnectedVar(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str));
+				}
+
+				if (strSplits.size() > 0)
+					result = result + " " + orConstraint(strSplits);
+				else
+					return "";
+			}
+			else if (splitType == 2) {
+				/* handle connected var */
+				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
+			}
+			else {
+				/* handle connected var */
+				// result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
+
+				/* handle const */
+				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
+				std::set<std::string> strSplits;
+				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
+
+					/* check feasibility */
+					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
 				}
 
 				if (strSplits.size() > 0)
@@ -1945,7 +1987,6 @@ public:
 
 		else {
 			/* lhs is not a const string or regex */
-
 			int minLength = 0;
 			for (unsigned int i = 0 ; i < elementNames.size() - 1; ++i)
 				if (elementNames[i].second == -1 &&
@@ -2071,7 +2112,6 @@ public:
 
 		/* do the rest */
 		/* do not need AND */
-		printf("%d %s do the rest\n", __LINE__, __FILE__);
 		std::string constraint01 = "";
 		for (unsigned int i = 0 ; i < lhs_elements.size(); ++i)
 			if (checkLeft[i] == false) {

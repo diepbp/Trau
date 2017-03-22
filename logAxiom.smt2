@@ -24,10 +24,14 @@ Assertion Add(@1422, Level 0):
 
 ---------------------
 Assertion Add(@1422, Level 0):
-(and (>= (Length h) 0)
-     (>= (Length i) 0)
-     (>= (Length (Concat h i)) 0)
-     (= (Length (Concat h i)) (+ (Length h) (Length i))))
+(let ((a!1 (>= (Length (Concat (AutomataDef ghi123) w)) 0))
+      (a!2 (= (Length (Concat (AutomataDef ghi123) w))
+              (+ (Length (AutomataDef ghi123)) (Length w)))))
+  (and (= (Length (AutomataDef ghi123)) 6)
+       (>= (Length (AutomataDef ghi123)) 0)
+       (>= (Length w) 0)
+       a!1
+       a!2))
 ---------------------
 
 
@@ -43,7 +47,14 @@ Assertion Add(@1422, Level 0):
 
 =================================================================================
 ** cb_new_eq(): @0
-w  = (NonDet_AutomataDef |(abcabcabc)*| 1)
+(NonDet_AutomataDef |(abcabc)*| 1)  = i
+
+
+
+
+=================================================================================
+** cb_new_eq(): @0
+w  = (NonDet_AutomataDef |(abcabcabc)*| 2)
 
 
 
@@ -64,4 +75,4 @@ w  = (Concat (AutomataDef abc) j)
 
 =================================================================================
 ** cb_new_eq(): @0
-g  = (Concat h i)
+(Concat (AutomataDef ghi123) w)  = t

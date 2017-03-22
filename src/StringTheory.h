@@ -262,6 +262,10 @@ void Th_restart(Z3_theory t);
 */
 void Th_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
+void implyEqualityForConcatMember(Z3_theory t, Z3_ast lhs, Z3_ast rhs);
+
+std::set<Z3_ast> findAllConcatContainingNode(Z3_theory t, Z3_ast node, int pos);
+
 std::vector<Z3_ast> initLengthPropagation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
 bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx);
@@ -555,6 +559,10 @@ bool isVariable(Z3_theory t, Z3_ast n);
 bool isStrVariable(Z3_theory t, Z3_ast n);
 
 bool isAutomatonFunc(Z3_theory t, Z3_ast n);
+
+bool isNonDetAutomatonFunc(Z3_theory t, Z3_ast n);
+
+bool isDetAutomatonFunc(Z3_theory t, Z3_ast n);
 
 bool isConcatFunc(Z3_theory t, Z3_ast n);
 
