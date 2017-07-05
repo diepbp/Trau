@@ -1155,6 +1155,51 @@ Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr) {
 }
 
 /*
+ *
+ */
+Z3_ast registerInternalContain(Z3_theory t, Z3_ast str, Z3_ast subStr) {
+	Z3_ast tmpStr;
+	Z3_ast tmpSubStr;
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	if (isConstStr(t, subStr)) {
+		std::string s = customizeString(getConstStrValue(t, subStr));
+		tmpSubStr = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, s.c_str()));
+	}
+	else
+		tmpSubStr = subStr;
+
+	if (isConstStr(t, str)){
+		std::string s = customizeString(getConstStrValue(t, str));
+		tmpStr = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, s.c_str()));
+	}
+	else
+		tmpStr = str;
+
+#ifdef DEBUGLOG
+	__debugPrint(logFile, ">> [containRegister] Contains(");
+	printZ3Node(t, tmpStr);
+	__debugPrint(logFile, ", ");
+	printZ3Node(t, tmpSubStr);
+#endif
+
+	std::pair<Z3_ast, Z3_ast> key = std::make_pair(tmpStr, tmpSubStr);
+	if (containPairBoolMap.find(key) == containPairBoolMap.end()) {
+		containPairBoolMap[key] = mk_internal_bool_var(t);
+		addAxiom(t, Z3_mk_eq(ctx, containPairBoolMap[key], mk_contains(t, tmpStr, tmpSubStr)), __LINE__, true);
+	}
+
+#ifdef DEBUGLOG
+	__debugPrint(logFile, ") = ");
+	printZ3Node(t, containPairBoolMap[key]);
+	__debugPrint(logFile, "\n");
+#endif
+
+	addContainRelation(t, str, subStr, containPairBoolMap[key]);
+	return containPairBoolMap[key];
+}
+
+/*
  * Handle concat when note is constant
  */
 Z3_ast Concat(Z3_theory t, Z3_ast n1, Z3_ast n2) {
@@ -2769,7 +2814,7 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 						constraints.push_back(it->second);
 						constraints.push_back(itor->second);
 						Z3_ast implies = Z3_mk_implies(ctx, mk_and_fromVector(t, constraints), containPairBoolMap[aPair]);
-//						addAxiom(t, implies, __LINE__, true);
+						addAxiom(t, implies, __LINE__, true);
 					}
 				}
 		}
@@ -2893,14 +2938,14 @@ void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast
 					Z3_ast compare = Z3_mk_ge(ctx, len01, len02);
 					Z3_ast impliesNotContain;
 					if (isVariable(t, *i))
-						impliesNotContain = Z3_mk_not(ctx, mk_contains(t, *i, itor->first.second));
+						impliesNotContain = Z3_mk_not(ctx, registerInternalContain(t, *i, itor->first.second));
 					else if (isConcatFunc(t, *i)) {
 						std::vector<Z3_ast> andElements;
 						Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *i), 0);
 						Z3_ast arg01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *i), 1);
 
-						andElements.push_back(Z3_mk_not(ctx, mk_contains(t, arg00, itor->first.second)));
-						andElements.push_back(Z3_mk_not(ctx, mk_contains(t, arg01, itor->first.second)));
+						andElements.push_back(Z3_mk_not(ctx, registerInternalContain(t, arg00, itor->first.second)));
+						andElements.push_back(Z3_mk_not(ctx, registerInternalContain(t, arg01, itor->first.second)));
 						impliesNotContain = mk_and_fromVector(t, andElements);
 					}
 
@@ -2911,7 +2956,7 @@ void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast
 
 					/* |A| <= |B| and A contains C --> B contains C */
 					compare = Z3_mk_le(ctx, len01, len02);
-					Z3_ast impliesContain = mk_contains(t, *i, itor->first.second);
+					Z3_ast impliesContain = registerInternalContain(t, *i, itor->first.second);
 
 					andElements.clear();
 					andElements.push_back(itor->second);
@@ -2938,13 +2983,13 @@ void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast
 
 					Z3_ast impliesNotContain;
 					if (isVariable(t, *i))
-						impliesNotContain = Z3_mk_not(ctx, mk_contains(t, *i, itor->first.second));
+						impliesNotContain = Z3_mk_not(ctx, registerInternalContain(t, *i, itor->first.second));
 					else if (isConcatFunc(t, *i)) {
 						std::vector<Z3_ast> andElements;
 						Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *i), 0);
 						Z3_ast arg01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *i), 1);
-						andElements.push_back(Z3_mk_not(ctx, mk_contains(t, arg00, itor->first.second)));
-						andElements.push_back(Z3_mk_not(ctx, mk_contains(t, arg01, itor->first.second)));
+						andElements.push_back(Z3_mk_not(ctx, registerInternalContain(t, arg00, itor->first.second)));
+						andElements.push_back(Z3_mk_not(ctx, registerInternalContain(t, arg01, itor->first.second)));
 						impliesNotContain = mk_and_fromVector(t, andElements);
 					}
 
@@ -2956,7 +3001,7 @@ void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast
 					/* |A| <= |B| and A contains C --> B contains C */
 					compare = Z3_mk_le(ctx, len01, len02);
 					compare_true = Z3_mk_eq(ctx, compare, Z3_mk_true(ctx));
-					Z3_ast impliesContain = mk_contains(t, *i, itor->first.second);
+					Z3_ast impliesContain = registerInternalContain(t, *i, itor->first.second);
 
 					andElements.clear();
 					andElements.push_back(itor->second);
@@ -2992,7 +3037,7 @@ void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2
 
 					/* |A| >= |B| and A does not contain C --> B does not contain C */
 					Z3_ast compare = Z3_mk_ge(ctx, len01, len02);
-					Z3_ast impliesNotContain = Z3_mk_not(ctx, mk_contains(t, *i, itor->first.second));
+					Z3_ast impliesNotContain = Z3_mk_not(ctx, registerInternalContain(t, *i, itor->first.second));
 
 					std::vector<Z3_ast> andElements;
 					andElements.push_back(Z3_mk_not(ctx, itor->second));
@@ -3001,7 +3046,7 @@ void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2
 
 					/* |A| <= |B| and A contains C --> B contains C */
 					compare = Z3_mk_le(ctx, len01, len02);
-					Z3_ast impliesContain = mk_contains(t, *i, itor->first.second);
+					Z3_ast impliesContain = registerInternalContain(t, *i, itor->first.second);
 
 					andElements.clear();
 					andElements.push_back(itor->second);
@@ -3024,7 +3069,7 @@ void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2
 
 					/* |A| >= |B| and A does not contain C --> B does not contain C */
 					Z3_ast compare = Z3_mk_ge(ctx, len01, len02);
-					Z3_ast impliesNotContain = Z3_mk_not(ctx, mk_contains(t, *i, itor->first.second));
+					Z3_ast impliesNotContain = Z3_mk_not(ctx, registerInternalContain(t, *i, itor->first.second));
 
 					std::vector<Z3_ast> andElements;
 					andElements.push_back(Z3_mk_not(ctx, itor->second));
@@ -3033,7 +3078,7 @@ void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2
 
 					/* |A| <= |B| and A contains C --> B contains C */
 					compare = Z3_mk_le(ctx, len01, len02);
-					Z3_ast impliesContain = mk_contains(t, *i, itor->first.second);
+					Z3_ast impliesContain = registerInternalContain(t, *i, itor->first.second);
 
 					andElements.clear();
 					andElements.push_back(itor->second);

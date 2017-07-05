@@ -1741,7 +1741,12 @@ void *convertEqualities(void *tid){
 		else {
 
 			/* work as usual */
-			for (unsigned int i = 0; i < it->second.size(); ++i)
+			if (it->second.size() == 1) {
+				lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
+				global_smtStatements.push_back(lenConstraint);
+				lenConstraint.clear();
+			}
+			else for (unsigned int i = 0; i < it->second.size(); ++i)
 				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
 					/* [i] = [j] */
 

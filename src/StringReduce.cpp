@@ -525,9 +525,9 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
 
 		if (isDetAutomatonFunc(t, args[1]) || isConstStr(t, args[1]))
-			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "(+ len_" + std::string(Z3_ast_to_string(ctx, x1)) + " " + std::to_string(node02.length() - 2) + ")");
+			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 		else
-			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "(+ len_" + std::string(Z3_ast_to_string(ctx, x1)) + " len_" + node02 + ")");
+			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 		bool canSkip = false;
 		if (getNodeType(t, args[1]) == my_Z3_ConstStr) {
 			std::string arg1Str = getConstStrValue(t, args[1]);

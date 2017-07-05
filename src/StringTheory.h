@@ -226,6 +226,11 @@ Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr);
 /*
  *
  */
+Z3_ast registerInternalContain(Z3_theory t, Z3_ast str, Z3_ast subStr);
+
+/*
+ *
+ */
 Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
 
 /*

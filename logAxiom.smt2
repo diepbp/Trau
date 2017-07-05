@@ -20,22 +20,10 @@ Assertion Add(@451, Level 0):
 
 ---------------------
 Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str3)) 0))
-      (a!2 (= (Length (Concat (AutomataDef /) $$_str3))
-              (+ (Length (AutomataDef /)) (Length $$_str3)))))
-  (and (= (Length (AutomataDef /)) 1)
-       (>= (Length (AutomataDef /)) 0)
-       (>= (Length $$_str3) 0)
-       a!1
-       a!2))
----------------------
-
----------------------
-Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str3)) 0))
-      (a!2 (Length (Concat $$_str2 (Concat (AutomataDef /) $$_str3))))
-      (a!3 (+ (Length $$_str2) (Length (Concat (AutomataDef /) $$_str3)))))
-  (and (>= (Length $$_str2) 0) a!1 (>= a!2 0) (= a!2 a!3)))
+(and (>= (Length $$_str2) 0)
+     (>= (Length $$_str3) 0)
+     (>= (Length (Concat $$_str2 $$_str3)) 0)
+     (= (Length (Concat $$_str2 $$_str3)) (+ (Length $$_str2) (Length $$_str3))))
 ---------------------
 
 ---------------------
@@ -60,38 +48,42 @@ Assertion Add(@451, Level 0):
 
 ---------------------
 Assertion Add(@451, Level 0):
-(and (>= (Length $$_str7) 0)
-     (>= (Length $$_str8) 0)
-     (>= (Length (Concat $$_str7 $$_str8)) 0)
-     (= (Length (Concat $$_str7 $$_str8)) (+ (Length $$_str7) (Length $$_str8))))
----------------------
-
----------------------
-Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat $$_str6 (Concat $$_str7 $$_str8))) 0))
-      (a!2 (= (Length (Concat $$_str6 (Concat $$_str7 $$_str8)))
-              (+ (Length $$_str6) (Length (Concat $$_str7 $$_str8))))))
-  (and (>= (Length $$_str6) 0) (>= (Length (Concat $$_str7 $$_str8)) 0) a!1 a!2))
----------------------
-
----------------------
-Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef .) $$_str10)) 0))
-      (a!2 (= (Length (Concat (AutomataDef .) $$_str10))
-              (+ (Length (AutomataDef .)) (Length $$_str10)))))
-  (and (= (Length (AutomataDef .)) 1)
-       (>= (Length (AutomataDef .)) 0)
-       (>= (Length $$_str10) 0)
+(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str7)) 0))
+      (a!2 (= (Length (Concat (AutomataDef /) $$_str7))
+              (+ (Length (AutomataDef /)) (Length $$_str7)))))
+  (and (= (Length (AutomataDef /)) 1)
+       (>= (Length (AutomataDef /)) 0)
+       (>= (Length $$_str7) 0)
        a!1
        a!2))
 ---------------------
 
 ---------------------
 Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef .) $$_str10)) 0))
-      (a!2 (Length (Concat $$_str9 (Concat (AutomataDef .) $$_str10))))
-      (a!3 (+ (Length $$_str9) (Length (Concat (AutomataDef .) $$_str10)))))
-  (and (>= (Length $$_str9) 0) a!1 (>= a!2 0) (= a!2 a!3)))
+(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str7)) 0))
+      (a!2 (Length (Concat $$_str6 (Concat (AutomataDef /) $$_str7))))
+      (a!3 (+ (Length $$_str6) (Length (Concat (AutomataDef /) $$_str7)))))
+  (and (>= (Length $$_str6) 0) a!1 (>= a!2 0) (= a!2 a!3)))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str9)) 0))
+      (a!2 (= (Length (Concat (AutomataDef /) $$_str9))
+              (+ (Length (AutomataDef /)) (Length $$_str9)))))
+  (and (= (Length (AutomataDef /)) 1)
+       (>= (Length (AutomataDef /)) 0)
+       (>= (Length $$_str9) 0)
+       a!1
+       a!2))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(let ((a!1 (>= (Length (Concat (AutomataDef /) $$_str9)) 0))
+      (a!2 (Length (Concat $$_str8 (Concat (AutomataDef /) $$_str9))))
+      (a!3 (+ (Length $$_str8) (Length (Concat (AutomataDef /) $$_str9)))))
+  (and (>= (Length $$_str8) 0) a!1 (>= a!2 0) (= a!2 a!3)))
 ---------------------
 
 ---------------------
@@ -101,6 +93,17 @@ Assertion Add(@451, Level 0):
      (>= (Length (Concat $$_str11 $$_str12)) 0)
      (= (Length (Concat $$_str11 $$_str12))
         (+ (Length $$_str11) (Length $$_str12))))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(let ((a!1 (>= (Length (Concat $$_str10 (Concat $$_str11 $$_str12))) 0))
+      (a!2 (= (Length (Concat $$_str10 (Concat $$_str11 $$_str12)))
+              (+ (Length $$_str10) (Length (Concat $$_str11 $$_str12))))))
+  (and (>= (Length $$_str10) 0)
+       (>= (Length (Concat $$_str11 $$_str12)) 0)
+       a!1
+       a!2))
 ---------------------
 
 ---------------------
@@ -125,31 +128,60 @@ Assertion Add(@451, Level 0):
 
 ---------------------
 Assertion Add(@451, Level 0):
-(and (>= (Length $$_str16) 0)
-     (>= (Length $$_str17) 0)
-     (>= (Length (Concat $$_str16 $$_str17)) 0)
-     (= (Length (Concat $$_str16 $$_str17))
-        (+ (Length $$_str16) (Length $$_str17))))
+(and (>= (Length $$_str15) 0)
+     (>= (Length $$_str16) 0)
+     (>= (Length (Concat $$_str15 $$_str16)) 0)
+     (= (Length (Concat $$_str15 $$_str16))
+        (+ (Length $$_str15) (Length $$_str16))))
 ---------------------
 
 ---------------------
 Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef ../) $$_str19)) 0))
-      (a!2 (= (Length (Concat (AutomataDef ../) $$_str19))
-              (+ (Length (AutomataDef ../)) (Length $$_str19)))))
-  (and (= (Length (AutomataDef ../)) 3)
-       (>= (Length (AutomataDef ../)) 0)
-       (>= (Length $$_str19) 0)
+(let ((a!1 (>= (Length (Concat (AutomataDef .) $$_str18)) 0))
+      (a!2 (= (Length (Concat (AutomataDef .) $$_str18))
+              (+ (Length (AutomataDef .)) (Length $$_str18)))))
+  (and (= (Length (AutomataDef .)) 1)
+       (>= (Length (AutomataDef .)) 0)
+       (>= (Length $$_str18) 0)
        a!1
        a!2))
 ---------------------
 
 ---------------------
 Assertion Add(@451, Level 0):
-(let ((a!1 (>= (Length (Concat (AutomataDef ../) $$_str19)) 0))
-      (a!2 (Length (Concat $$_str18 (Concat (AutomataDef ../) $$_str19))))
-      (a!3 (+ (Length $$_str18) (Length (Concat (AutomataDef ../) $$_str19)))))
-  (and (>= (Length $$_str18) 0) a!1 (>= a!2 0) (= a!2 a!3)))
+(let ((a!1 (>= (Length (Concat (AutomataDef .) $$_str18)) 0))
+      (a!2 (Length (Concat $$_str17 (Concat (AutomataDef .) $$_str18))))
+      (a!3 (+ (Length $$_str17) (Length (Concat (AutomataDef .) $$_str18)))))
+  (and (>= (Length $$_str17) 0) a!1 (>= a!2 0) (= a!2 a!3)))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(and (>= (Length $$_str20) 0)
+     (>= (Length $$_str21) 0)
+     (>= (Length (Concat $$_str20 $$_str21)) 0)
+     (= (Length (Concat $$_str20 $$_str21))
+        (+ (Length $$_str20) (Length $$_str21))))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(let ((a!1 (>= (Length (Concat (AutomataDef ../) $$_str23)) 0))
+      (a!2 (= (Length (Concat (AutomataDef ../) $$_str23))
+              (+ (Length (AutomataDef ../)) (Length $$_str23)))))
+  (and (= (Length (AutomataDef ../)) 3)
+       (>= (Length (AutomataDef ../)) 0)
+       (>= (Length $$_str23) 0)
+       a!1
+       a!2))
+---------------------
+
+---------------------
+Assertion Add(@451, Level 0):
+(let ((a!1 (>= (Length (Concat (AutomataDef ../) $$_str23)) 0))
+      (a!2 (Length (Concat $$_str22 (Concat (AutomataDef ../) $$_str23))))
+      (a!3 (+ (Length $$_str22) (Length (Concat (AutomataDef ../) $$_str23)))))
+  (and (>= (Length $$_str22) 0) a!1 (>= a!2 0) (= a!2 a!3)))
 ---------------------
 
 
@@ -158,10 +190,10 @@ Assertion Add(@451, Level 0):
 
 =================================================================================
 ** cb_new_eq(): @0
-(Concat $$_str6 (Concat $$_str7 $$_str8))  = filename_0
+(Concat $$_str10 (Concat $$_str11 $$_str12))  = filename_0
 ---------------------
-Axiom Add(@2670, Level 0):
-$$_bool2
+Axiom Add(@2715, Level 0):
+$$_bool3
 ---------------------
 
 
@@ -170,10 +202,10 @@ $$_bool2
 
 =================================================================================
 ** cb_new_eq(): @0
-(Concat $$_str16 $$_str17)  = filename_1
+(Concat $$_str20 $$_str21)  = filename_1
 ---------------------
-Axiom Add(@2670, Level 0):
-$$_bool5
+Axiom Add(@2715, Level 0):
+$$_bool6
 ---------------------
 
 
@@ -189,77 +221,15 @@ filename_0  = s
 
 =================================================================================
 ** cb_new_eq(): @0
-(Concat $$_str18 (Concat (AutomataDef ../) $$_str19))  = filename_2
+(Concat $$_str22 (Concat (AutomataDef ../) $$_str23))  = filename_2
 ---------------------
-Axiom Add(@2670, Level 0):
-$$_bool6
----------------------
-
----------------------
-Axiom Add(@2738, Level 0):
-$$_bool6
----------------------
-
-
-
-
-
-=================================================================================
-** cb_new_eq(): @3
-filename_2  = $$_str16
-
-
-
-
-=================================================================================
-** cb_new_eq(): @3
-filename_1  = (Concat $$_str11 $$_str12)
----------------------
-Axiom Add(@3000, Level 3):
-(=> (and (not $$_bool6) (>= (Length filename_2) (Length $$_str11)))
-    (not (Contains $$_str11 (AutomataDef ../))))
+Axiom Add(@2715, Level 0):
+$$_bool7
 ---------------------
 
 ---------------------
-Axiom Add(@3009, Level 3):
-(=> (and $$_bool6 (<= (Length filename_2) (Length $$_str11)))
-    (Contains $$_str11 (AutomataDef ../)))
----------------------
-
----------------------
-Axiom Add(@3032, Level 3):
-(=> (and (not $$_bool4) (>= (Length $$_str11) (Length filename_2)))
-    (not (Contains filename_2 (AutomataDef .))))
----------------------
-
----------------------
-Axiom Add(@3041, Level 3):
-(=> (and $$_bool4 (<= (Length $$_str11) (Length filename_2)))
-    (Contains filename_2 (AutomataDef .)))
----------------------
-
----------------------
-Axiom Add(@3032, Level 3):
-(=> (and (not $$_bool4) (>= (Length $$_str11) (Length $$_str16)))
-    (not (Contains $$_str16 (AutomataDef .))))
----------------------
-
----------------------
-Axiom Add(@3041, Level 3):
-(=> (and $$_bool4 (<= (Length $$_str11) (Length $$_str16)))
-    (Contains $$_str16 (AutomataDef .)))
----------------------
-
----------------------
-Axiom Add(@3032, Level 3):
-(=> (and (not $$_bool4) (>= (Length $$_str11) (Length $$_str18)))
-    (not (Contains $$_str18 (AutomataDef .))))
----------------------
-
----------------------
-Axiom Add(@3041, Level 3):
-(=> (and $$_bool4 (<= (Length $$_str11) (Length $$_str18)))
-    (Contains $$_str18 (AutomataDef .)))
+Axiom Add(@2783, Level 0):
+$$_bool7
 ---------------------
 
 
@@ -268,39 +238,169 @@ Axiom Add(@3041, Level 3):
 
 =================================================================================
 ** cb_new_eq(): @3
-filename_1  = (Concat $$_str9 (Concat (AutomataDef .) $$_str10))
+filename_2  = $$_str20
+
+
+
+
+=================================================================================
+** cb_new_eq(): @3
+filename_1  = (Concat $$_str15 $$_str16)
 ---------------------
-Axiom Add(@2688, Level 3):
-(= $$_bool3 true)
+Axiom Add(@1189, Level 3):
+(= $$_bool8 (Contains $$_str15 (AutomataDef ../)))
 ---------------------
 
 ---------------------
-Axiom Add(@2718, Level 3):
-$$_bool3
+Axiom Add(@1085, Level 3):
+(=> $$_bool8 $$_bool5)
 ---------------------
 
 ---------------------
-Axiom Add(@3000, Level 3):
-(=> (and (not $$_bool6) (>= (Length filename_2) (Length $$_str9)))
-    (not (Contains $$_str9 (AutomataDef ../))))
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool7) (>= (Length filename_2) (Length $$_str15)))
+    (not $$_bool8))
 ---------------------
 
 ---------------------
-Axiom Add(@3009, Level 3):
-(=> (and $$_bool6 (<= (Length filename_2) (Length $$_str9)))
-    (Contains $$_str9 (AutomataDef ../)))
+Axiom Add(@1085, Level 3):
+(=> $$_bool8 $$_bool5)
 ---------------------
 
 ---------------------
-Axiom Add(@3000, Level 3):
-(=> (and (not $$_bool4) (>= (Length $$_str11) (Length $$_str9)))
-    (not (Contains $$_str9 (AutomataDef .))))
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool7 (<= (Length filename_2) (Length $$_str15))) $$_bool8)
 ---------------------
 
 ---------------------
-Axiom Add(@3009, Level 3):
-(=> (and $$_bool4 (<= (Length $$_str11) (Length $$_str9)))
-    (Contains $$_str9 (AutomataDef .)))
+Axiom Add(@1189, Level 3):
+(= $$_bool9 (Contains filename_2 (AutomataDef .)))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool5) (>= (Length $$_str15) (Length filename_2)))
+    (not $$_bool9))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool5 (<= (Length $$_str15) (Length filename_2))) $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@1189, Level 3):
+(= $$_bool10 (Contains $$_str20 (AutomataDef .)))
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool5) (>= (Length $$_str15) (Length $$_str20)))
+    (not $$_bool10))
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool5 (<= (Length $$_str15) (Length $$_str20))) $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@1189, Level 3):
+(= $$_bool11 (Contains $$_str22 (AutomataDef .)))
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool5) (>= (Length $$_str15) (Length $$_str22)))
+    (not $$_bool11))
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool5 (<= (Length $$_str15) (Length $$_str22))) $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool8) (>= (Length $$_str15) (Length filename_2)))
+    (not $$_bool7))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool8 (<= (Length $$_str15) (Length filename_2))) $$_bool7)
+---------------------
+
+---------------------
+Axiom Add(@1189, Level 3):
+(= $$_bool12 (Contains $$_str20 (AutomataDef ../)))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool8) (>= (Length $$_str15) (Length $$_str20)))
+    (not $$_bool12))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool8 (<= (Length $$_str15) (Length $$_str20))) $$_bool12)
+---------------------
+
+---------------------
+Axiom Add(@1189, Level 3):
+(= $$_bool13 (Contains $$_str22 (AutomataDef ../)))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool8) (>= (Length $$_str15) (Length $$_str22)))
+    (not $$_bool13))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool8 (<= (Length $$_str15) (Length $$_str22))) $$_bool13)
 ---------------------
 
 
@@ -308,104 +408,351 @@ Axiom Add(@3009, Level 3):
 
 
 =================================================================================
-** cb_new_eq(): @6
-filename_0  = (Concat $$_str4 (Concat (AutomataDef /) $$_str5))
+** cb_new_eq(): @3
+filename_1  = (Concat $$_str13 (Concat (AutomataDef .) $$_str14))
 ---------------------
-Axiom Add(@2688, Level 6):
-(= $$_bool0 true)
----------------------
-
----------------------
-Axiom Add(@2718, Level 6):
-$$_bool0
----------------------
-
-
-
-
-
-=================================================================================
-** cb_new_eq(): @6
-filename_0  = (Concat $$_str0 (Concat (AutomataDef /) $$_str1))
----------------------
-Axiom Add(@2688, Level 6):
-(= $$_bool0 true)
+Axiom Add(@2733, Level 3):
+(= $$_bool4 true)
 ---------------------
 
 ---------------------
-Axiom Add(@2718, Level 6):
-$$_bool0
+Axiom Add(@2763, Level 3):
+$$_bool4
 ---------------------
 
 ---------------------
-Axiom Add(@2954, Level 6):
-(let ((a!1 (and (not $$_bool1) (= (>= (Length $$_str1) (Length s)) true))))
-  (=> a!1 (not (Contains s (AutomataDef /)))))
+Axiom Add(@1189, Level 3):
+(= $$_bool14 (Contains $$_str13 (AutomataDef .)))
 ---------------------
 
 ---------------------
-Axiom Add(@2964, Level 6):
-(let ((a!1 (and $$_bool1 (= (<= (Length $$_str1) (Length s)) true))))
-  (=> a!1 (Contains s (AutomataDef /))))
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool9) (>= (Length filename_2) (Length $$_str13)))
+    (not $$_bool14))
 ---------------------
 
 ---------------------
-Axiom Add(@2954, Level 6):
-(let ((a!1 (and (not $$_bool1) (= (>= (Length $$_str1) (Length $$_str5)) true))))
-  (=> a!1 (not (Contains $$_str5 (AutomataDef /)))))
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool9 (<= (Length filename_2) (Length $$_str13))) $$_bool14)
 ---------------------
 
 ---------------------
-Axiom Add(@2964, Level 6):
-(let ((a!1 (and $$_bool1 (= (<= (Length $$_str1) (Length $$_str5)) true))))
-  (=> a!1 (Contains $$_str5 (AutomataDef /))))
+Axiom Add(@1189, Level 3):
+(= $$_bool15 (Contains $$_str13 (AutomataDef ../)))
 ---------------------
 
 ---------------------
-Axiom Add(@2954, Level 6):
-(let ((a!1 (and (not $$_bool1) (= (>= (Length $$_str1) (Length $$_str8)) true))))
-  (=> a!1 (not (Contains $$_str8 (AutomataDef /)))))
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
 ---------------------
 
 ---------------------
-Axiom Add(@2964, Level 6):
-(let ((a!1 (and $$_bool1 (= (<= (Length $$_str1) (Length $$_str8)) true))))
-  (=> a!1 (Contains $$_str8 (AutomataDef /))))
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool7) (>= (Length filename_2) (Length $$_str13)))
+    (not $$_bool15))
 ---------------------
 
 ---------------------
-Axiom Add(@2954, Level 6):
-(let ((a!1 (>= (Length $$_str1) (Length (Concat (AutomataDef /) $$_str5))))
-      (a!2 (and (not (Contains (AutomataDef /) (AutomataDef /)))
-                (not (Contains $$_str5 (AutomataDef /))))))
-  (=> (and (not $$_bool1) (= a!1 true)) a!2))
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
 ---------------------
 
 ---------------------
-Axiom Add(@2964, Level 6):
-(let ((a!1 (<= (Length $$_str1) (Length (Concat (AutomataDef /) $$_str5)))))
-  (=> (and $$_bool1 (= a!1 true))
-      (Contains (Concat (AutomataDef /) $$_str5) (AutomataDef /))))
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool7 (<= (Length filename_2) (Length $$_str13))) $$_bool15)
 ---------------------
 
 ---------------------
-Axiom Add(@2954, Level 6):
-(let ((a!1 (= (>= (Length $$_str1) (Length (Concat $$_str7 $$_str8))) true))
-      (a!2 (and (not (Contains $$_str7 (AutomataDef /)))
-                (not (Contains $$_str8 (AutomataDef /))))))
-  (=> (and (not $$_bool1) a!1) a!2))
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
 ---------------------
 
 ---------------------
-Axiom Add(@2964, Level 6):
-(let ((a!1 (= (<= (Length $$_str1) (Length (Concat $$_str7 $$_str8))) true)))
-  (=> (and $$_bool1 a!1) (Contains (Concat $$_str7 $$_str8) (AutomataDef /))))
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool5) (>= (Length $$_str15) (Length $$_str13)))
+    (not $$_bool14))
 ---------------------
 
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
 
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool5 (<= (Length $$_str15) (Length $$_str13))) $$_bool14)
+---------------------
 
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
 
+---------------------
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool8) (>= (Length $$_str15) (Length $$_str13)))
+    (not $$_bool15))
+---------------------
 
-=================================================================================
-** cb_new_eq(): @6
-filename_1  = $$_str7
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool8 (<= (Length $$_str15) (Length $$_str13))) $$_bool15)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool10) (>= (Length $$_str20) (Length $$_str13)))
+    (not $$_bool14))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool10 (<= (Length $$_str20) (Length $$_str13))) $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool12) (>= (Length $$_str20) (Length $$_str13)))
+    (not $$_bool15))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool12 (<= (Length $$_str20) (Length $$_str13))) $$_bool15)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool11) (>= (Length $$_str22) (Length $$_str13)))
+    (not $$_bool14))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool11 (<= (Length $$_str22) (Length $$_str13))) $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3045, Level 3):
+(=> (and (not $$_bool13) (>= (Length $$_str22) (Length $$_str13)))
+    (not $$_bool15))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool15 $$_bool14)
+---------------------
+
+---------------------
+Axiom Add(@3054, Level 3):
+(=> (and $$_bool13 (<= (Length $$_str22) (Length $$_str13))) $$_bool15)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool14) (>= (Length $$_str13) (Length filename_2)))
+    (not $$_bool9))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool14 (<= (Length $$_str13) (Length filename_2))) $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool8 $$_bool5)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool14) (>= (Length $$_str13) (Length $$_str15)))
+    (not $$_bool5))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool8 $$_bool5)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool14 (<= (Length $$_str13) (Length $$_str15))) $$_bool5)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool14) (>= (Length $$_str13) (Length $$_str20)))
+    (not $$_bool10))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool14 (<= (Length $$_str13) (Length $$_str20))) $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool14) (>= (Length $$_str13) (Length $$_str22)))
+    (not $$_bool11))
+---------------------
+
+---------------------
+Axiom Add(@1087, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool14 (<= (Length $$_str13) (Length $$_str22))) $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool15) (>= (Length $$_str13) (Length filename_2)))
+    (not $$_bool7))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool7 $$_bool9)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool15 (<= (Length $$_str13) (Length filename_2))) $$_bool7)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool8 $$_bool5)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool15) (>= (Length $$_str13) (Length $$_str15)))
+    (not $$_bool8))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool8 $$_bool5)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool15 (<= (Length $$_str13) (Length $$_str15))) $$_bool8)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool15) (>= (Length $$_str13) (Length $$_str20)))
+    (not $$_bool12))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool12 $$_bool10)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool15 (<= (Length $$_str13) (Length $$_str20))) $$_bool12)
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3077, Level 3):
+(=> (and (not $$_bool15) (>= (Length $$_str13) (Length $$_str22)))
+    (not $$_bool13))
+---------------------
+
+---------------------
+Axiom Add(@1085, Level 3):
+(=> $$_bool13 $$_bool11)
+---------------------
+
+---------------------
+Axiom Add(@3086, Level 3):
+(=> (and $$_bool15 (<= (Length $$_str13) (Length $$_str22))) $$_bool13)
+---------------------
+
