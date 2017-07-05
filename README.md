@@ -2,7 +2,7 @@ This is the Trau string solver
 
 Requirements
 ---------------------------------
-Before attempting to build FAT, you must have the following installed:
+Before attempting to build Trau, you must have the following installed:
 - Ubuntu 64 bits
 - git (must be on your PATH)
 - python (must be on your PATH)
