@@ -10,6 +10,7 @@
 
 #include "fileutils.h"
 #include "GrmOverApprox.h"
+#include "GrmUnderApprox.h"
 #include "StringTheory.h"
 #include "FileConverter.h"
 
@@ -21,7 +22,7 @@ bool cleanLog = true;
 int cnt = 0;
 std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
-std::map<std::string, std::string> ourGrm;
+std::map<std::string, std::vector<std::string>> ourGrm;
 
 /*
  *
@@ -158,37 +159,19 @@ void loadGrammar(std::string grammarFile) {
   __debugPrint(logFile, "*                 initGrammar                 *\n");
   __debugPrint(logFile, "-----------------------------------------------\n");
 #endif
-  ourGrm = CFG_parser(grammarFile);
 
-#ifdef DEBUGLOG
-  for (std::map<std::string, std::string>::iterator it = ourGrm.begin(); it != ourGrm.end(); ++it)
-  	__debugPrint(logFile, "%d %s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
+#if 0
+  ourGrm = OverApproxCFG::overapprox_CFG(grammarFile);
+#else
+  ourGrm = UnderApproxCFG::underapprox_CFG(grammarFile);
 #endif
-//	FILE* pipe = fopen(grammarFile.c_str(), "r");
-//	char buffer[2000];
-//
-//	std::string cmdLine = "";
-//	while (!feof(pipe))
-//	{
-//		if (fgets(buffer, 2000, pipe) != NULL)
-//		{
-//			int pos = 0;
-//			std::string line = buffer;
-//			std::string name = "";
-//			for (pos = 0; pos < line.length(); ++pos)
-//				if (line[pos] == ':')
-//					break;
-//				else {
-//					name = name + line[pos];
-//				}
-//
-//			std::string reg = line.substr(pos + 2, line.length() - pos - 3);
-//			__debugPrint(logFile, "%s --> %s\n", name.c_str(), reg.c_str());
-//
-//			ourGrm[name] = reg;
-//		}
-//	}
-//	pclose(pipe);
+#ifdef DEBUGLOG
+  for (std::map<std::string, std::vector<std::string>>::iterator it = ourGrm.begin(); it != ourGrm.end(); ++it) {
+	  __debugPrint(logFile, "%d %s: \n", __LINE__, it->first.c_str());
+	  for (unsigned int i = 0; i < it->second.size(); ++i)
+		  __debugPrint(logFile, "%d\t%s\n", __LINE__, it->second[i].c_str());
+  }
+#endif
 }
 
 

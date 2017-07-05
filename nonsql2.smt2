@@ -4,10 +4,16 @@
 (declare-fun j () String)
 (declare-fun w () String)   
 (declare-fun t () String)   
+(declare-fun a () String)   
 (assert (RegexIn w (RegexStar (Str2Reg "abcabc"))))
 (assert (RegexIn i (RegexStar (Str2Reg "abcabc"))))
 (assert (RegexIn w (RegexStar (Str2Reg "abcabcabc"))))
 (assert (= w (Concat "abc" j)))
 (assert (= g (Concat "def" w))) 
 (assert (= t (Concat "ghi123" w)))
+(assert (= t (Concat h i)))
+
+(assert (GrammarIn a (Str2Grm "$OREXPRESSION")))
+
 (check-sat)
+(get-model)

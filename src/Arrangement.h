@@ -18,6 +18,8 @@
 #define REGEX_CODE -100
 #define MINUSZERO 999
 
+#define CONNECTSIZE 50
+
 class Arrangment{
 public:
 
@@ -32,14 +34,18 @@ public:
 			std::vector<int> _right_arr,
 			//			std::map<std::pair<std::string, std::string>, std::string> _constMap,
 			std::map<std::string, std::string> _constMap,
-			std::map<std::string, std::set<std::string>> _notMap
-	){
+			std::map<std::string, std::set<std::string>> _notMap){
+
+		constMap.clear();
+		notMap.clear();
+
 		left_arr.insert(left_arr.end(), _left_arr.begin(), _left_arr.end());
 		right_arr.insert(right_arr.end(), _right_arr.begin(), _right_arr.end());
 
 		/* extra info */
 		constMap.insert(_constMap.begin(), _constMap.end());
 		notMap.insert(_notMap.begin(), _notMap.end());
+
 	}
 
 	void addLeft(int number) {
@@ -461,14 +467,25 @@ public:
 		}
 
 		else if (elementNames[currentSplit.size()].second == -1 && currentSplit.size() + 1 < elementNames.size() && QCONSTMAX == 2) /* head, not the last element */ {
-//			printf("%d Case 04: const head at middle\n", __LINE__);
+			printf("%d Case 04: const head at middle\n", __LINE__);
 			/* check full string */
-			assert (elementNames[currentSplit.size() + 1].second == -2);
-			if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
-				for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
-					currentSplit.push_back(i);
-					collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
-					currentSplit.pop_back();
+			if (elementNames[currentSplit.size() + 1].second == -2){
+				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
+					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
+						currentSplit.push_back(i);
+						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
+					}
+				}
+			}
+			else {
+				/* this const only has 1 part */
+				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
+					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
+						currentSplit.push_back(i);
+						collectAllPossibleSplits_regex((pos) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
+					}
 				}
 			}
 		}
@@ -533,6 +550,8 @@ public:
 		else {
 			/* const string */
 			assert (l_r_hs.length() > 0);
+
+			assert (constMap.find(a.first) != constMap.end());
 			result = result + "len_" + constMap[a.first] + "_" + std::to_string(std::abs(a.second));
 			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
 		}
@@ -768,7 +787,7 @@ public:
 	}
 
 	/*
-	 *
+	 * pre elements + pre fix of itself
 	 */
 	std::string leng_prefix_lhs(std::pair<std::string, int> a,
 			std::vector<std::pair<std::string, int>> elementNames,
@@ -797,7 +816,7 @@ public:
 	}
 
 	/*
-	 *
+	 *  pre fix of itself
 	 */
 	std::string leng_prefix_rhs(std::pair<std::string, int> a, /* var */
 			std::string rhs) {
@@ -907,16 +926,16 @@ public:
 	}
 
 	/*
-		 * Input: split a string
-		 * Output: SMT
-		 */
-	std::string fromSplitToLengConstraint_havingConnectedVar(
+	 * Input: split a string
+	 * Output: SMT
+	 */
+	std::string fromSplitToLengConstraint_havingConnectedVar_andConst(
 			std::pair<std::string, int> a, /* const || regex */
-			std::vector<std::pair<std::string, int> > elementNames,
+			std::vector<std::pair<std::string, int> > elementNames, /* const + connected var */
 			std::vector<int> split,
 			std::string lhs, std::string rhs,
 			std::set<std::string> connectedVariables){
-
+		__debugPrint(logFile, "%d const|regex = const + connected var\n", __LINE__);
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
 			if (split[j] > 0 && split[j] != MINUSZERO)
@@ -1045,10 +1064,10 @@ public:
 	 */
 	std::string fromSplitToLengConstraint_NoConnectedVar(
 			std::pair<std::string, int> a, /* const || regex */
-			std::vector<std::pair<std::string, int> > elementNames,
+			std::vector<std::pair<std::string, int> > elementNames, /* no connected var */
 			std::vector<int> split,
 			std::string lhs, std::string rhs){
-
+		__debugPrint(logFile, "%d const|regex = const + ...\n", __LINE__);
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
 			if (split[j] > 0)
@@ -1183,7 +1202,6 @@ public:
 	int find_partsOfConnectedVariablesInAVector(
 			int pos,
 			std::vector<std::pair<std::string, int>> elementNames,
-			std::set<std::string> connectedVariables,
 			std::string &subLen){
 		int partCnt = 1;
 		std::vector<std::string> addElements; addElements.push_back(generateFlatSize(elementNames[pos]));
@@ -1204,13 +1222,13 @@ public:
 	/*
 	 *
 	 */
-	std::string connectedVar_anywhere(
+	std::string fromSplitToLengConstraint_ConnectedVar(
 			std::pair<std::string, int> a, /* const or regex */
-			std::vector<std::pair<std::string, int>> elementNames, /* have connected var */
+			std::vector<std::pair<std::string, int>> elementNames, /* have connected var, do not have const */
 			std::string lhs, std::string rhs,
 			std::set<std::string> connectedVariables,
 			std::map<std::string, int> &newVars){
-
+		__debugPrint(logFile, "%d const|regex = connected var + ...\n", __LINE__);
 		std::string arrayLhs = generateFlatArray(a, lhs);
 		std::vector<std::string> resultParts;
 
@@ -1221,6 +1239,7 @@ public:
 			content = a.first;
 
 		for (unsigned int i = 0; i < elementNames.size(); ++i){
+			assert(elementNames[i].second >= 0);
 			if (elementNames[i].second >= 0) /* not const */ {
 
 				/* connected variable */
@@ -1228,90 +1247,141 @@ public:
 
 					/* sublen = part_1 + part2 + .. */
 					std::string subLen = "";
-					int partCnt = find_partsOfConnectedVariablesInAVector(i, elementNames, connectedVariables, subLen);
-
+					int partCnt = find_partsOfConnectedVariablesInAVector(i, elementNames, subLen);
 					std::string prefix_rhs = leng_prefix_rhs(elementNames[i], rhs);
 					std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, i);
 
-					bool lhs_zero = false;
-					bool rhs_zero = false;
-					if (prefix_lhs.length() == 1 && prefix_lhs[0] == '0')
-						lhs_zero = true;
-					if (prefix_rhs.length() == 1 && prefix_rhs[0] == '0')
-						rhs_zero = true;
+					if (a.second == REGEX_CODE) {
+						std::vector<std::string> conditions;
+						if (partCnt == 1) {
+							__debugPrint(logFile, ">> %d const|regex = connected var partCnt = 1. NOT TESTED\n", __LINE__);
+							/* this part = regex */
+							/* prefix mod lenth = 0 */
+							conditions.push_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
+							conditions.push_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
 
-					std::string arrayRhs = generateFlatArray(elementNames[i], rhs);
+#if 0
+							std::string partArray = generateFlatArray_forComponent(elementNames[i], rhs);
+							for (unsigned int j = 0; j < content.length(); ++j)
+								conditions.push_back("(= (select " + partArray + " " + std::to_string(j) + ") " + std::to_string(content[j]) + ")");
+#else
+							std::string arrName = generateFlatArray(elementNames[i], rhs);
+							std::string prefix = leng_prefix_rhs(elementNames[i], rhs);
 
-					if (QCONSTMAX == 1) {
-						resultParts.push_back("(= " + subLen + " " + std::to_string(content.length()) + ")");
-						/* forall ((i Int)) (and (< i a.first.length()))*/
-						for (unsigned int k = 0; k < content.length(); ++k){
-							resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
-									"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
+							std::vector<std::string> cases;
+							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
+								std::vector<std::string> subcase;
+								subcase.push_back("(= " + subLen + " " + std::to_string(iter * content.length()) + ")");
+								for (unsigned int j = 0; j < iter * content.length(); ++j)
+									subcase.push_back("(= (select " + arrName + " (+ " + prefix + " " + std::to_string(j) + ")) " + std::to_string(content[j % content.length()]) + ")");
+								cases.push_back(andConstraint(subcase));
+							}
+							conditions.push_back(orConstraint(cases));
+#endif
+
+							resultParts.push_back(andConstraint(conditions));
+							__debugPrint(logFile, " --> %s \n", andConstraint(conditions).c_str());
+						}
+						else {
+							__debugPrint(logFile, ">> %d const|regex = connected var partCnt = 2.\n", __LINE__);
+							assert(partCnt == 2);
+
+							/* this part = regex */
+							/* prefix mod lenth = 0 */
+							conditions.push_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
+							conditions.push_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
+
+							std::string arrName = generateFlatArray(elementNames[i], rhs);
+							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
+								for (unsigned int j = 0; j < content.length(); ++j)
+									conditions.push_back("(= (select " + arrName + " " + std::to_string(j + iter * content.length()) + ") " + std::to_string(content[j]) + ")");
+							}
+							resultParts.push_back(andConstraint(conditions));
+							__debugPrint(logFile, " --> %s \n", andConstraint(conditions).c_str());
 						}
 					}
 					else {
-						/* exists and forall */
-//							char strTmp[1000];
-//							sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s i) (select %s i)))))",
-//									subLen.c_str(),
-//									subLen.c_str(),
-//									LOCALSPLITMAX,
-//									a.first.length(),
-//									subLen.c_str(),
-//									arrayLhs.c_str(),
-//									arrayRhs.c_str());
-//							__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
+						bool lhs_zero = false;
+						bool rhs_zero = false;
+						if (prefix_lhs.length() == 1 && prefix_lhs[0] == '0')
+							lhs_zero = true;
+						if (prefix_rhs.length() == 1 && prefix_rhs[0] == '0')
+							rhs_zero = true;
 
-						std::vector<std::string> possibleCases; /* sublen = 0 || sublen = 1 || .. */
+						std::string arrayRhs = generateFlatArray(elementNames[i], rhs);
 
-						/* clone to optimise length of generated string */
-						if (lhs_zero && rhs_zero) {
-							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
-								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
-								for (int k = 0; k < j; ++k){
-									subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
-											"(select " + arrayRhs + " " + std::to_string(k) + "))");
-								}
-								possibleCases.push_back(andConstraint(subpossibleCases));
+						if (QCONSTMAX == 1) {
+							resultParts.push_back("(= " + subLen + " " + std::to_string(content.length()) + ")");
+							/* forall ((i Int)) (and (< i a.first.length()))*/
+							for (unsigned int k = 0; k < content.length(); ++k){
+								resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+										"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 							}
 						}
-						else if (lhs_zero && !rhs_zero){
-							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
-								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
-								for (int k = 0; k < j; ++k){
-									subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
-											"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
+						else {
+							/* exists and forall */
+#if 0
+							char strTmp[1000];
+							sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s i) (select %s i)))))",
+									subLen.c_str(),
+									subLen.c_str(),
+									LOCALSPLITMAX,
+									a.first.length(),
+									subLen.c_str(),
+									arrayLhs.c_str(),
+									arrayRhs.c_str());
+							__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
+#endif
+							std::vector<std::string> possibleCases; /* sublen = 0 || sublen = 1 || .. */
+
+							/* clone to optimise length of generated string */
+							if (lhs_zero && rhs_zero) {
+								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
+									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									for (int k = 0; k < j; ++k){
+										subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
+												"(select " + arrayRhs + " " + std::to_string(k) + "))");
+									}
+									possibleCases.push_back(andConstraint(subpossibleCases));
 								}
-								possibleCases.push_back(andConstraint(subpossibleCases));
 							}
-						}
-						else if (!lhs_zero && rhs_zero){
-							for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+							else if (lhs_zero && !rhs_zero){
+								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
+									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									for (int k = 0; k < j; ++k){
+										subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
+												"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
+									}
+									possibleCases.push_back(andConstraint(subpossibleCases));
+								}
+							}
+							else if (!lhs_zero && rhs_zero){
+								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
+									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									for (int k = 0; k < j; ++k){
+										subpossibleCases.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+												"(select " + arrayRhs + " " + std::to_string(k) + "))");
+									}
+									possibleCases.push_back(andConstraint(subpossibleCases));
+								}
+							}
+							else for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
 								for (int k = 0; k < j; ++k){
 									subpossibleCases.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
-											"(select " + arrayRhs + " " + std::to_string(k) + "))");
+											"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
+
 								}
 								possibleCases.push_back(andConstraint(subpossibleCases));
 							}
+							resultParts.push_back(orConstraint(possibleCases));
 						}
-						else for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
-							std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-							subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
-							for (int k = 0; k < j; ++k){
-								subpossibleCases.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
-										"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
-
-							}
-							possibleCases.push_back(andConstraint(subpossibleCases));
-						}
-						i += (partCnt - 1);
-						resultParts.push_back(orConstraint(possibleCases));
 					}
+					i += (partCnt - 1);
 				}
 			}
 		}
@@ -1344,7 +1414,7 @@ public:
 		/* how many parts of that connected variable are in the const | regex */
 		/* sublen = part_1 + part2 + .. */
 		std::string subLen = "";
-		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, connectedVariables, subLen);
+		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, subLen);
 
 		std::string prefix_rhs = leng_prefix_rhs(elementNames[connectedVarPos], rhs);
 		std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, connectedVarPos);
@@ -1366,6 +1436,7 @@ public:
 			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
 			/* at_0 = x && at_1 == y && ..*/
 			char strTmp[1000];
+#if 0
 			sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod (+ i %s) %ld)))))",
 					subLen.c_str(),
 					arrayRhs.c_str(),
@@ -1374,6 +1445,20 @@ public:
 					prefix_lhs.c_str(),
 					content.length());
 			resultParts.push_back(strTmp);
+#else
+			resultParts.push_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
+			for (int i = 0; i < CONNECTSIZE; ++i) {
+				sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld)))",
+									arrayRhs.c_str(),
+									i,
+									prefix_rhs.c_str(),
+									arrayLhs.c_str(),
+									i,
+									prefix_lhs.c_str(),
+									content.length());
+				resultParts.push_back(strTmp);
+			}
+#endif
 		}
 
 		return andConstraint(resultParts);
@@ -1400,7 +1485,7 @@ public:
 		/* how many parts of that connected variable are in the const | regex */
 		/* sublen = part_1 + part2 + .. */
 		std::string subLen = "";
-		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, connectedVariables, subLen);
+		find_partsOfConnectedVariablesInAVector(connectedVarPos, elementNames, subLen);
 
 		std::string prefix_rhs = leng_prefix_rhs(elementNames[connectedVarPos], rhs);
 		std::string prefix_lhs = leng_prefix_lhs(a, elementNames, lhs, rhs, connectedVarPos);
@@ -1538,18 +1623,34 @@ public:
 		std::string rhs_array = generateFlatArray(elementNames[regexPos], rhs_str);
 
 		std::string regex_length = generateFlatSize(elementNames[regexPos], rhs_str);
-
-		/* forall ((i Int)) (and (< i a.first.length()))*/
 		char strTmp[1000];
+
+#if 0
+		/* forall ((i Int)) (and (< i a.first.length()))*/
 		sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod i %ld)))))",
 				regex_length.c_str(),
 				lhs_array.c_str(),
 				pre_lhs.c_str(),
 				rhs_array.c_str(),
 				parse_regex_content(elementNames[regexPos].first).length());
-
 		printf("%d %s\n", __LINE__, strTmp);
 		return strTmp;
+
+#else
+		std::vector<std::string> andConstraints;
+		andConstraints.push_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
+		unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
+		for (int i = 0; i < CONNECTSIZE; ++i) {
+			sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s %d))",
+							lhs_array.c_str(),
+							i,
+							pre_lhs.c_str(),
+							rhs_array.c_str(),
+							i % tmpNum);
+			andConstraints.push_back(strTmp);
+		}
+		return andConstraint(andConstraints);
+#endif
 	}
 
 	/*
@@ -1651,13 +1752,14 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			std::set<std::string> connectedVariables,
 			std::map<std::string, int> &newVars){
+		__debugPrint(logFile, "%d connected var = const | regex \n", __LINE__);
 
 		assert(connectedVariables.find(a.first) != connectedVariables.end());
 		/* (and ...) */
 		std::vector<std::string> possibleCases;
 
 		for (unsigned int i = 0 ; i < elementNames.size(); ++i){
-			if (elementNames[i].second < 0){ /* const */
+			if (elementNames[i].second < 0){ /* const || regex */
 				if (elementNames.size() == 1 && QCONSTMAX > 1) { /* |lhs| = 1 vs |rhs| = 1*/
 					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
@@ -1963,7 +2065,7 @@ public:
 			}
 			else if (splitType == 2) {
 				/* handle connected var */
-				result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
+				result = result + " " + fromSplitToLengConstraint_ConnectedVar(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
 			}
 			else {
 				/* handle connected var */
@@ -1975,7 +2077,7 @@ public:
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 
 					/* check feasibility */
-					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
+					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar_andConst(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
 				}
 
 				if (strSplits.size() > 0)
@@ -2001,7 +2103,6 @@ public:
 			/* result = sum (length) */
 			result = result + "(= " + generateFlatSize(a, lhs_str) + " (+ ";
 			for (unsigned int i = 0; i < elementNames.size(); ++i) {
-				// TODO: can do it better by replacing const length by a number
 				result = result + generateFlatSize(elementNames[i], rhs_str) + " ";
 			}
 
@@ -2062,8 +2163,13 @@ public:
 				/* empty */
 				/* some first flats can be empty */
 				if (lhs_elements[i].second == -1) /* head of const */ {
-					if ((QCONSTMAX == 2 && i + 1 < lhs_elements.size() && left_arr[i + 1] == EMPTYFLAT && lhs_elements[i].first.length() > 0) ||
-							(QCONSTMAX == 1 && lhs_elements[i].first.length() > 0)) /* const string is empty */
+					if (lhs_elements[i].first.length() <= SPLIT_UNDER_BOUND ||
+						(QCONSTMAX == 2 &&
+							i + 1 < lhs_elements.size() &&
+							left_arr[i + 1] == EMPTYFLAT &&
+							lhs_elements[i].first.length() > 0) ||
+						(QCONSTMAX == 1 &&
+							lhs_elements[i].first.length() > 0)) /* const string is empty */
 						return "";
 				}
 				checkLeft[i] = true;
@@ -2098,8 +2204,13 @@ public:
 				/* empty */
 				/* some first flats can be empty */
 				if (rhs_elements[i].second == -1) /* head of const */ {
-					if ((QCONSTMAX == 2 && i + 1 < rhs_elements.size() && right_arr[i + 1] == EMPTYFLAT && rhs_elements[i].first.length() > 0) ||
-							(QCONSTMAX == 1 && rhs_elements[i].first.length() > 0))/*const string is empty*/
+					if (rhs_elements[i].first.length() <= SPLIT_UNDER_BOUND ||
+						(QCONSTMAX == 2 &&
+							i + 1 < rhs_elements.size() &&
+							right_arr[i + 1] == EMPTYFLAT &&
+							rhs_elements[i].first.length() > 0) ||
+						(QCONSTMAX == 1 &&
+							rhs_elements[i].first.length() > 0))/*const string is empty*/
 						return "";
 				}
 				checkRight[i] = true;

@@ -27,6 +27,27 @@ std::string redefineStringVar(std::string var);
 
 std::string redefineOtherVar(std::string var, std::string type);
 
+/*
+ * (Indexof v1 v2) --> leng of $$_str....
+ */
+void updateIndexOf(std::string &s,
+		std::map<std::string, std::string> indexOfStrMap);
+
+/*
+ * (LastIndexof v1 v2) --> leng of $$_str....
+ */
+void updateLastIndexOf(std::string &s,
+		std::map<std::string, std::string> lastIndexOfStrMap);
+
+/*
+ * (Contain v1 v2) --> TRUE || FALSE
+ */
+void updateContain(std::string &s, std::map<std::string, bool> containStrMap);
+
+/*
+ * (Substring a b c) --> c
+ */
+void updateSubstring(std::string &s);
 
 /*
  * Concat --> +
@@ -87,6 +108,9 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
+		std::map<std::string, bool> containStrMap,
+		std::map<std::string, std::string> indexOfStrMap,
+		std::map<std::string, std::string> lastIndexOfStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -113,10 +137,30 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
 void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile);
 
 /*
+ * "GrammarIn" --> some new vars, some new constraints
+ */
+void rewriteGRM(std::string s,
+		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		int &newVars,
+		std::vector<std::string> &definitions,
+		std::vector<std::string> &constraints);
+/*
+ * replace the CFG constraint by the regex constraints
+ */
+void rewriteGRM_toNewFile(
+		std::string inputFile,
+		std::string outFile,
+		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
+		std::map<std::string, std::string> constMap);
+
+/*
  * read SMT file
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+		std::map<std::string, bool> containStrMap,
+		std::map<std::string, std::string> indexOfStrMap,
+		std::map<std::string, std::string> lastIndexOfStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -126,6 +170,10 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
  * read SMT file
  * add length constraints and write it
  */
-void addLengthConstraintsToSMTFile(std::string inputFile, std::vector<std::string> lengthConstraints, std::string outFile);
+void addLengthConstraintsToSMTFile(
+		std::string inputFile,
+		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::vector<std::string> lengthConstraints,
+		std::string outFile);
 
 #endif /* FILECONVERTER_H_ */

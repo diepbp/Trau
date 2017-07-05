@@ -9,9 +9,9 @@
 #define GRMOVERAPPROX_H_
 
 
+#include "TokenParser.h"
 #include "utils.h"
 
-#include "GRMParser.h"
 
 struct Rule{
 	std::string start;
@@ -29,82 +29,87 @@ struct Rule{
 	}
 };
 
-/*
- *
- */
-void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name);
+namespace OverApproxCFG {
+	/*
+	 *
+	 */
+	void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name);
 
 
-/*
- *
- */
-void printGraph(std::vector<std::set<int>> graph, std::map<std::string, int> nonTerminal);
+	/*
+	 *
+	 */
+	void printGraph(std::vector<std::set<int>> graph, std::map<std::string, int> nonTerminal);
 
-std::vector<std::string> readGrm(std::string inputFile);
+	std::vector<std::string> readGrm(std::string inputFile);
 
-std::map<std::string, std::string> CFG_parser(std::string inputFile);
+	std::map<std::string, std::string> overapprox_CFG(std::string inputFile);
 
-std::vector<int> travelFrom(int start, std::vector<std::set<int>> graph);
+	std::vector<int> travelFrom(int start, std::vector<std::set<int>> graph);
 
-std::string mapBack(std::map<std::string, int> nonTerminal, int index);
+	std::string mapBack(std::map<std::string, int> nonTerminal, int index);
 
-/*
- *
- */
-std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::string lsh, std::vector<std::string> rhs);
+	/*
+	 *
+	 */
+	std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::string lsh, std::vector<std::string> rhs);
 
-/*
- *
- */
-std::string evalNode(std::vector<Rule> rules, std::string name);
+	/*
+	 *
+	 */
+	std::string evalNode(std::vector<Rule> rules, std::string name);
 
-/*
- *
- */
-int findRightParenthesis(std::string str);
+	/*
+	 *
+	 */
+	int findRightParenthesis(std::string str);
 
-/*
- *
- */
-bool hasAlternativeComponents(std::string str);
+	/*
+	 *
+	 */
+	bool hasAlternativeComponents(std::string str);
 
-/*
- *
- */
-void removeANode(std::vector<Rule> &rules, std::string removeNode);
+	/*
+	 *
+	 */
+	void removeANode(std::vector<Rule> &rules, std::string removeNode);
 
-/*
- * Step 3: find all strongly connected components
- */
-std::vector<std::vector<std::string>> findStronglyConnectedComponent(
-		std::vector<std::set<int>> graph,
-		std::map<std::string, int> nonTerminal);
+	/*
+	 * Step 3: find all strongly connected components
+	 */
+	std::vector<std::vector<std::string>> findStronglyConnectedComponent(
+			std::vector<std::set<int>> graph,
+			std::map<std::string, int> nonTerminal);
 
-/*
- * Step 4: construct automaton for each component
- */
-void constructAutomataForStronglyConnectedComponent(
-		std::vector<std::vector<std::string>> components,
-		std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap,
-		std::vector<std::vector<Rule>> &automata);
+	/*
+	 * Step 4: construct automaton for each component
+	 */
+	void constructAutomataForStronglyConnectedComponent(
+			std::vector<std::vector<std::string>> components,
+			std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap,
+			std::vector<std::vector<Rule>> &automata);
 
-/*
- * Step 5:
- */
-bool expandAutomaton(
-		std::vector<Rule> rules,
-		std::map<std::string, int> nonTerminal,
-		std::map<std::string, std::string> &regex);
+	/*
+	 * Step 5:
+	 */
+	bool expandAutomaton(
+			std::vector<Rule> rules,
+			std::map<std::string, int> nonTerminal,
+			std::map<std::string, std::string> &regex);
 
-/*
- * Step 6:
- */
-void finalUpdate(
-		std::map<std::string, std::string> &regex,
-		std::map<std::string, int> nonTerminal);
+	/*
+	 * Step 6:
+	 */
+	void finalUpdate(
+			std::map<std::string, std::string> &regex,
+			std::map<std::string, int> nonTerminal);
 
-/*
- *
- */
-void reformulateRegex(std::map<std::string, std::string> &regex);
+	/*
+	 *
+	 */
+	void reformulateRegex(std::map<std::string, std::string> &regex);
+
+
+}  // namespace OverApproxCFG
+
 #endif /* GRMOVERAPPROX_H_ */

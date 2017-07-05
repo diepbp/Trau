@@ -7,7 +7,7 @@
 
 #include "GrmOverApprox.h"
 
-void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name) {
+void OverApproxCFG::printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>>> list, std::string name) {
 	printf("%d %s: \n", __LINE__, name.c_str());
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = list.begin(); it != list.end(); ++it) {
 		printf(" %s: ", it->first.c_str());
@@ -25,7 +25,7 @@ void printNonTerminal(std::map<std::string, std::vector<std::vector<std::string>
 /*
  *
  */
-void printGraph(std::vector<std::set<int>> graph, std::map<std::string, int> nonTerminal) {
+void OverApproxCFG::printGraph(std::vector<std::set<int>> graph, std::map<std::string, int> nonTerminal) {
 	for (std::map<std::string, int>::iterator it = nonTerminal.begin(); it != nonTerminal.end(); ++it){
 		printf("%s (%d): ", it->first.c_str(), it->second);
 		for (std::set<int>::iterator itor = graph[it->second].begin(); itor != graph[it->second].end(); ++itor)
@@ -37,7 +37,7 @@ void printGraph(std::vector<std::set<int>> graph, std::map<std::string, int> non
 /*
  *
  */
-std::vector<std::string> readGrm(std::string inputFile){
+std::vector<std::string> OverApproxCFG::readGrm(std::string inputFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
 	if (!in)
 		throw std::runtime_error("Cannot open input file!");
@@ -53,16 +53,16 @@ std::vector<std::string> readGrm(std::string inputFile){
 }
 
 /*
- *
+ * over approximate CFG
  */
-std::map<std::string, std::string> CFG_parser(std::string inputFile){
+std::map<std::string, std::string> OverApproxCFG::overapprox_CFG(std::string inputFile){
 	std::map<std::string, std::string> regex;
 	std::vector<std::set<int>> graph;
 	std::vector<std::string> lines = readGrm(inputFile);
-	GRMParser parser("GRM_token_automata.dat");
+	TokenParser parser("GRM_token_automata.dat");
 	displayListString(lines, "Input");
 
-	// find nonterminal
+	/* find nonterminal */
 	std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap;
 	std::map<std::string, int> nonTerminal;
 	int cnt = 0;
@@ -94,7 +94,7 @@ std::map<std::string, std::string> CFG_parser(std::string inputFile){
 			nonTerminalMap[components[0].content].push_back(subPart);
 	}
 
-	// build graph
+	/* build graph */
 	for (unsigned int i = 0 ; i < lines.size(); ++i){
 		std::vector<TokenElement> components = parser.tokenHandler(lines[i], 0);
 		printf("%d --%s--\n", __LINE__, lines[i].c_str());
@@ -126,7 +126,7 @@ std::map<std::string, std::string> CFG_parser(std::string inputFile){
 /*
  * Find all reachable nodes from a node
  */
-std::vector<int> travelFrom(int start, std::vector<std::set<int>> graph) {
+std::vector<int> OverApproxCFG::travelFrom(int start, std::vector<std::set<int>> graph) {
 	std::vector<int> queue;
 	bool visited[100];
 
@@ -150,7 +150,7 @@ std::vector<int> travelFrom(int start, std::vector<std::set<int>> graph) {
 /*
  * Map from index --> string
  */
-std::string mapBack(std::map<std::string, int> nonTerminal, int index) {
+std::string OverApproxCFG::mapBack(std::map<std::string, int> nonTerminal, int index) {
 	for (std::map<std::string, int>::iterator it = nonTerminal.begin(); it != nonTerminal.end(); ++it)
 		if (it->second == index)
 			return it->first;
@@ -160,10 +160,10 @@ std::string mapBack(std::map<std::string, int> nonTerminal, int index) {
 /*
  *
  */
-std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::string lsh, std::vector<std::string> rhs) {
+std::vector<Rule> OverApproxCFG::rewriteTransition(std::vector<std::string> nonTerminals, std::string lhs, std::vector<std::string> rhs) {
 	std::vector<Rule> ret;
 	unsigned int pos = 0;
-	std::string left = lsh;
+	std::string left = lhs;
 	while (pos < rhs.size()){
 		if (std::find(nonTerminals.begin(), nonTerminals.end(), rhs[pos]) != nonTerminals.end()) {
 			/* nonterminal */
@@ -176,7 +176,7 @@ std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::
 			else {
 				/* the last element */
 				ret.push_back(Rule(left, "", rhs[pos]));
-				ret.push_back(Rule("__" + rhs[pos], "", "__" + lsh));
+				ret.push_back(Rule("__" + rhs[pos], "", "__" + lhs));
 				break;
 			}
 
@@ -185,7 +185,7 @@ std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::
 			/* terminal */
 			if (pos == rhs.size() - 1) {
 				/* the last element */
-				ret.push_back(Rule(left, rhs[pos], "__" + lsh));
+				ret.push_back(Rule(left, rhs[pos], "__" + lhs));
 				break;
 			}
 			else {
@@ -194,7 +194,9 @@ std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::
 				ret.push_back(Rule(left, rhs[pos], rhs[pos + 1]));
 				left = "__" + rhs[pos + 1];
 				pos = pos + 2;
-
+				if (pos >= rhs.size()) {
+					ret.push_back(Rule(left, "", "__" + lhs));
+				}
 			}
 		}
 	}
@@ -204,7 +206,7 @@ std::vector<Rule> rewriteTransition(std::vector<std::string> nonTerminals, std::
 /*
  *
  */
-std::string evalNode(std::vector<Rule> rules, std::string name) {
+std::string OverApproxCFG::evalNode(std::vector<Rule> rules, std::string name) {
 	std::set<std::string> states;
 	for (unsigned int i = 0 ; i < rules.size(); ++i){
 		states.insert(rules[i].start);
@@ -271,7 +273,7 @@ std::string evalNode(std::vector<Rule> rules, std::string name) {
 /*
  *
  */
-int findRightParenthesis(std::string str){
+int OverApproxCFG::findRightParenthesis(std::string str){
 	int leftParenthesis = 0;
 	assert (str[leftParenthesis] == '(');
 	int counter = 1;
@@ -292,7 +294,7 @@ int findRightParenthesis(std::string str){
 /*
  *
  */
-bool hasAlternativeComponents(std::string str){
+bool OverApproxCFG::hasAlternativeComponents(std::string str){
 	std::vector<std::string> result;
 	int counter = 0;
 	for (unsigned int j = 0; j < str.length(); ++j) {
@@ -312,7 +314,7 @@ bool hasAlternativeComponents(std::string str){
 /*
  *
  */
-void removeANode(std::vector<Rule> &rules, std::string removeNode) {
+void OverApproxCFG::removeANode(std::vector<Rule> &rules, std::string removeNode) {
 	// check itself
 	std::string itself = "";
 	for (unsigned int i = 0 ; i < rules.size(); ++i)
@@ -415,7 +417,7 @@ void removeANode(std::vector<Rule> &rules, std::string removeNode) {
 /*
  * Step 3: find all strongly connected components
  */
-std::vector<std::vector<std::string>> findStronglyConnectedComponent(
+std::vector<std::vector<std::string>> OverApproxCFG::findStronglyConnectedComponent(
 		std::vector<std::set<int>> graph,
 		std::map<std::string, int> nonTerminal) {
 	bool relation[100][100];
@@ -467,7 +469,7 @@ std::vector<std::vector<std::string>> findStronglyConnectedComponent(
 /*
  * Step 4: construct automaton for each component
  */
-void constructAutomataForStronglyConnectedComponent(
+void OverApproxCFG::constructAutomataForStronglyConnectedComponent(
 		std::vector<std::vector<std::string>> components,
 		std::map<std::string, std::vector<std::vector<std::string>>> nonTerminalMap,
 		std::vector<std::vector<Rule>> &automata){
@@ -529,7 +531,7 @@ void constructAutomataForStronglyConnectedComponent(
 /*
  * Step 5:
  */
-bool expandAutomaton(
+bool OverApproxCFG::expandAutomaton(
 		std::vector<Rule> rules,
 		std::map<std::string, int> nonTerminal,
 		std::map<std::string, std::string> &regex){
@@ -552,7 +554,7 @@ bool expandAutomaton(
 /*
  * Step 6:
  */
-void finalUpdate(
+void OverApproxCFG::finalUpdate(
 		std::map<std::string, std::string> &regex,
 		std::map<std::string, int> nonTerminal){
 	bool updating = true;
@@ -580,7 +582,7 @@ void finalUpdate(
 /**
  * Step 7
  */
-void reformulateRegex(std::map<std::string, std::string> &regex) {
+void OverApproxCFG::reformulateRegex(std::map<std::string, std::string> &regex) {
 	for (std::map<std::string, std::string>::iterator it = regex.begin(); it != regex.end(); ++it) {
 		std::string varRegex = it->second;
 		printf("%d value before: %s\n", __LINE__, varRegex.c_str());

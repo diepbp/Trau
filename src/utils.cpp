@@ -116,3 +116,23 @@ void displayListNumber(std::vector<int> l, std::string msg) {
 	}
 	__debugPrint(logFile, "\n");
 }
+
+/*
+ *
+ */
+int findCorrespondRightParenthesis(int leftParenthesis, std::string str){
+	assert (str[leftParenthesis] == '(');
+	int counter = 1;
+	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+			if (counter == 0){
+				return j;
+			}
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+	}
+	return -1;
+}

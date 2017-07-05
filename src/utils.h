@@ -41,6 +41,7 @@
 #define PMAX 50 // size of a flat
 #define QMAX 2 // number of flats
 #define QCONSTMAX 2 // number of flats for const
+#define SPLIT_UNDER_BOUND 3
 
 #define Z3_PATH "z3 "
 #define S3_PATH "fat/run.py "
@@ -56,6 +57,16 @@
   #define __debugPrint(_fp, _format, ...) {}
   #define printZ3Node(t, n) {}
 #endif
+
+
+struct TokenElement{
+    TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}
+
+    int lineNo;
+    std::string content;
+    std::string type;
+};
+
 
 extern FILE * logFile;
 extern FILE * logAxiom;
@@ -77,4 +88,9 @@ void displayListString(std::map<std::string, int> l, std::string msg);
 void displayListNumber(std::set<int> l, std::string msg);
 
 void displayListNumber(std::vector<int> l, std::string msg);
+
+/*
+ *
+ */
+int findCorrespondRightParenthesis(int leftParenthesis, std::string str);
 #endif /* UTILS_H_ */

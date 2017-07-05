@@ -31,7 +31,16 @@ Z3_ast mk_int_var(Z3_context ctx, const char * name)
 Z3_ast mk_int(Z3_context ctx, int v)
 {
     Z3_sort ty = Z3_mk_int_sort(ctx);
+
     return Z3_mk_int(ctx, v, ty);
+}
+
+/**
+   \brief Create a boolean variable using the given name.
+*/
+Z3_ast mk_bool_var(Z3_context ctx, const char * name){
+    Z3_sort ty = Z3_mk_bool_sort(ctx);
+    return mk_var(ctx, name, ty);
 }
 
 /*
@@ -70,6 +79,22 @@ Z3_ast mk_and_fromVector(Z3_theory t, std::vector<Z3_ast> &vec) {
     delete[] items;
     return toAssert;
   }
+}
+
+/**
+   \brief Create the unary function application: <tt>(f x)</tt>.
+*/
+Z3_ast mk_unary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x){
+    Z3_ast args[1] = {x};
+    return Z3_mk_app(ctx, f, 1, args);
+}
+
+/**
+   \brief Create the binary function application: <tt>(f x y)</tt>.
+*/
+Z3_ast mk_binary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y){
+    Z3_ast args[2] = {x, y};
+    return Z3_mk_app(ctx, f, 2, args);
 }
 
 

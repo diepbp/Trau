@@ -13,6 +13,7 @@
 #include "FileConverter.h"
 
 #define OUTPUT "/tmp/fat_str_convert/output.smt2"
+#define NONGRM "/tmp/fat_str_convert/_nogrm.smt2"
 
 #define ALLVAR 0
 
@@ -177,7 +178,9 @@ bool isRegexStr(std::string str);
 	/*
 	 * write to file output
 	 */
-	void writeLengthOutput(std::string outFile, std::map<std::string, std::string> lengthResultMap);
+	void writeLengthOutput(std::string outFile,
+			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+			std::map<std::string, std::string> lengthResultMap);
 
 
 
@@ -302,7 +305,7 @@ bool isRegexStr(std::string str);
 	/*
 	 *
 	 */
-	bool Z3_run(std::string fileName, bool finalCall);
+	bool Z3_run(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap, bool finalCall);
 
 	/*
 	 *
@@ -316,8 +319,11 @@ bool isRegexStr(std::string str);
 
 	void init();
 
-	void underapproxController(
+	bool underapproxController(
 			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+			std::map<std::string, bool> _containStrMap,
+			std::map<std::string, std::string> indexOfStrMap,
+			std::map<std::string, std::string> lastIndexOfStrMap,
 			std::map<std::string, int> _currentLength,
 			std::string fileDir);
 

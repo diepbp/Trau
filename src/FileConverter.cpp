@@ -41,6 +41,107 @@ std::string redefineOtherVar(std::string var, std::string type){
 	return "(declare-const " + var + " " + type;
 }
 
+/*
+ * (Contains v1 v2) --> TRUE || FALSE
+ */
+void updateContain(std::string &s, std::map<std::string, bool> containStrMap){
+	std::size_t found = s.find("(Contains ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParenthesis(found, s);
+		__debugPrint(logFile, "%d updateContain: s = %s\n", __LINE__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		if (containStrMap[substr] == true)
+			s = s.replace(found, substr.length(), "true");
+		else
+			s = s.replace(found, substr.length(), "false");
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(Contains ");
+	}
+}
+
+/*
+ * (Indexof v1 v2) --> leng of $$_str....
+ */
+void updateIndexOf(std::string &s,
+		std::map<std::string, std::string> indexOfStrMap){
+	std::size_t found = s.find("(Indexof ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParenthesis(found, s);
+		__debugPrint(logFile, "%d updateIndexOf: s = %s\n", __LINE__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		s = s.replace(found, substr.length(), indexOfStrMap[substr]);
+
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(Indexof ");
+	}
+}
+
+/*
+ * (LastIndexof v1 v2) --> leng of $$_str....
+ */
+void updateLastIndexOf(std::string &s,
+		std::map<std::string, std::string> lastIndexOfStrMap){
+	std::size_t found = s.find("(LastIndexof ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParenthesis(found, s);
+		__debugPrint(logFile, "%d updateLastIndexOf: s = %s\n", __LINE__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		s = s.replace(found, substr.length(), lastIndexOfStrMap[substr]);
+
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(LastIndexof ");
+	}
+}
+
+/*
+ * (Substring a b c) --> c
+ */
+void updateSubstring(std::string &s) {
+
+	std::size_t found = s.find("(Substring ");
+	while (found != std::string::npos) {
+		/* reach "a" */
+		unsigned int pos = found + 10;
+		while (s[pos] == ' ')
+			pos++;
+		if (s[pos] == '(')
+			pos = findCorrespondRightParenthesis(pos, s);
+		else while (s[pos] != ' ')
+			pos++;
+
+		while (s[pos] == ' ')
+			pos++;
+
+		/* reach "b"*/
+		if (s[pos] == '(')
+			pos = findCorrespondRightParenthesis(pos, s);
+		else while (s[pos] != ' ')
+			pos++;
+
+		while (s[pos] == ' ')
+			pos++;
+
+		/* reach c */
+		unsigned int start = pos;
+		if (s[pos] == '(')
+			pos = findCorrespondRightParenthesis(pos, s);
+		else while (s[pos] != ')' && pos < s.length()) {
+			pos++;
+		}
+
+		std::string c = s.substr(start, pos - start);
+
+		__debugPrint(logFile, "%d s = %s, c = %s, substr = %s\n", __LINE__, s.c_str(), c.c_str(), s.substr(found, pos - found + 1).c_str());
+		s.replace(found, pos - found + 1, c);
+		__debugPrint(logFile, "%d updateSubstring: c = %s --> s = %s\n", __LINE__, c.c_str(), s.c_str());
+
+		found = s.find("(Substring ");
+	}
+}
+
 
 /*
  * Concat --> +
@@ -115,7 +216,7 @@ void updateRegexIn(std::string &str){
 }
 
 /*
- * (Str2Regex x)-->
+ * (Str2Reg x)--> x
  */
 void updateStr2Regex(std::string &str){
 	std::size_t found = str.find("Str2Reg ");
@@ -149,6 +250,7 @@ void updateStr2Regex(std::string &str){
  *
  */
 void updateRegexStar(std::string &str, int &regexCnt){
+	std::string regexPrefix = "__regex_";
 	std::size_t found = str.find("RegexStar ");
 	while (found != std::string::npos) {
 		/* go back to find ( */
@@ -168,7 +270,7 @@ void updateRegexStar(std::string &str, int &regexCnt){
 			if (str[i] >= '0' && str[i] <= '9') {
 				content = content + str[i];
 			}
-		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
+		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " " + regexPrefix + std::to_string(regexCnt++) + ")");
 		found = str.find("RegexStar ");
 	}
 }
@@ -285,6 +387,366 @@ void checkAssignWellForm(std::string &s){
 }
 
 /*
+ *
+ */
+std::vector<std::string> _collectAlternativeComponents(std::string str){
+	std::vector<std::string> result;
+	int counter = 0;
+	unsigned int startPos = 0;
+	for (unsigned int j = 0; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+		else if ((str[j] == '|' || str[j] == '~') && counter == 0) {
+			result.push_back(str.substr(startPos, j - startPos));
+			startPos = j + 1;
+		}
+	}
+	if (startPos != 0)
+		result.push_back(str.substr(startPos, str.length() - startPos));
+	return result;
+}
+
+/*
+ *
+ */
+int _findCorrespondRightParenthesis(int leftParenthesis, std::string str){
+	assert (str[leftParenthesis] == '(');
+	int counter = 1;
+	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+			if (counter == 0){
+				return j;
+			}
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+	}
+	return -1;
+}
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
+//	printf("%d parsing: \"%s\"\n", __LINE__, str.c_str());
+	if (str.length() == 0)
+		return {};
+
+	std::vector<std::vector<std::string>> result;
+
+	std::vector<std::string> alternativeRegex = _collectAlternativeComponents(str);
+	if (alternativeRegex.size() != 0){
+		for (unsigned int i = 0; i < alternativeRegex.size(); ++i) {
+			std::vector<std::vector<std::string>> tmp = _parseRegexComponents(alternativeRegex[i]);
+			assert(tmp.size() <= 1);
+			if (tmp.size() == 1)
+				result.push_back(tmp[0]);
+		}
+		return result;
+	}
+
+	size_t leftParenthesis = str.find('(');
+//	if (leftParenthesis == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
+	if (leftParenthesis == std::string::npos)
+		return {{str}};
+
+	/* abc(def)* */
+	if (leftParenthesis != 0) {
+		std::string header = str.substr(0, leftParenthesis);
+		std::vector<std::vector<std::string>> rightComponents = _parseRegexComponents(str.substr(leftParenthesis));
+		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
+			std::vector<std::string> tmp = {header};
+			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
+			result.push_back(tmp);
+		}
+		return result;
+	}
+
+	int rightParenthesis = _findCorrespondRightParenthesis(leftParenthesis, str);
+	if (rightParenthesis < 0) {
+		assert (false);
+	}
+	else if (rightParenthesis == (int)str.length() - 1){
+		/* (a) */
+		return _parseRegexComponents(str.substr(1, str.length() - 2));
+	}
+	else if (rightParenthesis == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
+		/* (a)* */
+		return {{str}};
+	}
+
+	else {
+		int pos = rightParenthesis;
+		std::string left, right;
+		if (str[rightParenthesis + 1] == '*' || str[rightParenthesis + 1] == '+'){
+			pos++;
+			left = str.substr(leftParenthesis, pos - leftParenthesis + 1);
+			right = str.substr(pos + 1);
+		}
+		else if (str[pos] != '|' || str[pos] != '~') {
+			left = str.substr(leftParenthesis + 1, pos - leftParenthesis - 1);
+			right = str.substr(pos + 1);
+		}
+		else {
+			assert (false);
+			/* several options ab | cd | ef */
+		}
+
+		if (str[pos] != '|' || str[pos] != '~') {
+			std::vector<std::vector<std::string>> leftComponents = _parseRegexComponents(left);
+			std::vector<std::vector<std::string>> rightComponents = _parseRegexComponents(right);
+			if (leftComponents.size() > 0) {
+				if (rightComponents.size() > 0) {
+					for (unsigned int i = 0; i < leftComponents.size(); ++i)
+						for (unsigned int j = 0; j < rightComponents.size(); ++j) {
+							std::vector<std::string> tmp;
+							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
+							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
+							result.push_back(tmp);
+						}
+				}
+				else {
+					result.insert(result.end(), leftComponents.begin(), leftComponents.end());
+				}
+			}
+			else {
+				if (rightComponents.size() > 0) {
+					result.insert(result.end(), rightComponents.begin(), rightComponents.end());
+				}
+			}
+
+			return result;
+		}
+	}
+	return {};
+}
+
+/*
+ * AutomataDef to const
+ */
+std::string extractConst(std::string str) {
+	if (str[0] == '(' && str[str.length() - 1] == ')') { /*(..)*/
+		str = str.substr(1, str.length() - 2);
+		/* find space */
+		std::size_t found = str.find(' ');
+		assert (found != std::string::npos);
+		found = found + 1;
+		/* find $$ */
+		if (found >= str.length())
+			return "";
+		if (str[found] == '$') {
+			if (str[found + 1] == '$') {
+				/* find !! */
+				found = str.find("!!");
+				assert (found != std::string::npos);
+				found = found + 2;
+				str = "\"" + str.substr(found) + "\"";
+			}
+		}
+		else {
+			str = str.substr(found);
+			if (str.length() > 2)
+				if (str[0] == '|') {
+					str = str.substr(1, str.length() - 2);
+					if (str[0] == '\"')
+						str = str.substr(1, str.length() - 2);
+				}
+
+			str = "\"" + str + "\"";
+		}
+	}
+	else {
+		assert (str[0] == '\"');
+		if (str[str.length() - 1] == '\"')
+			str = str.substr(1, str.length() - 2);
+		else {
+			/* "abc"_number */
+			for (unsigned int i = str.length() - 1; i >= 0; --i)
+				if (str[i] == '_') {
+					assert (str[i - 1] == '\"');
+					str = str.substr(1, i - 2);
+					break;
+				}
+		}
+		if (str[0] == '$') {
+			if (str[1] == '$') {
+				/* find !! */
+				std::size_t found = str.find("!!");
+				assert (found != std::string::npos);
+				found = found + 2;
+				str = str.substr(found);
+			}
+		}
+		str = "\"" + str + "\"";
+	}
+	__debugPrint(logFile, "%d extractConst: --%s--\n", __LINE__, str.c_str());
+	return str;
+}
+
+/*
+ * check whether the list does not have variables
+ */
+bool hasNoVar(std::vector<std::string> list){
+	for (unsigned int i = 0; i < list.size(); ++i)
+		if (list[i][0] != '\"')
+			return false;
+	return true;
+}
+
+/*
+ * "GrammarIn" -->
+ * it is the rewriteGRM callee
+ */
+void rewriteGRM(std::string s,
+		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
+		std::map<std::string, std::string> constMap,
+		std::vector<std::string> &definitions,
+		std::vector<std::string> &constraints) {
+
+	__debugPrint(logFile, "%d CFG constraint: %s\n", __LINE__, s.c_str());
+	/* step 1: collect var that is the next token after GrammarIn */
+	unsigned int pos = s.find("GrammarIn");
+	assert(pos != std::string::npos);
+
+	assert(s[pos + 9] == ' ');
+	pos = pos + 9;
+	while (s[pos] == ' ' && pos < s.length())
+		pos++;
+
+	std::string varName = "";
+	while (s[pos] != ' ' && pos < s.length()) {
+		varName = varName + s[pos];
+		pos++;
+	}
+
+	__debugPrint(logFile, "%d CFG var: %s\n", __LINE__, varName.c_str());
+
+	//assert(equalitiesMap[varName].size() > 0);
+
+	/* step 2: collect the regex value of varName*/
+	std::string result = "";
+	for (unsigned int i = 0; i < equalitiesMap[varName].size(); ++i) {
+		if (hasNoVar(equalitiesMap[varName][i])) {
+
+			std::vector<std::string> components = equalitiesMap[varName][i];
+
+			displayListString(components, "zxxxxxxxxx");
+
+			/* create concat for each pair */
+			for (unsigned int j = 0; j < components.size(); ++j) {
+				std::string content = components[j].substr(1, components[j].length() - 2);
+				if (components[j].find('*') != std::string::npos) {
+					unsigned int leftParenthesis = components[j].find('(');
+					unsigned int rightParenthesis = components[j].find(')');
+
+					std::string tmp = components[j].substr(leftParenthesis + 1, rightParenthesis - leftParenthesis - 1);
+					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParenthesis, rightParenthesis, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
+
+					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
+					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexStar (Str2Reg \"" + tmp + "\"))))\n");
+
+					if (result.length() > 0)
+						result = "(Concat " + result + " " + constMap[content]+ "_100)";
+					else
+						result = constMap[content] + "_100";
+				}
+				else if (components[j].find('+') != std::string::npos) {
+					unsigned int leftParenthesis = components[j].find('(');
+					unsigned int rightParenthesis = components[j].find(')');
+					std::string tmp = components[j].substr(leftParenthesis + 1, rightParenthesis - leftParenthesis - 1);
+
+					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
+					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexPlus (Str2Reg \"" + tmp + "\"))))\n");
+					if (result.length() > 0)
+						result = "(Concat " + result + " " + constMap[content]+ "_100)";
+					else
+						result = constMap[content] + "_100";
+				}
+				else {
+					if (result.length() > 0)
+						result = "(Concat " + result + " " + components[j] + ")";
+					else
+						result = components[j];
+				}
+			}
+		}
+		else {
+			__debugPrint(logFile, "%d rewriteGRM something here: equalMap size = %ld\n", __LINE__, equalitiesMap[varName][i].size());
+			// displayListString(_equalMap[varName][i], "\t>> ");
+		}
+	}
+
+	//assert(result.length() > 0);
+
+	result = "(assert (= " + varName + " " + result + "))\n";
+	constraints.push_back(result);
+	__debugPrint(logFile, "%d >> %s\n", __LINE__, result.c_str());
+}
+
+/*
+ * replace the CFG constraint by the regex constraints
+ * it is the rewriteGRM caller
+ */
+void rewriteGRM_toNewFile(
+		std::string inputFile,
+		std::string outFile,
+		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
+		std::map<std::string, std::string> constMap) {
+	__debugPrint(logFile, "%d ** Rewrite input file to remove CFG **\n", __LINE__);
+
+	FILE* in = fopen(inputFile.c_str(), "r");
+	std::ofstream out;
+	out.open(outFile.c_str(), std::ios::out);
+
+	if (!in){
+		printf("%d %s", __LINE__, inputFile.c_str());
+		throw std::runtime_error("Cannot open input file!");
+	}
+
+	std::vector<std::string> definitions;
+	std::vector<std::string> constraints;
+
+	char buffer[5000];
+	std::vector<std::string> strVars;
+
+	while (!feof(in)){
+		/* read a line */
+		if (fgets(buffer, 5000, in) != NULL){
+
+			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
+				break;
+			}
+			else {
+				std::string tmp = buffer;
+				if (tmp.find("GrammarIn") != std::string::npos) {
+					rewriteGRM(tmp, equalitiesMap, constMap, definitions, constraints);
+				}
+				else
+					constraints.push_back(tmp);
+			}
+		}
+	}
+
+	/* write everything to the file */
+	for (unsigned int i = 0; i < definitions.size(); ++i)
+		out << definitions[i];
+
+	for (unsigned int i = 0; i < constraints.size(); ++i)
+		out << constraints[i];
+
+	out << "(check-sat)\n(get-model)\n";
+	out.close();
+	pclose(in);
+	__debugPrint(logFile, "%d >> finish\n", __LINE__);
+}
+
+/*
  * "abc123" 			--> 6
  * Concat abc def --> + len_abc len_def
  * Length abc 		--> len_abc
@@ -293,10 +755,14 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
+		std::map<std::string, bool> containStrMap,
+		std::map<std::string, std::string> indexOfStrMap,
+		std::map<std::string, std::string> lastIndexOfStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
 		std::vector<std::string> &notConstraints){
+
 	std::set<std::string> constList;
 	bool changeByNotOp = false;
 	/* define a variable */
@@ -308,12 +774,18 @@ void customizeLine_ToCreateLengthLine(
 			smtLenConstraints.push_back("(assert (>= len_" + tokens[1] + " 0))\n");
 
 			strVars.push_back(tokens[1]); /* list of string variables */
-			str = redefineStringVar(tokens[1]);
+
+			if (tokens[1].find("const_") != 0)
+				str = redefineStringVar(tokens[1]);
+			else
+				str = "";
 		}
 		else {
 			str = redefineOtherVar(tokens[1], tokens[tokens.size() - 1]);
 		}
-		smtVarDefinition.push_back(str);
+
+		if (str.length() > 0)
+			smtVarDefinition.push_back(str);
 	}
 
 	/* assertion */
@@ -323,6 +795,7 @@ void customizeLine_ToCreateLengthLine(
 			(str.find("( ite") == std::string::npos) ||
 			(str.find("( and") == std::string::npos) ||
 			(str.find("( or") == std::string::npos)) {
+
 		std::string strTmp = str;
 		std::string newStr = "";
 		int tabNum[1000];
@@ -335,6 +808,8 @@ void customizeLine_ToCreateLengthLine(
 		int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
 		std::string constStr = "";
 
+		printf("%d customizeLine_ToCreateLengthLine: %s\n", __LINE__, str.c_str());
+
 		for (unsigned int i = 0; i < strTmp.length(); ++i) {
 			bool reduceSize = false;
 			if (strTmp[i] == '"') {
@@ -342,12 +817,12 @@ void customizeLine_ToCreateLengthLine(
 					textState = 2;
 					if (constStr.length() > 0) {
 						constStr = "\"" + constStr + "\"";
-						constList.emplace(constStr);
+						constList.insert(constStr);
 						constStr = "";
 					}
 					else {
 						constStr = "\"" + constStr + "\"";
-						constList.emplace(constStr);
+						constList.insert(constStr);
 						constStr = "";
 					}
 
@@ -445,7 +920,7 @@ void customizeLine_ToCreateLengthLine(
 						tabNum[bracketCnt + 1] = abs(tabNum[bracketCnt]) + 1;
 					}
 					else if (keyword01.compare("not") == 0) {
-						notBool = abs(bracketCnt);
+						notBool = abs(bracketCnt + 1);
 					}
 				}
 				else
@@ -459,13 +934,16 @@ void customizeLine_ToCreateLengthLine(
 				bracketCnt ++;
 			}
 			else if (strTmp[i] == ')') {
+				printf("%d notBool = %d, bracketCnt = %d\n", __LINE__, notBool, bracketCnt);
 				if (notBool > 0 && bracketCnt == notBool) {
+					printf("%d handling not op\n", __LINE__);
 					if (handleNotOp || !strContaintStringVar(notStr, strVars)) {
 						/* not (= x "abc")*/
+						 printf("%d NOT remove this %s\n", __LINE__, notStr.c_str());
 						newStr = newStr + notStr;
 					}
 					else {
-						// printf("%d remove this %s\n", __LINE__, notStr.c_str());
+						 printf("%d remove this %s\n", __LINE__, notStr.c_str());
 						 notConstraints.push_back(notStr);
 						// remove this constraint
 						changeByNotOp = true;
@@ -491,15 +969,19 @@ void customizeLine_ToCreateLengthLine(
 			}
 		}
 
-//		 printf("%d before 00 %s\n", __LINE__, newStr.c_str());
+		printf("%d before 00 %s, not str = %s\n", __LINE__, newStr.c_str(), notStr.c_str());
 		if (changeByNotOp) {
 			checkAssignWellForm(newStr);
 			changeByNotOp = false;
 		}
-//		printf("%d after 01 %s\n", __LINE__, newStr.c_str());
+		printf("%d step 00 %s\n", __LINE__, newStr.c_str());
 		/* skip this assertion because of NotOp*/
 		if (newStr.find("(assert )") != std::string::npos)
 			return;
+
+		updateContain(newStr, containStrMap);
+		updateLastIndexOf(newStr, lastIndexOfStrMap);
+		updateIndexOf(newStr, indexOfStrMap);
 
 		printf("%d step 01 %s\n", __LINE__, newStr.c_str());
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
@@ -512,10 +994,14 @@ void customizeLine_ToCreateLengthLine(
 		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
 		updateRegexIn(newStr);
 		printf("%d step 06 %s\n", __LINE__, newStr.c_str());
+		updateSubstring(newStr);
+
+
 		updateConcat(newStr); /* Concat --> + */
 		updateLength(newStr); /* Length --> "" */
 		updateVariables(newStr, strVars); /* xyz --> len_xyz */
 
+		__debugPrint(logFile, "%d newStr: %s\n",__LINE__, newStr.c_str());
 		smtLenConstraints.push_back(newStr);
 	}
 	else
@@ -644,7 +1130,7 @@ std::string customizeLine_replaceConst(std::string str, std::set<std::string> &c
 		if (strTmp[i] == '"') {
 			if (textState == 1){
 				textState = 2;
-				constStr.emplace("__cOnStStR_" + constString);
+				constStr.insert("__cOnStStR_" + constString);
 			}
 			else {
 				constString = "";
@@ -744,6 +1230,9 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+		std::map<std::string, bool> containStrMap,
+		std::map<std::string, std::string> indexOfStrMap,
+		std::map<std::string, std::string> lastIndexOfStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -752,67 +1241,86 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 	smtLenConstraints.clear();
 	notConstraints.clear();
 	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in)
-	{
-			printf("%d %s", __LINE__, inputFile.c_str());
-			throw std::runtime_error("Cannot open input file!");
+	if (!in){
+		printf("%d %s", __LINE__, inputFile.c_str());
+		throw std::runtime_error("Cannot open input file!");
 	}
 
 	char buffer[5000];
 	std::vector<std::string> strVars;
 
-	while (!feof(in))
-	{
+	while (!feof(in)){
 		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL)
-		{
+		if (fgets(buffer, 5000, in) != NULL){
 			/* convert that line to length constraints */
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, containStrMap, indexOfStrMap, lastIndexOfStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		}
 	}
+
+	__debugPrint(logFile, "Print smtLength: %d \n", __LINE__);
+	displayListString(smtLenConstraints, "");
 	pclose(in);
 }
 
 /*
  * read SMT file
  * add length constraints and write it
+ * rewrite CFG
  */
-void addLengthConstraintsToSMTFile(std::string inputFile, std::vector<std::string> lengthConstraints, std::string outFile){
+void addLengthConstraintsToSMTFile(std::string inputFile, /* nongrm file */
+		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::vector<std::string> lengthConstraints,
+		std::string outFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in)
-	{
-			printf("%d %s", __LINE__, inputFile.c_str());
-			throw std::runtime_error("Cannot open input file!");
+	if (!in) {
+		printf("%d %s", __LINE__, inputFile.c_str());
+		throw std::runtime_error("Cannot open input file!");
 	}
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
+	std::vector<std::string> definitions;
+	std::vector<std::string> constraints;
+	int newVars = 0;
+
 	char buffer[5000];
-	while (!feof(in))
-	{
+
+	while (!feof(in)) {
 		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL)
-		{
+		if (fgets(buffer, 5000, in) != NULL){
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				for (unsigned int i = 0 ; i < lengthConstraints.size(); ++i) {
-					/* add length constraints */
-					out << lengthConstraints[i];
-					out.flush();
-//					printf("%d %s\n", __LINE__, lengthConstraints[i].c_str());
-				}
-				out << buffer;
-				out.flush();
 				break;
 			}
 			else {
-				out << buffer;
-				out.flush();
+				std::string tmp = buffer;
+				/* rewrite CFG */
+				if (tmp.find("GrammarIn") != std::string::npos) {
+					assert(false);
+					// rewriteGRM(tmp, _equalMap, newVars, definitions, constraints);
+				}
+				else
+					constraints.push_back(tmp);
 			}
 		}
 	}
+
+	/* write everything to the file */
+	for (unsigned int i = 0; i < definitions.size(); ++i)
+		out << definitions[i];
+
+	for (unsigned int i = 0; i < constraints.size(); ++i)
+		out << constraints[i];
+
+	for (unsigned int i = 0 ; i < lengthConstraints.size(); ++i) {
+		/* add length constraints */
+		out << lengthConstraints[i];
+		out.flush();
+	}
+
+	out << "(check-sat)\n(get-model)\n";
 
 	pclose(in);
 

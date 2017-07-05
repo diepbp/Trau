@@ -1,10 +1,9 @@
 $OREXPRESSION = $COMPARAISON | $EXPRESSION $OROP $EXPRESSION 
 $EXPRESSION = $OREXPRESSION | $NOTOP $EXPRESSION
 $COMPARAISON = $TERM $COMPOP $TERM 
-$COMPOP = " > " | " = " | " < " 
-$OROP = " or " 
-$NOTOP = " not "  
-$TERM = $NUMBER | $STRING | $QUOTE $TERM $QUOTE 
-$NUMBER = [0-9]+ 
-$STRING = [a-z]+ 
-$QUOTE = "\"" 
+$COMPOP = "F"
+$OROP = "or" 
+$NOTOP = "not"  
+$TERM = $STRING | $QUOTE $TERM $QUOTE 
+$STRING = "a"
+$QUOTE = "b" 

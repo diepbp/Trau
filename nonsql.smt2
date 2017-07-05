@@ -1,6 +1,4 @@
-(declare-fun g () String)
-(declare-fun h () String)
-(declare-fun i () String)
+(declare-fun g () String) 
 (declare-fun j () String)
 (declare-fun w () String)   
 (declare-fun t () String)   
@@ -12,3 +10,4 @@
 (assert (= g (Concat "def" w))) 
 (assert (= t (Concat "ghi123" w)))
 (check-sat)
+(get-model)

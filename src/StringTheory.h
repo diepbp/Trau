@@ -28,7 +28,7 @@ extern std::string inputFile_converted;
 
 extern std::map<std::string, int> variables;
 extern std::vector<std::vector<int>> graph;
-extern std::map<std::string, std::string> ourGrm;
+extern std::map<std::string, std::vector<std::string>> ourGrm;
 
 extern int value_count;
 extern int sLevel;
@@ -146,26 +146,27 @@ Z3_context mk_context_custom(Z3_config cfg);
 */
 Z3_context mk_context();
 
-/**
-   \brief Create a boolean variable using the given name.
-*/
-Z3_ast mk_bool_var(Z3_context ctx, const char * name);
-
 Z3_ast mk_str_value(Z3_theory t, char const * str);
 
 Z3_ast mk_str_var(Z3_theory t, char const * name);
 
-/**
-   \brief Create the unary function application: <tt>(f x)</tt>.
-*/
-Z3_ast mk_unary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x);
+Z3_ast mk_internal_string_var(Z3_theory t);
 
-/**
-   \brief Create the binary function application: <tt>(f x y)</tt>.
-*/
-Z3_ast mk_binary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y);
+Z3_ast mk_internal_int_var(Z3_theory t);
+
+/*
+ *
+ */
+Z3_ast mk_internal_bool_var(Z3_theory t);
+
+/*
+ *
+ */
+Z3_ast get_internal_bool_var(Z3_theory t, unsigned int index);
 
 Z3_ast mk_length(Z3_theory t, Z3_ast n);
+
+Z3_ast mk_contains(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
 Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updateCharSet);
 
@@ -173,6 +174,11 @@ Z3_ast Concat(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
 void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
 void getAllNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
+
+/*
+ * collect subnodes of a node, and subnodes of nodes that are equal to it.
+ */
+void getNodesInConcat_extended(Z3_theory t, Z3_ast node, std::set<Z3_ast> & nodeList);
 
 /*
  * Find domain of variables
@@ -208,6 +214,79 @@ void Th_delete(Z3_theory t);
    The simplifier is used to preprocess formulas.
 */
 std::string convertInputTrickyConstStr(std::string inputStr);
+
+/* contains A, "abc" --> contains A, "a" */
+void addContainRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
+
+/*
+ *
+ */
+Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr);
+
+/*
+ *
+ */
+Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_str2regex(Z3_theory t, Z3_func_decl d, Z3_ast const args[], Z3_ast & extraAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_regexStar(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_regexPlus(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_regexConcat(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert);
 
 Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s_1, Z3_ast s_2, Z3_ast * r);
 
@@ -281,6 +360,37 @@ int haveEQLength(Z3_theory t, Z3_ast n1, Z3_ast n2);
 void strEqLengthAxiom(Z3_theory t, Z3_ast varAst, Z3_ast strAst, int line);
 
 bool checkLengthConsistency(Z3_theory t, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq02);
+
+bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/**
+ * find all nodes that accept "node" as the prefix
+ */
+std::set<Z3_ast> find_all_nodes_from_prefix(Z3_theory t, Z3_ast node);
+
+/*
+ * find prefix of a node
+ */
+std::set<Z3_ast> find_all_prefix_of_node(Z3_theory t, Z3_ast node);
+
+/*
+ * find posfix of a node
+ */
+std::set<Z3_ast> find_all_posfix_of_node(Z3_theory t, Z3_ast node);
+
+/*
+ * |prefix_01| > |prefix_02|
+ * prefix_01 not contain "s"
+ * --> prefix_02 not contain "s"
+ */
+void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/*
+ * |posfix_01| > |posfix_02|
+ * posfix_01 not contain "s"
+ * --> posfix_02 not contain "s"
+ */
+void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
 /*
  * check satisfiable of 'nn1 = nn2'
@@ -480,6 +590,22 @@ void classifyAstByTypeInPositiveContext(Z3_theory t, Z3_ast node, std::map<Z3_as
 		std::map<Z3_ast, std::set<Z3_ast>> & membership);
 
 /*
+ *
+ */
+std::map<std::string, bool> collectContainValueInPositiveContext(Z3_theory t);
+
+/*
+ *
+ */
+std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theory t);
+
+/*
+ *
+ */
+std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_theory t);
+
+
+/*
  * Decide whether two n1 and n2 are ALREADY in a same eq class
  * Or n1 and n2 are ALREADY treated equal by the core
  * BUT, they may or may not be really equal
@@ -590,13 +716,24 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex);
 
 std::string str2RegexStr(std::string str);
 
-std::string getStdGrmStr(Z3_theory t, Z3_ast grammar);
+/*
+ * name -> regex(es)
+ */
+std::vector<std::string> getStdGrmStr(Z3_theory t, Z3_ast grammar);
 
-std::string lookUpGrammar(std::string name);
+/*
+ * CFG is over/under-approximated, name --> regex
+ */
+std::vector<std::string> lookUp_Grammar(std::string name);
 
 T_TheoryType getNodeType(Z3_theory t, Z3_ast n);
 
 std::string getConstStrValue(Z3_theory t, Z3_ast n);
+
+/*
+ *
+ */
+int getConstIntValue(Z3_theory t, Z3_ast n);
 
 void basicStrVarAxiom(Z3_theory t, Z3_ast vNode, int line);
 
