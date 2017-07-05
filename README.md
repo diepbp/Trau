@@ -1,4 +1,4 @@
-This is the FAT string solver 
+This is the Trau string solver 
 
 Requirements
 ---------------------------------
@@ -8,7 +8,7 @@ Before attempting to build FAT, you must have the following installed:
 - python (must be on your PATH)
 - openfst (must be on your PATH). You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
 
-Getting & Building FAT
+Getting & Building Trau
 ---------------------------------
 	git clone https://github.com/diepbp/FAT.git
 	cd FAT	
@@ -28,7 +28,7 @@ Getting & Building FAT
 	
 Command-line Usage
 ---------------------------------
-	./FAT [option] fileName
+	./Trau [option] fileName
 	
 The folllowing options are avaiable:
 - -model: print the concrete model if it is SAT
@@ -36,7 +36,7 @@ The folllowing options are avaiable:
 
 Running Example(s)
 ---------------------------------
-	./FAT -model examples/concat-006
+	./Trau -model examples/concat-006
 	
 where the file "examples/concat-006" contents are the following:
 
@@ -53,3 +53,13 @@ When FAT terminates, it prints results as follows:
 	=================================
 	
 More examples are in the subfolder "examples". We create those examples based on examples we found in Z3-str2 tool.
+
+License
+---------------------------------
+
+Trau is licensed under MIT License.
+
+Contact/ Bug Report
+---------------------------------
+
+Feedback, question or bug reports should go to Bui Phi Diep (bui.phi-diep@it.uu.se).
