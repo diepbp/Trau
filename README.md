@@ -34,8 +34,7 @@ Getting & Building Trau
 - Install Trau
 ```
 	cd install
-	make
-	cd ..
+	make 
 ```
 	
 Command-line Usage
