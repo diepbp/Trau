@@ -14,8 +14,10 @@ Getting & Building Trau
 	git clone https://github.com/diepbp/FAT.git
 	cd FAT	
 ```	
-- Install customized Z3-4.4.1.0 by following the instruction. You can find the customized Z3-4.4.1.0 in FAT folder.
+- Install customized Z3-4.4.1.0 by following the instruction. You can find the customized z3-4.4.1.0.tar.gz in FAT folder.
 ```
+	tar -xvzf z3-4.4.1.0.tar.gz
+	cd z3-z3-4.4.1.0
 	./configure
 	cd build/
 	make
@@ -28,6 +30,12 @@ Getting & Building Trau
 - Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
 ```
 	z3 -version
+```
+- Install Trau
+```
+	cd install
+	make
+	cd ..
 ```
 	
 Command-line Usage
