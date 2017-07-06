@@ -3268,7 +3268,7 @@ bool checkSingleAutomaton(Automaton ton){
 
 Automaton updateNode(Z3_theory t, Z3_ast node, bool &success) {
 #ifdef DEBUGLOG
-	__debugPrint(logFile, "\n\n>> @%d at __%s: Update Node: @%d ", __LINE__, __FILE__, sLevel);
+	__debugPrint(logFile, "\n\n>>%d *** %s *** @%d ", __LINE__, __FUNCTION__, sLevel);
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 #endif
