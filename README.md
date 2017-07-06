@@ -44,7 +44,7 @@ where the file "examples/concat-006" contents are the following:
 	(assert (= (Concat a "hello") "testhello"))
 	(check-sat)
 	
-When FAT terminates, it prints results as follows:
+When Trau terminates, it prints results as follows:
 
 	=================================
 	>> SAT
