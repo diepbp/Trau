@@ -31,9 +31,9 @@ Getting & Building Trau
 ```
 	z3 -version
 ```
-- Install Trau
+- Build Trau
 ```
-	cd install
+	cd build
 	make 
 ```
 	
