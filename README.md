@@ -65,7 +65,7 @@ When Trau terminates, it prints results as follows:
 	a: string -> "test"
 	=================================
 ```	
-More examples are in the subfolder "examples". We create those examples based on examples we found in Z3-str2 tool.
+More examples are in the subfolder "examples". We create those examples based on examples from Z3-str2 tool.
 
 License
 ---------------------------------
