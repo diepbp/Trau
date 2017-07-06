@@ -666,7 +666,8 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 		else
 			lenX = "(= " + std::to_string(parse_regex_content(x.substr(1, x.length() - 2)).length()) + " " + lenX  + ")";
 	}
-	printf("%d createLengthConstraintForAssignment: %s\n", __LINE__, lenX.c_str());
+
+	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __PRETTY_FUNCTION__, lenX.c_str());
 
 	return lenX;
 }
@@ -817,14 +818,14 @@ void writeLengthOutput(std::string outFile,
 	assert(lengthResultMap.size() > 0);
 	std::vector<std::string> lengthValues;
 
-	__debugPrint(logFile, " *** writeLengthOutput *** \n");
+	__debugPrint(logFile, " *** %s *** \n", __FUNCTION__);
 	/* length assertions */
 	for (std::vector<std::string>::iterator it = smtVarDefinition.begin(); it != smtVarDefinition.end(); ++it){
 		std::vector<std::string> tokens = parse_string_language(*it, " ");
 
 		std::string value = lengthResultMap[tokens[1]];
 
-		printf("%d %s %s\n", __LINE__, it->c_str(), value.c_str());
+		__debugPrint(logFile, "%d %s %s\n", __LINE__, it->c_str(), value.c_str());
 
 		if (tokens[1].substr(0, 4).compare("len_") == 0) {
 			std::string tmp = it->substr(4);
@@ -1893,7 +1894,7 @@ bool Z3_run(
 					else
 						results[name] = tokens[0];
 
-					printf("%d result of %s: %s\n", __LINE__, name.c_str(), results[name].c_str());
+					__debugPrint(logFile, "%d %s: %s\n", __LINE__, name.c_str(), results[name].c_str());
 				}
 			}
 
@@ -2104,7 +2105,7 @@ bool underapproxController(
 		/* skip */
 	}
 
-	printf("%d %s\n", __LINE__, result == true ? "true" : "false");
+	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, result == true ? "true" : "false");
 	return result;
 }
 

@@ -808,8 +808,6 @@ void customizeLine_ToCreateLengthLine(
 		int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
 		std::string constStr = "";
 
-		printf("%d customizeLine_ToCreateLengthLine: %s\n", __LINE__, str.c_str());
-
 		for (unsigned int i = 0; i < strTmp.length(); ++i) {
 			bool reduceSize = false;
 			if (strTmp[i] == '"') {
@@ -934,16 +932,12 @@ void customizeLine_ToCreateLengthLine(
 				bracketCnt ++;
 			}
 			else if (strTmp[i] == ')') {
-				printf("%d notBool = %d, bracketCnt = %d\n", __LINE__, notBool, bracketCnt);
 				if (notBool > 0 && bracketCnt == notBool) {
-					printf("%d handling not op\n", __LINE__);
 					if (handleNotOp || !strContaintStringVar(notStr, strVars)) {
 						/* not (= x "abc")*/
-						 printf("%d NOT remove this %s\n", __LINE__, notStr.c_str());
 						newStr = newStr + notStr;
 					}
 					else {
-						 printf("%d remove this %s\n", __LINE__, notStr.c_str());
 						 notConstraints.push_back(notStr);
 						// remove this constraint
 						changeByNotOp = true;
@@ -969,12 +963,10 @@ void customizeLine_ToCreateLengthLine(
 			}
 		}
 
-		printf("%d before 00 %s, not str = %s\n", __LINE__, newStr.c_str(), notStr.c_str());
 		if (changeByNotOp) {
 			checkAssignWellForm(newStr);
 			changeByNotOp = false;
 		}
-		printf("%d step 00 %s\n", __LINE__, newStr.c_str());
 		/* skip this assertion because of NotOp*/
 		if (newStr.find("(assert )") != std::string::npos)
 			return;
@@ -983,17 +975,17 @@ void customizeLine_ToCreateLengthLine(
 		updateLastIndexOf(newStr, lastIndexOfStrMap);
 		updateIndexOf(newStr, indexOfStrMap);
 
-		printf("%d step 01 %s\n", __LINE__, newStr.c_str());
+//		printf("%d step 01 %s\n", __LINE__, newStr.c_str());
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
-		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
+//		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
 		updateStr2Regex(newStr);
-		printf("%d step 03 %s\n", __LINE__, newStr.c_str());
+//		printf("%d step 03 %s\n", __LINE__, newStr.c_str());
 		updateRegexStar(newStr, regexCnt);
-		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
+//		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
 		updateRegexPlus(newStr, regexCnt);
-		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
+//		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
 		updateRegexIn(newStr);
-		printf("%d step 06 %s\n", __LINE__, newStr.c_str());
+//		 printf("%d step 06 %s\n", __LINE__, newStr.c_str());
 		updateSubstring(newStr);
 
 

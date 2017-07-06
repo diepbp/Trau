@@ -549,6 +549,10 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "\n*** %s ***: ", __FUNCTION__);
+#endif
+
 	// Convert the tricky "string" representation to string constant
 	int convertedFlag = 0;
 	Z3_ast * convertedArgs = new Z3_ast[n];
@@ -568,7 +572,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	if (d == td->Concat) {
 
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): Concat(");
+		__debugPrint(logFile, "Concat(", __FUNCTION__);
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -592,7 +596,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 
 		*result = tmp;
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\nconvert to: ");
+		__debugPrint(logFile, "\n convert to: ");
 		printZ3Node(t, *result);
 		__debugPrint(logFile, "\n\n");
 #endif
@@ -607,7 +611,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 			int size = getConstStrValue(t, convertedArgs[0]).size();
 			*result = mk_int(ctx, size);
 #ifdef DEBUGLOG
-			__debugPrint(logFile, "\n>> cb_reduce_app(): Length( ");
+			__debugPrint(logFile, "Length( ");
 			printZ3Node(t, convertedArgs[0]);
 			__debugPrint(logFile, " ) = ");
 			__debugPrint(logFile, "%d\n\n", size);
@@ -632,7 +636,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	//------------------------------------------
 	else if (d == td->Str2Reg) {
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): Str2Reg(");
+		__debugPrint(logFile, "Str2Reg(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ")\n");
 #endif
@@ -668,7 +672,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	//------------------------------------------
 	else if (d == td->RegexConcat) {
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): RegexConcat(");
+		__debugPrint(logFile, "RegexConcat(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -706,7 +710,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		tmpRes = reduce_regexIn(t, convertedArgs, otherAssert);
 
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): RegexIn(");
+		__debugPrint(logFile, "RegexIn(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -740,7 +744,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	else if (d == td->RegexStar) {
 		Z3_ast otherAssert = NULL;
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): RegexStar(");
+		__debugPrint(logFile, "RegexStar(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ") --> ");
 #endif
@@ -771,7 +775,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	else if (d == td->RegexPlus) {
 		Z3_ast otherAssert = NULL;
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): RegexPlus(");
+		__debugPrint(logFile, "RegexPlus(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ") --> ");
 #endif
@@ -806,7 +810,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		tmpRes = reduce_grammarIn(t, convertedArgs, otherAssert);
 
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): GrammarIn(");
+		__debugPrint(logFile, "GrammarIn(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -841,8 +845,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		Z3_ast breakDownAst = NULL;
 		*result = reduce_subStr(t, convertedArgs, breakDownAst);
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n");
-		__debugPrint(logFile, "\n>> cb_reduce_app(): SubString( ");
+		__debugPrint(logFile, "SubString( ");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -866,7 +869,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		Z3_ast breakDownAst = NULL;
 		*result = reduce_contains(t, convertedArgs, breakDownAst);
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): Contains(");
+		__debugPrint(logFile, "Contains(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -894,7 +897,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		Z3_ast breakDownAst = NULL;
 		*result = reduce_indexof(t, convertedArgs, breakDownAst);
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): Indexof(");
+		__debugPrint(logFile, "Indexof(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -922,7 +925,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		Z3_ast breakDownAst = NULL;
 		*result = reduce_lastindexof(t, convertedArgs, breakDownAst);
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): LastIndexof(");
+		__debugPrint(logFile, "LastIndexof(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -946,7 +949,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	if (convertedFlag == 1) {
 		*result = Z3_mk_app(ctx, d, n, convertedArgs);
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "\n>> cb_reduce_app(): Others --> ");
+		__debugPrint(logFile, "Others --> ");
 		printZ3Node(t, *result);
 		__debugPrint(logFile, "\n\n");
 #endif
@@ -968,7 +971,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	std::string s1_str = std::string(Z3_ast_to_string(ctx, s1));
 	std::string s2_str = std::string(Z3_ast_to_string(ctx, s2));
-	__debugPrint(logFile, "\n>> cb_reduce_eq: %s = %s", s1_str.c_str(), s2_str.c_str());
+	__debugPrint(logFile, "\n*** %s ***: %s = %s", __FUNCTION__, s1_str.c_str(), s2_str.c_str());
 	__debugPrint(logFile, "\n\n");
 	Z3_ast s1_new = s1;
 	Z3_ast s2_new = s2;
@@ -976,7 +979,6 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	int len01 = -1, len02 = -1;
 	// Convert the tricky "string" representation to string constant
 	if (s1_str.length() >= 11 && s1_str.substr(0, 11) == "__cOnStStR_") {
-		__debugPrint(logFile, "%d conststr lhs\n", __LINE__);
 		std::string s = convertInputTrickyConstStr(s1_str);
 		s1_new = mk_str_value(t, s.c_str());
 		len01 = s.length();
@@ -985,7 +987,6 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, s.length())), __LINE__, true);
 	}
 	else if (isConstStr(t, s1)){
-		__debugPrint(logFile, "%d conststr lhs\n", __LINE__);
 		s1_new = mk_str_value(t, s1_str.c_str());
 		len01 = s1_str.length();
 
@@ -994,7 +995,6 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	}
 
 	if (s2_str.length() >= 11 && s2_str.substr(0, 11) == "__cOnStStR_") {
-		__debugPrint(logFile, "%d conststr rhs\n", __LINE__);
 		std::string s = convertInputTrickyConstStr(s2_str);
 		s2_new = mk_str_value(t, s.c_str());
 		len02 = s.length();
@@ -1003,7 +1003,6 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, s.length())), __LINE__, true);
 	}
 	else if (isConstStr(t, s2)){
-		__debugPrint(logFile, "%d conststr rhs\n", __LINE__);
 		s2_new = mk_str_value(t, s2_str.c_str());
 		len02 = s2_str.length();
 
@@ -1131,7 +1130,7 @@ Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr) {
 		tmpStr = str;
 
 #ifdef DEBUGLOG
-	__debugPrint(logFile, ">> [containRegister] Contains(");
+	__debugPrint(logFile, "*** %s ***: Contains(", __FUNCTION__);
 	printZ3Node(t, tmpStr);
 	__debugPrint(logFile, ", ");
 	printZ3Node(t, tmpSubStr);
@@ -1885,7 +1884,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "\n\n\n\n");
 	__debugPrint(logFile, "=================================================================================\n");
-	__debugPrint(logFile, "** cb_new_eq(): @%d\n", sLevel);
+	__debugPrint(logFile, "** %s ***: @%d\n", __FUNCTION__, sLevel);
 	printZ3Node(t, nn1);
 	__debugPrint(logFile, "  = ");
 	printZ3Node(t, nn2);
@@ -1893,7 +1892,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 
 	__debugPrint(logAxiom, "\n\n\n\n");
 	__debugPrint(logAxiom, "=================================================================================\n");
-	__debugPrint(logAxiom, "** cb_new_eq(): @%d\n", sLevel);
+	__debugPrint(logAxiom, "** %s ***: @%d\n", __FUNCTION__, sLevel);
 	printZ3NodeAxiom(t, nn1);
 	__debugPrint(logAxiom, "  = ");
 	printZ3NodeAxiom(t, nn2);
