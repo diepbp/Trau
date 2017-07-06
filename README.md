@@ -10,9 +10,10 @@ Before attempting to build Trau, you must have the following installed:
 
 Getting & Building Trau
 ---------------------------------
+```
 	git clone https://github.com/diepbp/FAT.git
 	cd FAT	
-	
+```	
 - Install customized Z3-4.4.1.0 by following the instruction. You can find the customized Z3-4.4.1.0 in FAT folder.
 ```
 	./configure
@@ -31,30 +32,32 @@ Getting & Building Trau
 	
 Command-line Usage
 ---------------------------------
+```
 	./Trau [option] fileName
-	
+```	
 The folllowing options are avaiable:
 - -model: print the concrete model if it is SAT
 - -grm grammarFile: specify a grammar file
 
 Running Example(s)
 ---------------------------------
+```
 	./Trau -model examples/concat-006
-	
+```	
 where the file "examples/concat-006" contents are the following:
-
+```
 	(declare-fun a () String)
 	(assert (= (Concat a "hello") "testhello"))
 	(check-sat)
-	
+```	
 When Trau terminates, it prints results as follows:
-
+```
 	=================================
 	>> SAT
 	---------------------------------
 	a: string -> "test"
 	=================================
-	
+```	
 More examples are in the subfolder "examples". We create those examples based on examples we found in Z3-str2 tool.
 
 License
