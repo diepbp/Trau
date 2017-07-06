@@ -38,19 +38,19 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: FAT
+all: Trau
 
 # Tool invocations
-FAT: $(OBJS) $(USER_OBJS)
+Trau: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross G++ Linker'
-	g++ -fopenmp -L/home/osboxes/Downloads/z3-z3-4.4.1.0/build -o "FAT" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -fopenmp -L/home/osboxes/Downloads/z3-z3-4.4.1.0/build -o "Trau" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(C_DEPS)$(CPP_DEPS) FAT
+	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(C_DEPS)$(CPP_DEPS) Trau
 	-@echo ' '
 
 .PHONY: all clean dependents
