@@ -75,4 +75,4 @@ Trau is licensed under MIT License.
 Contact/ Bug Report
 ---------------------------------
 
-Feedback, questions or bug reports should go to Bui Phi Diep (bui.phi-diep@it.uu.se).
+Feedback, questions or bug reports should go to [Bui Phi Diep](bui.phi-diep@it.uu.se).
