@@ -13,12 +13,14 @@ Getting & Building Trau
 	git clone https://github.com/diepbp/FAT.git
 	cd FAT	
 	
-- Install customized Z3 by following the instruction
-	
-- Update makefile by changing the path to customized Z3 library, line 47. Then,
+- Install customized Z3-4.4.1.0 by following the instruction. You can find the customized Z3-4.4.1.0 in FAT folder.
 
-
+	./configure
+	cd build/
 	make
+	make install
+		
+- Update makefile by changing the path to customized Z3 library, line 47. Then,
 	
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
 	
