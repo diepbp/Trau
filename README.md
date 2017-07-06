@@ -1,10 +1,9 @@
-This is the Trau string solver 
+This is the [Trau](http://dl.acm.org/citation.cfm?id=3062384) string solver 
 
 Requirements
 ---------------------------------
 Before attempting to build Trau, you must have the following installed:
-- Ubuntu 64 bits
-- git (must be on your PATH)
+- Ubuntu 64 bits 
 - python (must be on your PATH)
 - openfst (must be on your PATH). You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
 
@@ -27,7 +26,7 @@ Getting & Building Trau
 ```
 	export LD_LIBRARY_PATH="/path/to/customized/Z3/build" 
 ```	
-- Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed
+- Download Z3 4.5.0 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed:
 ```
 	z3 -version
 ```
