@@ -2058,7 +2058,9 @@ bool underapproxController(
 		__debugPrint(logFile, "\n");
 	}
 #endif
-	rewriteGRM_toNewFile(fileDir, NONGRM, equalitiesMap, constMap);
+
+	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
+	rewriteGRM_toNewFile(orgInput, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */
 	regexCnt = 0;

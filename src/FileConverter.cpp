@@ -102,40 +102,49 @@ void updateLastIndexOf(std::string &s,
 void updateSubstring(std::string &s) {
 
 	std::size_t found = s.find("(Substring ");
+
 	while (found != std::string::npos) {
 		/* reach "a" */
+		unsigned int endPos = findCorrespondRightParenthesis(found, s);
 		unsigned int pos = found + 10;
+		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
 		while (s[pos] == ' ')
 			pos++;
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s);
+			pos = findCorrespondRightParenthesis(pos, s) + 1;
 		else while (s[pos] != ' ')
 			pos++;
-
+		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
 		while (s[pos] == ' ')
 			pos++;
+
+		__debugPrint(logFile, "%d after reach a: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
 
 		/* reach "b"*/
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s);
+			pos = findCorrespondRightParenthesis(pos, s) + 1;
 		else while (s[pos] != ' ')
 			pos++;
-
+		__debugPrint(logFile, "%d after reach b0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
 		while (s[pos] == ' ')
 			pos++;
+
+		__debugPrint(logFile, "%d after reach b: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
 
 		/* reach c */
 		unsigned int start = pos;
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s);
+			pos = findCorrespondRightParenthesis(pos, s) + 1;
 		else while (s[pos] != ')' && pos < s.length()) {
 			pos++;
 		}
 
 		std::string c = s.substr(start, pos - start);
 
-		__debugPrint(logFile, "%d s = %s, c = %s, substr = %s\n", __LINE__, s.c_str(), c.c_str(), s.substr(found, pos - found + 1).c_str());
-		s.replace(found, pos - found + 1, c);
+
+
+		__debugPrint(logFile, "%d s = %s, c = %s, substr = %s\n", __LINE__, s.c_str(), c.c_str(), s.substr(found, endPos - found + 1).c_str());
+		s.replace(found, endPos - found + 1, c);
 		__debugPrint(logFile, "%d updateSubstring: c = %s --> s = %s\n", __LINE__, c.c_str(), s.c_str());
 
 		found = s.find("(Substring ");
@@ -698,7 +707,7 @@ void rewriteGRM_toNewFile(
 		std::string outFile,
 		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
 		std::map<std::string, std::string> constMap) {
-	__debugPrint(logFile, "%d ** Rewrite input file to remove CFG **\n", __LINE__);
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 	FILE* in = fopen(inputFile.c_str(), "r");
 	std::ofstream out;
@@ -734,16 +743,17 @@ void rewriteGRM_toNewFile(
 	}
 
 	/* write everything to the file */
-	for (unsigned int i = 0; i < definitions.size(); ++i)
+	for (unsigned int i = 0; i < definitions.size(); ++i) {
 		out << definitions[i];
+	}
 
-	for (unsigned int i = 0; i < constraints.size(); ++i)
+	for (unsigned int i = 0; i < constraints.size(); ++i) {
 		out << constraints[i];
+	}
 
 	out << "(check-sat)\n(get-model)\n";
 	out.close();
 	pclose(in);
-	__debugPrint(logFile, "%d >> finish\n", __LINE__);
 }
 
 /*
@@ -1274,9 +1284,7 @@ void addLengthConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
-	std::vector<std::string> definitions;
 	std::vector<std::string> constraints;
-	int newVars = 0;
 
 	char buffer[5000];
 
@@ -1293,16 +1301,14 @@ void addLengthConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 					assert(false);
 					// rewriteGRM(tmp, _equalMap, newVars, definitions, constraints);
 				}
-				else
+				else {
 					constraints.push_back(tmp);
+				}
 			}
 		}
 	}
 
 	/* write everything to the file */
-	for (unsigned int i = 0; i < definitions.size(); ++i)
-		out << definitions[i];
-
 	for (unsigned int i = 0; i < constraints.size(); ++i)
 		out << constraints[i];
 
