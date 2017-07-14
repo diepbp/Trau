@@ -62,7 +62,7 @@ namespace OverApproxCFG {
 	/*
 	 *
 	 */
-	int findRightParenthesis(std::string str);
+	int findRightParentheses(std::string str);
 
 	/*
 	 *

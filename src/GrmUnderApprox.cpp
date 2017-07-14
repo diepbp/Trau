@@ -765,14 +765,14 @@ void UnderApproxCFG::optimizeRegex(std::map<std::string, std::vector<std::string
 
 std::string UnderApproxCFG::optimizeStringRegex(std::string str){
 	int posStar = -1;
-	int posLeftParenthesis = -1;
+	int posLeftParentheses = -1;
 	unsigned int pos = 0;
 	while (pos < str.length()){
 		if (str[pos] == '*') {
 			posStar = pos;
-			unsigned int tmpLength = posStar - posLeftParenthesis + 1;
+			unsigned int tmpLength = posStar - posLeftParentheses + 1;
 			if (tmpLength + pos < str.length()){
-				if (str.substr(posLeftParenthesis, tmpLength).compare(str.substr(pos + 1, tmpLength)) == 0) {
+				if (str.substr(posLeftParentheses, tmpLength).compare(str.substr(pos + 1, tmpLength)) == 0) {
 //					printf("%d before: %s\n", __LINE__, str.c_str());
 					str = str.substr(0, pos) + str.substr(pos + tmpLength);
 //					printf("%d after: %s\n\n", __LINE__, str.c_str());
@@ -780,7 +780,7 @@ std::string UnderApproxCFG::optimizeStringRegex(std::string str){
 			}
 		}
 		else if (str[pos] == '(')
-			posLeftParenthesis = pos;
+			posLeftParentheses = pos;
 		pos++;
 	}
 	return str;

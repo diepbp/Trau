@@ -78,7 +78,7 @@ private:
     }
 
     // Test if token is an pathensesis
-    bool isParenthesis( const std::string& token)
+    bool isParentheses( const std::string& token)
     {
         return token == "(" || token == ")";
     }
@@ -154,7 +154,7 @@ private:
                 // push o1 onto the stack.
                 stack.push( o1 );
             }
-            // If the token is a left parenthesis, then push it onto the stack.
+            // If the token is a left parentheses, then push it onto the stack.
             else if ( token == "(" )
             {
                 // Push token to top of the stack
@@ -163,7 +163,7 @@ private:
             // If token is a right bracket ')'
             else if ( token == ")" )
             {
-                // Until the token at the top of the stack is a left parenthesis,
+                // Until the token at the top of the stack is a left parentheses,
                 // pop operators off the stack onto the output queue.
                 std::string topToken  = stack.top();
 
@@ -176,10 +176,10 @@ private:
                     topToken = stack.top();
                 }
 
-                // Pop the left parenthesis from the stack, but not onto the output queue.
+                // Pop the left parentheses from the stack, but not onto the output queue.
                 if ( !stack.empty() ) stack.pop();
 
-                // If the stack runs out without finding a left parenthesis,
+                // If the stack runs out without finding a left parentheses,
                 // then there are mismatched parentheses.
                 if ( topToken != "(" )
                 {
@@ -198,9 +198,9 @@ private:
         {
             const std::string stackToken = stack.top();
 
-            // If the operator token on the top of the stack is a parenthesis,
+            // If the operator token on the top of the stack is a parentheses,
             // then there are mismatched parentheses.
-            if ( isParenthesis( stackToken )   )
+            if ( isParentheses( stackToken )   )
             {
                 return false;
             }
@@ -366,7 +366,7 @@ private:
                     else
                         str.append(token);
                 }
-                else if (isParenthesis(token)){
+                else if (isParentheses(token)){
                     if (str != "") {
                         tokens.push_back( str ) ;
                         str = "";

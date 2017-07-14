@@ -49,13 +49,13 @@
 #define TMPDIR "/tmp/fat_str_convert/"
 
 #ifdef DEBUGLOG
-  #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
-	#define __debugPrintAxiom(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
-  #define printZ3Node(t, n) {__printNode( (t), (n));}
-	#define printZ3NodeAxiom(t, n) {__printNodeAxiom( (t), (n));}
+#define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
+#define __debugPrintAxiom(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
+#define printZ3Node(t, n) {__printNode( (t), (n));}
+#define printZ3NodeAxiom(t, n) {__printNodeAxiom( (t), (n));}
 #else
-  #define __debugPrint(_fp, _format, ...) {}
-  #define printZ3Node(t, n) {}
+#define __debugPrint(_fp, _format, ...) {}
+#define printZ3Node(t, n) {}
 #endif
 
 
@@ -92,5 +92,10 @@ void displayListNumber(std::vector<int> l, std::string msg);
 /*
  *
  */
-int findCorrespondRightParenthesis(int leftParenthesis, std::string str);
+int findCorrespondRightParentheses(int leftParentheses, std::string str);
+
+/*
+ * (a) | (b) --> {a, b}
+ */
+std::vector<std::string> collectAlternativeComponents(std::string str);
 #endif /* UTILS_H_ */

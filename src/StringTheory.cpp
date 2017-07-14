@@ -4269,7 +4269,7 @@ void extendVariableToFindAllPossibleEqualities(
 				for (unsigned int pos = 0; pos < automaton2str.length(); ++pos)
 					orCnt = (automaton2str[pos] == '~') ? orCnt + 1 : orCnt;
 				__debugPrint(logFile, "%d should not check it\n", __LINE__);
-				if (orCnt < 2)
+				if (orCnt < 20)
 					result.push_back({refined_eqNode[i]});
 			}
 			else

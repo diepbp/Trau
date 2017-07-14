@@ -9,6 +9,7 @@
 #define FILECONVERTER_H_
 
 #include "utils.h"
+#include <regex>
 
 template< typename T >
 std::string int_to_hex( T i );
@@ -40,6 +41,16 @@ void updateLastIndexOf(std::string &s,
 		std::map<std::string, std::string> lastIndexOfStrMap);
 
 /*
+ * (implies x) --> (implies false x)
+ */
+void updateImplies(std::string &s);
+
+/*
+ * (RegexIn ...) --> TRUE
+ */
+void updateRegexIn(std::string &s);
+
+/*
  * (Contain v1 v2) --> TRUE || FALSE
  */
 void updateContain(std::string &s, std::map<std::string, bool> containStrMap);
@@ -63,11 +74,6 @@ void updateLength(std::string &s);
  * "abcdef" --> 6
  */
 void updateConst(std::string &s, std::set<std::string> constList);
-
-/*
- * RegexIn --> =
- */
-void updateRegexIn(std::string &str);
 
 /*
  * (Str2Regex x)--> = | x |

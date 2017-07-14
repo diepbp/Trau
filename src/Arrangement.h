@@ -129,9 +129,6 @@ public:
 			std::string str,
 			std::vector<std::pair<std::string, int> > elementNames,
 			std::vector<int> currentSplit){
-		//#ifdef PRINTTEST_UNDERAPPROX
-		//			printf("%d Checking split\n", __LINE__);
-		//#endif
 		/* check general split */
 		/* x_i == 0 --> x_i+1 == 0 */
 		for (unsigned int i = 1; i < currentSplit.size(); ++i)
@@ -146,7 +143,7 @@ public:
 				}
 
 			}
-
+//		__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 		/* check feasible const split */
 		int pos = 0;
 		for (unsigned int i = 0; i < currentSplit.size(); ++i) {
@@ -156,8 +153,10 @@ public:
 				std::string rhs = "";
 				while (rhs.length() < lhs.length())
 					rhs = rhs +  elementNames[i].first;
-				if (lhs.compare(rhs) != 0)
+				if (lhs.compare(rhs) != 0) {
+					__debugPrint(logFile, "%d false because of regex\n", __LINE__);
 					return false;
+				}
 			}
 
 			/* TODO: bound P */
@@ -185,7 +184,7 @@ public:
 				}
 
 				if (lhs.compare(rhs) != 0){
-					// printf("%s - %s\n", lhs.c_str(), rhs.c_str());
+//					__debugPrint(logFile, "%d %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
 					return false;
 				}
 			}
@@ -324,12 +323,14 @@ public:
 				pos == (int)str.length() &&
 				feasibleSplit_const(str, elementNames, currentSplit)) {
 
-			//				 splitPrintTest(currentSplit, "Accepted");
+//			splitPrintTest(currentSplit, "Accepted");
 			allPossibleSplits.push_back(currentSplit);
 			return;
 		}
 		else if (currentSplit.size() >= elementNames.size()) {
-			//				 splitPrintTest(currentSplit, "Rejected");
+			if (currentSplit.size() == elementNames.size() &&
+					pos == (int)str.length())
+				splitPrintTest(currentSplit, "Rejected");
 			return;
 		}
 
@@ -349,7 +350,7 @@ public:
 		}
 
 		/* special case for const tail, when we know the length of const head */
-		else if (elementNames[currentSplit.size()].second == -2 && currentSplit.size() > 0 && QCONSTMAX == 2) /* const */ {
+		else if (currentSplit.size() > 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
 
 			assert (elementNames[currentSplit.size() - 1].second == -1);
 			unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
@@ -375,17 +376,28 @@ public:
 		}
 
 		else {
+			std::string regexContent = "";
+			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
+				regexContent = parse_regex_content(elementNames[currentSplit.size()].first);
+				std::vector<std::string> components = collectAlternativeComponents(regexContent);
+				if (components.size() > 0) {
+					regexContent = components[0];
+					for (unsigned int i = 1; i < components.size(); ++i)
+						if (regexContent.length() > components[i].length()) {
+							regexContent = components[i];
+						}
+				}
+			}
 			for (unsigned int i = 0; i <= textLeft; ++i) {
 				unsigned int length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
-					std::string regexContent = parse_regex_content(elementNames[currentSplit.size()].first);
 					if (length % regexContent.length() != 0) /* only accept the relevant length */
 						continue;
 					currentSplit.push_back(length);
 					collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
-				else if (	elementNames[currentSplit.size()].second < 0 &&
+				else if (elementNames[currentSplit.size()].second < 0 &&
 						elementNames[currentSplit.size()].second >= -QCONSTMAX) /* const */ {
 					if (length < elementNames[currentSplit.size()].first.length() && (length <= 7) ) /* cannot cover this length && 10 is a magic number lol */ {
 						currentSplit.push_back(length);
@@ -701,6 +713,7 @@ public:
 		if (lhs.second == -2) /* tail */ {
 			for (unsigned int i = 1; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
+				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
 			}
 		}
@@ -726,7 +739,7 @@ public:
 			assert(false);
 
 		/* print test */
-		__debugPrint(logFile, "%d", __LINE__);
+		__debugPrint(logFile, "%d *** %s *** ", __LINE__, __FUNCTION__);
 		for (unsigned int i = 0; i < allPossibleSplits.size(); ++i){
 			splitPrintTest(allPossibleSplits[i], "Accepted");
 		}
@@ -2003,26 +2016,29 @@ public:
 
 		if (a.second < 0) { /* const string or regex */
 			/* check feasibility */
+
 			if (a.second != REGEX_CODE) {
+
 				int max_lhs = a.first.length();
 
-				int max_rhs = 0;
+				int min_rhs = 0;
 				for (unsigned int i = 0; i < elementNames.size(); ++i) {
 					if (elementNames[i].second == -1) {
 						if (QCONSTMAX == 2 && i + 1 < elementNames.size() && elementNames[i + 1].second == -2)
-							max_rhs += elementNames[i].first.length();
+							min_rhs += elementNames[i].first.length();
 						else if (QCONSTMAX == 1)
-							max_rhs += elementNames[i].first.length();
+							min_rhs += elementNames[i].first.length();
 					}
 					else if (elementNames[i].second == REGEX_CODE && elementNames[i].first.find('+') != std::string::npos){
 						/* regex plus */
 						size_t endPos = elementNames[i].first.find(')');
 						assert(endPos != std::string::npos);
-						max_rhs += endPos - 1;
+						min_rhs += endPos - 1;
 					}
 				}
-				if (max_lhs < max_rhs)
+				if (max_lhs < min_rhs) {
 					return "";
+				}
 			}
 			else {
 				/* regex */
@@ -2030,7 +2046,7 @@ public:
 			}
 
 			/* collect */
-			/* I only handle the case of splitting const string into two parts*/
+			/* only handle the case of splitting const string into two parts*/
 			std::vector<std::string> addElements;
 			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
 				addElements.push_back(generateFlatSize(elementNames[i], rhs_str));
@@ -2045,15 +2061,17 @@ public:
 			 */
 			int splitType = checkTheBestSplitType(elementNames, connectedVariables);
 
+			__debugPrint(logFile, "%d const = sum(flats), splitType = %d\n", __LINE__, splitType);
+
 			if (splitType == 0) {/* rhs only has simple variables */
 				/* do not do anything */
 			}
 			else if (splitType == 1) {
 				/* handle const */
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
+				__debugPrint(logFile, "%d allPossibleSplits = %d\n", __LINE__, allPossibleSplits.size());
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
-
 					/* check feasibility */
 					strSplits.emplace(fromSplitToLengConstraint_NoConnectedVar(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str));
 				}
@@ -2122,6 +2140,9 @@ public:
 		return result;
 	}
 
+	/*
+	 * a_1 + a_2 + b_1 + b_2 = c_1 + c_2 + d_1 + d_2 ---> SMT
+	 */
 	std::string generateSMT(int pMax,
 			std::string lhs_str, std::string rhs_str,
 			std::vector<std::pair<std::string, int>> lhs_elements,
@@ -2152,7 +2173,7 @@ public:
 				std::string tmp = generateConstraint02(lhs_elements[i], elements, lhs_str, rhs_str, pMax, connectedVariables, newVars);
 
 				if (tmp.length() == 0) { /* cannot happen due to const */
-					//					printf("%d 02 because of lhs[%d]\n", __LINE__, i);
+					__debugPrint(logFile, "\n%d 02 because of lhs[%d]\n", __LINE__, i);
 					return "";
 				}
 				result_element.push_back(tmp);
@@ -2195,7 +2216,7 @@ public:
 
 				std::string tmp = generateConstraint02(rhs_elements[i], elements, rhs_str, lhs_str, pMax, connectedVariables, newVars);
 				if (tmp.length() == 0) { /* cannot happen due to const */
-					//					printf("%d 02 because of rhs[%d]\n", __LINE__, i);
+					__debugPrint(logFile, "\n%d 02 because of rhs[%d]\n", __LINE__, i);
 					return "";
 				}
 				result_element.push_back(tmp);
@@ -2239,10 +2260,10 @@ public:
 						checkLeft[i + 1] = true;
 						checkRight[left_arr[i + 1]] = true;
 						i++;
-						// printf("%d constraints01: %s\n", __LINE__, constraint01.c_str());
+//						 printf("%d constraints01: %s\n", __LINE__, constraint01.c_str());
 					}
 					else { /* "abc" = "def" */
-						// printf("%d CANNOT HAPPEN: %s = %s\n", __LINE__, lhs_elements[i].first.c_str(), rhs_elements[left_arr[i]].first.c_str());
+						__debugPrint(logFile, "%d CANNOT HAPPEN: %s = %s\n", __LINE__, lhs_elements[i].first.c_str(), rhs_elements[left_arr[i]].first.c_str());
 						return "";
 					}
 				}

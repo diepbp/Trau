@@ -42,13 +42,66 @@ std::string redefineOtherVar(std::string var, std::string type){
 }
 
 /*
+ * (implies x) --> (implies false x)
+ */
+void updateImplies(std::string &s){
+	std::size_t found = s.find("(implies ");
+	while (found != std::string::npos) {
+		unsigned int endPos = findCorrespondRightParentheses(found, s);
+		unsigned int pos = found + 9;
+		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
+		while (s[pos] == ' ')
+			pos++;
+
+		if (s[pos] == '(')
+			pos = findCorrespondRightParentheses(pos, s) + 1;
+		else while (s[pos] != ' ')
+			pos++;
+
+		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
+
+		while (s[pos] == ' ')
+			pos++;
+
+		if (s[pos] == '(')
+			pos = findCorrespondRightParentheses(pos, s) + 1;
+		else while (s[pos] != ' ' && pos < endPos);
+			pos++;
+
+		if (pos >= endPos) {
+			/* (implies x) --> (implies false x) */
+			s = s.substr(0, found) + "(implies false " + s.substr(found + 9);
+			__debugPrint(logFile, "%d ** %s **: %s\n", __LINE__, __FUNCTION__, s.c_str());
+			return;
+		}
+		return;
+	}
+}
+
+/*
+ * (RegexIn ...) --> TRUE
+ */
+void updateRegexIn(std::string &s){
+	std::size_t found = s.find("(RegexIn ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParentheses(found, s);
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		s = s.replace(found, substr.length(), "true");
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(RegexIn ");
+	}
+}
+
+/*
  * (Contains v1 v2) --> TRUE || FALSE
  */
 void updateContain(std::string &s, std::map<std::string, bool> containStrMap){
 	std::size_t found = s.find("(Contains ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParenthesis(found, s);
-		__debugPrint(logFile, "%d updateContain: s = %s\n", __LINE__, s.c_str());
+		unsigned int pos = findCorrespondRightParentheses(found, s);
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
 		if (containStrMap[substr] == true)
@@ -67,7 +120,7 @@ void updateIndexOf(std::string &s,
 		std::map<std::string, std::string> indexOfStrMap){
 	std::size_t found = s.find("(Indexof ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParenthesis(found, s);
+		unsigned int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d updateIndexOf: s = %s\n", __LINE__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -85,7 +138,7 @@ void updateLastIndexOf(std::string &s,
 		std::map<std::string, std::string> lastIndexOfStrMap){
 	std::size_t found = s.find("(LastIndexof ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParenthesis(found, s);
+		unsigned int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d updateLastIndexOf: s = %s\n", __LINE__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -105,13 +158,13 @@ void updateSubstring(std::string &s) {
 
 	while (found != std::string::npos) {
 		/* reach "a" */
-		unsigned int endPos = findCorrespondRightParenthesis(found, s);
+		unsigned int endPos = findCorrespondRightParentheses(found, s);
 		unsigned int pos = found + 10;
 		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
 		while (s[pos] == ' ')
 			pos++;
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s) + 1;
+			pos = findCorrespondRightParentheses(pos, s) + 1;
 		else while (s[pos] != ' ')
 			pos++;
 		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
@@ -122,7 +175,7 @@ void updateSubstring(std::string &s) {
 
 		/* reach "b"*/
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s) + 1;
+			pos = findCorrespondRightParentheses(pos, s) + 1;
 		else while (s[pos] != ' ')
 			pos++;
 		__debugPrint(logFile, "%d after reach b0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
@@ -134,7 +187,7 @@ void updateSubstring(std::string &s) {
 		/* reach c */
 		unsigned int start = pos;
 		if (s[pos] == '(')
-			pos = findCorrespondRightParenthesis(pos, s) + 1;
+			pos = findCorrespondRightParentheses(pos, s) + 1;
 		else while (s[pos] != ')' && pos < s.length()) {
 			pos++;
 		}
@@ -208,48 +261,31 @@ void updateConst(std::string &s, std::set<std::string> constList) {
 }
 
 /*
- * RegexIn  --> =
- */
-void updateRegexIn(std::string &str){
-	std::size_t found = str.find("(RegexIn ");
-	while (found != std::string::npos) {
-		str.replace(found + 1, 7, "=");
-		found = str.find("(RegexIn ");
-	}
-
-	found = str.find("RegexIn ");
-	while (found != std::string::npos) {
-		str.replace(found, 7, "=");
-		found = str.find("RegexIn ");
-	}
-}
-
-/*
  * (Str2Reg x)--> x
  */
 void updateStr2Regex(std::string &str){
 	std::size_t found = str.find("Str2Reg ");
 	while (found != std::string::npos) {
 		/* go back to find ( */
-		unsigned int leftParenthesis = found;
-		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
-			leftParenthesis--;
-		assert(leftParenthesis >= 0);
+		unsigned int leftParentheses = found;
+		while (str[leftParentheses] != '(' && leftParentheses >= 0)
+			leftParentheses--;
+		assert(leftParentheses >= 0);
 
 		/* go forward to find ) */
-		unsigned int rightParenthesis = found;
-		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
-			rightParenthesis++;
+		unsigned int rightParentheses = found;
+		while (str[rightParentheses] != ')' && rightParentheses < str.length())
+			rightParentheses++;
 
-		assert(rightParenthesis < str.length());
+		assert(rightParentheses < str.length());
 
 		std::string content = "";
-		for (unsigned int i = found + 7; i < rightParenthesis; ++i)
+		for (unsigned int i = found + 7; i < rightParentheses; ++i)
 			if (str[i] >= '0' && str[i] <= '9') {
 				content = content + str[i];
 			}
 
-		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, content);
+		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, content);
 		found = str.find("Str2Reg ");
 	}
 
@@ -263,23 +299,23 @@ void updateRegexStar(std::string &str, int &regexCnt){
 	std::size_t found = str.find("RegexStar ");
 	while (found != std::string::npos) {
 		/* go back to find ( */
-		unsigned int leftParenthesis = found;
-		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
-			leftParenthesis--;
-		assert(leftParenthesis >= 0);
+		unsigned int leftParentheses = found;
+		while (str[leftParentheses] != '(' && leftParentheses >= 0)
+			leftParentheses--;
+		assert(leftParentheses >= 0);
 
 		/* go forward to find ) */
-		unsigned int rightParenthesis = found;
-		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
-			rightParenthesis++;
+		unsigned int rightParentheses = found;
+		while (str[rightParentheses] != ')' && rightParentheses < str.length())
+			rightParentheses++;
 
-		assert(rightParenthesis < str.length());
+		assert(rightParentheses < str.length());
 		std::string content = "";
-		for (unsigned int i = found + 9; i < rightParenthesis; ++i)
+		for (unsigned int i = found + 9; i < rightParentheses; ++i)
 			if (str[i] >= '0' && str[i] <= '9') {
 				content = content + str[i];
 			}
-		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " " + regexPrefix + std::to_string(regexCnt++) + ")");
+		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, "(* " + content + " " + regexPrefix + std::to_string(regexCnt++) + ")");
 		found = str.find("RegexStar ");
 	}
 }
@@ -291,23 +327,23 @@ void updateRegexPlus(std::string &str, int &regexCnt){
 	std::size_t found = str.find("RegexPlus ");
 	while (found != std::string::npos) {
 		/* go back to find ( */
-		unsigned int leftParenthesis = found;
-		while (str[leftParenthesis] != '(' && leftParenthesis >= 0)
-			leftParenthesis--;
-		assert(leftParenthesis >= 0);
+		unsigned int leftParentheses = found;
+		while (str[leftParentheses] != '(' && leftParentheses >= 0)
+			leftParentheses--;
+		assert(leftParentheses >= 0);
 
 		/* go forward to find ) */
-		unsigned int rightParenthesis = found;
-		while (str[rightParenthesis] != ')' && rightParenthesis < str.length())
-			rightParenthesis++;
+		unsigned int rightParentheses = found;
+		while (str[rightParentheses] != ')' && rightParentheses < str.length())
+			rightParentheses++;
 
-		assert(rightParenthesis < str.length());
+		assert(rightParentheses < str.length());
 		std::string content = "";
-		for (unsigned int i = found + 9; i < rightParenthesis; ++i)
+		for (unsigned int i = found + 9; i < rightParentheses; ++i)
 			if (str[i] >= '0' && str[i] <= '9') {
 				content = content + str[i];
 			}
-		str.replace(leftParenthesis , rightParenthesis - leftParenthesis + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
+		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
 		found = str.find("RegexPlus ");
 	}
 }
@@ -353,6 +389,7 @@ bool strContaintStringVar(std::string notStr, std::vector<std::string> strVars) 
  *
  */
 void checkAssignWellForm(std::string &s){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, s.c_str());
 	while (true) {
 		bool change = false;
 		for (unsigned int i = 0; i < s.length(); ++i)
@@ -380,7 +417,6 @@ void checkAssignWellForm(std::string &s){
 							tokens++;
 					}
 					// check (= A)
-//					printf("Tokens of %s : %d\n", newS.c_str(), tokens);
 					if (tokens <= 2) {
 //						  printf("%d Before s: %s\n", __LINE__, s.c_str());
 						s.replace(i - 1, j - i + 2, "");
@@ -422,10 +458,10 @@ std::vector<std::string> _collectAlternativeComponents(std::string str){
 /*
  *
  */
-int _findCorrespondRightParenthesis(int leftParenthesis, std::string str){
-	assert (str[leftParenthesis] == '(');
+int _findCorrespondRightParentheses(int leftParentheses, std::string str){
+	assert (str[leftParentheses] == '(');
 	int counter = 1;
-	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+	for (unsigned int j = leftParentheses + 1; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 			if (counter == 0){
@@ -460,15 +496,15 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 		return result;
 	}
 
-	size_t leftParenthesis = str.find('(');
-//	if (leftParenthesis == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
-	if (leftParenthesis == std::string::npos)
+	size_t leftParentheses = str.find('(');
+//	if (leftParentheses == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
+	if (leftParentheses == std::string::npos)
 		return {{str}};
 
 	/* abc(def)* */
-	if (leftParenthesis != 0) {
-		std::string header = str.substr(0, leftParenthesis);
-		std::vector<std::vector<std::string>> rightComponents = _parseRegexComponents(str.substr(leftParenthesis));
+	if (leftParentheses != 0) {
+		std::string header = str.substr(0, leftParentheses);
+		std::vector<std::vector<std::string>> rightComponents = _parseRegexComponents(str.substr(leftParentheses));
 		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
 			std::vector<std::string> tmp = {header};
 			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
@@ -477,29 +513,29 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 		return result;
 	}
 
-	int rightParenthesis = _findCorrespondRightParenthesis(leftParenthesis, str);
-	if (rightParenthesis < 0) {
+	int rightParentheses = _findCorrespondRightParentheses(leftParentheses, str);
+	if (rightParentheses < 0) {
 		assert (false);
 	}
-	else if (rightParenthesis == (int)str.length() - 1){
+	else if (rightParentheses == (int)str.length() - 1){
 		/* (a) */
 		return _parseRegexComponents(str.substr(1, str.length() - 2));
 	}
-	else if (rightParenthesis == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
+	else if (rightParentheses == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
 		/* (a)* */
 		return {{str}};
 	}
 
 	else {
-		int pos = rightParenthesis;
+		int pos = rightParentheses;
 		std::string left, right;
-		if (str[rightParenthesis + 1] == '*' || str[rightParenthesis + 1] == '+'){
+		if (str[rightParentheses + 1] == '*' || str[rightParentheses + 1] == '+'){
 			pos++;
-			left = str.substr(leftParenthesis, pos - leftParenthesis + 1);
+			left = str.substr(leftParentheses, pos - leftParentheses + 1);
 			right = str.substr(pos + 1);
 		}
 		else if (str[pos] != '|' || str[pos] != '~') {
-			left = str.substr(leftParenthesis + 1, pos - leftParenthesis - 1);
+			left = str.substr(leftParentheses + 1, pos - leftParentheses - 1);
 			right = str.substr(pos + 1);
 		}
 		else {
@@ -651,11 +687,11 @@ void rewriteGRM(std::string s,
 			for (unsigned int j = 0; j < components.size(); ++j) {
 				std::string content = components[j].substr(1, components[j].length() - 2);
 				if (components[j].find('*') != std::string::npos) {
-					unsigned int leftParenthesis = components[j].find('(');
-					unsigned int rightParenthesis = components[j].find(')');
+					unsigned int leftParentheses = components[j].find('(');
+					unsigned int rightParentheses = components[j].find(')');
 
-					std::string tmp = components[j].substr(leftParenthesis + 1, rightParenthesis - leftParenthesis - 1);
-					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParenthesis, rightParenthesis, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
+					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
+					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
 					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
 					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexStar (Str2Reg \"" + tmp + "\"))))\n");
@@ -666,9 +702,9 @@ void rewriteGRM(std::string s,
 						result = constMap[content] + "_100";
 				}
 				else if (components[j].find('+') != std::string::npos) {
-					unsigned int leftParenthesis = components[j].find('(');
-					unsigned int rightParenthesis = components[j].find(')');
-					std::string tmp = components[j].substr(leftParenthesis + 1, rightParenthesis - leftParenthesis - 1);
+					unsigned int leftParentheses = components[j].find('(');
+					unsigned int rightParentheses = components[j].find(')');
+					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
 					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
 					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexPlus (Str2Reg \"" + tmp + "\"))))\n");
@@ -817,6 +853,7 @@ void customizeLine_ToCreateLengthLine(
 		int bracketCnt = 0;
 		int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
 		std::string constStr = "";
+		bool lastParentheses = false;
 
 		for (unsigned int i = 0; i < strTmp.length(); ++i) {
 			bool reduceSize = false;
@@ -943,6 +980,8 @@ void customizeLine_ToCreateLengthLine(
 			}
 			else if (strTmp[i] == ')') {
 				if (notBool > 0 && bracketCnt == notBool) {
+					if (!reduceSize)
+						notStr = notStr + strTmp[i];
 					if (handleNotOp || !strContaintStringVar(notStr, strVars)) {
 						/* not (= x "abc")*/
 						newStr = newStr + notStr;
@@ -953,6 +992,7 @@ void customizeLine_ToCreateLengthLine(
 						changeByNotOp = true;
 						newStr = newStr + "";
 					}
+					lastParentheses = true;
 					notBool = -1;
 					notStr = "";
 				}
@@ -964,28 +1004,32 @@ void customizeLine_ToCreateLengthLine(
 			}
 
 			if (notBool < 0) {
-				if (!reduceSize)
+				if (!reduceSize && lastParentheses == false)
 					newStr = newStr + strTmp[i];
 			}
 			else {
-				if (!reduceSize)
+				if (!reduceSize) {
 					notStr = notStr + strTmp[i];
+				}
 			}
+			lastParentheses = false;
 		}
-
+		__debugPrint(logFile, "%d step 00 %s\n", __LINE__, newStr.c_str());
 		if (changeByNotOp) {
 			checkAssignWellForm(newStr);
 			changeByNotOp = false;
 		}
 		/* skip this assertion because of NotOp*/
-		if (newStr.find("(assert )") != std::string::npos)
+		if (newStr.find("(assert )") != std::string::npos || newStr.find("(assert  )") != std::string::npos)
 			return;
 
+		updateImplies(newStr);
+		updateRegexIn(newStr);
 		updateContain(newStr, containStrMap);
 		updateLastIndexOf(newStr, lastIndexOfStrMap);
 		updateIndexOf(newStr, indexOfStrMap);
 
-//		printf("%d step 01 %s\n", __LINE__, newStr.c_str());
+
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
 //		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
 		updateStr2Regex(newStr);
@@ -994,7 +1038,7 @@ void customizeLine_ToCreateLengthLine(
 //		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
 		updateRegexPlus(newStr, regexCnt);
 //		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
-		updateRegexIn(newStr);
+//		updateRegexIn(newStr);
 //		 printf("%d step 06 %s\n", __LINE__, newStr.c_str());
 		updateSubstring(newStr);
 

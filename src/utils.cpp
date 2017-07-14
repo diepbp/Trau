@@ -120,10 +120,10 @@ void displayListNumber(std::vector<int> l, std::string msg) {
 /*
  *
  */
-int findCorrespondRightParenthesis(int leftParenthesis, std::string str){
-	assert (str[leftParenthesis] == '(');
+int findCorrespondRightParentheses(int leftParentheses, std::string str){
+	assert (str[leftParentheses] == '(');
 	int counter = 1;
-	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+	for (unsigned int j = leftParentheses + 1; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 			if (counter == 0){
@@ -135,4 +135,28 @@ int findCorrespondRightParenthesis(int leftParenthesis, std::string str){
 		}
 	}
 	return -1;
+}
+
+/*
+ * (a) | (b) --> {a, b}
+ */
+std::vector<std::string> collectAlternativeComponents(std::string str){
+	std::vector<std::string> result;
+	int counter = 0;
+	unsigned int startPos = 0;
+	for (unsigned int j = 0; j < str.length(); ++j) {
+		if (str[j] == ')'){
+			counter--;
+		}
+		else if (str[j] == '('){
+			counter++;
+		}
+		else if ((str[j] == '|' || str[j] == '~') && counter == 0) {
+			result.push_back(str.substr(startPos, j - startPos));
+			startPos = j + 1;
+		}
+	}
+	if (startPos != 0)
+		result.push_back(str.substr(startPos, str.length() - startPos));
+	return result;
 }

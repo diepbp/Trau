@@ -273,11 +273,11 @@ std::string OverApproxCFG::evalNode(std::vector<Rule> rules, std::string name) {
 /*
  *
  */
-int OverApproxCFG::findRightParenthesis(std::string str){
-	int leftParenthesis = 0;
-	assert (str[leftParenthesis] == '(');
+int OverApproxCFG::findRightParentheses(std::string str){
+	int leftParentheses = 0;
+	assert (str[leftParentheses] == '(');
 	int counter = 1;
-	for (unsigned int j = leftParenthesis + 1; j < str.length(); ++j) {
+	for (unsigned int j = leftParentheses + 1; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 			if (counter == 0){
@@ -390,15 +390,15 @@ void OverApproxCFG::removeANode(std::vector<Rule> &rules, std::string removeNode
 				transition[tmp] = "";
 		}
 		else if (newRules[i].label.length() > 0) {
-			bool addParenthesis = true;
+			bool addParentheses = true;
 //			printf("%d transition: %s\n", __LINE__, transition[tmp].c_str());
 			if (transition[tmp][0] == '('){
-				int rightParenthesis = findRightParenthesis(transition[tmp]);
-				if (rightParenthesis == (int)transition[tmp].length() - 1 || hasAlternativeComponents(transition[tmp]))
-					addParenthesis = false;
+				int rightParentheses = findRightParentheses(transition[tmp]);
+				if (rightParentheses == (int)transition[tmp].length() - 1 || hasAlternativeComponents(transition[tmp]))
+					addParentheses = false;
 			}
 
-			if (addParenthesis == false)
+			if (addParentheses == false)
 				transition[tmp] = transition[tmp] +	"|(" + newRules[i].label + ")";
 			else
 				transition[tmp] = "(" + transition[tmp] +	")|(" + newRules[i].label + ")";

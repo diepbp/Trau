@@ -264,6 +264,21 @@ bool isRegexStr(std::string str);
 	std::string underApproxRegex(std::string str);
 
 	/*
+	 * (a) --> a
+	 */
+	void removeExtraParentheses(std::string &s);
+
+	/*
+	 * (a)|(b) --> a|b
+	 */
+	std::set<std::string> extendComponent(std::string s);
+
+	/**
+	 * (abc|cde|ghi)*
+	 */
+	void optimizeFlatAutomaton(std::string &s);
+
+	/*
 	 *
 	 */
 	std::vector<std::vector<std::string>> parseRegexComponents(std::string str);
@@ -277,6 +292,11 @@ bool isRegexStr(std::string str);
 	 *
 	 */
 	std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list);
+
+	/*
+	 * a b c (abc)* --> abc (abc)*
+	 */
+	std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<std::string>> regexElements);
 
 	/*
 	 * Input: x . y
