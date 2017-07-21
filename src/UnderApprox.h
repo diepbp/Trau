@@ -158,6 +158,11 @@ bool isRegexStr(std::string str);
 	void create_constraints_strVar(std::vector<std::string> &defines, std::vector<std::string> &constraints);
 
 	/*
+	 * len_const = (a * 1) + (b * 2) + ...
+	 */
+	void create_constraints_regex(std::vector<std::string> &defines, std::vector<std::string> &constraints, std::string regex, std::string name);
+
+	/*
 	 * len_x = sum(len_y)
 	 */
 	std::string createLengthConstraintForAssignment(std::string x, std::vector<std::string> components);

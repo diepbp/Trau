@@ -9,6 +9,7 @@
 #define ARRANGEMENT_H_
 
 #include "utils.h"
+#include "regex.h"
 
 #define ROUNDCHECK 1
 #define LOCALSPLITMAX 20
@@ -150,11 +151,12 @@ public:
 			if (elementNames[i].second == REGEX_CODE) {
 				std::string lhs = str.substr(pos, currentSplit[i]);
 				/* check whether lhs can be created from rhs */
-				std::string rhs = "";
-				while (rhs.length() < lhs.length())
-					rhs = rhs +  elementNames[i].first;
-				if (lhs.compare(rhs) != 0) {
-					__debugPrint(logFile, "%d false because of regex\n", __LINE__);
+				std::string tmp = parse_regex_full_content(elementNames[i].first);
+				RegEx re;
+				re.Compile(tmp);
+//				__debugPrint(logFile, "%d compare regex: %s - \"%s\": ", __LINE__, tmp.c_str(), lhs.c_str());
+				if (re.MatchAll(lhs) == false) {
+//					__debugPrint(logFile, " falseeee \n");
 					return false;
 				}
 			}
@@ -184,12 +186,13 @@ public:
 				}
 
 				if (lhs.compare(rhs) != 0){
-//					__debugPrint(logFile, "%d %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
+//					__debugPrint(logFile, "%d FALSE %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
 					return false;
 				}
 			}
 			pos += currentSplit[i];
 		}
+//		__debugPrint(logFile, "%d TRUE\n", __LINE__);
 		return true;
 	}
 
@@ -328,9 +331,9 @@ public:
 			return;
 		}
 		else if (currentSplit.size() >= elementNames.size()) {
-			if (currentSplit.size() == elementNames.size() &&
-					pos == (int)str.length())
-				splitPrintTest(currentSplit, "Rejected");
+//			if (currentSplit.size() == elementNames.size() &&
+//					pos == (int)str.length())
+//				splitPrintTest(currentSplit, "Rejected");
 			return;
 		}
 

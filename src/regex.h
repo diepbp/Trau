@@ -18,6 +18,7 @@ public:
 
 	bool Compile(std::string strRegEx);
 	bool Match(std::string strText);
+	bool MatchAll(std::string strText);
 	typedef std::vector<RegExState*> Table;
 	typedef Table::reverse_iterator TableReverseIterator;
 	typedef Table::iterator TableIterator;

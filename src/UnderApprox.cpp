@@ -585,16 +585,14 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 			defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
 			constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
 
-			std::string regexContent = parse_regex_content(it->first);
-
-			constraints.push_back("(assert (= (mod len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) +  " " + std::to_string(regexContent.length()) + ") 0))");
+			create_constraints_regex(defines, constraints, it->first, it->second);
 		}
 }
 
 /*
  * var name -> define var
  * (declare-const len_var_0 Int)
- * (declare-const len_var_0 Int)
+ * (declare-const len_var_0 Int)regexContent
  *
  * len_var = sum(len_var_0)
  * len_var_0 >= 0
@@ -630,6 +628,28 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 }
 
 /*
+ * len_const = (a * 1) + (b * 2) + ...
+ */
+void create_constraints_regex(std::vector<std::string> &defines, std::vector<std::string> &constraints, std::string regex, std::string name){
+	std::vector<std::string> components = collectAlternativeComponents(parse_regex_content(regex));
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, regex.c_str());
+	displayListString(components, "components");
+	std::set<int> componentSizes;
+	for (unsigned int i = 0 ; i < components.size(); ++i) {
+		componentSizes.emplace(components[i].length());
+	}
+
+	int cnt = 0;
+	std::string constraint = "(assert (= len_" + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
+	for (std::set<int>::iterator it = componentSizes.begin(); it != componentSizes.end(); ++it){
+		std::string tmp = name + "__p" + std::to_string(cnt++);
+		defines.push_back("(declare-const " + tmp + " Int)");
+		constraint = constraint + "(* " + tmp + " " + std::to_string(*it) + ") ";
+	}
+	constraint = constraint + ") ) )";
+	constraints.push_back(constraint);
+}
+/*
  * len_x = sum(len_y)
  */
 std::string createLengthConstraintForAssignment(std::string x, std::vector<std::string> components){
@@ -647,7 +667,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 			}
 			else {
 				/* regex */
-				lenX = lenX + " " + std::to_string(parse_regex_content(components[i].substr(1, components[i].length() - 2)).length());
+				lenX = lenX + " len_" + constMap[components[i].substr(1, components[i].length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
 				cnt ++;
 			}
 		}
@@ -663,8 +683,9 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 	else {
 		if(!isRegexStr(x))
 			lenX = "(= " + std::to_string(x.length() - 2) + " " + lenX  + ")";
-		else
+		else {
 			lenX = "(= " + std::to_string(parse_regex_content(x.substr(1, x.length() - 2)).length()) + " " + lenX  + ")";
+		}
 	}
 
 	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __PRETTY_FUNCTION__, lenX.c_str());
@@ -1436,7 +1457,7 @@ void removeExtraParentheses(std::string &s){
 }
 
 /*
- * (a)|(b) --> a|b
+ * (a)|(b | c) --> {a, b, c}
  */
 std::set<std::string> extendComponent(std::string s){
 	__debugPrint(logFile, "%d *** %s ***: \"%s\"\n", __LINE__, __FUNCTION__, s.c_str());

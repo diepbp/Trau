@@ -46,7 +46,7 @@ std::vector<std::string> parse_string_language(std::string s, std::string delimi
 }
 
 /*
- *
+ * (abc)*__XXX -> abc
  */
 std::string parse_regex_content(std::string str){
 	size_t pos = str.find('*');
@@ -55,6 +55,18 @@ std::string parse_regex_content(std::string str){
 	assert (pos != std::string::npos);
 
 	return str.substr(1, pos - 2);
+}
+
+/*
+ * (abc)*__XXX -> (abc)*
+ */
+std::string parse_regex_full_content(std::string str){
+	size_t pos = str.find('*');
+	if (pos == std::string::npos)
+		pos = str.find('+');
+	assert (pos != std::string::npos);
+
+	return str.substr(0, pos + 1);
 }
 
 /*

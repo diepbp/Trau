@@ -389,9 +389,36 @@ bool RegEx::Compile(std::string strRegEx) {
 	return true;
 }
 
+
 bool RegEx::Match(std::string strText) {
 	m_strText = strText;
 	RegExState *pState = m_DFATable[0];
+
+	std::vector<RegExState*>  Transition;
+	for(int i = 0; i < (int)m_strText.size(); ++i) {
+		char CurrChar = m_strText[i];
+		pState->GetTransition(CurrChar, Transition);
+
+		if ( Transition.empty())
+			return false;
+		pState = Transition[0];
+		if ( pState->m_bAcceptingState )
+			return true;
+
+	}
+	return false;
+}
+
+bool RegEx::MatchAll(std::string strText) {
+	m_strText = strText;
+	RegExState *pState = m_DFATable[0];
+
+	if (m_strText.size() == 0){
+		if (pState->m_bAcceptingState)
+			return true;
+		else
+			return false;
+	}
 
 	std::vector<RegExState*>  Transition;
 	for(int i = 0; i < (int)m_strText.size(); ++i) {
@@ -401,7 +428,7 @@ bool RegEx::Match(std::string strText) {
 		if ( Transition.empty())
 			return false;
 		pState = Transition[0];
-		if ( pState->m_bAcceptingState )
+		if ( pState->m_bAcceptingState && i + 1 == (int)m_strText.size())
 			return true;
 		
 	}

@@ -75,7 +75,15 @@ int lcd(int x, int y);
 
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);
 
+/*
+ * (abc)*__XXX -> abc
+ */
 std::string parse_regex_content(std::string str);
+
+/*
+ * (abc)*__XXX -> (abc)*
+ */
+std::string parse_regex_full_content(std::string str);
 
 std::string getFileNameFromFileDir(std::string fileDir);
 
