@@ -4299,6 +4299,8 @@ void extendVariableToFindAllPossibleEqualities(
 		}
 	}
 
+	__debugPrint(logFile, ">> %d node %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+
 	if (constNode != NULL) /* found a const at the beginning */ {
 		/* create a new combination for const */
 		/* update: const = lhs . rhs | automaton */
@@ -4315,18 +4317,46 @@ void extendVariableToFindAllPossibleEqualities(
 		allEqPossibilities[node].push_back({constNode});
 	}
 	else {
+
 		for (unsigned int i = 0; i < refined_result.size(); ++i)
 			displayListNode(t, refined_result[i], " :no const found ");
 
 		/* he = himself */
 		if (refined_result.size() == 0) {
 			refined_result.push_back({node});
-			__debugPrint(logFile, "%d add itself %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+			__debugPrint(logFile, "\t %d add itself\n", __LINE__);
 		}
 
 		/* update */
 		allEqPossibilities[node] = refined_result;
 	}
+}
+
+/*
+ * rewrite a vector of ast node to a vector of string
+ */
+std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_ast> eqPossibility){
+	std::vector<std::string> tmp;
+	Z3_context ctx = Z3_theory_get_context(t);
+	for (unsigned int j = 0; j < eqPossibility.size(); ++j) {
+		if (isAutomatonFunc(t, eqPossibility[j])) {
+			Z3_app func_app = Z3_to_app(ctx, eqPossibility[j]);
+			Z3_ast arg = Z3_get_app_arg(ctx, func_app, 0);
+			std::string regex = std::string(Z3_ast_to_string(ctx, arg));
+			regex = customizeString(regex);
+			if (isNonDetAutomatonFunc(t, eqPossibility[j])) {
+				Z3_ast arg01 = Z3_get_app_arg(ctx, func_app, 1);
+				std::string index = std::string(Z3_ast_to_string(ctx, arg01));
+				regex = "\"" + regex + "\"_" + index;
+			}
+			else
+				regex = "\"" + regex + "\"";
+			tmp.push_back(regex);
+		}
+		else
+			tmp.push_back(std::string(Z3_ast_to_string(ctx, eqPossibility[j])));
+	}
+	return tmp;
 }
 
 /**
@@ -4379,7 +4409,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
-
+		__debugPrint(logFile, "%d checking allEqPossibilities %s\n", __LINE__, varName.c_str());
 		if (isAutomatonFunc(t, itor->first)) {
 			Z3_app func_app = Z3_to_app(ctx, itor->first);
 			Z3_ast arg = Z3_get_app_arg(ctx, func_app, 0);
@@ -4395,30 +4425,10 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		if (variableBelongToOthers.find(varName) == variableBelongToOthers.end() ||
 				grm_astNode_map.find(itor->first) != grm_astNode_map.end()){
 			/* add them to the result set */
-			std::vector<std::vector<Z3_ast>> eqPossibilities = itor->second;
 			__debugPrint(logFile, "%d var: %s , eq size = %ld\n", __LINE__, Z3_ast_to_string(ctx, itor->first), itor->second.size());
-			for (unsigned int i = 0; i < eqPossibilities.size(); ++i) {
-				std::vector<std::string> tmp;
-				for (unsigned int j = 0; j < eqPossibilities[i].size(); ++j) {
-					if (isAutomatonFunc(t, eqPossibilities[i][j])) {
-						Z3_app func_app = Z3_to_app(ctx, eqPossibilities[i][j]);
-						Z3_ast arg = Z3_get_app_arg(ctx, func_app, 0);
-						std::string regex = std::string(Z3_ast_to_string(ctx, arg));
-						regex = customizeString(regex);
-						if (isNonDetAutomatonFunc(t, eqPossibilities[i][j])) {
-							Z3_ast arg01 = Z3_get_app_arg(ctx, func_app, 1);
-							std::string index = std::string(Z3_ast_to_string(ctx, arg01));
-							regex = "\"" + regex + "\"_" + index;
-						}
-						else
-							regex = "\"" + regex + "\"";
-						tmp.push_back(regex);
-					}
-					else
-						tmp.push_back(std::string(Z3_ast_to_string(ctx, eqPossibilities[i][j])));
-				}
 
-				combinationOverVariables[varName].push_back(tmp);
+			for (unsigned int i = 0; i < itor->second.size(); ++i) {
+				combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[i]));
 			}
 
 			/* add all equal nodes of itor->first to repeated list */
@@ -4428,19 +4438,26 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 					variableBelongToOthers.insert(std::string(Z3_ast_to_string(ctx, eqNode[i])));
 				}
 		}
+		else if (variableBelongToOthers.find(varName) != variableBelongToOthers.end()){
+			/* keep one eq to export length constraint */
+			assert(itor->second.size() > 0);
+			combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[0]));
+		}
 	}
 
+
 	/* clean the result again to remove some variables */
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
-		if (variableBelongToOthers.find(it->first) == variableBelongToOthers.end()){
-			__debugPrint(logFile, "%d %s is a root.\n", __LINE__, it->first.c_str());
-		}
-		else if (grm_astNode_map.find(mk_str_var(t, it->first.c_str())) != grm_astNode_map.end()) {
-			__debugPrint(logFile, "%d %s is a grm var.\n", __LINE__, it->first.c_str());
-		}
-		else {
-			combinationOverVariables[it->first].clear();
-		}
+//	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
+//		if (variableBelongToOthers.find(it->first) == variableBelongToOthers.end()){
+//			__debugPrint(logFile, "%d %s is a root.\n", __LINE__, it->first.c_str());
+//		}
+//		else if (grm_astNode_map.find(mk_str_var(t, it->first.c_str())) != grm_astNode_map.end()) {
+//			__debugPrint(logFile, "%d %s is a grm var.\n", __LINE__, it->first.c_str());
+//		}
+//		else {
+//			__debugPrint(logFile, "%d %s is a normal var, clear list of %ld elements.\n", __LINE__, it->first.c_str(), combinationOverVariables[it->first].size());
+//			combinationOverVariables[it->first].clear();
+//		}
 
 	return combinationOverVariables;
 }
