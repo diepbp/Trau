@@ -2131,7 +2131,7 @@ bool underapproxController(
 	}
 #endif
 
-	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
+//	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
 	rewriteGRM_toNewFile(orgInput, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */
