@@ -149,16 +149,6 @@ public:
 		int pos = 0;
 		for (unsigned int i = 0; i < currentSplit.size(); ++i) {
 			if (elementNames[i].second == REGEX_CODE) {
-				std::string lhs = str.substr(pos, currentSplit[i]);
-				/* check whether lhs can be created from rhs */
-				std::string tmp = parse_regex_full_content(elementNames[i].first);
-				RegEx re;
-				re.Compile(tmp);
-//				__debugPrint(logFile, "%d compare regex: %s - \"%s\": ", __LINE__, tmp.c_str(), lhs.c_str());
-				if (re.MatchAll(lhs) == false) {
-//					__debugPrint(logFile, " falseeee \n");
-					return false;
-				}
 			}
 
 			/* TODO: bound P */
@@ -186,7 +176,7 @@ public:
 				}
 
 				if (lhs.compare(rhs) != 0){
-//					__debugPrint(logFile, "%d FALSE %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
+					__debugPrint(logFile, "%d FALSE %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
 					return false;
 				}
 			}
@@ -326,29 +316,43 @@ public:
 				pos == (int)str.length() &&
 				feasibleSplit_const(str, elementNames, currentSplit)) {
 
-//			splitPrintTest(currentSplit, "Accepted");
+			splitPrintTest(currentSplit, "Accepted");
 			allPossibleSplits.push_back(currentSplit);
 			return;
 		}
 		else if (currentSplit.size() >= elementNames.size()) {
 //			if (currentSplit.size() == elementNames.size() &&
 //					pos == (int)str.length())
-//				splitPrintTest(currentSplit, "Rejected");
+			__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
+				splitPrintTest(currentSplit, "Rejected");
 			return;
 		}
 
 		unsigned int textLeft = str.length() - pos;
-		//#ifdef PRINTTEST_UNDERAPPROX
-		//			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
-		//				printf("(%s, %d)", elementNames[i].first.c_str(), elementNames[i].second);
-		//			printf("\n%d collectAllPossibleSplits_const 1: %s %d %d %s\n", __LINE__, str.c_str(), textLeft, elementNames[currentSplit.size()].second, elementNames[currentSplit.size()].first.c_str());
-		//#endif
+
 		/* special case for const: leng = leng */
 		if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
-				currentSplit.push_back(elementNames[currentSplit.size()].first.length());
-				collectAllPossibleSplits_const(pos + elementNames[currentSplit.size() - 1].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
-				currentSplit.pop_back();
+				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
+				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
+					currentSplit.push_back(elementNames[currentSplit.size()].first.length());
+					collectAllPossibleSplits_const(pos + elementNames[currentSplit.size() - 1].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+					currentSplit.pop_back();
+				}
+			}
+		}
+
+		/* const head */
+		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 2) {
+			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
+				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
+				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
+					for (int i = 1; i < std::min(7, (int)elementNames[currentSplit.size()].first.length()); ++i) {
+						currentSplit.push_back(i);
+						collectAllPossibleSplits_const(pos + i, str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
+					}
+				}
 			}
 		}
 
@@ -380,29 +384,17 @@ public:
 
 		else {
 			std::string regexContent = "";
+			RegEx re;
 			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
-				regexContent = parse_regex_content(elementNames[currentSplit.size()].first);
-				std::vector<std::string> components = collectAlternativeComponents(regexContent);
-				if (components.size() > 0) {
-					regexContent = components[0];
-					for (unsigned int i = 1; i < components.size(); ++i)
-						if (regexContent.length() > components[i].length()) {
-							regexContent = components[i];
-						}
-				}
+				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
+				re.Compile(regexContent);
 			}
+
 			for (unsigned int i = 0; i <= textLeft; ++i) {
 				unsigned int length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
-					if (length % regexContent.length() != 0) /* only accept the relevant length */
-						continue;
-					currentSplit.push_back(length);
-					collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
-					currentSplit.pop_back();
-				}
-				else if (elementNames[currentSplit.size()].second < 0 &&
-						elementNames[currentSplit.size()].second >= -QCONSTMAX) /* const */ {
-					if (length < elementNames[currentSplit.size()].first.length() && (length <= 7) ) /* cannot cover this length && 10 is a magic number lol */ {
+					std::string regexValue = str.substr(pos, length);
+					if (re.MatchAll(regexValue) == true) {
 						currentSplit.push_back(length);
 						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
