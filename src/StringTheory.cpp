@@ -4132,7 +4132,7 @@ void extendVariableToFindAllPossibleEqualities(
 		int level) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	//	__debugPrint(logFile, "%d extend concat %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+	__debugPrint(logFile, "%d extend concat %s\n", __LINE__, Z3_ast_to_string(ctx, node));
 
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
@@ -4279,8 +4279,8 @@ void extendVariableToFindAllPossibleEqualities(
 
 	std::vector<std::vector<Z3_ast>> refined_result;
 	/* check
-	 * 1. containt const or not
-	 * 2. containt connected variables or not
+	 * 1. contain const or not
+	 * 2. contain connected variables or not
 	 *
 	 * if both are false, keep original, print length
 	 */
