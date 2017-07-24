@@ -946,6 +946,60 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		return Z3_TRUE;
 	}
 
+	//------------------------------------------
+	// Reduce app: EndsWith
+	//------------------------------------------
+	else if (d == td->EndsWith) {
+		Z3_ast breakDownAst = NULL;
+		*result = reduce_endswith(t, convertedArgs, breakDownAst);
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "EndsWith(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+		printZ3Node(t, *result);
+		if (breakDownAst != NULL) {
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: StartsWith
+	//------------------------------------------
+	else if (d == td->StartsWith) {
+		Z3_ast breakDownAst = NULL;
+		*result = reduce_startswith(t, convertedArgs, breakDownAst);
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "StartsWith(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
 	if (convertedFlag == 1) {
 		*result = Z3_mk_app(ctx, d, n, convertedArgs);
 #ifdef DEBUGLOG
@@ -960,102 +1014,6 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 
 	delete[] convertedArgs;
 	return Z3_FALSE; // failed to simplify
-}
-
-
-/*
- *
- */
-Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
-	Z3_context ctx = Z3_theory_get_context(t);
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-	std::string s1_str = std::string(Z3_ast_to_string(ctx, s1));
-	std::string s2_str = std::string(Z3_ast_to_string(ctx, s2));
-	__debugPrint(logFile, "\n*** %s ***: %s = %s", __FUNCTION__, s1_str.c_str(), s2_str.c_str());
-	__debugPrint(logFile, "\n\n");
-	Z3_ast s1_new = s1;
-	Z3_ast s2_new = s2;
-
-	int len01 = -1, len02 = -1;
-	// Convert the tricky "string" representation to string constant
-	if (s1_str.length() >= 11 && s1_str.substr(0, 11) == "__cOnStStR_") {
-		std::string s = convertInputTrickyConstStr(s1_str);
-		s1_new = mk_str_value(t, s.c_str());
-		len01 = s.length();
-
-		s1_new = mk_unary_app(ctx, td->AutomataDef, s1_new);
-		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, s.length())), __LINE__, true);
-	}
-	else if (isConstStr(t, s1)){
-		s1_new = mk_str_value(t, s1_str.c_str());
-		len01 = s1_str.length();
-
-		s1_new = mk_unary_app(ctx, td->AutomataDef, s1_new);
-		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, s1_str.length())), __LINE__, true);
-	}
-
-	if (s2_str.length() >= 11 && s2_str.substr(0, 11) == "__cOnStStR_") {
-		std::string s = convertInputTrickyConstStr(s2_str);
-		s2_new = mk_str_value(t, s.c_str());
-		len02 = s.length();
-
-		s2_new = mk_unary_app(ctx, td->AutomataDef, s2_new);
-		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, s.length())), __LINE__, true);
-	}
-	else if (isConstStr(t, s2)){
-		s2_new = mk_str_value(t, s2_str.c_str());
-		len02 = s2_str.length();
-
-		s2_new = mk_unary_app(ctx, td->AutomataDef, s2_new);
-		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, s2_str.length())), __LINE__, true);
-	}
-	// parikh and length constraints
-	std::vector<Z3_ast> list00;
-
-#ifdef ARITH
-#ifdef PARIKH1
-	list00 = basicArithConstraints_forEqual(t, s1, s2);
-#endif
-	// do not need to insert axiom for concat because concat does itself
-	if (!isConcatFunc(t, s1)) {
-		std::vector<Z3_ast> list01 = basicArithConstraints_forNode_simple(t, s1);
-		list00.insert(list00.end(), list01.begin(), list01.end());
-	}
-	if (!isConcatFunc(t, s2)) {
-		std::vector<Z3_ast> list01 = basicArithConstraints_forNode_simple(t, s2);
-		list00.insert(list00.end(), list01.begin(), list01.end());
-	}
-#endif
-
-	if (s2_new != s2 || s1_new != s1) {
-		*r = Z3_mk_eq(ctx, s1_new, s2_new);
-	}
-
-
-	// do not handle twice
-	if (eqList.find(std::make_pair(s1_new, s2_new)) != eqList.end())
-		return Z3_FALSE;
-
-	Z3_ast eqNode = Z3_mk_eq(ctx, s1_new, s2_new);
-
-	if (len01 >= 0)
-		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len01))));
-	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len01)));
-	if (len02 >= 0)
-		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len02))));
-	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len02)));
-	eqList[std::make_pair(s1_new, s2_new)] = 1;
-
-
-	list00.push_back(eqNode);
-	*r = mk_and_fromVector(t, list00);
-
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "\n converted to : ");
-	printZ3Node(t, *r);
-	__debugPrint(logFile, "\n");
-#endif
-	return Z3_TRUE;
 }
 
 /* contains A, "abc" --> contains A, "a" */
@@ -7079,7 +7037,7 @@ std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theor
 
 	/* update the rest */
 	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
-		if (it->second.first.length() == 0){ /* defined */
+		if (it->second.first.length() == 0){ /* evaluated */
 			results[it->first] = it->second.second;
 		}
 	}
@@ -7126,13 +7084,58 @@ std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_t
 
 	/* update the rest */
 	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
-		if (it->second.first.length() == 0){ /* defined */
+		if (it->second.first.length() == 0){ /* evaluated */
 			results[it->first] = it->second.second;
 		}
 	}
 	return results;
 }
 
+/*
+ *
+ */
+void collectValuesInPositiveContext(Z3_theory t){
+	Z3_context ctx = Z3_theory_get_context(t);
+
+	std::map<std::string, std::string> results;
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
+			T_TheoryType type = getNodeType(t, argAst);
+			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
+					if (astToString.compare(it->second.first) == 0){
+						results[it->first] = it->second.second;
+					}
+				}
+			}
+			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				T_TheoryType type = getNodeType(t, boolNode);
+				astToString = Z3_ast_to_string(ctx, boolNode);
+				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+					for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
+						if (astToString.compare(it->second.first) == 0){
+							results[it->first] = "-1";
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* update the rest */
+	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
+		if (it->second.first.length() == 0){ /* evaluated */
+			results[it->first] = it->second.second;
+		}
+	}
+}
 /*
  * Decide whether two n1 and n2 are ALREADY in a same eq class
  * Or n1 and n2 are ALREADY treated equal by the core

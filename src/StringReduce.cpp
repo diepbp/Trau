@@ -187,6 +187,46 @@ extern std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStr
 ////
 
 /*
+ * convert a node to string
+ */
+std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	std::string node01 = "";
+	std::string node02 = "";
+
+	if (isDetAutomatonFunc(t, args[0])) {
+		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[0]), 0);
+		node01 = "\"" + std::string(Z3_ast_to_string(ctx, tmp)) + "\"";
+	}
+	else if (isConstStr(t, args[0])){
+		node01 = "\"" + std::string(Z3_ast_to_string(ctx, args[0])) + "\"";
+	}
+	else
+		node01 = Z3_ast_to_string(ctx, args[0]);
+
+	if (isDetAutomatonFunc(t, args[1])) {
+		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
+		node02 = "\"" + std::string(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
+	}
+	else if (isConstStr(t, args[1])){
+		node02 = "\"" + std::string(Z3_ast_to_string(ctx, args[1])) + "\"";
+	}
+	else
+		node02 = Z3_ast_to_string(ctx, args[1]);
+
+	if (name == td->LastIndexof)
+		return "(LastIndexof " + node01 + " " + node02 + ")";
+	else if (name == td->Indexof)
+		return "(Indexof " + node01 + " " + node02 + ")";
+	else if (name == td->StartsWith)
+		return "(StartsWith " + node01 + " " + node02 + ")";
+	else if (name == td->EndsWith)
+		return "(StartsWith " + node01 + " " + node02 + ")";
+	else
+		return NULL;
+}
+/*
  *
  */
 Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
@@ -235,6 +275,11 @@ Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
  */
 Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+	/* convert to string, prepare for startsWithStrMap */
+	std::string nodeName = exportNodeName(t, args, td->StartsWith);
+
 	Z3_ast reduceAst = NULL;
 	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr) {
 		std::string arg0Str = getConstStrValue(t, args[0]);
@@ -272,6 +317,13 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast reduceAst = NULL;
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+	/* convert to string, prepare for endsWithStrMap */
+	std::string nodeName = exportNodeName(t, args, td->EndsWith);
+
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, nodeName.c_str());
+
 	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr) {
 		std::string arg0Str = getConstStrValue(t, args[0]);
 		std::string arg1Str = getConstStrValue(t, args[1]);
@@ -307,32 +359,12 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
  */
 Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	/* convert to string, prepare for indexOfStrMap */
-	std::string node01 = "";
-	std::string node02 = "";
+	std::string nodeName = exportNodeName(t, args, td->Indexof);
 
-	if (isDetAutomatonFunc(t, args[0])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[0]), 0);
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, tmp)) + "\"";
-	}
-	else if (isConstStr(t, args[0])){
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, args[0])) + "\"";
-	}
-	else
-		node01 = Z3_ast_to_string(ctx, args[0]);
-
-	if (isDetAutomatonFunc(t, args[1])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
-		node02 = "\"" + std::string(Z3_ast_to_string(ctx, tmp)) + "\"";
-	}
-	else if (isConstStr(t, args[1])){
-		node02 = "\"" + std::string(Z3_ast_to_string(ctx, args[1])) + "\"";
-	}
-	else
-		node02 = Z3_ast_to_string(ctx, args[1]);
-	std::string nodeName = "(Indexof " + node01 + " " + node02 + ")";
-
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, nodeName.c_str());
 
 	/* doing the real work */
 	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr) {
@@ -386,109 +418,89 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		return indexAst;
 	}
 }
-//////
-//////
-///////*
-////// *
-////// */
-//////Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
-//////  Z3_context ctx = Z3_theory_get_context(t);
-//////  if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr && getNodeType(t, args[2]) == my_Z3_Num) {
-//////    std::string arg0 = getConstStrValue(t, args[0]);
-//////    std::string arg1 = getConstStrValue(t, args[1]);
-//////    int arg2Int = getConstIntValue(t, args[2]);
-//////    if (arg2Int >= (int)arg0.length()) {
-//////      return mk_int(ctx, -1);
-//////    } else if (arg2Int < 0) {
-//////      int index = arg0.find(arg1);
-//////      return mk_int(ctx, index);
-//////    } else {
-//////      std::string suffixStr = arg0.substr(arg2Int, arg0.length() - arg2Int);
-//////      if (suffixStr.find(arg1) != std::string::npos) {
-//////        int index = suffixStr.find(arg1) + arg2Int;
-//////        return mk_int(ctx, index);
-//////      } else {
-//////        return mk_int(ctx, -1);
-//////      }
-//////    }
-//////  } else {
-//////    // -------------------------------------------------------------------------------
-//////    //   if (arg[2] >= length(arg[0]))                          // ite2
-//////    //     resAst = -1
-//////    //   else
-//////    //     args[0] = prefix . suffix
-//////    //     /\ indexAst = indexof(suffix, arg[1])
-//////    //     /\ args[2] = len(prefix)
-//////    //     /\ if (indexAst == -1)  resAst = indexAst            // ite3
-//////    //        else   resAst = args[2] + indexAst
-//////    // -------------------------------------------------------------------------------
-//////    PATheoryData * td = (PATheoryData*) Z3_theory_get_ext_data(t);
-//////    Z3_ast resAst = my_mk_internal_int_var(t);
-//////    Z3_ast indexAst = my_mk_internal_int_var(t);
-//////    Z3_ast prefix = my_mk_internal_string_var(t);
-//////    Z3_ast suffix = my_mk_internal_string_var(t);
-//////    Z3_ast prefixLen = mk_length(t, prefix);
-//////    Z3_ast zeroAst = mk_int(ctx, 0);
-//////    Z3_ast negOneAst = mk_int(ctx, -1);
-//////
-//////    Z3_ast ite3 = Z3_mk_ite(ctx, Z3_mk_eq(ctx, indexAst, negOneAst),
-//////                                 Z3_mk_eq(ctx, resAst, negOneAst),
-//////                                 Z3_mk_eq(ctx, resAst, mk_2_add(t, args[2], indexAst))
-//////                           );
-//////    Z3_ast ite2ElseItems[4];
-//////    ite2ElseItems[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, prefix, suffix));
-//////    ite2ElseItems[1] = Z3_mk_eq(ctx, indexAst, mk_2_arg_app(ctx, td->Indexof, suffix, args[1]));
-//////    ite2ElseItems[2] = Z3_mk_eq(ctx, args[2], prefixLen);
-//////    ite2ElseItems[3] = ite3;
-//////    Z3_ast ite2Else = Z3_mk_and(ctx, 4, ite2ElseItems);
-//////
-//////    Z3_ast ite2 = Z3_mk_ite(ctx, Z3_mk_ge(ctx, args[2], mk_length(t, args[0])),
-//////                                 Z3_mk_eq(ctx, resAst, negOneAst),
-//////                                 ite2Else
-//////                           );
-//////
-//////    Z3_ast ite1 = Z3_mk_ite(ctx, Z3_mk_lt(ctx, args[2], zeroAst),
-//////                                 Z3_mk_eq(ctx, resAst, mk_2_arg_app(ctx, td->Indexof, args[0], args[1])),
-//////                                 ite2
-//////                            );
-//////    breakdownAssert = ite1;
-//////    return resAst;
-//////  }
-//////}
-//////
+
+
+///*
+// *
+// */
+//Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
+//  Z3_context ctx = Z3_theory_get_context(t);
+//  if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr && getNodeType(t, args[2]) == my_Z3_Num) {
+//    std::string arg0 = getConstStrValue(t, args[0]);
+//    std::string arg1 = getConstStrValue(t, args[1]);
+//    int arg2Int = getConstIntValue(t, args[2]);
+//    if (arg2Int >= (int)arg0.length()) {
+//      return mk_int(ctx, -1);
+//    } else if (arg2Int < 0) {
+//      int index = arg0.find(arg1);
+//      return mk_int(ctx, index);
+//    } else {
+//      std::string suffixStr = arg0.substr(arg2Int, arg0.length() - arg2Int);
+//      if (suffixStr.find(arg1) != std::string::npos) {
+//        int index = suffixStr.find(arg1) + arg2Int;
+//        return mk_int(ctx, index);
+//      } else {
+//        return mk_int(ctx, -1);
+//      }
+//    }
+//  } else {
+//    // -------------------------------------------------------------------------------
+//    //   if (arg[2] >= length(arg[0]))                          // ite2
+//    //     resAst = -1
+//    //   else
+//    //     args[0] = prefix . suffix
+//    //     /\ indexAst = indexof(suffix, arg[1])
+//    //     /\ args[2] = len(prefix)
+//    //     /\ if (indexAst == -1)  resAst = indexAst            // ite3
+//    //        else   resAst = args[2] + indexAst
+//    // -------------------------------------------------------------------------------
+//    PATheoryData * td = (PATheoryData*) Z3_theory_get_ext_data(t);
+//    Z3_ast resAst = my_mk_internal_int_var(t);
+//    Z3_ast indexAst = my_mk_internal_int_var(t);
+//    Z3_ast prefix = my_mk_internal_string_var(t);
+//    Z3_ast suffix = my_mk_internal_string_var(t);
+//    Z3_ast prefixLen = mk_length(t, prefix);
+//    Z3_ast zeroAst = mk_int(ctx, 0);
+//    Z3_ast negOneAst = mk_int(ctx, -1);
+//
+//    Z3_ast ite3 = Z3_mk_ite(ctx, Z3_mk_eq(ctx, indexAst, negOneAst),
+//                                 Z3_mk_eq(ctx, resAst, negOneAst),
+//                                 Z3_mk_eq(ctx, resAst, mk_2_add(t, args[2], indexAst))
+//                           );
+//    Z3_ast ite2ElseItems[4];
+//    ite2ElseItems[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, prefix, suffix));
+//    ite2ElseItems[1] = Z3_mk_eq(ctx, indexAst, mk_2_arg_app(ctx, td->Indexof, suffix, args[1]));
+//    ite2ElseItems[2] = Z3_mk_eq(ctx, args[2], prefixLen);
+//    ite2ElseItems[3] = ite3;
+//    Z3_ast ite2Else = Z3_mk_and(ctx, 4, ite2ElseItems);
+//
+//    Z3_ast ite2 = Z3_mk_ite(ctx, Z3_mk_ge(ctx, args[2], mk_length(t, args[0])),
+//                                 Z3_mk_eq(ctx, resAst, negOneAst),
+//                                 ite2Else
+//                           );
+//
+//    Z3_ast ite1 = Z3_mk_ite(ctx, Z3_mk_lt(ctx, args[2], zeroAst),
+//                                 Z3_mk_eq(ctx, resAst, mk_2_arg_app(ctx, td->Indexof, args[0], args[1])),
+//                                 ite2
+//                            );
+//    breakdownAssert = ite1;
+//    return resAst;
+//  }
+//}
+
 /*
  *
  */
 Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	/* convert to string, prepare for lastIndexOfStrMap */
-	std::string node01 = "";
-	std::string node02 = "";
+	std::string nodeName = exportNodeName(t, args, td->LastIndexof);
 
-	if (isDetAutomatonFunc(t, args[0])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[0]), 0);
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, tmp)) + "\"";
-	}
-	else if (isConstStr(t, args[0])){
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, args[0])) + "\"";
-	}
-	else
-		node01 = Z3_ast_to_string(ctx, args[0]);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, nodeName.c_str());
 
-	if (isDetAutomatonFunc(t, args[1])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
-		node02 = "\"" + std::string(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
-	}
-	else if (isConstStr(t, args[1])){
-		node02 = "\"" + std::string(Z3_ast_to_string(ctx, args[1])) + "\"";
-	}
-	else
-		node02 = Z3_ast_to_string(ctx, args[1]);
-	std::string nodeName = "(LastIndexof " + node01 + " " + node02 + ")";
-
-	__debugPrint(logFile, "%d reduce_lastindexof: %s\n", __LINE__, nodeName.c_str());
-
+	/* doing the real work */
 	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr) {
 		std::string arg0Str = getConstStrValue(t, args[0]);
 		std::string arg1Str = getConstStrValue(t, args[1]);
@@ -857,86 +869,145 @@ Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) 
 	return Z3_mk_or(ctx, grmStr.size(), or_items);
 }
 
+/*
+ *
+ */
+Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	std::string s1_str = std::string(Z3_ast_to_string(ctx, s1));
+	std::string s2_str = std::string(Z3_ast_to_string(ctx, s2));
+	__debugPrint(logFile, "\n*** %s ***: %s = %s", __FUNCTION__, s1_str.c_str(), s2_str.c_str());
+	__debugPrint(logFile, "\n\n");
+	Z3_ast s1_new = s1;
+	Z3_ast s2_new = s2;
 
-///////*
-////// *
-////// */
-//////Z3_ast reduce_regexCharRange(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
-//////  Z3_context ctx = Z3_theory_get_context(t);
-//////  PATheoryData * td = (PATheoryData*) Z3_theory_get_ext_data(t);
-//////  if (isConstStr(t, args[0]) && isConstStr(t, args[1])) {
-//////    std::string arg0Value = getConstStrValue(t, args[0]);
-//////    std::string arg1Value = getConstStrValue(t, args[1]);
-//////    if (arg0Value.size() == 1 && arg1Value.size() == 1) {
-//////      char low = arg0Value[0];
-//////      char high = arg1Value[0];
-//////      if (low > high) {
-//////        char t = low;
-//////        low = high;
-//////        high = t;
-//////      }
-//////
-//////#ifdef DEBUGLOG
-//////      __debugPrint(logFile, ">> reduce_regexCharRange: arg0 = \"%s\", arg1 = \"%s\"\n", arg0Value.c_str(), arg1Value.c_str());
-//////      __debugPrint(logFile, "                          low = '%c', high = '%c'\n", low, high);
-//////#endif
-//////
-//////      char c = low;
-//////      std::string cStr;
-//////      cStr.push_back(c);
-//////      Z3_ast res = mk_1_arg_app(ctx, td->Str2Reg, my_mk_str_value(t, cStr.c_str()));
-//////      c++;
-//////      for (; c <= high; c++) {
-//////        cStr.clear();
-//////        cStr.push_back(c);
-//////        res = mk_2_arg_app(ctx, td->RegexUnion, mk_1_arg_app(ctx, td->Str2Reg, my_mk_str_value(t, cStr.c_str())), res);
-//////      }
-//////      return res;
-//////    } else {
-//////      printf("> Error: The argument of RegexCharRange should be constant strings of size 1.\n");
-//////      printf("         Found (RegexCharRange %s %s)\n", arg0Value.c_str(), arg1Value.c_str());
-//////    }
-//////
-//////  } else {
-//////    printf("> Error: The argument of RegexCharRange should be constant strings.\n");
-//////    printf("         Found (RegexCharRange %s %s)\n", Z3_ast_to_string(ctx, args[0]), Z3_ast_to_string(ctx, args[1]));
-//////  }
-//////  exit(0);
-//////}
-////
-////
-//
+	int len01 = -1, len02 = -1;
+	// Convert the tricky "string" representation to string constant
+	if (s1_str.length() >= 11 && s1_str.substr(0, 11) == "__cOnStStR_") {
+		std::string s = convertInputTrickyConstStr(s1_str);
+		s1_new = mk_str_value(t, s.c_str());
+		len01 = s.length();
+
+		s1_new = mk_unary_app(ctx, td->AutomataDef, s1_new);
+		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, s.length())), __LINE__, true);
+	}
+	else if (isConstStr(t, s1)){
+		s1_new = mk_str_value(t, s1_str.c_str());
+		len01 = s1_str.length();
+
+		s1_new = mk_unary_app(ctx, td->AutomataDef, s1_new);
+		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, s1_str.length())), __LINE__, true);
+	}
+
+	if (s2_str.length() >= 11 && s2_str.substr(0, 11) == "__cOnStStR_") {
+		std::string s = convertInputTrickyConstStr(s2_str);
+		s2_new = mk_str_value(t, s.c_str());
+		len02 = s.length();
+
+		s2_new = mk_unary_app(ctx, td->AutomataDef, s2_new);
+		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, s.length())), __LINE__, true);
+	}
+	else if (isConstStr(t, s2)){
+		s2_new = mk_str_value(t, s2_str.c_str());
+		len02 = s2_str.length();
+
+		s2_new = mk_unary_app(ctx, td->AutomataDef, s2_new);
+		addAxiom(t, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, s2_str.length())), __LINE__, true);
+	}
+	// parikh and length constraints
+	std::vector<Z3_ast> list00;
+
+#ifdef ARITH
+#ifdef PARIKH1
+	list00 = basicArithConstraints_forEqual(t, s1, s2);
+#endif
+	// do not need to insert axiom for concat because concat does itself
+	if (!isConcatFunc(t, s1)) {
+		std::vector<Z3_ast> list01 = basicArithConstraints_forNode_simple(t, s1);
+		list00.insert(list00.end(), list01.begin(), list01.end());
+	}
+	if (!isConcatFunc(t, s2)) {
+		std::vector<Z3_ast> list01 = basicArithConstraints_forNode_simple(t, s2);
+		list00.insert(list00.end(), list01.begin(), list01.end());
+	}
+#endif
+
+	if (s2_new != s2 || s1_new != s1) {
+		*r = Z3_mk_eq(ctx, s1_new, s2_new);
+	}
+
+
+	// do not handle twice
+	if (eqList.find(std::make_pair(s1_new, s2_new)) != eqList.end())
+		return Z3_FALSE;
+
+	Z3_ast eqNode = Z3_mk_eq(ctx, s1_new, s2_new);
+
+	if (len01 >= 0)
+		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len01))));
+	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len01)));
+	if (len02 >= 0)
+		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len02))));
+	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len02)));
+	eqList[std::make_pair(s1_new, s2_new)] = 1;
+
+
+	list00.push_back(eqNode);
+	*r = mk_and_fromVector(t, list00);
+
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "\n converted to : ");
+	printZ3Node(t, *r);
+	__debugPrint(logFile, "\n");
+#endif
+	return Z3_TRUE;
+}
 
 ///*
 // *
 // */
-//Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
-//	Z3_context ctx = Z3_theory_get_context(t);
-//	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-//	Z3_app arg1_func_app = Z3_to_app(ctx, args[1]);
-//
-//	std::string grmStr = getStdGrmStr(t, args[1]);
+//Z3_ast reduce_regexCharRange(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
+//  Z3_context ctx = Z3_theory_get_context(t);
+//  PATheoryData * td = (PATheoryData*) Z3_theory_get_ext_data(t);
+//  if (isConstStr(t, args[0]) && isConstStr(t, args[1])) {
+//    std::string arg0Value = getConstStrValue(t, args[0]);
+//    std::string arg1Value = getConstStrValue(t, args[1]);
+//    if (arg0Value.size() == 1 && arg1Value.size() == 1) {
+//      char low = arg0Value[0];
+//      char high = arg1Value[0];
+//      if (low > high) {
+//        char t = low;
+//        low = high;
+//        high = t;
+//      }
 //
 //#ifdef DEBUGLOG
-//	__debugPrint(logFile, "\n>> GrammarIn(");
-//	printZ3Node(t, args[0]);
-//	__debugPrint(logFile, ", ");
-//	printZ3Node(t, args[1]);
-//	__debugPrint(logFile, ")\n --> \n");
-//	printZ3Node(t, args[0]);
-//	__debugPrint(logFile, "  \\in  %s\n\n", grmStr.c_str());
+//      __debugPrint(logFile, ">> reduce_regexCharRange: arg0 = \"%s\", arg1 = \"%s\"\n", arg0Value.c_str(), arg1Value.c_str());
+//      __debugPrint(logFile, "                          low = '%c', high = '%c'\n", low, high);
 //#endif
 //
-//	if (grmStr.length() > 0) {
+//      char c = low;
+//      std::string cStr;
+//      cStr.push_back(c);
+//      Z3_ast res = mk_1_arg_app(ctx, td->Str2Reg, my_mk_str_value(t, cStr.c_str()));
+//      c++;
+//      for (; c <= high; c++) {
+//        cStr.clear();
+//        cStr.push_back(c);
+//        res = mk_2_arg_app(ctx, td->RegexUnion, mk_1_arg_app(ctx, td->Str2Reg, my_mk_str_value(t, cStr.c_str())), res);
+//      }
+//      return res;
+//    } else {
+//      printf("> Error: The argument of RegexCharRange should be constant strings of size 1.\n");
+//      printf("         Found (RegexCharRange %s %s)\n", arg0Value.c_str(), arg1Value.c_str());
+//    }
 //
-//		Z3_ast newapp = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, grmStr.c_str()));
-//		eqMap[args[0]].push_back(grmStr);
-//		printTest(t, args[0], __LINE__);
-//
-//		return Z3_mk_eq(ctx, args[0], newapp);
-//	}
-//	else {
-//		std::cerr << "Grammar is not defined!\n\n\n";
-//	}
-//	return NULL;
+//  } else {
+//    printf("> Error: The argument of RegexCharRange should be constant strings.\n");
+//    printf("         Found (RegexCharRange %s %s)\n", Z3_ast_to_string(ctx, args[0]), Z3_ast_to_string(ctx, args[1]));
+//  }
+//  exit(0);
 //}
+
+
