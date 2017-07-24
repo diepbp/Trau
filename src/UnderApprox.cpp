@@ -510,7 +510,6 @@ void create_const_array(
 		std::vector<std::string> &defines,
 		std::vector<std::string> &constraints){
 
-//	for (std::map<std::pair<std::string, std::string>, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
 	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
 		defines.push_back("(declare-const arr_" + it->second + " (Array Int Int))");
 		if (!isRegexStr(it->first))
@@ -519,9 +518,17 @@ void create_const_array(
 			}
 		else {
 			std::string regexContent = parse_regex_content(it->first);
-			for (unsigned int i = 0 ; i < regexContent.length(); ++i) {
-				constraints.push_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(regexContent[i]) + "))");
+			std::vector<std::string> components = collectAlternativeComponents(regexContent);
+			std::string constraint = "";
+			for (unsigned int i = 0 ; i < components.size(); ++i) {
+				constraint = constraint + "\t (and ";
+				for (unsigned int j = 0 ; j < components[i].length(); ++j) {
+					constraint = constraint + ("(= (select arr_" + it->second + " " + std::to_string(j) + ") " + std::to_string(components[i][j]) + ") ");
+				}
+				constraint = constraint + ")\n";
 			}
+			constraint = "(assert (or \n" + constraint + "\n))";
+			constraints.push_back(constraint);
 		}
 	}
 }
