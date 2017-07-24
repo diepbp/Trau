@@ -153,6 +153,9 @@ public:
 
 			/* TODO: bound P */
 			else if (elementNames[i].second < 0) { /* const */
+				if (currentSplit[i] > (int)elementNames[i].first.length()) {
+					__debugPrint(logFile, "%d %s (%ld) -- %d\n", __LINE__, elementNames[i].first.c_str(), elementNames[i].first.length(), currentSplit[i]);
+				}
 				assert ((int)elementNames[i].first.length() >= currentSplit[i]);
 
 				std::string lhs = str.substr(pos, currentSplit[i]);
@@ -334,6 +337,7 @@ public:
 		if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
+
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
 					currentSplit.push_back(elementNames[currentSplit.size()].first.length());
 					collectAllPossibleSplits_const(pos + elementNames[currentSplit.size() - 1].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
@@ -368,6 +372,19 @@ public:
 				currentSplit.pop_back();
 			}
 
+		}
+
+		/* head is const part 2*/
+		else if (currentSplit.size() == 0 && elementNames[0].second == -2 && QCONSTMAX == 2) /* const */ {
+			for (unsigned int i = 0; i < std::min(elementNames[0].first.length(), str.length()); ++i) {
+				std::string tmp00 = elementNames[0].first.substr(i);
+				std::string tmp01 = str.substr(0, tmp00.length());
+				if (tmp00.compare(tmp01) == 0){
+					currentSplit.push_back(str.length() - tmp00.length());
+					collectAllPossibleSplits_const(tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+					currentSplit.pop_back();
+				}
+			}
 		}
 
 		else if (currentSplit.size() == elementNames.size() - 1) /* the last one */ {

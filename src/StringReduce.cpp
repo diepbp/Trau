@@ -7,6 +7,8 @@ extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
 extern std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
 extern std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
+extern std::map<std::string, std::string> endsWithStrMap;
+extern std::map<std::string, std::string> startsWithStrMap;
 
 //std::map<std::string, std::set<char>> charSet;
 //
@@ -288,8 +290,10 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			reduceAst = Z3_mk_false(ctx);
 		} else {
 			if (arg0Str.substr(0, arg1Str.length()) == arg1Str) {
+				startsWithStrMap[nodeName] = "TRUE";
 				reduceAst = Z3_mk_true(ctx);
 			} else {
+				startsWithStrMap[nodeName] = "FALSE";
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
@@ -297,6 +301,9 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast resBoolVar = mk_internal_bool_var(t);
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
+
+		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
+		startsWithStrMap[nodeName] = boolVar;
 		// boolVar = startswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> innerItems;
@@ -331,8 +338,10 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
 			reduceAst = Z3_mk_false(ctx);
 		} else {
 			if (arg0Str.substr(arg0Str.length() - arg1Str.length(), arg1Str.length()) == arg1Str) {
+				endsWithStrMap[nodeName] = "TRUE";
 				reduceAst = Z3_mk_true(ctx);
 			} else {
+				endsWithStrMap[nodeName] = "FALSE";
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
@@ -340,6 +349,8 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
 		Z3_ast resBoolVar = mk_internal_bool_var(t);
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
+		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
+		endsWithStrMap[nodeName] = boolVar;
 		// boolVar = endswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> innerItems;

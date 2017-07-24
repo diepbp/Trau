@@ -602,12 +602,16 @@ std::map<std::string, bool> collectContainValueInPositiveContext(Z3_theory t);
 /*
  *
  */
-std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theory t);
+void collectIndexOfValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 
 /*
  *
  */
-std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_theory t);
+void collectLastIndexOfValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 
 
 /*

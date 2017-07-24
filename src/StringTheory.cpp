@@ -30,6 +30,8 @@ bool havingGrmConstraints = false;
 
 std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
 std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
+std::map<std::string, std::string> endsWithStrMap;
+std::map<std::string, std::string> startsWithStrMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> contain_as_nodeMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
@@ -4523,18 +4525,16 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 
 		std::map<std::string, bool> containStrMap = collectContainValueInPositiveContext(t);
+		std::map<std::string, std::string> rewriterStrMap;
 
-		std::map<std::string, std::string> indexOfStrMapTmp = collectIndexOfValueInPositiveContext(t);
-		for (std::map<std::string, std::string>::iterator it = indexOfStrMapTmp.begin(); it != indexOfStrMapTmp.end(); ++it){
-			__debugPrint(logFile, "%d indexOfStrMapTmp\t%s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
+		collectIndexOfValueInPositiveContext(t, rewriterStrMap);
+		collectLastIndexOfValueInPositiveContext(t, rewriterStrMap);
+
+		for (std::map<std::string, std::string>::iterator it = rewriterStrMap.begin(); it != rewriterStrMap.end(); ++it){
+			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
 		}
 
-		std::map<std::string, std::string> lastIndexOfStrMapTmp = collectLastIndexOfValueInPositiveContext(t);
-		for (std::map<std::string, std::string>::iterator it = lastIndexOfStrMapTmp.begin(); it != lastIndexOfStrMapTmp.end(); ++it){
-			__debugPrint(logFile, "%d lastIndexOfStrMapTmp\t%s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
-		}
-
-		if (!underapproxController(combinationOverVariables, containStrMap, indexOfStrMapTmp, lastIndexOfStrMapTmp, currentLength, inputFile)) {
+		if (!underapproxController(combinationOverVariables, containStrMap, rewriterStrMap, currentLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -7000,10 +7000,11 @@ std::map<std::string, bool> collectContainValueInPositiveContext(Z3_theory t){
 /*
  *
  */
-std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theory t){
+void collectIndexOfValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	std::map<std::string, std::string> results;
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
@@ -7016,7 +7017,7 @@ std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theor
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
 					if (astToString.compare(it->second.first) == 0){
-						results[it->first] = it->second.second;
+						rewriterStrMap[it->first] = it->second.second;
 					}
 				}
 			}
@@ -7027,7 +7028,7 @@ std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theor
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 					for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
 						if (astToString.compare(it->second.first) == 0){
-							results[it->first] = "-1";
+							rewriterStrMap[it->first] = "-1";
 						}
 					}
 				}
@@ -7038,19 +7039,19 @@ std::map<std::string, std::string> collectIndexOfValueInPositiveContext(Z3_theor
 	/* update the rest */
 	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
 		if (it->second.first.length() == 0){ /* evaluated */
-			results[it->first] = it->second.second;
+			rewriterStrMap[it->first] = it->second.second;
 		}
 	}
-	return results;
 }
 
 /*
  *
  */
-std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_theory t){
+void collectLastIndexOfValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	std::map<std::string, std::string> results;
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
@@ -7063,7 +7064,7 @@ std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_t
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
 					if (astToString.compare(it->second.first) == 0){
-						results[it->first] = it->second.second;
+						rewriterStrMap[it->first] = it->second.second;
 					}
 				}
 			}
@@ -7074,7 +7075,7 @@ std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_t
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 					for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
 						if (astToString.compare(it->second.first) == 0){
-							results[it->first] = "-1";
+							rewriterStrMap[it->first] = "-1";
 						}
 					}
 				}
@@ -7085,10 +7086,9 @@ std::map<std::string, std::string> collectLastIndexOfValueInPositiveContext(Z3_t
 	/* update the rest */
 	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
 		if (it->second.first.length() == 0){ /* evaluated */
-			results[it->first] = it->second.second;
+			rewriterStrMap[it->first] = it->second.second;
 		}
 	}
-	return results;
 }
 
 /*

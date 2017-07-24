@@ -117,14 +117,14 @@ void updateContain(std::string &s, std::map<std::string, bool> containStrMap){
  * (Indexof v1 v2) --> leng of $$_str....
  */
 void updateIndexOf(std::string &s,
-		std::map<std::string, std::string> indexOfStrMap){
+		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Indexof ");
 	while (found != std::string::npos) {
 		unsigned int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d updateIndexOf: s = %s\n", __LINE__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), indexOfStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(Indexof ");
@@ -135,14 +135,14 @@ void updateIndexOf(std::string &s,
  * (LastIndexof v1 v2) --> leng of $$_str....
  */
 void updateLastIndexOf(std::string &s,
-		std::map<std::string, std::string> lastIndexOfStrMap){
+		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(LastIndexof ");
 	while (found != std::string::npos) {
 		unsigned int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d updateLastIndexOf: s = %s\n", __LINE__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), lastIndexOfStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(LastIndexof ");
@@ -802,8 +802,7 @@ void customizeLine_ToCreateLengthLine(
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
 		std::map<std::string, bool> containStrMap,
-		std::map<std::string, std::string> indexOfStrMap,
-		std::map<std::string, std::string> lastIndexOfStrMap,
+		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -1026,8 +1025,8 @@ void customizeLine_ToCreateLengthLine(
 		updateImplies(newStr);
 		updateRegexIn(newStr);
 		updateContain(newStr, containStrMap);
-		updateLastIndexOf(newStr, lastIndexOfStrMap);
-		updateIndexOf(newStr, indexOfStrMap);
+		updateLastIndexOf(newStr, rewriterStrMap);
+		updateIndexOf(newStr, rewriterStrMap);
 
 
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
@@ -1277,8 +1276,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::map<std::string, bool> containStrMap,
-		std::map<std::string, std::string> indexOfStrMap,
-		std::map<std::string, std::string> lastIndexOfStrMap,
+		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -1302,7 +1300,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, containStrMap, indexOfStrMap, lastIndexOfStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		}
 	}
 

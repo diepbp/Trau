@@ -2099,8 +2099,7 @@ void init(){
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, bool> containStrMap,
-		std::map<std::string, std::string> indexOfStrMap,
-		std::map<std::string, std::string> lastIndexOfStrMap,
+		std::map<std::string, std::string> rewriterStrMap,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
@@ -2147,7 +2146,7 @@ bool underapproxController(
 	bool result = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		convertSMTFileToLengthFile(NONGRM, true, containStrMap, indexOfStrMap, lastIndexOfStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, true, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		if (trivialUnsat) {
 			printf("%d false \n", __LINE__);
 			return false;
@@ -2158,7 +2157,7 @@ bool underapproxController(
 		bool val = Z3_run(_equalMap, false);
 		if (val == false){
 			regexCnt = 0;
-			convertSMTFileToLengthFile(NONGRM, false, containStrMap, indexOfStrMap, lastIndexOfStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			convertSMTFileToLengthFile(NONGRM, false, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 			if (trivialUnsat) {
 				printf("%d false \n", __LINE__);
 				return false;
@@ -2168,7 +2167,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		convertSMTFileToLengthFile(NONGRM, false, containStrMap, indexOfStrMap, lastIndexOfStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, false, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf("%d false \n", __LINE__);

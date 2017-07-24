@@ -32,13 +32,13 @@ std::string redefineOtherVar(std::string var, std::string type);
  * (Indexof v1 v2) --> leng of $$_str....
  */
 void updateIndexOf(std::string &s,
-		std::map<std::string, std::string> indexOfStrMap);
+		std::map<std::string, std::string> rewriterStrMap);
 
 /*
  * (LastIndexof v1 v2) --> leng of $$_str....
  */
 void updateLastIndexOf(std::string &s,
-		std::map<std::string, std::string> lastIndexOfStrMap);
+		std::map<std::string, std::string> rewriterStrMap);
 
 /*
  * (implies x) --> (implies false x)
@@ -115,8 +115,7 @@ void customizeLine_ToCreateLengthLine(
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
 		std::map<std::string, bool> containStrMap,
-		std::map<std::string, std::string> indexOfStrMap,
-		std::map<std::string, std::string> lastIndexOfStrMap,
+		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
@@ -165,8 +164,7 @@ void rewriteGRM_toNewFile(
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::map<std::string, bool> containStrMap,
-		std::map<std::string, std::string> indexOfStrMap,
-		std::map<std::string, std::string> lastIndexOfStrMap,
+		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints,
