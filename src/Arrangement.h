@@ -1595,6 +1595,28 @@ public:
 	}
 
 	/*
+	 * (a|b|c)*_xxx --> range <a, c>
+	 */
+	std::pair<int, int> collect_char_range(std::string str){
+		std::string tmp = parse_regex_content(str);
+		std::vector<std::string> components = collectAlternativeComponents(tmp);
+		std::vector<int> tmpList;
+		for (unsigned int i = 0; i < components.size(); ++i)
+			if (components[i].length() != 1)
+				return std::make_pair(-1, -1);
+			else
+				tmpList.push_back(components[i][0]);
+
+		std::sort(tmpList.begin(), tmpList.end());
+		for (unsigned int i = 0; i < tmpList.size() - 1; ++i)
+			if (tmpList[i] + 1 != tmpList[i + 1]) {
+				return std::make_pair(-1, -1);
+			}
+
+		return std::make_pair(tmpList[0], tmpList[tmpList.size() - 1]);
+	}
+
+	/*
 	 * Generate constraints for the case
 	 * X = T . "abc"* . Y . Z
 	 * regexPos: position of regex element
@@ -1611,22 +1633,6 @@ public:
 		std::vector<std::string> locationConstraint;
 		if (extraConstraint.length() > 0)
 			locationConstraint.push_back(extraConstraint);
-
-		if (elementNames.size() == 1) {
-			/* base case: X = "abc"* */
-
-			std::string content = parse_regex_content(elementNames[regexPos].first);
-			std::vector<std::string> andElements;
-
-			/* (mod |X| |abc|) = 0 */
-			char strTmp[1000];
-			sprintf(strTmp, "(= (mod %s %ld) 0)",
-					generateFlatSize(a, lhs_str).c_str(),
-					content.length());
-			andElements.push_back(strTmp);
-
-			/* TODO */
-		}
 
 		/* find the start position --> */
 		std::string pre_lhs = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, regexPos);
@@ -1652,15 +1658,36 @@ public:
 #else
 		std::vector<std::string> andConstraints;
 		andConstraints.push_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
-		unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
-		for (int i = 0; i < CONNECTSIZE; ++i) {
-			sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s %d))",
-							lhs_array.c_str(),
-							i,
-							pre_lhs.c_str(),
-							rhs_array.c_str(),
-							i % tmpNum);
-			andConstraints.push_back(strTmp);
+		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
+		if (charRange.first != -1) {
+			for (int i = 0; i < CONNECTSIZE; ++i) {
+				sprintf(strTmp, "(or (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d) (> %d %s))",
+						lhs_array.c_str(),
+						i,
+						pre_lhs.c_str(),
+						charRange.first,
+
+						lhs_array.c_str(),
+						i,
+						pre_lhs.c_str(),
+						charRange.second,
+						i + 1,
+						generateFlatSize(elementNames[regexPos], rhs_str).c_str()
+						);
+				andConstraints.push_back(strTmp);
+			}
+		}
+		else {
+			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
+			for (int i = 0; i < CONNECTSIZE; ++i) {
+				sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s %d))",
+						lhs_array.c_str(),
+						i,
+						pre_lhs.c_str(),
+						rhs_array.c_str(),
+						i % tmpNum);
+				andConstraints.push_back(strTmp);
+			}
 		}
 		return andConstraint(andConstraints);
 #endif
@@ -1773,18 +1800,25 @@ public:
 
 		for (unsigned int i = 0 ; i < elementNames.size(); ++i){
 			if (elementNames[i].second < 0){ /* const || regex */
-				if (elementNames.size() == 1 && QCONSTMAX > 1) { /* |lhs| = 1 vs |rhs| = 1*/
+				/* |lhs| = 1 vs |rhs| = 1*/
+				if (elementNames.size() == 1 && QCONSTMAX > 1) {
 					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
-				else if (i == 0 && elementNames[i].second == -2 && QCONSTMAX > 1) /* tail of string, head of elements*/ {
+				/* tail of string, head of elements*/
+				else if (i == 0 && elementNames[i].second == -2 && QCONSTMAX > 1) {
 					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
-				else if (i == elementNames.size() - 1 && elementNames[i].second == -1 && QCONSTMAX > 1) /* head of string, tail of elements */ {
+				/* head of string, tail of elements */
+				else if (i == elementNames.size() - 1 && elementNames[i].second == -1 && QCONSTMAX > 1)  {
 					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
-				else if (elementNames[i].second == -1) /* only care about first element */ {
+				/* only care about first element */
+				else if (elementNames[i].second == -1)  {
 					// std::string tmp = "(= (+ " + generateFlatSize(elementNames[i], rhs_str) + " " + generateFlatSize(elementNames[i + 1], rhs_str) + ") " + std::to_string(elementNames[i].first.length()) + ")";
 					possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0, elementNames[i].first.length(), newVars));
+				}
+				else if (elementNames[i].second == REGEX_CODE) {
+					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 			}
 		}
