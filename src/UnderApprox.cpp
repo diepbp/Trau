@@ -854,13 +854,14 @@ void writeLengthOutput(std::string outFile,
 		std::string value = lengthResultMap[tokens[1]];
 
 		__debugPrint(logFile, "%d %s %s\n", __LINE__, it->c_str(), value.c_str());
-
-		if (tokens[1].substr(0, 4).compare("len_") == 0) {
-			std::string tmp = it->substr(4);
-			lengthValues.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
-		}
-		else {
-			lengthValues.push_back("(assert (= " + tokens[1] + " " + value + "))\n");
+		if (value.length() > 0) {
+			if (tokens[1].substr(0, 4).compare("len_") == 0) {
+				std::string tmp = it->substr(4);
+				lengthValues.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
+			}
+			else {
+				lengthValues.push_back("(assert (= " + tokens[1] + " " + value + "))\n");
+			}
 		}
 	}
 

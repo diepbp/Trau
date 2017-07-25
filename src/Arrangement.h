@@ -314,20 +314,20 @@ public:
 			std::vector<int> currentSplit,
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
+		assert(pos <= (int) str.length());
+		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
 		/* reach end */
-		if (currentSplit.size() == elementNames.size() &&
-				pos == (int)str.length() &&
-				feasibleSplit_const(str, elementNames, currentSplit)) {
+		if (currentSplit.size() == elementNames.size()){
+			if (pos == (int)str.length() &&
+					feasibleSplit_const(str, elementNames, currentSplit)) {
 
-			splitPrintTest(currentSplit, "Accepted");
-			allPossibleSplits.push_back(currentSplit);
-			return;
-		}
-		else if (currentSplit.size() >= elementNames.size()) {
-//			if (currentSplit.size() == elementNames.size() &&
-//					pos == (int)str.length())
-			__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
+				splitPrintTest(currentSplit, "Accepted");
+				allPossibleSplits.push_back(currentSplit);
+			}
+			else {
+				__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
 				splitPrintTest(currentSplit, "Rejected");
+			}
 			return;
 		}
 
@@ -384,18 +384,6 @@ public:
 					collectAllPossibleSplits_const(tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
-			}
-		}
-
-		else if (currentSplit.size() == elementNames.size() - 1) /* the last one */ {
-
-			if ((elementNames[currentSplit.size()].second < 0 && elementNames[currentSplit.size()].first.length() >= textLeft) || /* const */
-					(elementNames[currentSplit.size()].second >= 0)) {
-				currentSplit.push_back(str.length() - pos);
-				collectAllPossibleSplits_const(str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
-				currentSplit.pop_back();
-			}
-			else {
 			}
 		}
 
