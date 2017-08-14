@@ -114,14 +114,14 @@ void updateContain(std::string &s, std::map<std::string, bool> containStrMap){
 }
 
 /*
- * (Indexof v1 v2) --> leng of $$_str....
+ * (Indexof v1 v2) --> ....
  */
 void updateIndexOf(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Indexof ");
 	while (found != std::string::npos) {
 		unsigned int pos = findCorrespondRightParentheses(found, s);
-		__debugPrint(logFile, "%d updateIndexOf: s = %s\n", __LINE__, s.c_str());
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
 		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
@@ -132,20 +132,38 @@ void updateIndexOf(std::string &s,
 }
 
 /*
- * (LastIndexof v1 v2) --> leng of $$_str....
+ * (LastIndexof v1 v2) --> ....
  */
 void updateLastIndexOf(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(LastIndexof ");
 	while (found != std::string::npos) {
 		unsigned int pos = findCorrespondRightParentheses(found, s);
-		__debugPrint(logFile, "%d updateLastIndexOf: s = %s\n", __LINE__, s.c_str());
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
 		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(LastIndexof ");
+	}
+}
+
+/*
+ * (EndsWith v1 v2) --> ....
+ */
+void updateEndsWith(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap){
+	std::size_t found = s.find("(EndsWith ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParentheses(found, s);
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(EndsWith ");
 	}
 }
 
@@ -986,6 +1004,7 @@ void customizeLine_ToCreateLengthLine(
 						newStr = newStr + notStr;
 					}
 					else {
+						__debugPrint(logFile, "%d not constraint: %s\n", __LINE__, notStr.c_str());
 						 notConstraints.push_back(notStr);
 						// remove this constraint
 						changeByNotOp = true;
@@ -1027,6 +1046,7 @@ void customizeLine_ToCreateLengthLine(
 		updateContain(newStr, containStrMap);
 		updateLastIndexOf(newStr, rewriterStrMap);
 		updateIndexOf(newStr, rewriterStrMap);
+		updateEndsWith(newStr, rewriterStrMap);
 
 
 		updateConst(newStr, constList); /* "abcdef" --> 6 */

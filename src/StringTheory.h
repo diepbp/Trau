@@ -215,7 +215,19 @@ void Th_delete(Z3_theory t);
 */
 std::string convertInputTrickyConstStr(std::string inputStr);
 
-/* contains A, "abc" --> contains A, "a" */
+/*
+ * endswith A, "abc" --> contains A, "c"
+ */
+void addEndsWithRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
+
+/*
+ *
+ */
+Z3_ast registerEndsWith(Z3_theory t, Z3_ast str, Z3_ast subStr);
+
+/*
+ * contains A, "abc" --> contains A, "a"
+ */
 void addContainRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
 
 /*
@@ -366,6 +378,27 @@ void strEqLengthAxiom(Z3_theory t, Z3_ast varAst, Z3_ast strAst, int line);
 
 bool checkLengthConsistency(Z3_theory t, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq02);
 
+/*
+ * a contains "xyz" && a = "123xyz" --> true
+ */
+void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/*
+ *  a contains b && b contains c --> a contains c
+ */
+void add_transitive_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/*
+ * a = b && endwith a "abc" && endwith b "abce"  --> false
+ * "abc" \in postfix(a) -> endwith a "c" = true *
+ */
+void add_endsWith_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/*
+ *  a contains c && a = b --> b contains c
+ *  a contains b && b contains c --> a contains c
+ *  a contains "xyz" && a = "123xyz" --> true
+ */
 bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
 /**
@@ -613,7 +646,19 @@ void collectLastIndexOfValueInPositiveContext(
 		Z3_theory t,
 		std::map<std::string, std::string> &rewriterStrMap);
 
+/*
+ *
+ */
+void collectEndsWithValueInPositiveContext (
+	Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 
+/*
+ *
+ */
+void collectStartsWithValueInPositiveContext (
+	Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 /*
  * Decide whether two n1 and n2 are ALREADY in a same eq class
  * Or n1 and n2 are ALREADY treated equal by the core

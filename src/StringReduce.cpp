@@ -224,7 +224,7 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	else if (name == td->StartsWith)
 		return "(StartsWith " + node01 + " " + node02 + ")";
 	else if (name == td->EndsWith)
-		return "(StartsWith " + node01 + " " + node02 + ")";
+		return "(EndsWith " + node01 + " " + node02 + ")";
 	else
 		return NULL;
 }
@@ -346,7 +346,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
 			}
 		}
 	} else {
-		Z3_ast resBoolVar = mk_internal_bool_var(t);
+		Z3_ast resBoolVar = registerEndsWith(t, args[0], args[1]);
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);

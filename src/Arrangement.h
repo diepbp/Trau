@@ -1680,12 +1680,14 @@ public:
 		else {
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
 			for (int i = 0; i < CONNECTSIZE; ++i) {
-				sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s %d))",
+				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s)))",
 						lhs_array.c_str(),
 						i,
 						pre_lhs.c_str(),
 						rhs_array.c_str(),
-						i % tmpNum);
+						i % tmpNum,
+						i + 1,
+						generateFlatSize(elementNames[regexPos], rhs_str).c_str());
 				andConstraints.push_back(strTmp);
 			}
 		}

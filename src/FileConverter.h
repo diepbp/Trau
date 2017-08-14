@@ -29,15 +29,21 @@ std::string redefineStringVar(std::string var);
 std::string redefineOtherVar(std::string var, std::string type);
 
 /*
- * (Indexof v1 v2) --> leng of $$_str....
+ * (Indexof v1 v2) --> ....
  */
 void updateIndexOf(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap);
 
 /*
- * (LastIndexof v1 v2) --> leng of $$_str....
+ * (LastIndexof v1 v2) --> ....
  */
 void updateLastIndexOf(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap);
+
+/*
+ * (EndsWith v1 v2) --> ....
+ */
+void updateEndsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap);
 
 /*
