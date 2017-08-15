@@ -172,8 +172,12 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updateCharSet);
 
 Z3_ast Concat(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
+/*
+ * only collect leaf, z3_Ast format
+ */
 void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
-void getAllNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
+
+std::string node_to_string(Z3_theory t, Z3_ast node);
 
 /*
  * collect subnodes of a node, and subnodes of nodes that are equal to it.
@@ -653,6 +657,12 @@ void collectEndsWithValueInPositiveContext (
 	Z3_theory t,
 		std::map<std::string, std::string> &rewriterStrMap);
 
+/*
+ *
+ */
+void collectEqualValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 /*
  *
  */

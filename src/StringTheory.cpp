@@ -1308,9 +1308,8 @@ Z3_ast Concat(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 }
 
 /*
- * only collect leaf
+ * only collect leaf, z3_Ast format
  */
-
 void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) {
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_context ctx = Z3_theory_get_context(t);
@@ -1322,6 +1321,42 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
 		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
 		getNodesInConcat(t, leftArg, nodeList);
 		getNodesInConcat(t, rightArg, nodeList);
+	}
+}
+
+/*
+ * only collect leaf, string format
+ */
+std::string node_to_string(Z3_theory t, Z3_ast node) {
+	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
+	printZ3Node(t, node);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	Z3_context ctx = Z3_theory_get_context(t);
+	if (getNodeType(t, node) != my_Z3_Func || (getNodeType(t, node) == my_Z3_Func && Z3_get_app_decl(ctx, Z3_to_app(ctx, node)) != td->Concat)) {
+		if (isAutomatonFunc(t, node)) {
+			Z3_ast tmpNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
+			std::string tmpStr = Z3_ast_to_string(ctx, tmpNode);
+			tmpStr = customizeString(tmpStr);
+			return "\"" + tmpStr + "\"";
+		}
+		else if (Z3_get_app_num_args(ctx, Z3_to_app(ctx, node)) == 2){
+			/* equality */
+			Z3_ast lhsNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
+			Z3_ast rhsNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
+			std::string lhsTmp = node_to_string(t, lhsNode);
+			std::string rhsTmp = node_to_string(t, rhsNode);
+			return "(= " + lhsTmp + " " + rhsTmp + ")";
+		}
+		else {
+			return Z3_ast_to_string(ctx, node);
+		}
+	} else {
+		/* concat */
+		Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
+		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
+		std::string lhsTmp = node_to_string(t, leftArg);
+		std::string rhsTmp = node_to_string(t, rightArg);
+		return "(Concat " + lhsTmp + " " + rhsTmp + ")";
 	}
 }
 
@@ -7368,7 +7403,7 @@ void collectEndsWithValueInPositiveContext(
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 				for (std::map<std::string, std::string>::iterator it = endsWithStrMap.begin(); it != endsWithStrMap.end(); ++it) {
 					if (astToString.compare(it->second) == 0){
-						rewriterStrMap[it->first] = "TRUE";
+						rewriterStrMap[it->first] = "true";
 						__debugPrint(logFile, "%d %s: true\n", __LINE__, astToString.c_str());
 					}
 				}
@@ -7380,7 +7415,7 @@ void collectEndsWithValueInPositiveContext(
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 					for (std::map<std::string, std::string>::iterator it = endsWithStrMap.begin(); it != endsWithStrMap.end(); ++it) {
 						if (astToString.compare(it->second) == 0){
-							rewriterStrMap[it->first] = "FALSE";
+							rewriterStrMap[it->first] = "false";
 							__debugPrint(logFile, "%d %s: false\n", __LINE__, astToString.c_str());
 						}
 					}
@@ -7404,8 +7439,19 @@ void collectEqualValueInPositiveContext(
 			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
 			std::string astToString = Z3_ast_to_string(ctx, argAst);
 
-			T_TheoryType type = getNodeType(t, argAst);
-
+			if (astToString.find("$$") == std::string::npos && /* not internal vars */
+					astToString.find("a!") == std::string::npos && /* not internal vars */
+					astToString.find("(Length ") == std::string::npos && /* not length constraints */
+					astToString.find("(= ") != std::string::npos) { /* equality */
+				/* add this constraint */
+				if (astToString.find("(not ") == 0){
+					Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+					rewriterStrMap[node_to_string(t, boolNode)] = "false";
+				}
+				else {
+					rewriterStrMap[node_to_string(t, argAst)] = "true";
+				}
+			}
 		}
 	}
 }
@@ -7433,7 +7479,7 @@ void collectStartsWithValueInPositiveContext(
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 				for (std::map<std::string, std::string>::iterator it = startsWithStrMap.begin(); it != startsWithStrMap.end(); ++it) {
 					if (astToString.compare(it->second) == 0){
-						rewriterStrMap[it->first] = "TRUE";
+						rewriterStrMap[it->first] = "true";
 					}
 				}
 			}
@@ -7444,7 +7490,7 @@ void collectStartsWithValueInPositiveContext(
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 					for (std::map<std::string, std::string>::iterator it = startsWithStrMap.begin(); it != startsWithStrMap.end(); ++it) {
 						if (astToString.compare(it->second) == 0){
-							rewriterStrMap[it->first] = "FALSE";
+							rewriterStrMap[it->first] = "false";
 						}
 					}
 				}

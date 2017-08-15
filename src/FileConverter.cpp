@@ -16,6 +16,46 @@ std::string int_to_hex( T i )
 }
 
 /*
+ * (not (= a b))
+ */
+std::string refine_not_equality(std::string str){
+	assert(str.find("(not (= ") == 0);
+	int num = findCorrespondRightParentheses(5, str);
+
+	std::string tmpStr = str.substr(5, num - 5 + 1);
+
+	std::string retTmp = "";
+	unsigned int pos = 0;
+	for (pos = 0; pos < tmpStr.length(); ++pos)
+		if (tmpStr[pos] == ' ')
+			pos++;
+		else
+			break;
+
+	/* remove all two spaces */
+	for (; pos < tmpStr.length(); ++pos) {
+		if (tmpStr[pos] == ' ' && tmpStr[pos + 1] == ' ')
+			continue;
+		else
+			retTmp = retTmp + tmpStr[pos];
+	}
+
+	std::string ret = "(";
+	for (unsigned int i = 1; i < retTmp.length(); ++i){
+		if (	i + 1 < ret.length() &&
+				(retTmp[i - 1] == ')' 		|| retTmp[i - 1] == '(') &&
+				retTmp[i] == ' ' &&
+				(retTmp[i + 1] == ')'  || retTmp[i + 1] == '(')){
+			continue;
+		}
+		else
+			ret = ret + retTmp[i];
+	}
+	__debugPrint(logFile, "%d *** %s ***: %s --> %s --> %s\n", __LINE__, __FUNCTION__, str.c_str(), retTmp.c_str(), ret.c_str());
+	return ret;
+}
+
+/*
  * Create a new string from tokens
  */
 std::string concatTokens(std::vector<std::string> tokens) {
@@ -1004,11 +1044,20 @@ void customizeLine_ToCreateLengthLine(
 						newStr = newStr + notStr;
 					}
 					else {
+						notStr = refine_not_equality(notStr);
 						__debugPrint(logFile, "%d not constraint: %s\n", __LINE__, notStr.c_str());
-						 notConstraints.push_back(notStr);
-						// remove this constraint
-						changeByNotOp = true;
-						newStr = newStr + "";
+						if (rewriterStrMap.find(notStr) != rewriterStrMap.end()) {
+							if (rewriterStrMap[notStr] == "true")
+								newStr = newStr + "false";
+							else
+								newStr = newStr + "true";
+						}
+						else {
+							notConstraints.push_back(notStr);
+							// remove this constraint
+							changeByNotOp = true;
+							newStr = newStr + "";
+						}
 					}
 					lastParentheses = true;
 					notBool = -1;
