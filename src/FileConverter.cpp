@@ -1256,7 +1256,6 @@ std::string customizeLine_removeSpecialChars(std::string str){
 			newStr = newStr + strTmp[i];
 	}
 
-	printf("%d %s --> %s\n", __LINE__, str.c_str(), newStr.c_str());
 	return newStr;
 }
 
