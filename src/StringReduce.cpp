@@ -199,20 +199,20 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 
 	if (isDetAutomatonFunc(t, args[0])) {
 		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[0]), 0);
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, tmp)) + "\"";
+		node01 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
 	}
 	else if (isConstStr(t, args[0])){
-		node01 = "\"" + std::string(Z3_ast_to_string(ctx, args[0])) + "\"";
+		node01 = "\"" + customizeString(Z3_ast_to_string(ctx, args[0])) + "\"";
 	}
 	else
 		node01 = Z3_ast_to_string(ctx, args[0]);
 
 	if (isDetAutomatonFunc(t, args[1])) {
 		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
-		node02 = "\"" + std::string(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
+		node02 = "\"" + customizeString(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
 	}
 	else if (isConstStr(t, args[1])){
-		node02 = "\"" + std::string(Z3_ast_to_string(ctx, args[1])) + "\"";
+		node02 = "\"" + customizeString(Z3_ast_to_string(ctx, args[1])) + "\"";
 	}
 	else
 		node02 = Z3_ast_to_string(ctx, args[1]);
@@ -796,7 +796,7 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 	std::string regexStr = getStdRegexStr(t, args[1]);
 
 #ifdef DEBUGLOG
-	__debugPrint(logFile, "\n>> RegexIn(");
+	__debugPrint(logFile, "\n %d >> RegexIn(", __LINE__);
 	printZ3Node(t, args[0]);
 	__debugPrint(logFile, ", ");
 	printZ3Node(t, args[1]);
@@ -886,8 +886,8 @@ Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) 
 Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-	std::string s1_str = std::string(Z3_ast_to_string(ctx, s1));
-	std::string s2_str = std::string(Z3_ast_to_string(ctx, s2));
+	std::string s1_str = customizeString(Z3_ast_to_string(ctx, s1));
+	std::string s2_str = customizeString(Z3_ast_to_string(ctx, s2));
 	__debugPrint(logFile, "\n*** %s ***: %s = %s", __FUNCTION__, s1_str.c_str(), s2_str.c_str());
 	__debugPrint(logFile, "\n\n");
 	Z3_ast s1_new = s1;

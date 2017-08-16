@@ -19,9 +19,9 @@ std::string int_to_hex( T i )
  * (not (= a b))
  */
 std::string refine_not_equality(std::string str){
-	assert(str.find("(not (= ") == 0);
-	int num = findCorrespondRightParentheses(5, str);
+	assert(str.find("(not (") == 0);
 
+	int num = findCorrespondRightParentheses(5, str);
 	std::string tmpStr = str.substr(5, num - 5 + 1);
 
 	std::string retTmp = "";
@@ -42,10 +42,17 @@ std::string refine_not_equality(std::string str){
 
 	std::string ret = "(";
 	for (unsigned int i = 1; i < retTmp.length(); ++i){
-		if (	i + 1 < ret.length() &&
+		if (	i + 1 < retTmp.length() &&
 				(retTmp[i - 1] == ')' 		|| retTmp[i - 1] == '(') &&
 				retTmp[i] == ' ' &&
-				(retTmp[i + 1] == ')'  || retTmp[i + 1] == '(')){
+				(retTmp[i + 1] == ')'  || retTmp[i + 1] == '(') &&
+				retTmp[i - 1] == retTmp[i + 1]){
+			continue;
+		}
+		else if (retTmp[i - 1] == '(' && retTmp[i] == ' '){
+			continue;
+		}
+		else if (i + 1 < retTmp.length() && retTmp[i + 1] == ')' && retTmp[i] == ' '){
 			continue;
 		}
 		else
@@ -204,6 +211,24 @@ void updateEndsWith(std::string &s,
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(EndsWith ");
+	}
+}
+
+/*
+ * (StartsWith v1 v2) --> ....
+ */
+void updateStartsWith(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap){
+	std::size_t found = s.find("(StartsWith ");
+	while (found != std::string::npos) {
+		unsigned int pos = findCorrespondRightParentheses(found, s);
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+
+		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		found = s.find("(StartsWith ");
 	}
 }
 
@@ -915,45 +940,47 @@ void customizeLine_ToCreateLengthLine(
 		for (unsigned int i = 0; i < strTmp.length(); ++i) {
 			bool reduceSize = false;
 			if (strTmp[i] == '"') {
-				if (textState == 1){
-					textState = 2;
-					if (constStr.length() > 0) {
-						constStr = "\"" + constStr + "\"";
-						constList.insert(constStr);
-						constStr = "";
-					}
-					else {
-						constStr = "\"" + constStr + "\"";
-						constList.insert(constStr);
-						constStr = "";
-					}
-
-				}
-				else if (textState == 3) {
-					textState = 1;
-					strTmp[i] = 'A';
-					constStr = constStr + strTmp[i];
-
-				}
-				else {
-					textState = 1;
+				switch (textState) {
+					case 1:
+						textState = 2;
+						if (constStr.length() > 0) {
+							constStr = "\"" + constStr + "\"";
+							constList.insert(constStr);
+							constStr = "";
+						}
+						else {
+							constStr = "\"" + constStr + "\"";
+							constList.insert(constStr);
+							constStr = "";
+						}
+						break;
+					case 3:
+						textState = 1;
+						strTmp[i] = 'A';
+						constStr = constStr + strTmp[i];
+						break;
+					default:
+						textState = 1;
+						break;
 				}
 			}
 			else if (strTmp[i] == '\\') {
-				if (textState != 3) {
-					textState = 3;
-					strTmp.erase(i, 1);
-					i--;
-					reduceSize = true;
+				switch (textState) {
+					case 3:
+						strTmp[i] = 'B';
+						textState = 1;
+						constStr = constStr + strTmp[i];
+						break;
+					default:
+						textState = 3;
+						strTmp.erase(i, 1);
+						i--;
+						reduceSize = true;
+						break;
 				}
-				else if (textState == 3) {
-					strTmp[i] = 'B';
-					textState = 1;
-					constStr = constStr + strTmp[i];
-				}
-
 			}
 			else if (textState == 1 || textState == 3) {
+				textState = 1;
 				if (strTmp[i] == '?') {
 					strTmp[i] = 'D';
 				}
@@ -1096,6 +1123,7 @@ void customizeLine_ToCreateLengthLine(
 		updateLastIndexOf(newStr, rewriterStrMap);
 		updateIndexOf(newStr, rewriterStrMap);
 		updateEndsWith(newStr, rewriterStrMap);
+		updateStartsWith(newStr, rewriterStrMap);
 
 
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
@@ -1138,31 +1166,35 @@ std::string customizeLine_removeSpecialChars(std::string str){
 	for (unsigned int i = 0; i < strTmp.length(); ++i) {
 		bool reduceSize = false;
 		if (strTmp[i] == '"') {
-			if (textState == 1){
-				textState = 2;
-			}
-			else if (textState == 3) {
-				textState = 1;
-				strTmp[i] = 'A';
-			}
-			else {
-				textState = 1;
+			switch (textState) {
+				case 1:
+					textState = 2;
+					break;
+				case 3:
+					textState = 1;
+					strTmp[i] = 'A';
+					break;
+				default:
+					textState = 1;
+					break;
 			}
 		}
 		else if (strTmp[i] == '\\') {
-			if (textState != 3) {
-				textState = 3;
-				strTmp.erase(i, 1);
-				i--;
-				reduceSize = true;
+			switch (textState) {
+				case 3:
+					strTmp[i] = 'B';
+					textState = 1;
+					break;
+				default:
+					textState = 3;
+					strTmp.erase(i, 1);
+					i--;
+					reduceSize = true;
+					break;
 			}
-			else if (textState == 3) {
-				strTmp[i] = 'B';
-				textState = 1;
-			}
-
 		}
 		else if (textState == 1 || textState == 3) {
+			textState = 1;
 			if (strTmp[i] == '?') {
 				strTmp[i] = 'D';
 			}
@@ -1217,12 +1249,14 @@ std::string customizeLine_removeSpecialChars(std::string str){
 			else if (strTmp[i] == '+') {
 				strTmp[i] = 'V';
 			}
+
 		}
 
 		if (!reduceSize)
 			newStr = newStr + strTmp[i];
 	}
 
+	printf("%d %s --> %s\n", __LINE__, str.c_str(), newStr.c_str());
 	return newStr;
 }
 
@@ -1261,6 +1295,7 @@ std::string customizeLine_replaceConst(std::string str, std::set<std::string> &c
 			newStr = newStr + strTmp[i];
 	}
 
+	__debugPrint(logFile, "%d *** %s ***: %s -> %s\n", __LINE__, __FUNCTION__, str.c_str(), newStr.c_str());
 	return newStr;
 }
 
@@ -1314,8 +1349,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
 	while (!feof(in))
 	{
 		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL)
-		{
+		if (fgets(buffer, 5000, in) != NULL) {
 			lines.push_back(customizeLine_replaceConst(buffer, constStr));
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;

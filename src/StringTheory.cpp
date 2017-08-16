@@ -566,6 +566,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		if (symbolStr.length() >= 11 && symbolStr.substr(0, 11) == "__cOnStStR_") {
 			convertedFlag = 1;
 			convertedArgs[i] = mk_str_value(t, convertInputTrickyConstStr(symbolStr).c_str());
+			__debugPrint(logFile, "%d str value: %s -> %s\n", __LINE__, symbolStr.c_str(), convertInputTrickyConstStr(symbolStr).c_str());
 		} else {
 			convertedArgs[i] = args[i];
 		}
@@ -577,7 +578,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	if (d == td->Concat) {
 
 #ifdef DEBUGLOG
-		__debugPrint(logFile, "Concat(", __FUNCTION__);
+		__debugPrint(logFile, "Concat(");
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, ", ");
 		printZ3Node(t, convertedArgs[1]);
@@ -1330,6 +1331,8 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
 std::string node_to_string(Z3_theory t, Z3_ast node) {
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
 	printZ3Node(t, node);
+	__debugPrint(logFile, "\n");
+
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_context ctx = Z3_theory_get_context(t);
 	if (getNodeType(t, node) != my_Z3_Func || (getNodeType(t, node) == my_Z3_Func && Z3_get_app_decl(ctx, Z3_to_app(ctx, node)) != td->Concat)) {
@@ -4813,6 +4816,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectIndexOfValueInPositiveContext(t, rewriterStrMap);
 		collectLastIndexOfValueInPositiveContext(t, rewriterStrMap);
 		collectEndsWithValueInPositiveContext(t, rewriterStrMap);
+		collectStartsWithValueInPositiveContext(t, rewriterStrMap);
 		collectEqualValueInPositiveContext(t, rewriterStrMap);
 
 		for (std::map<std::string, std::string>::iterator it = rewriterStrMap.begin(); it != rewriterStrMap.end(); ++it){
@@ -8374,7 +8378,7 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
 	Z3_func_decl regexFuncDecl = Z3_get_app_decl(ctx, Z3_to_app(ctx, regex));
 	if (regexFuncDecl == td->Str2Reg) {
 		Z3_ast regAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, regex), 0);
-		std::string regStr = str2RegexStr(getConstStrValue(t, regAst));
+		std::string regStr = str2RegexStr(customizeString(getConstStrValue(t, regAst)));
 
 		// string cannot containt "~"
 		if (regStr.find('~') != std::string::npos) {
@@ -8405,12 +8409,6 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
 		return  "(" + reg1Str + ")*";
 	} else {
 		return "__Contain_Vars__";
-		//    printf("> Error: unexpected regex operation.\n");
-		//    __debugPrint(logFile, ">> Error: unexpected regex operation.\n");
-		//    __debugPrint(logFile, "   * [regex] ");
-		//    printZ3Node(t, regex);
-		//    __debugPrint(logFile, "\n");
-		//    exit(0);
 	}
 }
 
@@ -8597,7 +8595,8 @@ std::string getConstStrValue(Z3_theory t, Z3_ast n) {
 	} else {
 		strValue = std::string("__NotConstStr__");
 	}
-	return strValue;
+
+	return customizeString(strValue);
 }
 
 /*

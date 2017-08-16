@@ -660,6 +660,9 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
  * len_x = sum(len_y)
  */
 std::string createLengthConstraintForAssignment(std::string x, std::vector<std::string> components){
+	if (components.size() == 0)
+		return "";
+
 	std::string lenX = "";
 	int cnt = 0;
 	for (unsigned int i = 0 ; i < components.size(); ++i){
@@ -910,7 +913,7 @@ void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> 
 	__debugPrint(logFile, "%d Equal Map\n", __LINE__);
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalMap.begin();
 			it != equalMap.end(); ++it) {
-		__debugPrint(logFile, "%s =\n", it->first.c_str());
+		__debugPrint(logFile, "%s = (%ld cases) \n", it->first.c_str(), it->second.size());
 		for (unsigned int i = 0; i < it->second.size(); ++i) {
 			for (unsigned int j = 0; j < it->second[i].size(); ++j) {
 				__debugPrint(logFile, "\t%s ",  it->second[i][j].c_str());
@@ -1399,7 +1402,6 @@ void collectConnectedVariables(){
 /*
  * Remove all equalities without connected variables and consts
  */
-
 void refineEqualMap(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
@@ -1417,7 +1419,21 @@ void refineEqualMap(){
 			}
 		}
 
-		new_eqMap[it->first] = tmp_vector;
+		/* remove all duplications in tmp_vector */
+		std::vector<std::vector<std::string>> tmp_vector01;
+		for (unsigned int i = 0; i < tmp_vector.size(); ++i){
+			bool notAdd = false;
+			for (unsigned int j = 0; j < i; ++j){
+				if (equalVector(tmp_vector[i], tmp_vector[j])) {
+					notAdd = true;
+					break;
+				}
+			}
+			if (notAdd == false)
+				tmp_vector01.push_back(tmp_vector[i]);
+		}
+
+		new_eqMap[it->first] = tmp_vector01;
 	}
 
 	equalitiesMap.clear();
@@ -1797,8 +1813,13 @@ void *convertEqualities(void *tid){
 				if (result.first.size() != 0) {
 					if (lengthRecord == false) {
 						/* (= len_X (+ sum(len_y)) */
-						 lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
-						lengthRecord = true;
+						if (it->second.size() > 0) {
+							std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
+							if (tmpStr.length() > 0){
+								lenConstraint.push_back(tmpStr);
+								lengthRecord = true;
+							}
+						}
 					}
 					/* sync result*/
 					pthread_mutex_lock (&smt_mutex);
@@ -1823,8 +1844,11 @@ void *convertEqualities(void *tid){
 
 			/* work as usual */
 			if (it->second.size() == 1) {
-				lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
-				global_smtStatements.push_back(lenConstraint);
+				std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
+				if (tmpStr.length() > 0) {
+					lenConstraint.push_back(tmpStr);
+					global_smtStatements.push_back(lenConstraint);
+				}
 				lenConstraint.clear();
 			}
 			else for (unsigned int i = 0; i < it->second.size(); ++i)
@@ -1846,8 +1870,13 @@ void *convertEqualities(void *tid){
 					if (result.first.size() != 0) {
 						if (lengthRecord == false) {
 							/* (= len_X (+ sum(len_y)) */
-							lenConstraint.push_back(createLengthConstraintForAssignment(it->first, it->second[0]));
-							lengthRecord = true;
+							if (it->second.size() > 0){
+								std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
+								if (tmpStr.length() > 0) {
+									lenConstraint.push_back(tmpStr);
+									lengthRecord = true;
+								}
+							}
 						}
 						/* sync result*/
 						pthread_mutex_lock (&smt_mutex);

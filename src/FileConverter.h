@@ -47,6 +47,12 @@ void updateEndsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap);
 
 /*
+ * (StartsWith v1 v2) --> ....
+ */
+void updateStartsWith(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap);
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::string &s);
