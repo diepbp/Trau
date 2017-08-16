@@ -930,9 +930,8 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	std::vector<Z3_ast> list00;
 
 #ifdef ARITH
-#ifdef PARIKH1
 	list00 = basicArithConstraints_forEqual(t, s1, s2);
-#endif
+
 	// do not need to insert axiom for concat because concat does itself
 	if (!isConcatFunc(t, s1)) {
 		std::vector<Z3_ast> list01 = basicArithConstraints_forNode_simple(t, s1);
@@ -949,7 +948,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	}
 
 
-	// do not handle twice
+	/* do not handle twice */
 	if (eqList.find(std::make_pair(s1_new, s2_new)) != eqList.end())
 		return Z3_FALSE;
 
@@ -957,10 +956,8 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 
 	if (len01 >= 0)
 		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len01))));
-	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len01)));
 	if (len02 >= 0)
 		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len02))));
-	//  	list00.push_back(Z3_mk_eq(ctx, mk_length(t, s2_new), mk_int(ctx, len02)));
 	eqList[std::make_pair(s1_new, s2_new)] = 1;
 
 
