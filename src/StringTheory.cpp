@@ -5144,10 +5144,10 @@ void assignLanguageForLength(Z3_theory t, bool &assignSomethingNew, bool &satifi
 		printZ3Node(t, it->first);
 		__debugPrint(logFile, " %d getLenValue len = %d\n", __LINE__, len);
 		if (len != -1) {
-			/* compare to the stored value */
+
+			// compare to the stored value
 			std::pair<int, int> lengthDomain = getLengthDomain(it->first);
-			__debugPrint(logFile, " %d getLengthDomain len = %d -- %d\n", __LINE__, lengthDomain.first, lengthDomain.second);
-			/* a length is determined */
+			// a length is determined
 			if (lengthDomain.first != -1
 					&& lengthDomain.first == lengthDomain.second){
 				// different length
