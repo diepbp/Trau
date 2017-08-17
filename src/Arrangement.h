@@ -600,54 +600,6 @@ public:
 		return result;
 	}
 
-	/*
-	 *
-	 */
-	std::string orConstraint(std::set<std::string> possibleCases){
-		std::string result = "";
-		if (possibleCases.size() > 1) {
-			result = "(or ";
-			for (std::set<std::string>::iterator it = possibleCases.begin(); it != possibleCases.end(); ++it)
-				result = result + *it + " ";
-			result = result + ")";
-		}
-		else if (possibleCases.size() == 1){
-			result = *possibleCases.begin();
-		}
-		return result;
-	}
-
-	/*
-	 * create (and constraint01 constraint02 .. constraint0n)
-	 */
-	std::string andConstraint(std::vector<std::string> possibleCases){
-		std::string result = "";
-		if (possibleCases.size() > 1) {
-			result = "(and ";
-			for (unsigned int i = 0; i < possibleCases.size(); ++i)
-				result = result + possibleCases[i] + " ";
-			result = result + ")";
-		}
-		else if (possibleCases.size() == 1){
-			result = possibleCases[0];
-		}
-		return result;
-	}
-
-	std::string andConstraint(std::set<std::string> possibleCases){
-		std::string result = "";
-		if (possibleCases.size() > 1) {
-			result = "(and ";
-			for (std::set<std::string>::iterator it = possibleCases.begin(); it != possibleCases.end(); ++it)
-				result = result + *it + " ";
-			result = result + ")";
-		}
-		else if (possibleCases.size() == 1){
-			result = *possibleCases.begin();
-		}
-		return result;
-	}
-
 	std::string addConstraint(std::vector<std::string> elements) {
 		std::string result = "";
 		if (elements.size() > 1) {
@@ -745,24 +697,6 @@ public:
 		}
 
 		return allPossibleSplits;
-	}
-
-	/*
-	 * create (or constraint01 constraint02 .. constraint0n)
-	 */
-	std::string orConstraint(std::vector<std::string> possibleCases){
-		std::string result = "";
-		assert (possibleCases.size() > 0);
-		if (possibleCases.size() > 1) {
-			result = "(or ";
-			for (unsigned int i = 0; i < possibleCases.size(); ++i)
-				result = result + possibleCases[i] + " ";
-			result = result + ")";
-		}
-		else if (possibleCases.size() == 1){
-			result = possibleCases[0];
-		}
-		return result;
 	}
 
 	/*

@@ -106,4 +106,26 @@ int findCorrespondRightParentheses(int leftParentheses, std::string str);
  * (a) | (b) --> {a, b}
  */
 std::vector<std::string> collectAlternativeComponents(std::string str);
+
+
+/*
+ *
+ */
+std::string orConstraint(std::set<std::string> possibleCases);
+
+/*
+ *
+ */
+std::string orConstraint(std::vector<std::string> possibleCases);
+
+/*
+ * create (and constraint01 constraint02 .. constraint0n)
+ */
+std::string andConstraint(std::vector<std::string> possibleCases);
+
+/*
+ *
+ */
+std::string andConstraint(std::set<std::string> possibleCases);
+
 #endif /* UTILS_H_ */

@@ -4838,6 +4838,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 			}
 			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
 		}
+		else {
+			done = true;
+			__debugPrint(logFile, "%d >> DONE!!!\n", __LINE__);
+		}
 
 #if 0
 		/* find concreate values */
@@ -4846,7 +4850,6 @@ Z3_bool Th_final_check(Z3_theory t) {
 		}
 #else
 #endif
-		return Z3_TRUE;
 	}
 
 	__debugPrint(logFile, "%d Finish\n", __LINE__);
