@@ -494,95 +494,12 @@ std::vector<std::string> collectAllPossibleArrangements(
 }
 
 /*
- * Given a flat,
- * generate its array name
- */
-std::string generateVarArray(std::string a){
-	return "arr_" + a;
-}
-
-/*
- * Given a flat,
- * generate its array name
- */
-std::string generateVarLength(std::string a){
-	return "len_" + a;
-}
-
-/*
- * startswith a b
- * startwith "a" b
- * startwith a "b"
- */
-void create_constraints_StartsWith(
-		std::string str00,
-		std::string str01,
-		std::vector<std::string> &constraints){
-	bool isConst_00 = false;
-	bool isConst_01 = false;
-	if (str00[0] == '\"' )
-		isConst_00 = true;
-
-	if (str01[0] == '\"')
-		isConst_01 = true;
-
-	assert(isConst_00 && isConst_01);
-
-	std::vector<std::string> orConstraints;
-	std::vector<std::string> andConstraints;
-	if (isConst_00 == true) {
-		/* (length b = 0 && ...) || length b = 1 && ...*/
-		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
-			/* length = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (unsigned int i = 1; i < j + 1; ++i) {
-				andConstraints.push_back("(= (select " +
-						generateVarArray(str01) + " " +
-						std::to_string(i - 1) + ") " +
-						std::to_string(str00[i]) + ")");
-			}
-			orConstraints.push_back(andConstraint(andConstraints));
-			andConstraints.clear();
-		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, orConstraint(orConstraints).c_str());
-	}
-	else if (isConst_01){
-		/* (length a >= ... && ...) */
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
-		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
-			andConstraints.push_back("(= (select " +
-					generateVarArray(str00) + " " +
-					std::to_string(i - 1) + ") " +
-					std::to_string(str00[i]) + ")");
-		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
-	}
-	else {
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
-		for (unsigned int j = 0; j < 50; ++j) {
-			/* length b = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (unsigned int i = 0; i < j; ++i) {
-				andConstraints.push_back("(= (select " +
-												generateVarArray(str00) + " " +
-												std::to_string(i) + ") " +
-											"(= (select " +
-												generateVarArray(str01) + " " +
-												std::to_string(i) + ") " + ")");
-			}
-			orConstraints.push_back(andConstraint(andConstraints));
-			andConstraints.clear();
-		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, orConstraint(orConstraints).c_str());
-	}
-}
-
-/*
  * define array for connected variable
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
-	for (const auto& s : connectedVariables){
-		defines.push_back("(declare-const arr_" + s + " (Array Int Int))");
+
+	for (std::set<std::string>::iterator it = connectedVariables.begin(); it != connectedVariables.end(); ++it){
+		defines.push_back("(declare-const arr_" + *it + " (Array Int Int))");
 	}
 }
 
@@ -689,30 +606,31 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
  *
  */
 void create_constraints_strVar(std::vector<std::string> &defines, std::vector<std::string> &constraints){
-	for (const auto& var: allVariables){
+	for (std::set<std::string>::iterator it = allVariables.begin(); it != allVariables.end(); ++it){
 
 		/* len_x = sum(len_x_i)*/
 		std::string lenX = "";
-		std::string lenVarName = generateVarLength(var);
+		std::string varName = "len_" + *it + "_";
 		for (int i = 0; i < QMAX; ++i) {
-			defines.push_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
-			constraints.push_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.push_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 100))");
-			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
+			defines.push_back("(declare-const len_" + *it + "_" + std::to_string(i) + " Int)");
+			constraints.push_back("(assert (>= len_" + *it + "_" + std::to_string(i) + " 0))");
+			constraints.push_back("(assert (< len_" + *it + "_" + std::to_string(i) + " 100))");
+			lenX = lenX + varName + std::to_string(i) + " ";
+		}
+
+		if (it->find("__flat_") != std::string::npos || it->substr(0, 6).compare("$$_str") == 0) {
+			/* they are internal variables */
+			defines.push_back("(declare-const len_" + *it + " Int)");
 		}
 
 		/* (+ sum(len_x_i) */
 		if (QMAX > 1)
 			lenX = "(+ " + lenX + ")";
 
+		std::string lenName = "len_" + *it;
 		/*(assert (= const (+ sum(len_x_i)))) */
 		// constraints.push_back("(assert (< " + lenName + " 200))");
-		constraints.push_back("(assert (= " + lenVarName + " " + lenX  + "))");
-
-		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
-			/* they are internal variables */
-			defines.push_back("(declare-const " + lenVarName + " Int)");
-		}
+		constraints.push_back("(assert (= " + lenName + " " + lenX  + "))");
 	}
 }
 

@@ -4743,9 +4743,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 	__debugPrint(logFile, "                cb_final_check @ Level [%d] \n", sLevel);
 	__debugPrint(logFile, "=============================================================\n");
 #endif
-	Z3_context ctx1 = Z3_theory_get_context(t);
-	Z3_ast ctxAssign = Z3_get_context_assignment(ctx1);
-		printZ3Node(t, ctxAssign);
+
 	calculateConcatLength(t);
 
 //	displayStringSolverInformation(t);
@@ -7439,7 +7437,6 @@ void collectEqualValueInPositiveContext(
 		std::map<std::string, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	printZ3Node(t, ctxAssign);
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
 		for (int i = 0; i < argCount; i++) {
@@ -7451,7 +7448,6 @@ void collectEqualValueInPositiveContext(
 					astToString.find("(Length ") == std::string::npos && /* not length constraints */
 					astToString.find("(= ") != std::string::npos) { /* equality */
 				/* add this constraint */
-				__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, astToString.c_str());
 				if (astToString.find("(not ") == 0){
 					Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 					rewriterStrMap[node_to_string(t, boolNode)] = "false";

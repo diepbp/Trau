@@ -190,47 +190,6 @@ public:
 	}
 
 	/*
-	 * Given a flat,
-	 * generate its size constraint
-	 */
-	std::string generateFlatSize(std::pair<std::string, int> a, std::string l_r_hs = ""){
-		std::string result = "";
-		if (a.second >= 0) {
-			/* simpler version */
-			result = result + "len_" + a.first + "_" + std::to_string(a.second);
-		}
-		else {
-			/* const string */
-			assert (l_r_hs.length() > 0);
-
-			assert (constMap.find(a.first) != constMap.end());
-			result = result + "len_" + constMap[a.first] + "_" + std::to_string(std::abs(a.second));
-			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
-		}
-		return result;
-	}
-
-	/*
-	 * Given a flat,
-	 * generate its array name
-	 */
-	std::string generateFlatArray(std::pair<std::string, int> a, std::string l_r_hs = ""){
-		std::string result = "";
-		if (a.second >= 0) {
-			/* simpler version */
-			result = result + "arr_" + a.first;
-		}
-		else {
-			/* const string */
-			assert (l_r_hs.length() > 0);
-			//			result = result + "arr_" + constMap[std::make_pair(a.first, l_r_hs)];
-			result = result + "arr_" + constMap[a.first];
-			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
-		}
-		return result;
-	}
-
-	/*
 	 * (lhs)* = (rhs)* where lhs starts at posLHS
 	 */
 	std::vector<int> regex_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs) {
@@ -592,6 +551,47 @@ public:
 
 	/*
 	 * Given a flat,
+	 * generate its size constraint
+	 */
+	std::string generateFlatSize(std::pair<std::string, int> a, std::string l_r_hs = ""){
+		std::string result = "";
+		if (a.second >= 0) {
+			/* simpler version */
+			result = result + "len_" + a.first + "_" + std::to_string(a.second);
+		}
+		else {
+			/* const string */
+			assert (l_r_hs.length() > 0);
+
+			assert (constMap.find(a.first) != constMap.end());
+			result = result + "len_" + constMap[a.first] + "_" + std::to_string(std::abs(a.second));
+			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
+		}
+		return result;
+	}
+
+	/*
+	 * Given a flat,
+	 * generate its array name
+	 */
+	std::string generateFlatArray(std::pair<std::string, int> a, std::string l_r_hs = ""){
+		std::string result = "";
+		if (a.second >= 0) {
+			/* simpler version */
+			result = result + "arr_" + a.first;
+		}
+		else {
+			/* const string */
+			assert (l_r_hs.length() > 0);
+			//			result = result + "arr_" + constMap[std::make_pair(a.first, l_r_hs)];
+			result = result + "arr_" + constMap[a.first];
+			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
+		}
+		return result;
+	}
+
+	/*
+	 * Given a flat,
 	 * generate its array name
 	 */
 	std::string generateFlatArray_forComponent(std::pair<std::string, int> a, std::string l_r_hs = ""){
@@ -603,6 +603,51 @@ public:
 	/*
 	 *
 	 */
+	std::string orConstraint(std::set<std::string> possibleCases){
+		std::string result = "";
+		if (possibleCases.size() > 1) {
+			result = "(or ";
+			for (std::set<std::string>::iterator it = possibleCases.begin(); it != possibleCases.end(); ++it)
+				result = result + *it + " ";
+			result = result + ")";
+		}
+		else if (possibleCases.size() == 1){
+			result = *possibleCases.begin();
+		}
+		return result;
+	}
+
+	/*
+	 * create (and constraint01 constraint02 .. constraint0n)
+	 */
+	std::string andConstraint(std::vector<std::string> possibleCases){
+		std::string result = "";
+		if (possibleCases.size() > 1) {
+			result = "(and ";
+			for (unsigned int i = 0; i < possibleCases.size(); ++i)
+				result = result + possibleCases[i] + " ";
+			result = result + ")";
+		}
+		else if (possibleCases.size() == 1){
+			result = possibleCases[0];
+		}
+		return result;
+	}
+
+	std::string andConstraint(std::set<std::string> possibleCases){
+		std::string result = "";
+		if (possibleCases.size() > 1) {
+			result = "(and ";
+			for (std::set<std::string>::iterator it = possibleCases.begin(); it != possibleCases.end(); ++it)
+				result = result + *it + " ";
+			result = result + ")";
+		}
+		else if (possibleCases.size() == 1){
+			result = *possibleCases.begin();
+		}
+		return result;
+	}
+
 	std::string addConstraint(std::vector<std::string> elements) {
 		std::string result = "";
 		if (elements.size() > 1) {
@@ -700,6 +745,24 @@ public:
 		}
 
 		return allPossibleSplits;
+	}
+
+	/*
+	 * create (or constraint01 constraint02 .. constraint0n)
+	 */
+	std::string orConstraint(std::vector<std::string> possibleCases){
+		std::string result = "";
+		assert (possibleCases.size() > 0);
+		if (possibleCases.size() > 1) {
+			result = "(or ";
+			for (unsigned int i = 0; i < possibleCases.size(); ++i)
+				result = result + possibleCases[i] + " ";
+			result = result + ")";
+		}
+		else if (possibleCases.size() == 1){
+			result = possibleCases[0];
+		}
+		return result;
 	}
 
 	/*
