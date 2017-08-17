@@ -117,6 +117,16 @@ bool isRegexStr(std::string str);
 			std::map<std::string, int> &newVars);
 
 	/*
+	 * startswith a b
+	 * startwith "a" b
+	 * startwith a "b"
+	 */
+	void create_constraints_StartsWith(
+			std::string str00,
+			std::string str01,
+			std::vector<std::string> &constraints);
+
+	/*
 	 * define array for connected variable
 	 */
 	void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints);

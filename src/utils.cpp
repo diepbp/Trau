@@ -172,3 +172,72 @@ std::vector<std::string> collectAlternativeComponents(std::string str){
 		result.push_back(str.substr(startPos, str.length() - startPos));
 	return result;
 }
+
+/*
+ *
+ */
+std::string orConstraint(std::set<std::string> possibleCases){
+	std::string result = "";
+	if (possibleCases.size() > 1) {
+		result = "(or ";
+		for (const auto& s : possibleCases)
+			result = result + s + " ";
+		result = result + ")";
+	}
+	else if (possibleCases.size() == 1){
+		result = *possibleCases.begin();
+	}
+	return result;
+}
+
+/*
+ *
+ */
+std::string orConstraint(std::vector<std::string> possibleCases){
+	std::string result = "";
+	if (possibleCases.size() > 1) {
+		result = "(or ";
+		for (const auto& s : possibleCases)
+			result = result + s + " ";
+		result = result + ")";
+	}
+	else if (possibleCases.size() == 1){
+		result = *possibleCases.begin();
+	}
+	return result;
+}
+
+
+/*
+ * create (and constraint01 constraint02 .. constraint0n)
+ */
+std::string andConstraint(std::vector<std::string> possibleCases){
+	std::string result = "";
+	if (possibleCases.size() > 1) {
+		result = "(and ";
+		for (const auto& s : possibleCases)
+			result = result + s + " ";
+		result = result + ")";
+	}
+	else if (possibleCases.size() == 1){
+		result = possibleCases[0];
+	}
+	return result;
+}
+
+/*
+ *
+ */
+std::string andConstraint(std::set<std::string> possibleCases){
+	std::string result = "";
+	if (possibleCases.size() > 1) {
+		result = "(and ";
+		for (const auto& s : possibleCases)
+			result = result + s + " ";
+		result = result + ")";
+	}
+	else if (possibleCases.size() == 1){
+		result = *possibleCases.begin();
+	}
+	return result;
+}
