@@ -1935,21 +1935,21 @@ void Th_pop(Z3_theory t) {
 	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
 	__debugPrint(logFile, "\n*******************************************\n");
 
-	//  displayStringSolverInformation(t);
+//	displayStringSolverInformation(t);
 
 	__debugPrint(logFile, "Remove in internalVarMap\n");
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap.begin(); it != internalVarMap.end(); ++it) {
 		if (it->first.second == sLevel && it->second.name.compare(UNKNOWN_AUTOMATON) != 0) {
-			//  		printZ3Node(t, it->first.first);
-			//  		__debugPrint(logFile, "%d\n", it->first.second);
+//			printZ3Node(t, it->first.first);
+//			__debugPrint(logFile, "%d\n", it->first.second);
 			it->second.name = UNKNOWN_AUTOMATON;
 		}
 	}
 
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap_withoutCombination.begin(); it != internalVarMap_withoutCombination.end(); ++it)  {
 		if (it->first.second == sLevel && it->second.name.compare(UNKNOWN_AUTOMATON) != 0) {
-			//  		printZ3Node(t, it->first.first);
-			//  		__debugPrint(logFile, "%d\n", it->first.second);
+//			printZ3Node(t, it->first.first);
+//			__debugPrint(logFile, "%d\n", it->first.second);
 			it->second.name = UNKNOWN_AUTOMATON;
 		}
 	}
@@ -1957,9 +1957,9 @@ void Th_pop(Z3_theory t) {
 	__debugPrint(logFile, "Remove in equalMap\n");
 	for (std::map<std::pair<Z3_ast, int>, std::vector<Z3_ast>>::iterator it = equalMap.begin(); it != equalMap.end(); ++it) {
 		if (it->first.second >= sLevel && it->second.size() > 0) {
-			//  		printZ3Node(t, it->first.first);
-			//  		__debugPrint(logFile, " -- %d\n", it->first.second);
-			//  		displayListNode(t, it->second);
+//			printZ3Node(t, it->first.first);
+//			__debugPrint(logFile, " -- %d\n", it->first.second);
+//			displayListNode(t, it->second);
 
 			it->second.clear();
 		}
@@ -1968,8 +1968,8 @@ void Th_pop(Z3_theory t) {
 	__debugPrint(logFile, "Remove in length_LanguageMap\n");
 	for (std::map<std::pair<Z3_ast, int>, std::pair<int, int>>::iterator it = length_LanguageMap.begin(); it != length_LanguageMap.end(); ) {
 		if (it->first.second >= sLevel) {
-			//  		printZ3Node(t, it->first.first);
-			//  		__debugPrint(logFile, "\n");
+//			printZ3Node(t, it->first.first);
+//			__debugPrint(logFile, "\n");
 			it = length_LanguageMap.erase(it);
 		}
 		else
@@ -4745,8 +4745,6 @@ Z3_bool Th_final_check(Z3_theory t) {
 #endif
 
 	calculateConcatLength(t);
-
-//	displayStringSolverInformation(t);
 
 //	if (havingGrmConstraints == false){
 //		ourGrm.clear();

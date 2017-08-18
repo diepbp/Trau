@@ -117,6 +117,20 @@ bool isRegexStr(std::string str);
 			std::map<std::string, int> &newVars);
 
 	/*
+	 * startswith a b
+	 * startwith "a" b
+	 * startwith a "b"
+	 */
+	std::string create_constraints_StartsWith(
+			std::string str00,
+			std::string str01,
+			std::string boolValue);
+
+	/**
+	 * handle startwith constraints
+	 */
+	void handle_StartsWith(std::map<std::string, std::string> rewriterStrMap);
+	/*
 	 * define array for connected variable
 	 */
 	void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints);
@@ -250,7 +264,7 @@ bool isRegexStr(std::string str);
 	 * They are variables that are used by more than one variables
 	 */
 
-	void collectConnectedVariables();
+	void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap);
 
 	/*
 	 * Remove all equalities without connected variables and consts
@@ -342,7 +356,7 @@ bool isRegexStr(std::string str);
 	 */
 	void pthreadController();
 
-	void init();
+	void init(std::map<std::string, std::string> rewriterStrMap);
 
 	bool underapproxController(
 			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,

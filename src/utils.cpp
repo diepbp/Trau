@@ -86,8 +86,8 @@ std::string getFileNameFromFileDir(std::string fileDir){
 void displayListString(std::set<std::string> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::set<std::string>::iterator it = l.begin(); it != l.end(); ++it){
-		__debugPrint(logFile, "%s\n", it->c_str());
+	for (const auto& s : l){
+		__debugPrint(logFile, "%s\n", s.c_str());
 	}
 	__debugPrint(logFile, "\n");
 }
@@ -95,8 +95,8 @@ void displayListString(std::set<std::string> l, std::string msg) {
 void displayListString(std::map<std::string, int> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::map<std::string, int>::iterator it = l.begin(); it != l.end(); ++it){
-		__debugPrint(logFile, "%s\n", it->first.c_str());
+	for (const auto& s : l){
+		__debugPrint(logFile, "%s\n", s.first.c_str());
 	}
 	__debugPrint(logFile, "\n");
 }
@@ -105,8 +105,8 @@ void displayListString(std::map<std::string, int> l, std::string msg) {
 void displayListString(std::vector<std::string> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::vector<std::string>::iterator it = l.begin(); it != l.end(); ++it){
-		__debugPrint(logFile, "%s\n", it->c_str());
+	for (const auto& s : l){
+		__debugPrint(logFile, "%s\n", s.c_str());
 	}
 	__debugPrint(logFile, "\n");
 }
@@ -114,8 +114,8 @@ void displayListString(std::vector<std::string> l, std::string msg) {
 void displayListNumber(std::set<int> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::set<int>::iterator it = l.begin(); it != l.end(); ++it) {
-		__debugPrint(logFile, " %d,", *it);
+	for (const auto& num : l){
+		__debugPrint(logFile, " %d,", num);
 	}
 	__debugPrint(logFile, "\n");
 }
@@ -123,8 +123,8 @@ void displayListNumber(std::set<int> l, std::string msg) {
 void displayListNumber(std::vector<int> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::vector<int>::iterator it = l.begin(); it != l.end(); ++it) {
-		__debugPrint(logFile, " %d,", *it);
+	for (const auto& num : l){
+		__debugPrint(logFile, " %d,", num);
 	}
 	__debugPrint(logFile, "\n");
 }

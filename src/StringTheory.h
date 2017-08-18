@@ -734,6 +734,7 @@ void __printNode(Z3_theory t, Z3_ast node);
 void __printNodeAxiom(Z3_theory t, Z3_ast node);
 
 void display_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq01_parent, std::vector<Z3_ast> eq02, std::vector<Z3_ast> eq02_parent);
+
 void displayStringSolverInformation(Z3_theory t);
 
 void collect_from_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2, std::vector<Z3_ast>& eq01, std::vector<Z3_ast>& eq01_parent, std::vector<Z3_ast>& eq02, std::vector<Z3_ast>& eq02_parent);

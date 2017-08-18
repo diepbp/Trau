@@ -510,14 +510,36 @@ std::string generateVarLength(std::string a){
 }
 
 /*
+ * (command arg0 arg1) --> <arg0 arg1>
+ * */
+std::pair<std::string, std::string> extract_two_arguments(std::string s){
+	unsigned int pos = s.find(" ");
+
+	assert(pos > 0);
+	pos++;
+	std::string arg0 = "";
+	while (pos < s.length()){
+		if (s[pos] == ' ')
+			break;
+		arg0 = arg0 + s[pos++];
+	}
+	pos++;
+	assert(s[pos] != ' ');
+
+	std::string arg1 = s.substr(pos, s.length() - pos - 1);
+	return std::make_pair(arg0, arg1);
+}
+
+/*
  * startswith a b
  * startwith "a" b
  * startwith a "b"
  */
-void create_constraints_StartsWith(
+std::string create_constraints_StartsWith(
 		std::string str00,
 		std::string str01,
-		std::vector<std::string> &constraints){
+		std::string boolValue){
+	__debugPrint(logFile, "%d *** %s ***: StartsWith %s %s\n", __LINE__, __FUNCTION__, str00.c_str(), str01.c_str());
 	bool isConst_00 = false;
 	bool isConst_01 = false;
 	if (str00[0] == '\"' )
@@ -526,10 +548,13 @@ void create_constraints_StartsWith(
 	if (str01[0] == '\"')
 		isConst_01 = true;
 
-	assert(isConst_00 && isConst_01);
+	assert(isConst_00 || isConst_01);
 
 	std::vector<std::string> orConstraints;
 	std::vector<std::string> andConstraints;
+
+	std::string ret = "";
+
 	if (isConst_00 == true) {
 		/* (length b = 0 && ...) || length b = 1 && ...*/
 		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
@@ -544,7 +569,9 @@ void create_constraints_StartsWith(
 			orConstraints.push_back(andConstraint(andConstraints));
 			andConstraints.clear();
 		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, orConstraint(orConstraints).c_str());
+
+		ret = orConstraint(orConstraints);
+
 	}
 	else if (isConst_01){
 		/* (length a >= ... && ...) */
@@ -553,9 +580,9 @@ void create_constraints_StartsWith(
 			andConstraints.push_back("(= (select " +
 					generateVarArray(str00) + " " +
 					std::to_string(i - 1) + ") " +
-					std::to_string(str00[i]) + ")");
+					std::to_string(str01[i]) + ")");
 		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
+		ret = andConstraint(andConstraints);
 	}
 	else {
 		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
@@ -573,7 +600,125 @@ void create_constraints_StartsWith(
 			orConstraints.push_back(andConstraint(andConstraints));
 			andConstraints.clear();
 		}
-		__debugPrint(logFile, "%d *** %s ***: %s \n", __LINE__, __FUNCTION__, orConstraint(orConstraints).c_str());
+		ret = orConstraint(orConstraints);
+	}
+
+	if (boolValue.compare("false") == 0)
+		ret = "(not " + ret + ")";
+	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
+	return ret;
+}
+
+/*
+ * endswith a b
+ * endswith "a" b
+ * endswith a "b"
+ */
+std::string create_constraints_EndsWith(
+		std::string str00,
+		std::string str01,
+		std::string boolValue){
+	__debugPrint(logFile, "%d *** %s ***: EndsWith %s %s\n", __LINE__, __FUNCTION__, str00.c_str(), str01.c_str());
+	bool isConst_00 = false;
+	bool isConst_01 = false;
+	if (str00[0] == '\"' )
+		isConst_00 = true;
+
+	if (str01[0] == '\"')
+		isConst_01 = true;
+
+	assert(isConst_00 || isConst_01);
+
+	std::vector<std::string> orConstraints;
+	std::vector<std::string> andConstraints;
+
+	std::string ret = "";
+
+	if (isConst_00 == true) {
+		/* endswith "a" b */
+		/* (length b = 0 && ...) || length b = 1 && ...*/
+		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
+			/* length = j*/
+			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			for (unsigned int i = str00.length() - 1 - j; i < str00.length() - 1; ++i) {
+				andConstraints.push_back("(= (select " +
+						generateVarArray(str01) + " " +
+						std::to_string(i - str00.length() + 1 + j) + ") " +
+						std::to_string(str00[i]) + ")");
+			}
+			orConstraints.push_back(andConstraint(andConstraints));
+			andConstraints.clear();
+		}
+
+		ret = orConstraint(orConstraints);
+
+	}
+	else if (isConst_01){
+		/* endswith a "b" */
+		/* (length a >= ... && ...) */
+		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
+		for (unsigned int j = std::to_string(str01.length() - 2); j < 50; ++j) {
+			andConstraints.push_back("(= " + generateVarLength(str00) + " " + std::to_string(j) + ")");
+					/* length a = j*/
+			for (unsigned int i = 1; i < str01.length() - 1; ++i) {
+				andConstraints.push_back("(= (select " +
+						generateVarArray(str00) + " " +
+						std::to_string(i - 1) + ") " +
+						std::to_string(str01[i]) + ")");
+			}
+		}
+		ret = andConstraint(andConstraints);
+	}
+	else {
+		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
+		for (unsigned int j = 0; j < 50; ++j) {
+			/* length b = j*/
+			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			for (unsigned int i = 0; i < j; ++i) {
+				andConstraints.push_back("(= (select " +
+												generateVarArray(str00) + " " +
+												std::to_string(i) + ") " +
+											"(= (select " +
+												generateVarArray(str01) + " " +
+												std::to_string(i) + ") " + ")");
+			}
+			orConstraints.push_back(andConstraint(andConstraints));
+			andConstraints.clear();
+		}
+		ret = orConstraint(orConstraints);
+	}
+
+	if (boolValue.compare("false") == 0)
+		ret = "(not " + ret + ")";
+	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
+	return ret;
+}
+
+/**
+ * handle startswith constraints
+ */
+void handle_StartsWith(
+		std::map<std::string, std::string> rewriterStrMap){
+
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(StartsWith ") != std::string::npos){
+			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_StartsWith(tmpPair.first, tmpPair.second, s.second)});
+		}
+	}
+}
+
+/**
+ * handle endswith constraints
+ */
+void handle_EndsWith(
+		std::map<std::string, std::string> rewriterStrMap){
+
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(EndsWith ") != std::string::npos){
+			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_EndsWith(tmpPair.first, tmpPair.second, s.second)});
+		}
 	}
 }
 
@@ -581,9 +726,8 @@ void create_constraints_StartsWith(
  * define array for connected variable
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
-
-	for (std::set<std::string>::iterator it = connectedVariables.begin(); it != connectedVariables.end(); ++it){
-		defines.push_back("(declare-const arr_" + *it + " (Array Int Int))");
+	for (const auto& s : connectedVariables){
+		defines.push_back("(declare-const arr_" + s + " (Array Int Int))");
 	}
 }
 
@@ -690,31 +834,30 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
  *
  */
 void create_constraints_strVar(std::vector<std::string> &defines, std::vector<std::string> &constraints){
-	for (std::set<std::string>::iterator it = allVariables.begin(); it != allVariables.end(); ++it){
+	for (const auto& var: allVariables){
 
 		/* len_x = sum(len_x_i)*/
 		std::string lenX = "";
-		std::string varName = "len_" + *it + "_";
+		std::string lenVarName = generateVarLength(var);
 		for (int i = 0; i < QMAX; ++i) {
-			defines.push_back("(declare-const len_" + *it + "_" + std::to_string(i) + " Int)");
-			constraints.push_back("(assert (>= len_" + *it + "_" + std::to_string(i) + " 0))");
-			constraints.push_back("(assert (< len_" + *it + "_" + std::to_string(i) + " 100))");
-			lenX = lenX + varName + std::to_string(i) + " ";
-		}
-
-		if (it->find("__flat_") != std::string::npos || it->substr(0, 6).compare("$$_str") == 0) {
-			/* they are internal variables */
-			defines.push_back("(declare-const len_" + *it + " Int)");
+			defines.push_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
+			constraints.push_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
+			constraints.push_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 100))");
+			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
 		}
 
 		/* (+ sum(len_x_i) */
 		if (QMAX > 1)
 			lenX = "(+ " + lenX + ")";
 
-		std::string lenName = "len_" + *it;
 		/*(assert (= const (+ sum(len_x_i)))) */
 		// constraints.push_back("(assert (< " + lenName + " 200))");
-		constraints.push_back("(assert (= " + lenName + " " + lenX  + "))");
+		constraints.push_back("(assert (= " + lenVarName + " " + lenX  + "))");
+
+		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
+			/* they are internal variables */
+			defines.push_back("(declare-const " + lenVarName + " Int)");
+		}
 	}
 }
 
@@ -863,11 +1006,7 @@ void writeOutput02(std::string outFile){
 			out << "(assert " << global_smtStatements[i][0] << " )\n";
 		}
 		else {
-			out << "(assert (or \n";
-			for (unsigned int j = 0; j < global_smtStatements[i].size(); ++j)
-				out << global_smtStatements[i][j] << std::endl;
-			out<< ")) \n";
-
+			out << "(assert " << orConstraint(global_smtStatements[i]) << " )\n";
 		}
 		out.flush();
 	}
@@ -1440,9 +1579,11 @@ void extractNotConstraints(){
  * They are variables that are used by more than one variables
  */
 
-void collectConnectedVariables(){
+void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap){
 	std::map<std::string, std::string> usedComponents;
 	std::set<std::string> connectedVarSet;
+
+	/* collect from equality map */
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
 		if (it->second.size() <= 1)
 			continue;
@@ -1469,14 +1610,34 @@ void collectConnectedVariables(){
 
 	}
 
+	/* from rewriterMap */
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(StartsWith ") != std::string::npos ||
+				s.first.find("(EndsWith ") != std::string::npos ||
+				s.first.find("(Replace ") != std::string::npos ||
+				s.first.find("(ReplaceAll ") != std::string::npos){
+			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
+			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.c_str(), tmpPair.first.c_str(), tmpPair.second.c_str());
+			/* add all of variables to the connected var set*/
+			if (tmpPair.first[0] != '\"') {
+				connectedVarSet.emplace(tmpPair.first);
+			}
+			if (tmpPair.second[0] != '\"') {
+				connectedVarSet.emplace(tmpPair.second);
+			}
+		}
+	}
+
 	connectedVariables.insert(connectedVarSet.begin(), connectedVarSet.end());
+
 #ifdef PRINTTEST_UNDERAPPROX
 	/* print test connected var */
 	if (connectedVariables.size() > 0) {
-		__debugPrint(logFile, "%d Connected Variables:\n", __LINE__);
+		__debugPrint(logFile, "%d *** %s ***:\n", __LINE__, __FUNCTION__);
 
-		for (std::set<std::string>::iterator it = connectedVariables.begin(); it != connectedVariables.end(); ++it){
-			__debugPrint(logFile, "%s at %s\n", it->c_str(), usedComponents[*it].c_str());
+		for (const auto& s : connectedVariables){
+			__debugPrint(logFile, "%s\n", s.c_str());
+//			__debugPrint(logFile, "%s at %s\n", s.c_str(), usedComponents[s].c_str());
 		}
 		__debugPrint(logFile, "\n");
 	}
@@ -2202,9 +2363,9 @@ void pthreadController(){
 	//	pthread_exit(NULL);
 }
 
-void init(){
+void init(std::map<std::string, std::string> rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
-	collectConnectedVariables();
+	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
 	sumConstString();
 	createConstMap();
@@ -2236,7 +2397,9 @@ bool underapproxController(
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
 
-	init();
+	init(rewriterStrMap);
+
+	handle_StartsWith(rewriterStrMap);
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);
