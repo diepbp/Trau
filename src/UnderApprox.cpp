@@ -657,35 +657,18 @@ std::string create_constraints_EndsWith(
 		/* endswith a "b" */
 		/* (length a >= ... && ...) */
 		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
-		for (unsigned int j = std::to_string(str01.length() - 2); j < 50; ++j) {
-			andConstraints.push_back("(= " + generateVarLength(str00) + " " + std::to_string(j) + ")");
-					/* length a = j*/
-			for (unsigned int i = 1; i < str01.length() - 1; ++i) {
-				andConstraints.push_back("(= (select " +
-						generateVarArray(str00) + " " +
-						std::to_string(i - 1) + ") " +
-						std::to_string(str01[i]) + ")");
-			}
+		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
+			andConstraints.push_back("(= (select " +
+					generateVarArray(str00) + " " +
+					"(+ (- " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ") " + std::to_string(i - 1) + ")) " +
+					std::to_string(str01[i]) + ")");
 		}
+
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
-		for (unsigned int j = 0; j < 50; ++j) {
-			/* length b = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (unsigned int i = 0; i < j; ++i) {
-				andConstraints.push_back("(= (select " +
-												generateVarArray(str00) + " " +
-												std::to_string(i) + ") " +
-											"(= (select " +
-												generateVarArray(str01) + " " +
-												std::to_string(i) + ") " + ")");
-			}
-			orConstraints.push_back(andConstraint(andConstraints));
-			andConstraints.clear();
-		}
-		ret = orConstraint(orConstraints);
+		/* do not handle this case*/
+		assert(false);
 	}
 
 	if (boolValue.compare("false") == 0)
@@ -2400,6 +2383,7 @@ bool underapproxController(
 	init(rewriterStrMap);
 
 	handle_StartsWith(rewriterStrMap);
+	handle_EndsWith(rewriterStrMap);
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);

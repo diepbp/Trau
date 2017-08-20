@@ -126,10 +126,27 @@ bool isRegexStr(std::string str);
 			std::string str01,
 			std::string boolValue);
 
+	/*
+	 * endswith a b
+	 * endswith "a" b
+	 * endswith a "b"
+	 */
+	std::string create_constraints_EndsWith(
+			std::string str00,
+			std::string str01,
+			std::string boolValue);
+
 	/**
 	 * handle startwith constraints
 	 */
 	void handle_StartsWith(std::map<std::string, std::string> rewriterStrMap);
+
+	/**
+	 * handle endswith constraints
+	 */
+	void handle_EndsWith(
+			std::map<std::string, std::string> rewriterStrMap);
+
 	/*
 	 * define array for connected variable
 	 */
