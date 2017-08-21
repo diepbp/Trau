@@ -2360,7 +2360,7 @@ bool underapproxController(
 		std::map<std::string, std::string> rewriterStrMap,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
-	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
+	// std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
 	for (unsigned int i = 0; i < test.size(); ++i)
 		displayListString(test[i], " parse regex ");
 
