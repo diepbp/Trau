@@ -71,6 +71,10 @@ struct TokenElement{
 extern FILE * logFile;
 extern FILE * logAxiom;
 
+std::string longestCommonTail(std::string a, std::string b);
+
+std::string longestCommonHead(std::string a, std::string b);
+
 int lcd(int x, int y);
 
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);

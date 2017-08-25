@@ -220,6 +220,16 @@ void Th_delete(Z3_theory t);
 std::string convertInputTrickyConstStr(std::string inputStr);
 
 /*
+ * startswith A, "abc" --> contains A, "c"
+ */
+void addStartsWithRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
+
+/*
+ *
+ */
+Z3_ast registerStartsWith(Z3_theory t, Z3_ast str, Z3_ast subStr);
+
+/*
  * endswith A, "abc" --> contains A, "c"
  */
 void addEndsWithRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
@@ -273,6 +283,11 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
  *
  */
 Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+/*
+ *
+ */
+Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
 
 /*
  *

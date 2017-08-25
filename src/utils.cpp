@@ -6,6 +6,36 @@
  */
 #include "utils.h"
 
+std::string longestCommonTail(std::string a, std::string b){
+	unsigned int posA = a.length() - 1;
+	unsigned int posB = b.length() - 1;
+	std::string ret = "";
+	while(posA >= 0 && posB >= 0){
+		if (a[posA] == b[posB]){
+			ret = a[posA] + ret;
+			posA--;
+			posB--;
+		}
+		else break;
+	}
+	return ret;
+}
+
+std::string longestCommonHead(std::string a, std::string b){
+	unsigned int posA = 0;
+	unsigned int posB = 0;
+	std::string ret = "";
+	while(posA < a.length() && posB < b.length()){
+		if (a[posA] == b[posB]){
+			ret = ret + a[posA];
+			posA++;
+			posB++;
+		}
+		else break;
+	}
+	return ret;
+}
+
 int lcd(int x, int y) {
 	int x1 = x;
 	int y1 = y;
