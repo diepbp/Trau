@@ -684,6 +684,14 @@ void collectEqualValueInPositiveContext(
 void collectStartsWithValueInPositiveContext (
 	Z3_theory t,
 		std::map<std::string, std::string> &rewriterStrMap);
+
+/*
+ *
+ */
+void collectReplaceValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
+
 /*
  * Decide whether two n1 and n2 are ALREADY in a same eq class
  * Or n1 and n2 are ALREADY treated equal by the core
