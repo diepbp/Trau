@@ -53,6 +53,12 @@ void updateStartsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap);
 
 /*
+ * = x (Replace ...) --> true
+ */
+void updateReplace(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap);
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::string &s);

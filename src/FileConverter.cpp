@@ -233,6 +233,30 @@ void updateStartsWith(std::string &s,
 }
 
 /*
+ * = x (Replace ...) --> true
+ */
+void updateReplace(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap){
+	std::size_t found = s.find("(Replace ");
+	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+	while (found != std::string::npos){
+		while (found >= 0) {
+			if (s[found] == '(' && s[found + 1] == '='){
+				unsigned int pos = findCorrespondRightParentheses(found, s);
+
+				std::string substr = s.substr(found, pos - found + 1);
+				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+				s = s.replace(found, substr.length(), "true");
+				break;
+			}
+			else
+				found = found - 1;
+		}
+		found = s.find("(Replace ");
+	}
+}
+
+/*
  * (Substring a b c) --> c
  */
 void updateSubstring(std::string &s) {
@@ -1124,6 +1148,7 @@ void customizeLine_ToCreateLengthLine(
 		updateIndexOf(newStr, rewriterStrMap);
 		updateEndsWith(newStr, rewriterStrMap);
 		updateStartsWith(newStr, rewriterStrMap);
+		updateReplace(newStr, rewriterStrMap);
 
 
 		updateConst(newStr, constList); /* "abcdef" --> 6 */

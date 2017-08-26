@@ -115,6 +115,15 @@ bool isRegexStr(std::string str);
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements,
 			std::map<std::string, int> &newVars);
+	/*
+	 * (command arg0 arg1) --> <arg0 arg1>
+	 * */
+	std::pair<std::string, std::string> extract_two_arguments(std::string s);
+
+	/*
+	 * (command arg0 arg1 arg2) --> std::vector
+	 * */
+	std::vector<std::string> extract_three_arguments(std::string s);
 
 	/*
 	 * startswith a b
@@ -136,6 +145,13 @@ bool isRegexStr(std::string str);
 			std::string str01,
 			std::string boolValue);
 
+	/*
+		 * replace a b c
+		 * replace "a" b c
+		 * replace a "b" c
+		 */
+	void create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue);
+
 	/**
 	 * handle startwith constraints
 	 */
@@ -146,6 +162,11 @@ bool isRegexStr(std::string str);
 	 */
 	void handle_EndsWith(
 			std::map<std::string, std::string> rewriterStrMap);
+
+	/*
+	 * handle replace constraints
+	 */
+	void handle_Replace(std::map<std::string, std::string> rewriterStrMap);
 
 	/*
 	 * define array for connected variable

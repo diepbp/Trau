@@ -511,6 +511,7 @@ std::string generateVarLength(std::string a){
 
 /*
  * (command arg0 arg1) --> <arg0 arg1>
+ * TODO extract_two_arguments
  * */
 std::pair<std::string, std::string> extract_two_arguments(std::string s){
 	unsigned int pos = s.find(" ");
@@ -528,6 +529,36 @@ std::pair<std::string, std::string> extract_two_arguments(std::string s){
 
 	std::string arg1 = s.substr(pos, s.length() - pos - 1);
 	return std::make_pair(arg0, arg1);
+}
+
+/*
+ * (command arg0 arg1 arg2) --> std::vector
+ * TODO extract_three_arguments
+ * */
+std::vector<std::string> extract_three_arguments(std::string s){
+	unsigned int pos = s.find(" ");
+
+	assert(pos > 0);
+	pos++;
+	std::string arg0 = "", arg1 = "";
+	while (pos < s.length()){
+		if (s[pos] == ' ')
+			break;
+		arg0 = arg0 + s[pos++];
+	}
+	pos++;
+	assert(s[pos] != ' ');
+
+	while (pos < s.length()){
+		if (s[pos] == ' ')
+			break;
+		arg1 = arg1 + s[pos++];
+	}
+	pos++;
+	assert(s[pos] != ' ');
+
+	std::string arg2 = s.substr(pos, s.length() - pos - 1);
+	return {arg0, arg1, arg2};
 }
 
 /*
@@ -677,6 +708,43 @@ std::string create_constraints_EndsWith(
 	return ret;
 }
 
+/*
+ * replace a b c
+ * replace "a" b c
+ * replace a "b" c
+ */
+void create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue){
+	bool isConst_00 = false;
+	bool isConst_01 = false;
+	bool isConst_02 = false;
+	if (args[0][0] == '\"' )
+		isConst_00 = true;
+
+	if (args[1][0] == '\"')
+		isConst_01 = true;
+
+	if (args[2][0] == '\"')
+		isConst_02 = true;
+
+	/* do not replace */
+	if (boolValue.compare("false") == 0){
+		/* new value = old value = args[0] */
+		/* len = len && value = value */
+		std::vector<std::string> andConstraints;
+		andConstraints.push_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
+		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
+				connectedVariables.find(lhs) != connectedVariables.end()){
+			// TODO replace constraints: two connected variables
+		}
+		return;
+	}
+
+	/* */
+	if (isConst_01) {
+
+	}
+}
+
 /**
  * handle startswith constraints
  */
@@ -701,6 +769,19 @@ void handle_EndsWith(
 		if (s.first.find("(EndsWith ") != std::string::npos){
 			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
 			global_smtStatements.push_back({create_constraints_EndsWith(tmpPair.first, tmpPair.second, s.second)});
+		}
+	}
+}
+
+/*
+ * handle replace constraints
+ * TODO handle_Replace
+ */
+void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(Replace ") != std::string::npos){
+			std::vector<std::string> args = extract_three_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
 		}
 	}
 }
@@ -2384,6 +2465,7 @@ bool underapproxController(
 
 	handle_StartsWith(rewriterStrMap);
 	handle_EndsWith(rewriterStrMap);
+	handle_Replace(rewriterStrMap);
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);
