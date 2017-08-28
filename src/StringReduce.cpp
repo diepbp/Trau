@@ -231,7 +231,10 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 			node03 = Z3_ast_to_string(ctx, args[2]);
 	}
 
-	if (name == td->LastIndexof)
+
+	if (name == td->Contains)
+		return "(Contains " + node01 + " " + node02 + ")";
+	else if (name == td->LastIndexof)
 		return "(LastIndexof " + node01 + " " + node02 + ")";
 	else if (name == td->Indexof)
 		return "(Indexof " + node01 + " " + node02 + ")";

@@ -144,17 +144,15 @@ void updateRegexIn(std::string &s){
 /*
  * (Contains v1 v2) --> TRUE || FALSE
  */
-void updateContain(std::string &s, std::map<std::string, bool> containStrMap){
+void updateContain(std::string &s, std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Contains ");
 	while (found != std::string::npos) {
 		unsigned int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		if (containStrMap[substr] == true)
-			s = s.replace(found, substr.length(), "true");
-		else
-			s = s.replace(found, substr.length(), "false");
+
+		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(Contains ");
 	}
@@ -908,7 +906,6 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
-		std::map<std::string, bool> containStrMap,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
@@ -1143,7 +1140,7 @@ void customizeLine_ToCreateLengthLine(
 
 		updateImplies(newStr);
 		updateRegexIn(newStr);
-		updateContain(newStr, containStrMap);
+		updateContain(newStr, rewriterStrMap);
 		updateLastIndexOf(newStr, rewriterStrMap);
 		updateIndexOf(newStr, rewriterStrMap);
 		updateEndsWith(newStr, rewriterStrMap);
@@ -1402,7 +1399,6 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
-		std::map<std::string, bool> containStrMap,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
@@ -1427,7 +1423,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		}
 	}
 

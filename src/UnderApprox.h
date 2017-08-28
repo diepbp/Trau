@@ -398,7 +398,6 @@ bool isRegexStr(std::string str);
 
 	bool underapproxController(
 			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-			std::map<std::string, bool> _containStrMap,
 			std::map<std::string, std::string> rewriterStrMap,
 			std::map<std::string, int> _currentLength,
 			std::string fileDir);

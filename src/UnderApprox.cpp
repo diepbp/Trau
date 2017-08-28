@@ -781,7 +781,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.find("(Replace ") != std::string::npos){
 			std::vector<std::string> args = extract_three_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
+//			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
 		}
 	}
 }
@@ -2437,7 +2437,6 @@ void init(std::map<std::string, std::string> rewriterStrMap){
 
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-		std::map<std::string, bool> containStrMap,
 		std::map<std::string, std::string> rewriterStrMap,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
@@ -2489,7 +2488,7 @@ bool underapproxController(
 	bool result = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		convertSMTFileToLengthFile(NONGRM, true, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		if (trivialUnsat) {
 			printf("%d false \n", __LINE__);
 			return false;
@@ -2500,7 +2499,7 @@ bool underapproxController(
 		bool val = Z3_run(_equalMap, false);
 		if (val == false){
 			regexCnt = 0;
-			convertSMTFileToLengthFile(NONGRM, false, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 			if (trivialUnsat) {
 				printf("%d false \n", __LINE__);
 				return false;
@@ -2510,7 +2509,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		convertSMTFileToLengthFile(NONGRM, false, containStrMap, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf("%d false \n", __LINE__);

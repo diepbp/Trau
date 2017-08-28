@@ -132,7 +132,6 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
-		std::map<std::string, bool> containStrMap,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
@@ -181,7 +180,6 @@ void rewriteGRM_toNewFile(
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
-		std::map<std::string, bool> containStrMap,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,

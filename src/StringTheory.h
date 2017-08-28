@@ -220,6 +220,11 @@ void Th_delete(Z3_theory t);
 std::string convertInputTrickyConstStr(std::string inputStr);
 
 /*
+ * convert a node to string
+ */
+std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name);
+
+/*
  * startswith A, "abc" --> contains A, "c"
  */
 void addStartsWithRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
@@ -390,12 +395,6 @@ bool collectBestDomain(std::vector<Z3_ast> eq_nodes, std::pair<int, int> &domain
 
 void handleArithmetic(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 int calculateAutomatonSize(Z3_theory t, Z3_ast node);
-void checkConcatLenInEqc(Z3_theory t, Z3_ast n);
-int inferLenConcat(Z3_theory t, Z3_ast n);
-int haveEQLength(Z3_theory t, Z3_ast n1, Z3_ast n2);
-void strEqLengthAxiom(Z3_theory t, Z3_ast varAst, Z3_ast strAst, int line);
-
-bool checkLengthConsistency(Z3_theory t, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq02);
 
 /*
  * a contains "xyz" && a = "123xyz" --> true
@@ -649,7 +648,9 @@ void classifyAstByTypeInPositiveContext(Z3_theory t, Z3_ast node, std::map<Z3_as
 /*
  *
  */
-std::map<std::string, bool> collectContainValueInPositiveContext(Z3_theory t);
+void collectContainValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap);
 
 /*
  *
