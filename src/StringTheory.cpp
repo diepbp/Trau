@@ -2995,7 +2995,6 @@ void add_endsWith_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 				std::find(eq01.begin(), eq01.end(), it->first.first) != eq01.end()){
 
 			std::string firstEndsWith = "";
-			__debugPrint(logFile, "%d 1st node: %s\n", __LINE__, Z3_ast_to_string(ctx, it->first.second));
 			if (isConstStr(t, it->first.second))
 				firstEndsWith = getConstStrValue(t, it->first.second);
 			else
