@@ -42,6 +42,7 @@
 #define QMAX 2 // number of flats
 #define QCONSTMAX 2 // number of flats for const
 #define SPLIT_UNDER_BOUND 3
+#define CONNECTSIZE 50
 
 #define Z3_PATH "z3 "
 #define S3_PATH "fat/run.py "

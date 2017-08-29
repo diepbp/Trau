@@ -44,6 +44,11 @@ static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 
 static int noFlatVariables = 0;
 
+/*
+ * get value from eq map
+ */
+std::string getPossibleValue(std::string s);
+
 void updatePossibleArrangements(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements,
@@ -151,6 +156,17 @@ bool isRegexStr(std::string str);
 		 * replace a "b" c
 		 */
 	void create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue);
+
+	/*
+	 *
+	 */
+	void create_constraints_NOTContain(std::string var, std::string value);
+
+	/*
+	 *
+	 */
+	void handle_NOTContains(
+			std::map<std::string, std::string> rewriterStrMap);
 
 	/**
 	 * handle startwith constraints
@@ -393,6 +409,11 @@ bool isRegexStr(std::string str);
 	 * Pthread Caller
 	 */
 	void pthreadController();
+
+	/*
+	 *
+	 */
+	void reset();
 
 	void init(std::map<std::string, std::string> rewriterStrMap);
 

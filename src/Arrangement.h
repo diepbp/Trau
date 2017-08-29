@@ -19,8 +19,6 @@
 #define REGEX_CODE -100
 #define MINUSZERO 999
 
-#define CONNECTSIZE 50
-
 class Arrangment{
 public:
 

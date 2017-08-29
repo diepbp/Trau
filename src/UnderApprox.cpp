@@ -16,6 +16,26 @@
 
 bool trivialUnsat = false;
 
+/*
+ * get value from eq map
+ */
+std::string getPossibleValue(std::string s){
+	if (s[0] == '\"'){
+		return s;
+	}
+	else {
+		if (equalitiesMap.find(s) != equalitiesMap.end())
+			for (const auto& value : equalitiesMap[s]){
+				if (value.size() == 1)
+					if (value[0][0] == '\"')
+						return value[0];
+			}
+		else
+			return "!FoUnD";
+	}
+	return "!FoUnD";
+}
+
 void updatePossibleArrangements(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements,
@@ -512,6 +532,7 @@ std::string generateVarLength(std::string a){
 /*
  * (command arg0 arg1) --> <arg0 arg1>
  * TODO extract_two_arguments
+ * what if string has space characters
  * */
 std::pair<std::string, std::string> extract_two_arguments(std::string s){
 	unsigned int pos = s.find(" ");
@@ -534,6 +555,7 @@ std::pair<std::string, std::string> extract_two_arguments(std::string s){
 /*
  * (command arg0 arg1 arg2) --> std::vector
  * TODO extract_three_arguments
+ * what if string has space characters
  * */
 std::vector<std::string> extract_three_arguments(std::string s){
 	unsigned int pos = s.find(" ");
@@ -617,7 +639,7 @@ std::string create_constraints_StartsWith(
 	}
 	else {
 		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
-		for (unsigned int j = 0; j < 50; ++j) {
+		for (unsigned int j = 0; j < CONNECTSIZE; ++j) {
 			/* length b = j*/
 			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (unsigned int i = 0; i < j; ++i) {
@@ -745,6 +767,77 @@ void create_constraints_Replace(std::string lhs, std::vector<std::string> args, 
 	}
 }
 
+/*
+ *
+ */
+void create_constraints_NOTContain(std::string var, std::string value){
+	std::string lenName = generateVarLength(var);
+	std::string arrName = generateVarArray(var);
+
+	allVariables.emplace(var);
+
+	std::vector<std::string> andConstraints;
+	/*
+	 * and (or ( | x | < 5 ; x_5 != .. ; x_4 != .. ))
+	 * 		or ( | x | < 4 ; x_4 != .. ; x_3 != .. ))
+	 * 		or ( | x | < 3 ; x_3 != .. ; x_2 != .. ))
+	 * 		..
+	 * )
+	 * */
+	for (unsigned int i = value.length() - 2; i < CONNECTSIZE; ++i){
+		std::vector<std::string> tmp;
+		tmp.push_back("(< " + lenName + " " + std::to_string(i) + " )");
+
+		for (unsigned int k = 0; k < value.length() - 2; ++k) {
+			unsigned int pos = k + i - value.length() + 2;
+			tmp.push_back("(not (= (select " + arrName + " " + std::to_string(pos) + ") " + std::to_string(value[k + 1]) + "))");
+		}
+		andConstraints.push_back(orConstraint(tmp));
+	}
+	global_smtStatements.push_back({andConstraint(andConstraints)});
+	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
+}
+
+/*
+ *
+ */
+void handle_NOTContains(
+		std::map<std::string, std::string> rewriterStrMap){
+	std::map<std::pair<std::string, std::string>, bool> done;
+	for (const auto& element : rewriterStrMap){
+		if (element.first.find("(Contains ") != std::string::npos){
+			if (element.second.compare("false") == 0){
+				std::pair<std::string, std::string> args = extract_two_arguments(element.first);
+				if (args.first.find("(Concat ") != std::string::npos ||
+						args.second.find("(Concat ") != std::string::npos ||
+						args.second.find("(Automata") != std::string::npos)
+					continue;
+				std::string value02 = getPossibleValue(args.second);
+				std::string value01 = getPossibleValue(args.first);
+				if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") == 0 &&
+						done.find(std::make_pair(args.first, value02)) == done.end()) {
+					create_constraints_NOTContain(args.first, value02);
+					done[std::make_pair(args.first, value02)] = true;
+				}
+				if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
+										done.find(std::make_pair(value01, args.second)) == done.end()) {
+					// TODO handle_NOTContains
+				}
+				else {
+					// not handle this case
+				}
+			}
+		}
+	}
+}
+
+/*
+ *
+ */
+void handle_NOTEqual(
+		std::map<std::string, std::string> rewriterStrMap){
+
+}
 /**
  * handle startswith constraints
  */
@@ -1048,13 +1141,13 @@ void writeOutput02(std::string outFile){
 	}
 
 	/* copy declare-const from smt file */
-	for (unsigned int i = 0 ; i < smtVarDefinition.size(); ++i) {
-		out << smtVarDefinition[i] << std::endl;
+	for (const auto& s : smtVarDefinition) {
+		out << s << std::endl;
 		out.flush();
 	}
 
-	for (unsigned int i = 0 ; i < constraints.size(); ++i) {
-		out << constraints[i] << std::endl;
+	for (const auto& s : constraints) {
+		out << s << std::endl;
 		out.flush();
 	}
 
@@ -1065,12 +1158,12 @@ void writeOutput02(std::string outFile){
 	}
 
 	/* assertions for flat automata*/
-	for (unsigned int i = 0 ; i < global_smtStatements.size(); ++i){
-		if (global_smtStatements[i].size() == 1) {
-			out << "(assert " << global_smtStatements[i][0] << " )\n";
+	for (const auto& s : global_smtStatements){
+		if (s.size() == 1) {
+			out << "(assert " << s[0] << " )\n";
 		}
 		else {
-			out << "(assert " << orConstraint(global_smtStatements[i]) << " )\n";
+			out << "(assert " << orConstraint(s) << " )\n";
 		}
 		out.flush();
 	}
@@ -1679,8 +1772,13 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 		if (s.first.find("(StartsWith ") != std::string::npos ||
 				s.first.find("(EndsWith ") != std::string::npos ||
 				s.first.find("(Replace ") != std::string::npos ||
-				s.first.find("(ReplaceAll ") != std::string::npos){
+				s.first.find("(ReplaceAll ") != std::string::npos ||
+				(s.first.find("(Contains ") != std::string::npos && s.second.compare("false") == 0)){
 			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
+			if (tmpPair.first.find("(Concat ") != std::string::npos ||
+					tmpPair.second.find("(Concat ") != std::string::npos ||
+					tmpPair.second.find("(Automata") != std::string::npos)
+				continue;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.c_str(), tmpPair.first.c_str(), tmpPair.second.c_str());
 			/* add all of variables to the connected var set*/
 			if (tmpPair.first[0] != '\"') {
@@ -2427,6 +2525,18 @@ void pthreadController(){
 	//	pthread_exit(NULL);
 }
 
+/*
+ *
+ */
+void reset(){
+	notConstraints.clear();
+	smtLenConstraints.clear();
+	smtVarDefinition.clear();
+	global_smtStatements.clear();
+}
+/*
+ *
+ */
 void init(std::map<std::string, std::string> rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
 	collectConnectedVariables(rewriterStrMap);
@@ -2455,13 +2565,10 @@ bool underapproxController(
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
 
-	notConstraints.clear();
-	smtLenConstraints.clear();
-	smtVarDefinition.clear();
-	global_smtStatements.clear();
-
+	reset();
 	init(rewriterStrMap);
 
+	handle_NOTContains(rewriterStrMap);
 	handle_StartsWith(rewriterStrMap);
 	handle_EndsWith(rewriterStrMap);
 	handle_Replace(rewriterStrMap);

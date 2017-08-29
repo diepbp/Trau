@@ -10,6 +10,7 @@
 
 #include "UnderApprox.h"
 #include "regex.h"
+#include "utils.h"
 
 #define ARITH 0
 //#define PARIKH 1

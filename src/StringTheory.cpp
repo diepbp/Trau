@@ -844,8 +844,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		__debugPrint(logFile, ") ==> ");
 		printZ3Node(t, tmpRes);
 		__debugPrint(logFile, "\n");
-		if( otherAssert != NULL )
-		{
+		if( otherAssert != NULL ){
 			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
 			printZ3Node(t, otherAssert);
 			__debugPrint(logFile, "\n");
@@ -4387,6 +4386,7 @@ void Th_new_assignment(Z3_theory t, Z3_ast n, Z3_bool v) {
  * Compare two vectors of AST
  */
 bool isEqualVector(std::vector<Z3_ast> a, std::vector<Z3_ast> b) {
+
 	if (a.size() != b.size())
 		return false;
 	for (unsigned int i = 0; i < a.size(); ++i) {
