@@ -716,29 +716,29 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 	Z3_ast ts1 = mk_internal_string_var(t);
 	Z3_ast ts2 = mk_internal_string_var(t);
 
-	Z3_ast ts0ContainsTs1 = registerContain(t, args[0], ts1);
+//	Z3_ast ts0ContainsTs1 = registerContain(t, args[0], ts1);
 
 	bool update;
 
 	int value_prefix = getConstIntValue(t, args[1]);
 
 	if (value_prefix != 0 ) {
-		Z3_ast and_item[4];
-		and_item[0] = ts0ContainsTs1;
-		and_item[1] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts0, mk_concat(t, ts1, ts2, update), update));
-		and_item[2] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
-		and_item[3] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
-
-		breakdownAssert = Z3_mk_and(ctx, 4, and_item);
-	}
-	else {
-		// substring from 0
 		Z3_ast and_item[3];
-		and_item[0] = ts0ContainsTs1;
-		and_item[1] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
+//		and_item[0] = ts0ContainsTs1;
+		and_item[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts0, mk_concat(t, ts1, ts2, update), update));
+		and_item[1] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
 		and_item[2] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
 
 		breakdownAssert = Z3_mk_and(ctx, 3, and_item);
+	}
+	else {
+		// substring from 0
+		Z3_ast and_item[2];
+//		and_item[0] = ts0ContainsTs1;
+		and_item[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
+		and_item[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
+
+		breakdownAssert = Z3_mk_and(ctx, 2, and_item);
 	}
 	return ts1;
 }
