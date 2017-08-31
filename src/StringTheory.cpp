@@ -2102,9 +2102,9 @@ void Th_push(Z3_theory t) {
 //
 //	std::map<std::string, std::string> rewriterStrMap;
 //	collectEndsWithValueInPositiveContext(t, rewriterStrMap);
-	Z3_context ctx = Z3_theory_get_context(t);
-	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	printZ3Node(t, ctxAssign);
+//	Z3_context ctx = Z3_theory_get_context(t);
+//	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+//	printZ3Node(t, ctxAssign);
 }
 
 /**
@@ -2118,8 +2118,8 @@ void Th_pop(Z3_theory t) {
 	__debugPrint(logFile, "\n*******************************************\n");
 
 	Z3_context ctx = Z3_theory_get_context(t);
-	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	printZ3Node(t, ctxAssign);
+//	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+//	printZ3Node(t, ctxAssign);
 
 	__debugPrint(logFile, "Remove in internalVarMap\n");
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap.begin(); it != internalVarMap.end(); ++it) {

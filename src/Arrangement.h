@@ -1696,7 +1696,7 @@ public:
 		}
 
 		std::string result = andConstraint(andConstraints) + "\n";
-		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, result.c_str());
+//		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, result.c_str());
 		return result;
 	}
 

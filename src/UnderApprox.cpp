@@ -885,6 +885,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	for (const auto& s : connectedVariables){
 		defines.push_back("(declare-const arr_" + s + " (Array Int Int))");
+		constraints.push_back("(assert (< " + generateVarLength(s) + " " + std::to_string(CONNECTSIZE) +"))");
 	}
 }
 
@@ -1750,30 +1751,28 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 	std::set<std::string> connectedVarSet;
 
 	/* collect from equality map */
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
-		if (it->second.size() <= 1)
+	for (const auto& eq : equalitiesMap) {
+		if (eq.second.size() <= 1)
 			continue;
 
-		for (unsigned int j = 0; j < it->second.size(); ++j){
-			/* create a general value that the component belongs to */
-			std::string value = sumStringVector(it->second[j]);
+		for (unsigned int j = 0; j < eq.second.size(); ++j)
+			if (eq.second[j].size() > 1){
+				/* create a general value that the component belongs to */
+				std::string value = sumStringVector(eq.second[j]);
 
-			/* push to map */
-			for (unsigned int k = 0; k < it->second[j].size(); ++k)
-				if (it->second[j][k][0] != '\"') {
-
-					/* check if component is already in the map*/
-					if (usedComponents.find(it->second[j][k]) != usedComponents.end()) {
-						if (usedComponents[it->second[j][k]].compare(value) != 0) {
-							connectedVarSet.insert(it->second[j][k]);
-							// printf("at \n\t%s\n\t%s\n", usedComponents[it->second[j][k]].c_str(), value.c_str());
+				/* push to map */
+				for (unsigned int k = 0; k < eq.second[j].size(); ++k)
+					if (eq.second[j][k][0] != '\"') {
+						/* check if component is already in the map*/
+						if (usedComponents.find(eq.second[j][k]) != usedComponents.end()) {
+							if (usedComponents[eq.second[j][k]].compare(value) != 0) {
+								connectedVarSet.insert(eq.second[j][k]);
+							}
 						}
+						else /* update map */
+							usedComponents[eq.second[j][k]] = value;
 					}
-					else /* update map */
-						usedComponents[it->second[j][k]] = value;
-				}
-		}
-
+			}
 	}
 
 	/* from rewriterMap */
@@ -1792,8 +1791,10 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 			/* add all of variables to the connected var set*/
 			if (tmpPair.first[0] != '\"') {
 				connectedVarSet.emplace(tmpPair.first);
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, tmpPair.first.c_str());
 			}
 			if (tmpPair.second[0] != '\"') {
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, tmpPair.second.c_str());
 				connectedVarSet.emplace(tmpPair.second);
 			}
 		}
@@ -1868,6 +1869,8 @@ void decodeEqualMap(){
 void refineEqualMap(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
+		if (connectedVariables.find(it->first) == connectedVariables.end() && it->first.find("$$") != std::string::npos)
+			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (unsigned int j = 0; j < it->second.size(); ++j){
@@ -2485,6 +2488,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 				tmp = tmp + "\\\"";
 			else if (var.second[i] == '\\')
 				tmp = tmp + "\\\\";
+			else if (var.second[i] < 32 || var.second[i] > 126)
+				tmp = tmp + 'z';
 			else
 				tmp = tmp + var.second[i];
 		finalResult[var.first] = tmp;
@@ -2541,6 +2546,7 @@ bool Z3_run(
 					std::vector<std::string> tokens = parse_string_language(buffer, " (),.");
 
 					std::string name = tokens[1];
+					int elseValue = 0;
 					if (array_map.find(name) != array_map.end()){
 						/* array value */
 						std::map<int, int> valueMap;
@@ -2548,8 +2554,10 @@ bool Z3_run(
 							/* read the value in the next line */
 							fgets(buffer, 4000, in);
 							tokens = parse_string_language(buffer, " (),.=");
-							if (tokens[0].compare("ite") != 0)
+							if (tokens[0].compare("ite") != 0) {
+								elseValue = std::atoi(tokens[0].c_str());
 								break;
+							}
 							else {
 								assert(tokens.size() == 4);
 								valueMap[std::atoi(tokens[2].c_str())] = std::atoi(tokens[3].c_str());
@@ -2558,8 +2566,10 @@ bool Z3_run(
 						/* convert map to string */
 						std::string valueStr = "";
 						for (unsigned int j = 0; j < valueMap.size(); ++ j) {
-							assert(valueMap.find(j) != valueMap.end());
-							valueStr = valueStr + (char)valueMap[j];
+							if (valueMap.find(j) != valueMap.end())
+								valueStr = valueStr + (char)valueMap[j];
+							else
+								valueStr = valueStr + (char)elseValue;
 						}
 						__debugPrint(logFile, "%d value %s: %s\n", __LINE__, array_map[name].c_str(), valueStr.c_str());
 						str_results[array_map[name]] = valueStr;
