@@ -59,7 +59,6 @@
 #define printZ3Node(t, n) {}
 #endif
 
-
 struct TokenElement{
     TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}
 

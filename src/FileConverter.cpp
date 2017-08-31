@@ -977,7 +977,7 @@ void customizeLine_ToCreateLengthLine(
 						break;
 					case 3:
 						textState = 1;
-						strTmp[i] = 'A';
+						strTmp[i] = ENCODEMAP[strTmp[i]];
 						constStr = constStr + strTmp[i];
 						break;
 					default:
@@ -988,7 +988,7 @@ void customizeLine_ToCreateLengthLine(
 			else if (strTmp[i] == '\\') {
 				switch (textState) {
 					case 3:
-						strTmp[i] = 'B';
+						strTmp[i] = ENCODEMAP[strTmp[i]];
 						textState = 1;
 						constStr = constStr + strTmp[i];
 						break;
@@ -1002,59 +1002,8 @@ void customizeLine_ToCreateLengthLine(
 			}
 			else if (textState == 1 || textState == 3) {
 				textState = 1;
-				if (strTmp[i] == '?') {
-					strTmp[i] = 'D';
-				}
-				else if (strTmp[i] == '|') {
-					strTmp[i] = 'E';
-				}
-				else if (strTmp[i] == '[') {
-					strTmp[i] = 'F';
-				}
-				else if (strTmp[i] == ']') {
-					strTmp[i] = 'G';
-				}
-				else if (strTmp[i] == '(') {
-					strTmp[i] = 'H';
-				}
-				else if (strTmp[i] == ')') {
-					strTmp[i] = 'J';
-				}
-				else if (strTmp[i] == ';') {
-					strTmp[i] = 'K';
-				}
-				else if (strTmp[i] == '_') {
-					strTmp[i] = 'L';
-				}
-				else if (strTmp[i] == '~') {
-					strTmp[i] = 'M';
-				}
-				else if (strTmp[i] == '!') {
-					strTmp[i] = 'N';
-				}
-				else if (strTmp[i] == '@') {
-					strTmp[i] = 'O';
-				}
-				else if (strTmp[i] == '#') {
-					strTmp[i] = 'P';
-				}
-				else if (strTmp[i] == '$') {
-					strTmp[i] = 'Q';
-				}
-				else if (strTmp[i] == '%') {
-					strTmp[i] = 'R';
-				}
-				else if (strTmp[i] == '^') {
-					strTmp[i] = 'S';
-				}
-				else if (strTmp[i] == '&') {
-					strTmp[i] = 'T';
-				}
-				else if (strTmp[i] == '*') {
-					strTmp[i] = 'U';
-				}
-				else if (strTmp[i] == '+') {
-					strTmp[i] = 'V';
+				if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end()) {
+					strTmp[i] = ENCODEMAP[strTmp[i]];
 				}
 				constStr = constStr + strTmp[i];
 			}
@@ -1194,7 +1143,7 @@ std::string customizeLine_removeSpecialChars(std::string str){
 					break;
 				case 3:
 					textState = 1;
-					strTmp[i] = 'A';
+					strTmp[i] = ENCODEMAP[strTmp[i]];
 					break;
 				default:
 					textState = 1;
@@ -1204,7 +1153,7 @@ std::string customizeLine_removeSpecialChars(std::string str){
 		else if (strTmp[i] == '\\') {
 			switch (textState) {
 				case 3:
-					strTmp[i] = 'B';
+					strTmp[i] = ENCODEMAP[strTmp[i]];
 					textState = 1;
 					break;
 				default:
@@ -1217,61 +1166,9 @@ std::string customizeLine_removeSpecialChars(std::string str){
 		}
 		else if (textState == 1 || textState == 3) {
 			textState = 1;
-			if (strTmp[i] == '?') {
-				strTmp[i] = 'D';
+			if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end()) {
+				strTmp[i] = ENCODEMAP[strTmp[i]];
 			}
-			else if (strTmp[i] == '|') {
-				strTmp[i] = 'E';
-			}
-			else if (strTmp[i] == '[') {
-				strTmp[i] = 'F';
-			}
-			else if (strTmp[i] == ']') {
-				strTmp[i] = 'G';
-			}
-			else if (strTmp[i] == '(') {
-				strTmp[i] = 'H';
-			}
-			else if (strTmp[i] == ')') {
-				strTmp[i] = 'J';
-			}
-			else if (strTmp[i] == ';') {
-				strTmp[i] = 'K';
-			}
-			else if (strTmp[i] == '_') {
-				strTmp[i] = 'L';
-			}
-			else if (strTmp[i] == '~') {
-				strTmp[i] = 'M';
-			}
-			else if (strTmp[i] == '!') {
-				strTmp[i] = 'N';
-			}
-			else if (strTmp[i] == '@') {
-				strTmp[i] = 'O';
-			}
-			else if (strTmp[i] == '#') {
-				strTmp[i] = 'P';
-			}
-			else if (strTmp[i] == '$') {
-				strTmp[i] = 'Q';
-			}
-			else if (strTmp[i] == '%') {
-				strTmp[i] = 'R';
-			}
-			else if (strTmp[i] == '^') {
-				strTmp[i] = 'S';
-			}
-			else if (strTmp[i] == '&') {
-				strTmp[i] = 'T';
-			}
-			else if (strTmp[i] == '*') {
-				strTmp[i] = 'U';
-			}
-			else if (strTmp[i] == '+') {
-				strTmp[i] = 'V';
-			}
-
 		}
 
 		if (!reduceSize)
@@ -1437,7 +1334,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
  * add length constraints and write it
  * rewrite CFG
  */
-void addLengthConstraintsToSMTFile(std::string inputFile, /* nongrm file */
+void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::vector<std::string> lengthConstraints,
 		std::string outFile){

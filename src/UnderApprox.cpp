@@ -1040,6 +1040,7 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 	constraint = constraint + ") ) )";
 	constraints.push_back(constraint);
 }
+
 /*
  * len_x = sum(len_y)
  */
@@ -1221,35 +1222,43 @@ void writeOutput_basic(std::string outFile){
 }
 
 /*
- * write to file output
+ * write & verify to file output
  */
-void writeLengthOutput(std::string outFile,
+void verifyOutput(std::string outFile,
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-		std::map<std::string, std::string> lengthResultMap){
+		std::map<std::string, std::string> lengthResultMap,
+		std::map<std::string, std::string> strValue){
 	assert(lengthResultMap.size() > 0);
-	std::vector<std::string> lengthValues;
+
+	std::vector<std::string> additionalAssertions;
 
 	__debugPrint(logFile, " *** %s *** \n", __FUNCTION__);
+
 	/* length assertions */
-	for (std::vector<std::string>::iterator it = smtVarDefinition.begin(); it != smtVarDefinition.end(); ++it){
-		std::vector<std::string> tokens = parse_string_language(*it, " ");
+	for (const auto& def : smtVarDefinition){
+		std::vector<std::string> tokens = parse_string_language(def, " ");
 
 		std::string value = lengthResultMap[tokens[1]];
 
-		__debugPrint(logFile, "%d %s %s\n", __LINE__, it->c_str(), value.c_str());
-		if (value.length() > 0) {
+		__debugPrint(logFile, "%d %s %s\n", __LINE__, def.c_str(), value.c_str());
+		if (value.length() > 0 && tokens[1].find("$$") == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare("len_") == 0) {
-				std::string tmp = it->substr(4);
-				lengthValues.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
+				std::string tmp = def.substr(4);
+				additionalAssertions.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
 			}
 			else {
-				lengthValues.push_back("(assert (= " + tokens[1] + " " + value + "))\n");
+				additionalAssertions.push_back("(assert (= " + tokens[1] + " " + value + "))\n");
 			}
 		}
 	}
 
+	for (const auto& value : strValue)
+		if (value.first.find("$$") == std::string::npos){
+			additionalAssertions.push_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
+		}
+
 	/* read & copy the input file */
-	addLengthConstraintsToSMTFile(NONGRM, _equalMap, lengthValues, outFile);
+	addConstraintsToSMTFile(NONGRM, _equalMap, additionalAssertions, outFile);
 }
 
 
@@ -1807,6 +1816,53 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 }
 
 /*
+ *
+ */
+std::string decodeStr(std::string s){
+	std::string tmp = "";
+	for (unsigned int i = 0; i < s.length(); ++i){
+		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
+			tmp = tmp + (char)DECODEMAP[s[i]];
+		}
+		else
+			tmp = tmp + s[i];
+	}
+	return tmp;
+}
+
+/*
+ *
+ */
+void decodeEqualMap(){
+	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
+	for (const auto& eq : equalitiesMap) {
+
+		std::vector<std::vector<std::string>> tmp_vector;
+		for (unsigned int j = 0; j < eq.second.size(); ++j){
+			/* itself */
+			if (eq.second[j].size() == 1 && eq.second[j][0].compare(eq.first) == 0)
+				continue;
+
+			/* push to map */
+			std::vector<std::string> tmp;
+			for (const auto& s : eq.second[j]) {
+				if (s[0] != '\"') /* const */ {
+					tmp.push_back(s);
+				}
+				else
+					tmp.push_back(decodeStr(s));
+			}
+			tmp_vector.push_back(tmp);
+		}
+
+		new_eqMap[eq.first] = tmp_vector;
+	}
+
+	equalitiesMap.clear();
+	equalitiesMap = new_eqMap;
+}
+
+/*
  * Remove all equalities without connected variables and consts
  */
 void refineEqualMap(){
@@ -1815,7 +1871,9 @@ void refineEqualMap(){
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (unsigned int j = 0; j < it->second.size(); ++j){
-
+			/* itself */
+			if (it->second[j].size() == 1 && it->second[j][0].compare(it->first) == 0)
+				continue;
 			/* push to map */
 			for (unsigned int k = 0; k < it->second[j].size(); ++k) {
 				if (it->second[j][k][0] == '\"' /* const */ ||
@@ -2257,6 +2315,26 @@ void *convertEqualities(void *tid){
 					global_smtStatements.push_back(lenConstraint);
 				}
 				lenConstraint.clear();
+				if (connectedVariables.find(it->first) != connectedVariables.end()) {
+					std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
+					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[0]);
+					t = clock();
+					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
+																											sumStringVector(it->second[0]),
+																											lhs_elements,
+																											rhs_elements
+					);
+					if (result.first.size() != 0) {
+						pthread_mutex_lock (&smt_mutex);
+						for (std::map<std::string, int>::iterator iter = result.second.begin(); iter != result.second.end(); ++iter) {
+							global_smtVars[iter->first] = 'd';
+						}
+						global_smtStatements.push_back(result.first);
+
+						pthread_mutex_unlock (&smt_mutex);
+					}
+
+				}
 			}
 			else for (unsigned int i = 0; i < it->second.size(); ++i)
 				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
@@ -2359,6 +2437,66 @@ void testEqualityToSMT(){
 }
 
 /*
+ * create str values after running Z3
+ */
+std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue){
+	std::map<std::string, std::string> result;
+	for (const auto& s : len){
+		if (s.first.find("len_") == 0){
+			std::string name = "arr_" + s.first.substr(4);
+			int lenValue = std::atoi(s.second.c_str());
+			if (strValue.find(name) != strValue.end()){
+				result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
+			}
+		}
+	}
+
+	for (const auto& eq : equalitiesMap){
+		if (result.find(eq.first) != result.end())
+			continue;
+
+		std::string value = "";
+		for (const auto& v : eq.second){
+			bool gotValue = true;
+			for (const auto& s : v){
+				if (s[0] == '\"')
+					value = value + s.substr(1, s.length() - 2);
+				else if (result.find(s) != result.end())
+					value = value + result[s];
+				else {
+					value = "";
+					gotValue = false;
+					break;
+				}
+			}
+			if (gotValue == true){
+				result[eq.first] = value;
+				value = "";
+				break;
+			}
+		}
+	}
+
+	std::map<std::string, std::string> finalResult;
+	for (const auto& var : result){
+		std::string tmp = "";
+		for (unsigned int i = 0; i < var.second.length(); ++i)
+			if (var.second[i] == '\"')
+				tmp = tmp + "\\\"";
+			else if (var.second[i] == '\\')
+				tmp = tmp + "\\\\";
+			else
+				tmp = tmp + var.second[i];
+		finalResult[var.first] = tmp;
+	}
+
+	for (const auto& var : finalResult){
+		__debugPrint(logFile, "%d value of %s: %s\n", __LINE__, var.first.c_str(), var.second.c_str());
+	}
+	return finalResult;
+}
+
+/*
  *
  */
 bool Z3_run(
@@ -2371,7 +2509,8 @@ bool Z3_run(
 	if (!in)
 		throw std::runtime_error("Z3 failed!");
 
-	std::map<std::string, std::string> results;
+	std::map<std::string, std::string> len_results;
+	std::map<std::string, std::string> str_results;
 	char buffer[5000];
 	std::string result = "";
 	bool sat = false;
@@ -2391,6 +2530,7 @@ bool Z3_run(
 			printf("%d here\n", __LINE__);
 			return sat;
 		}
+		std::map<std::string, std::string> array_map;
 		/* the concrete values */
 		while (!feof(in)) {
 			std::string line = "";
@@ -2401,16 +2541,48 @@ bool Z3_run(
 					std::vector<std::string> tokens = parse_string_language(buffer, " (),.");
 
 					std::string name = tokens[1];
+					if (array_map.find(name) != array_map.end()){
+						/* array value */
+						std::map<int, int> valueMap;
+						while (true){
+							/* read the value in the next line */
+							fgets(buffer, 4000, in);
+							tokens = parse_string_language(buffer, " (),.=");
+							if (tokens[0].compare("ite") != 0)
+								break;
+							else {
+								assert(tokens.size() == 4);
+								valueMap[std::atoi(tokens[2].c_str())] = std::atoi(tokens[3].c_str());
+							}
+						}
+						/* convert map to string */
+						std::string valueStr = "";
+						for (unsigned int j = 0; j < valueMap.size(); ++ j) {
+							assert(valueMap.find(j) != valueMap.end());
+							valueStr = valueStr + (char)valueMap[j];
+						}
+						__debugPrint(logFile, "%d value %s: %s\n", __LINE__, array_map[name].c_str(), valueStr.c_str());
+						str_results[array_map[name]] = valueStr;
+					}
+					else if (name.find("arr_") != std::string::npos){
+						/* array map */
+						fgets(buffer, 4000, in);
+						tokens = parse_string_language(buffer, " (),.\n\t\r");
+						assert(tokens.size() == 3);
+						array_map[tokens[2]] = name;
+					}
+					else {
+						/* len value */
+						/* read the value in the next line */
+						fgets(buffer, 4000, in);
+						tokens = parse_string_language(buffer, " (),.");
+						if (tokens[0][0] == '-')
+							len_results[name] = "(" + tokens[0] + " " + tokens[1] + ")";
+						else
+							len_results[name] = tokens[0];
 
-					/* read the value in the next line */
-					fgets(buffer, 4000, in);
-					tokens = parse_string_language(buffer, " (),.");
-					if (tokens[0][0] == '-')
-						results[name] = "(" + tokens[0] + " " + tokens[1] + ")";
-					else
-						results[name] = tokens[0];
-
-					__debugPrint(logFile, "%d %s: %s\n", __LINE__, name.c_str(), results[name].c_str());
+						__debugPrint(logFile, "%d %s: %s\n", __LINE__, name.c_str(), len_results[name].c_str());
+					}
 				}
 			}
 
@@ -2428,7 +2600,7 @@ bool Z3_run(
 	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 
-	writeLengthOutput(lengthFile, _equalMap, results);
+	verifyOutput(lengthFile, _equalMap, len_results, formatResult(len_results, str_results));
 	if (sat && getModel)
 		sat = S3_assist(lengthFile);
 	return sat;
@@ -2541,6 +2713,7 @@ void init(std::map<std::string, std::string> rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
+	decodeEqualMap();
 	sumConstString();
 	createConstMap();
 }

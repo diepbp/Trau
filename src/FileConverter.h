@@ -11,6 +11,51 @@
 #include "utils.h"
 #include <regex>
 
+
+static std::map<char, int> ENCODEMAP{
+	{'"', 'A'},
+	{'\\', 'B'},
+	{'?', 'D'},
+	{'|', 'E'},
+	{'[', 'F'},
+	{']', 'G'},
+	{'(', 'H'},
+	{')', 'J'},
+	{';', 'K'},
+	{'_', 'L'},
+	{'~', 'M'},
+	{'!', 'N'},
+	{'@', 'P'},
+	{'#', 'Q'},
+	{'%', 'R'},
+	{'^', 'S'},
+	{'&', 'T'},
+	{'*', 'U'},
+	{'+', 'V'}
+};
+
+static std::map<int, int> DECODEMAP{
+	{'A', '"'},
+	{'B', '\\'},
+	{'D', '?'},
+	{'E', '|'},
+	{'F', '['},
+	{'G', ']'},
+	{'H', '('},
+	{'J', ')'},
+	{'K', ';'},
+	{'L', '_'},
+	{'M', '~'},
+	{'N', '!'},
+	{'P', '@'},
+	{'Q', '#'},
+	{'R', '%'},
+	{'S', '^'},
+	{'T', '&'},
+	{'U', '*'},
+	{'V', '+'}
+};
+
 template< typename T >
 std::string int_to_hex( T i );
 
@@ -190,7 +235,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
  * read SMT file
  * add length constraints and write it
  */
-void addLengthConstraintsToSMTFile(
+void addConstraintsToSMTFile(
 		std::string inputFile,
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::vector<std::string> lengthConstraints,

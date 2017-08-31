@@ -249,11 +249,12 @@ bool isRegexStr(std::string str);
 	void writeOutput_basic(std::string outFile);
 
 	/*
-	 * write to file output
+	 * write & verify to file output
 	 */
-	void writeLengthOutput(std::string outFile,
+	void verifyOutput(std::string outFile,
 			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-			std::map<std::string, std::string> lengthResultMap);
+			std::map<std::string, std::string> lengthResultMap,
+			std::map<std::string, std::string> strValue);
 
 
 
@@ -319,6 +320,16 @@ bool isRegexStr(std::string str);
 	 */
 
 	void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap);
+
+	/*
+	 *
+	 */
+	std::string decodeStr(std::string s);
+
+	/*
+	 *
+	 */
+	void decodeEqualMap();
 
 	/*
 	 * Remove all equalities without connected variables and consts
@@ -394,6 +405,11 @@ bool isRegexStr(std::string str);
 	 *
 	 */
 	void testEqualityToSMT();
+
+	/*
+	 * create str values after running Z3
+	 */
+	std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue);
 
 	/*
 	 *

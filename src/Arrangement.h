@@ -1670,6 +1670,37 @@ public:
 	}
 
 	/*
+	 * connected = a + connected + b
+	 */
+	std::string handle_connected_connected_array(
+			std::pair<std::string, int> a,
+			std::vector<std::pair<std::string, int>> elementNames,
+			std::string lhs_str, std::string rhs_str,
+			int pos,
+			std::map<std::string, int> &newVars){
+		/* find the start position --> */
+		std::string startLhs = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, pos);
+		std::string startRhs = leng_prefix_rhs(elementNames[pos], rhs_str);
+
+		/* optimize length of generated string */
+		std::string arrLhs = generateFlatArray(a, lhs_str);
+		std::string arrRhs = generateFlatArray(elementNames[pos], rhs_str);
+		std::string lenRhs = generateFlatSize(elementNames[pos], rhs_str);
+		std::vector<std::string> andConstraints;
+		for (unsigned int i = 0; i < CONNECTSIZE; ++i){
+			std::vector<std::string> orConstraints;
+			orConstraints.push_back("(= (select " + arrLhs + " (+ " + std::to_string(i) + " " + startLhs + ")) " +
+									   "(select " + arrRhs + " (+ " + std::to_string(i) + " " + startRhs + ")))");
+			orConstraints.push_back("(< " + lenRhs + " " + std::to_string(i) + ")");
+			andConstraints.push_back(orConstraint(orConstraints));
+		}
+
+		std::string result = andConstraint(andConstraints) + "\n";
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, result.c_str());
+		return result;
+	}
+
+	/*
 	 * Generate constraints for the case
 	 * X = T . "abc" . Y . Z
 	 * constPos: position of const element
@@ -1755,6 +1786,11 @@ public:
 					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 			}
+			else if (elementNames[i].second >= 0 && connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
+				// TODO connected var in both sides
+				possibleCases.push_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+
+			}
 		}
 		return andConstraint(possibleCases);
 	}
@@ -1796,6 +1832,11 @@ public:
 
 		if (!isConstA && !isConstB) {
 			/* size = size && it = it */
+			if (connectedVariables.find(b.first) != connectedVariables.end()){
+				std::vector<std::pair<std::string, int>> elements;
+				elements.push_back(a);
+				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, newVars);
+			}
 		}
 		else if (isConstA && isConstB) {
 			if (QCONSTMAX == 1 && a.first.compare(b.first) != 0) /* const = const */
@@ -1936,6 +1977,7 @@ public:
 
 			/* constraint for not equal */
 			/* (not (= len_b a.length)) */
+			// TODO not equal
 			if (notMap.find(b.first) != notMap.end() &&
 					notMap[b.first].find(a.first) != notMap[b.first].end()) {
 				result = result + " " + notConstraint(a, b);
@@ -1953,6 +1995,7 @@ public:
 
 			/* constraint for not equal */
 			/* (not (= len_a b.length)) */
+			// TODO not equal
 			if (notMap.find(a.first) != notMap.end() &&
 					notMap[a.first].find(b.first) != notMap[a.first].end()) {
 				result = result + " " + notConstraint(a, b);
@@ -2037,7 +2080,7 @@ public:
 			else if (splitType == 1) {
 				/* handle const */
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
-				__debugPrint(logFile, "%d allPossibleSplits = %d\n", __LINE__, allPossibleSplits.size());
+				__debugPrint(logFile, "%d allPossibleSplits = %ld\n", __LINE__, allPossibleSplits.size());
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
