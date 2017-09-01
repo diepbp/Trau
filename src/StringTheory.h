@@ -531,6 +531,16 @@ void extendVariableToFindAllPossibleEqualities(
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
 		int level);
 
+/*
+ *
+ */
+std::set<Z3_ast> collectConnectedVars(Z3_theory t);
+
+/**
+ *
+ */
+std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationOverVariables(Z3_theory t);
+
 /**
    \brief Callback: invoked before Z3 starts building a model.
    This callback can be used to perform expensive operations lazily.

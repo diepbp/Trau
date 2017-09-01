@@ -37,7 +37,7 @@ std::map<std::string, std::string> replaceStrMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> endsWithPairBoolMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> startsWithPairBoolMap;
 
-std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> contain_as_nodeMap;
+std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containNodeMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 std::map<Z3_ast, std::set<std::pair<Z3_ast, Z3_ast> > > containPairIdxMap;
 
@@ -286,19 +286,19 @@ Z3_ast mk_contains(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	std::pair<Z3_ast, Z3_ast> containsKey(n1, n2);
-	if (contain_as_nodeMap.find(containsKey) == contain_as_nodeMap.end()) {
+	if (containNodeMap.find(containsKey) == containNodeMap.end()) {
 		if (isConstStr(t, n1) && isConstStr(t, n2)) {
 			std::string n1Str = getConstStrValue(t, n1);
 			std::string n2Str = getConstStrValue(t, n2);
 			if (n1Str.find(n2Str) != std::string::npos)
-				contain_as_nodeMap[containsKey] = Z3_mk_true(ctx);
+				containNodeMap[containsKey] = Z3_mk_true(ctx);
 			else
-				contain_as_nodeMap[containsKey] = Z3_mk_false(ctx);
+				containNodeMap[containsKey] = Z3_mk_false(ctx);
 		} else {
-			contain_as_nodeMap[containsKey] = mk_binary_app(ctx, td->Contains, n1, n2);
+			containNodeMap[containsKey] = mk_binary_app(ctx, td->Contains, n1, n2);
 		}
 	}
-	return contain_as_nodeMap[containsKey];
+	return containNodeMap[containsKey];
 }
 
 /*
@@ -2897,8 +2897,8 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 		printZ3Node(t, it->second);
 		__debugPrint(logFile, "\n");
 	}
-	__debugPrint(logFile, "%d------------------------------\n", __LINE__);
-	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = contain_as_nodeMap.begin(); it != contain_as_nodeMap.end(); ++it) {
+	__debugPrint(logFile, "%d------contain_as_nodeMap------------------------\n", __LINE__);
+	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = containNodeMap.begin(); it != containNodeMap.end(); ++it) {
 		printZ3Node(t, it->first.first);
 		__debugPrint(logFile, " -- ");
 		printZ3Node(t, it->first.second);
@@ -4616,36 +4616,48 @@ std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_a
 	return tmp;
 }
 
+/*
+ *
+ */
+std::set<Z3_ast> collectConnectedVars(Z3_theory t){
+	/* detect connected variables */
+	std::map<Z3_ast, Z3_ast> inConcat;
+	std::set<Z3_ast> ret;
+
+	for (const auto& concatNode : concat_astNode_map) {
+		/* check connected for 1st variable */
+		if (inConcat.find(concatNode.first.first) != inConcat.end() &&
+				inConcat[concatNode.first.first] != concatNode.second)
+			ret.insert(concatNode.first.first);
+
+		else if (!isAutomatonFunc(t, concatNode.first.first))
+			inConcat[concatNode.first.first] = concatNode.second;
+
+		/* check connected for 2nd variable */
+		if (inConcat.find(concatNode.first.second) != inConcat.end() &&
+				inConcat[concatNode.first.second] != concatNode.second)
+			ret.insert(concatNode.first.second);
+		else if (!isAutomatonFunc(t, concatNode.first.second))
+			inConcat[concatNode.first.second] = concatNode.second;
+	}
+
+	for (const auto& node : containNodeMap){
+		if (isVariable(t, node.first.first))
+			ret.emplace(node.first.first);
+	}
+	return ret;
+}
+
 /**
  *
  */
 std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationOverVariables(Z3_theory t){
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::set<std::string> variableBelongToOthers;
-	std::map<Z3_ast, Z3_ast> concat_belong_map;
-	std::set<Z3_ast> connectedVariables;
+
+	std::set<Z3_ast> connectedVariables = collectConnectedVars(t);
 
 	std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables;
-
-	/* detect connected variables */
-	for (const auto& concatNode : concat_astNode_map) {
-
-		/* check connected for 1st variable */
-		if (concat_belong_map.find(concatNode.first.first) != concat_belong_map.end() &&
-				concat_belong_map[concatNode.first.first] != concatNode.second)
-			connectedVariables.insert(concatNode.first.first);
-		else if (!isAutomatonFunc(t, concatNode.first.first))
-			concat_belong_map[concatNode.first.first] = concatNode.second;
-
-		/* check connected for 2nd variable */
-		if (concat_belong_map.find(concatNode.first.second) != concat_belong_map.end() &&
-				concat_belong_map[concatNode.first.second] != concatNode.second)
-			connectedVariables.insert(concatNode.first.second);
-		else if (!isAutomatonFunc(t, concatNode.first.second))
-			concat_belong_map[concatNode.first.second] = concatNode.second;
-	}
-
-	displayListNode(t, connectedVariables, "Connected Variables");
 
 	/* find all equal possibilities*/
 	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> allEqPossibilities;
@@ -4806,10 +4818,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	if (hasLanguage == true) {
 		/* doing under approximation */
-		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables = collectCombinationOverVariables(t);
+		std::map<std::string, std::vector<std::vector<std::string>>> combination = collectCombinationOverVariables(t);
 		std::map<std::string, int> currentLength = collectCurrentLength(t);
 
-		for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
+		for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combination.begin(); it != combination.end(); ++it)
 			__debugPrint(logFile, "%d check var: %s\n", __LINE__, it->first.c_str());
 
 		for (std::map<std::string, std::string>::iterator it = endsWithStrMap.begin(); it != endsWithStrMap.end(); ++it){
@@ -4835,13 +4847,13 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.c_str(), elem.second.c_str());
 		}
 
-		if (!underapproxController(combinationOverVariables, rewriterStrMap, currentLength, inputFile)) {
+		if (!underapproxController(combination, rewriterStrMap, currentLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
 			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
 				std::string grm2str = Z3_ast_to_string(ctx, it->first);
-				assert (combinationOverVariables.find(grm2str) != combinationOverVariables.end());
+				assert (combination.find(grm2str) != combination.end());
 				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
 				displayListNode(t, eq_grm, " ccc ");
 				for (unsigned int i = 0; i < eq_grm.size(); ++i)
