@@ -1911,6 +1911,49 @@ void refineEqualMap(){
 /*
  *
  */
+void decodeRewriterMap(std::map<std::string, std::string> &rewriterStrMap){
+
+	std::map<std::string, std::string> update;
+	for (const auto& element : rewriterStrMap){
+		if (element.first.find("\"") != std::string::npos){
+			int textState = 0; /* 1 -> "; 0 -> "" */
+			std::string newStr = "";
+			for (unsigned int i = 0; i < element.first.length(); ++i) {
+				if (element.first[i] == '"') {
+					newStr = newStr + element.first[i];
+					switch (textState) {
+					case 1:
+						textState = 0;
+						break;
+					default:
+						textState = 1;
+						break;
+					}
+				}
+				else if (textState == 1) {
+					if (DECODEMAP.find(element.first[i]) != DECODEMAP.end()) {
+						newStr = newStr + (char)DECODEMAP[element.first[i]];
+					}
+					else
+						newStr = newStr + element.first[i];
+				}
+				else
+					newStr = newStr + element.first[i];
+			}
+			update[newStr] = element.second;
+		}
+		else
+			update[element.first] = element.second;
+	}
+	rewriterStrMap.clear();
+	rewriterStrMap = update;
+
+	for (const auto& element : rewriterStrMap)
+		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, element.first.c_str(), element.second.c_str());
+}
+/*
+ *
+ */
 std::string underApproxRegex(std::string str){
 	/* remove all star-in-star */
 	for (unsigned int i = 0 ; i < str.length(); ++i) {
@@ -2455,7 +2498,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 	}
 
 	for (const auto& eq : equalitiesMap){
-		if (result.find(eq.first) != result.end())
+		if (result.find(eq.first) != result.end() || eq.first[0] == '\"')
 			continue;
 
 		std::string value = "";
@@ -2721,6 +2764,7 @@ void reset(){
  */
 void init(std::map<std::string, std::string> rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
+	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
 	decodeEqualMap();

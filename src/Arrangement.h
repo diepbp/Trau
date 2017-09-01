@@ -980,7 +980,7 @@ public:
 					split[splitPos],
 					lhs, rhs,
 					connectedVariables);
-
+			__debugPrint(logFile, "%d constraintForConnectedVar: %s", __LINE__, constraintForConnectedVar.c_str());
 			strAnd.push_back(constraintForConnectedVar);
 
 			/* create a sum for previous elements */

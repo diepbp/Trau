@@ -340,6 +340,11 @@ bool isRegexStr(std::string str);
 	/*
 	 *
 	 */
+	void decodeRewriterMap(std::map<std::string, std::string> &rewriterStrMap);
+
+	/*
+	 *
+	 */
 	std::vector<std::string> collectAlternativeComponents(std::string str);
 
 	/*
