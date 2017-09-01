@@ -1289,7 +1289,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 			lhs, rhs,
 			lhs_elements, rhs_elements,
 			newVars);
-	displayListString(cases, " print cases");
+//	displayListString(cases, " print cases");
 	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
 	if (cases.size() == 0)
 		newVars.clear();
@@ -1535,6 +1535,7 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = _equalMap.begin(); it != _equalMap.end(); ++it) {
 		if (it->first[0] != '\"')
 			allVariables.insert(it->first);
+
 		std::vector<std::vector<std::string>> setOfEQ;
 		for (unsigned int i = 0 ; i < it->second.size(); ++i) {
 			std::vector<std::string> anEq;

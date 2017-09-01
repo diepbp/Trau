@@ -1687,10 +1687,10 @@ public:
 		std::string arrRhs = generateFlatArray(elementNames[pos], rhs_str);
 		std::string lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 		std::vector<std::string> andConstraints;
-		for (unsigned int i = 0; i < CONNECTSIZE; ++i){
+		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 			std::vector<std::string> orConstraints;
-			orConstraints.push_back("(= (select " + arrLhs + " (+ " + std::to_string(i) + " " + startLhs + ")) " +
-									   "(select " + arrRhs + " (+ " + std::to_string(i) + " " + startRhs + ")))");
+			orConstraints.push_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
+									   "(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
 			orConstraints.push_back("(< " + lenRhs + " " + std::to_string(i) + ")");
 			andConstraints.push_back(orConstraint(orConstraints));
 		}
