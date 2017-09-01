@@ -4848,6 +4848,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 					if (isAutomatonFunc(t, eq_grm[i]))
 						orConstraints.push_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
 			}
+
+			Z3_ast negation = negatePositiveContext(t);
+			orConstraints.push_back(negation);
 			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
 		}
 		else {
@@ -6608,20 +6611,30 @@ Z3_ast negatedConstraint(Z3_theory t) {
 /*
  *
  */
-Z3_ast negatedConstraint(Z3_theory t, Z3_ast node, int num) {
+Z3_ast negatePositiveContext(Z3_theory t) {
 #ifdef DEBUGLOG
-	__debugPrint(logFile, "@%d at %s Negated Constraints: ", __LINE__, __FILE__);
+	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
 	__debugPrint(logFile, "\n");
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
-	std::vector<Z3_ast> lang = collectLanguageValue(t);
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
-	Z3_ast tmp = Z3_mk_not(ctx, Z3_mk_eq(ctx, node, mk_int(ctx, num)));
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		std::vector<Z3_ast> andVector;
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
 
-	lang.push_back(tmp);
-	assert(lang.size() > 0);
-	return mk_and_fromVector(t, lang);
-
+			T_TheoryType type = getNodeType(t, argAst);
+			if (astToString.find("$$_bool") != std::string::npos) {
+				andVector.push_back(argAst);
+			}
+		}
+		return Z3_mk_not(ctx, mk_and_fromVector(t, andVector));
+	}
+	return Z3_mk_false(ctx);
 }
 
 /*

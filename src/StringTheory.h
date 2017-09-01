@@ -602,7 +602,11 @@ std::vector<Z3_ast> createValueAxiom(Z3_theory t, Z3_ast node);
 int getConcreteValue_variable(Z3_theory t, Z3_ast node, Z3_ast value);
 
 Z3_ast negatedConstraint(Z3_theory t);
-Z3_ast negatedConstraint(Z3_theory t, Z3_ast node, int num);
+
+/*
+ *
+ */
+Z3_ast negatePositiveContext(Z3_theory t);
 
 std::vector<Z3_ast> collectLanguageValue(Z3_theory t);
 Z3_ast collectSingleLanguageValue(Z3_theory t, Z3_ast node);
