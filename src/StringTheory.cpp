@@ -3200,15 +3200,15 @@ void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast
 	std::set<Z3_ast> all_posfix_nn1 = find_all_posfix_of_node(t, nn1);
 	std::set<Z3_ast> all_posfix_nn2 = find_all_posfix_of_node(t, nn2);
 
-	/* len a = len b ==> a = b */
-	for (const auto& posfix01 : all_posfix_nn1){
-		for (const auto& posfix02 : all_posfix_nn2){
-			Z3_ast len01 = mk_length(t, posfix01);
-			Z3_ast len02 = mk_length(t, posfix02);
-
-			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_eq(ctx, len01, len02), Z3_mk_eq(ctx, posfix01, posfix02)), __LINE__, true);
-		}
-	}
+//	/* len a = len b ==> a = b */
+//	for (const auto& posfix01 : all_posfix_nn1){
+//		for (const auto& posfix02 : all_posfix_nn2){
+//			Z3_ast len01 = mk_length(t, posfix01);
+//			Z3_ast len02 = mk_length(t, posfix02);
+//
+//			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_eq(ctx, len01, len02), Z3_mk_eq(ctx, posfix01, posfix02)), __LINE__, true);
+//		}
+//	}
 
 	printZ3Node(t, nn1);
 	displayListNode(t, all_posfix_nn1, ">> all_posfix_nn1 ");
@@ -3286,15 +3286,15 @@ void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2
 	printZ3Node(t, nn1);
 	displayListNode(t, all_prefix_nn1, ">> all_prefix_nn1 ");
 
-	/* len a = len b ==> a = b */
-	for (const auto& prefix01 : all_prefix_nn1){
-		for (const auto& prefix02 : all_prefix_nn2){
-			Z3_ast len01 = mk_length(t, prefix01);
-			Z3_ast len02 = mk_length(t, prefix02);
-
-			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_eq(ctx, len01, len02), Z3_mk_eq(ctx, prefix01, prefix02)), __LINE__, true);
-		}
-	}
+//	/* len a = len b ==> a = b */
+//	for (const auto& prefix01 : all_prefix_nn1){
+//		for (const auto& prefix02 : all_prefix_nn2){
+//			Z3_ast len01 = mk_length(t, prefix01);
+//			Z3_ast len02 = mk_length(t, prefix02);
+//
+//			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_eq(ctx, len01, len02), Z3_mk_eq(ctx, prefix01, prefix02)), __LINE__, true);
+//		}
+//	}
 
 	for (const auto& prefix01 : all_prefix_nn1){
 		for (const auto& containNode : containPairBoolMap){
