@@ -383,6 +383,11 @@ void Th_restart(Z3_theory t);
 */
 void Th_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2);
 
+/*
+ * nn1 = nn2 => |nn1| = |nn2|
+ */
+void addLengthEqualConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
 void implyEqualityForConcatMember(Z3_theory t, Z3_ast lhs, Z3_ast rhs);
 
 std::set<Z3_ast> findAllConcatContainingNode(Z3_theory t, Z3_ast node, int pos);
@@ -628,7 +633,6 @@ std::vector<std::string> parse_string_language(std::string s, std::string delimi
 std::vector<Z3_ast> createParikhConstraints_simpleLanguage(Z3_theory t, Z3_ast node, std::string language);
 std::vector<Z3_ast> createParikhConstraints_evenSimplerLanguage(Z3_theory t, Z3_ast node, std::string language);
 std::vector<Z3_ast> createParikhConstraints_string(Z3_theory t, Z3_ast node, std::string value);
-std::vector<Z3_ast> basicArithConstraints_forEqual(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 std::vector<Z3_ast> basicArithConstraints_forConcat(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 std::vector<Z3_ast> basicArithConstraints_forNode(Z3_theory t, Z3_ast node);
 std::vector<Z3_ast> basicArithConstraints_forNode_simple(Z3_theory t, Z3_ast node);

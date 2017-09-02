@@ -32,7 +32,9 @@ std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
 std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
 std::map<std::string, std::string> endsWithStrMap;
 std::map<std::string, std::string> startsWithStrMap;
+
 std::map<std::string, std::string> replaceStrMap;
+std::set<Z3_ast> replaceList;
 
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> endsWithPairBoolMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> startsWithPairBoolMap;
@@ -1073,6 +1075,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_replace(t, convertedArgs, breakDownAst);
+
+		if (isVariable(t, *result))
+			replaceList.emplace(*result);
 
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2224,6 +2229,8 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		return;
 	}
 
+	addLengthEqualConstraint(t, nn1, nn2);
+
 //	initLengthPropagation(t, nn1, nn2);
 
 	if (!checkEqualConsistency(t, nn1, nn2)) {
@@ -2311,6 +2318,16 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		__debugPrint(logFile, "=================================================================================\n");
 		return;
 	}
+}
+
+/*
+ * nn1 = nn2 => |nn1| = |nn2|
+ */
+void addLengthEqualConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
+	Z3_context ctx = Z3_theory_get_context(t);
+	Z3_ast leng_nn1 = mk_length(t, nn1);
+	Z3_ast leng_nn2 = mk_length(t, nn2);
+	addAxiom(t, Z3_mk_eq(ctx, leng_nn1, leng_nn2), __LINE__, true);
 }
 
 /*
@@ -4673,6 +4690,18 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		}
 	}
 
+	for (const auto& var: replaceList) {
+		std::string currentVarName = Z3_ast_to_string(ctx, var);
+		if (variableBelongToOthers.find(currentVarName) == variableBelongToOthers.end()){
+			extendVariableToFindAllPossibleEqualities(t,
+					var,
+					connectedVariables,
+					variableBelongToOthers,
+					allEqPossibilities,
+					0);
+		}
+	}
+
 	__debugPrint(logFile, "%d Finish calculating\n", __LINE__);
 
 	/* collect all equal possibilities of root variables */
@@ -6813,26 +6842,6 @@ std::vector<Z3_ast> createParikhConstraints_string(Z3_theory t, Z3_ast node, std
 }
 
 /*
- * parikh = parikh
- *
- * len = sum of len of elements
- */
-std::vector<Z3_ast> basicArithConstraints_forEqual(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
-	std::vector<Z3_ast> ret;
-	Z3_context ctx = Z3_theory_get_context(t);
-
-#ifdef ARITH
-	//	for (std::set<char>::iterator it = charSet.begin(); it != charSet.end(); ++it) {
-	//		// for parikh
-	//		ret.push_back(Z3_mk_eq(ctx, getParikhChar(t, nn1, *it), getParikhChar(t, nn2, *it)));
-	//	}
-	// for len
-	ret.push_back(Z3_mk_eq(ctx, getLengthAST(t, nn1), getLengthAST(t, nn2)));
-#endif
-	return ret;
-}
-
-/*
  * parikh concat >= parikh elements  --> that makes the program VERY SLOW
  * parikh concat = sum of parikh elements
  *
@@ -7256,6 +7265,8 @@ void collectContainValueInPositiveContext(
 		std::map<std::string, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	printZ3Node(t, ctxAssign);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {

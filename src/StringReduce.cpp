@@ -990,8 +990,8 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 		list00.push_back(Z3_mk_implies(ctx, eqNode, Z3_mk_eq(ctx, mk_length(t, s1_new), mk_int(ctx, len02))));
 
 	if (!(len01 >= 0 && len02 >= 0)) {
-		std::vector<Z3_ast> tmpVector =	basicArithConstraints_forEqual(t, s1_new, s2_new);
-		list00.insert(list00.end(), tmpVector.begin(), tmpVector.end());
+		Z3_ast lengConstraint = Z3_mk_eq(ctx, mk_length(t, s1_new), mk_length(t, s2_new));
+		list00.push_back(Z3_mk_implies(ctx, eqNode, lengConstraint));
 	}
 
 	eqList[std::make_pair(s1_new, s2_new)] = 1;
