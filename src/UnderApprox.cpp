@@ -1837,6 +1837,9 @@ std::string decodeStr(std::string s){
 void decodeEqualMap(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	for (const auto& eq : equalitiesMap) {
+		/* only itself */
+		if (eq.second.size() == 1 && eq.second[0].size() == 1 && eq.second[0][0].compare(eq.first) == 0)
+			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (unsigned int j = 0; j < eq.second.size(); ++j){
@@ -1864,17 +1867,21 @@ void decodeEqualMap(){
  * Remove all equalities without connected variables and consts
  */
 void refineEqualMap(){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
+	/* add connected var */
 	for (const auto& var : connectedVariables)
 		equalitiesMap[var].push_back({var});
 
+	/* remove duplications */
 	for (const auto& varEq: equalitiesMap) {
 		if (connectedVariables.find(varEq.first) == connectedVariables.end() && varEq.first.find("$$") != std::string::npos)
 			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
+		std::vector<std::string> backup;
 		for (const auto& _eq : varEq.second){
-			/* remove itself if it is not a connected var */
+			/* x = x: remove if "x" is not a connected var */
 			if (_eq.size() == 1 &&
 					_eq[0].compare(varEq.first) == 0 &&
 					connectedVariables.find(_eq[0]) == connectedVariables.end()) {
@@ -1889,6 +1896,18 @@ void refineEqualMap(){
 					tmp_vector.push_back(_eq);
 					break;
 				}
+			}
+
+			if (_eq.size() > 1 ||
+					(_eq.size() == 1 && _eq[0].compare(varEq.first) != 0))
+				backup = _eq;
+		}
+
+		/* add to create length constraint */
+		if (tmp_vector.size() == 0 ||
+				(tmp_vector.size() == 1 && connectedVariables.find(varEq.first) != connectedVariables.end())){
+			if (backup.size() > 0) {
+				tmp_vector.push_back(backup);
 			}
 		}
 
@@ -1911,6 +1930,8 @@ void refineEqualMap(){
 
 	equalitiesMap.clear();
 	equalitiesMap = new_eqMap;
+
+	printEqualMap(equalitiesMap);
 }
 
 /*
@@ -2821,6 +2842,9 @@ void init(std::map<std::string, std::string> rewriterStrMap){
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
 	decodeEqualMap();
+
+	/*collect var --> update --> collect again */
+	collectConnectedVariables(rewriterStrMap);
 	sumConstString();
 	createConstMap();
 }
