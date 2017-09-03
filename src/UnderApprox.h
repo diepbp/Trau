@@ -396,6 +396,15 @@ bool isRegexStr(std::string str);
 	std::vector<std::string> createSetOfFlatVariables(int flatP);
 
 	/*
+	 * cut the same prefix and posfix
+	 * */
+	void optimizeEquality(
+			std::vector<std::string> lhs,
+			std::vector<std::string> rhs,
+			std::vector<std::string> &new_lhs,
+			std::vector<std::string> &new_rhs);
+
+	/*
 	 * Pthread
 	 * Each thread handles a part in the global map from start -> end
 	 */

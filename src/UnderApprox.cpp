@@ -2259,6 +2259,45 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 }
 
 /*
+ * cut the same prefix and posfix
+ * */
+void optimizeEquality(
+		std::vector<std::string> lhs,
+		std::vector<std::string> rhs,
+		std::vector<std::string> &new_lhs,
+		std::vector<std::string> &new_rhs){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	displayListString(lhs, " org lhs ");
+	displayListString(rhs, " org rhs ");
+
+	new_lhs.clear();
+	new_rhs.clear();
+	/* cut prefix */
+	int prefix = -1;
+	for (unsigned int i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
+		if (lhs[i].compare(rhs[i]) == 0)
+			prefix = i;
+		else
+			break;
+
+	/* cut posfix */
+	int posfix = -1;
+	for (unsigned int i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
+		if (lhs[lhs.size() - 1 - i].compare(rhs[rhs.size() - 1 - i]) == 0)
+			posfix = i;
+		else
+			break;
+
+	__debugPrint(logFile, "%d common prefix = %d; common posfix = %d\n", __LINE__, prefix, posfix);
+
+	for (unsigned int i = prefix + 1; i < lhs.size() - posfix - 1; ++i)
+		new_lhs.push_back(lhs[i]);
+
+	for (unsigned int i = prefix + 1; i < rhs.size() - posfix - 1; ++i)
+		new_rhs.push_back(rhs[i]);
+}
+
+/*
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
@@ -2385,10 +2424,17 @@ void *convertEqualities(void *tid){
 			}
 			else for (unsigned int i = 0; i < it->second.size(); ++i)
 				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
-					/* [i] = [j] */
+					/* optimize: find longest common prefix and posfix */
+					std::vector<std::string> lhs;
+					std::vector<std::string> rhs;
+					optimizeEquality(it->second[i], it->second[j], lhs, rhs);
 
-					std::vector<std::pair<std::string, int>> lhs_elements = createEquality(it->second[i]);
-					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[j]);
+					displayListString(lhs, " ---lhs--- ");
+					displayListString(rhs, " ---rhs--- ");
+
+					/* [i] = [j] */
+					std::vector<std::pair<std::string, int>> lhs_elements = createEquality(lhs);
+					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(rhs);
 					t = clock();
 					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(it->second[i]),
 																											sumStringVector(it->second[j]),
@@ -2412,8 +2458,8 @@ void *convertEqualities(void *tid){
 						}
 						/* sync result*/
 						pthread_mutex_lock (&smt_mutex);
-						for (std::map<std::string, int>::iterator iter = result.second.begin(); iter != result.second.end(); ++iter) {
-							global_smtVars[iter->first] = 'd';
+						for (const auto& smtVar : result.second) {
+							global_smtVars[smtVar.first] = 'd';
 						}
 						global_smtStatements.push_back(result.first);
 
@@ -2701,6 +2747,8 @@ bool S3_assist(std::string fileName){
 		throw;
 	}
 	pclose(in);
+
+	return true;
 	return sat;
 }
 
