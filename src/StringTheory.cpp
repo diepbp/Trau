@@ -4424,62 +4424,62 @@ void extendVariableToFindAllPossibleEqualities(
 		}
 	}
 
-	/* refine eqNode to remove some concat*/
+	/* refine eqNode to remove some concat */
 	std::vector<Z3_ast> refined_eqNode;
-	for (unsigned int i = 0 ; i < eqNode.size(); ++i)
-		if (isConcatFunc(t, eqNode[i])) {
-			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, eqNode[i]), 0);
-			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, eqNode[i]), 1);
+	for (const auto& _node : eqNode)
+		if (isConcatFunc(t, _node)) {
+			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 0);
+			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 1);
 
-			if (isStrVariable(t, arg0)) {
+			if (isStrVariable(t, arg0))
 				/* mark non-root variable --> dont care about him */
 				non_root.insert(std::string(Z3_ast_to_string(ctx, arg0)));
-			}
 
-			if (isStrVariable(t, arg1)) {
+
+			if (isStrVariable(t, arg1))
 				/* mark non-root variable --> dont care about him */
 				non_root.insert(std::string(Z3_ast_to_string(ctx, arg1)));
-			}
+
 
 			std::vector<Z3_ast> eqNodeArg0 = collect_eqc(t, arg0);
 			std::vector<Z3_ast> eqNodeArg1 = collect_eqc(t, arg1);
 			bool duplicateConcat = false;
-			for (unsigned int j = 0; j < refined_eqNode.size(); ++j)
-				if (isConcatFunc(t, refined_eqNode[j])){
-					//				__debugPrint(logFile, "%d at 3: %s \n", __LINE__, Z3_ast_to_string(ctx, refined_eqNode[j]));
-					Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_eqNode[j]), 0);
-					//				__debugPrint(logFile, "%d at 4\n", __LINE__);
-					Z3_ast arg11 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_eqNode[j]), 1);
-					//				__debugPrint(logFile, "%d at 5\n", __LINE__);
-					if (std::find(eqNodeArg0.begin(), eqNodeArg0.end(), arg00) != eqNodeArg0.end()) {
-						if (std::find(eqNodeArg1.begin(), eqNodeArg1.end(), arg11) != eqNodeArg1.end()) {
-							duplicateConcat = true;
-							break;
-						}
+			for (const auto& refined_node : refined_eqNode)
+				if (isConcatFunc(t, refined_node)){
+					Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_node), 0);
+					Z3_ast arg11 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_node), 1);
+					if (std::find(eqNodeArg0.begin(), eqNodeArg0.end(), arg00) != eqNodeArg0.end() &&
+							std::find(eqNodeArg1.begin(), eqNodeArg1.end(), arg11) != eqNodeArg1.end()) {
+						duplicateConcat = true;
+						break;
 					}
 				}
 
 			if (duplicateConcat == false) {
-				refined_eqNode.push_back(eqNode[i]);
+				refined_eqNode.push_back(_node);
 			}
 		}
 
-	/* mark non-root variable */
-		else if (eqNode[i] != node) {
+
+		else if (_node != node) {
+			/* mark non-root variable */
+			if (isStrVariable(t, _node))
+				non_root.insert(std::string(Z3_ast_to_string(ctx, _node)));
+
 			/* do not need to add itself */
-			if (isAutomatonFunc(t, eqNode[i])) {
-				refined_eqNode.push_back(eqNode[i]);
+			if (isAutomatonFunc(t, _node)) {
+				refined_eqNode.push_back(_node);
 			}
 		}
 
 
-	/* if none of them is const --> continue with Concat*/
-	for (unsigned int i = 0 ; i < refined_eqNode.size(); ++i)
-		if (isConcatFunc(t, refined_eqNode[i])) {
+	/* if none of them is const --> continue with Concat */
+	for (const auto& _node : refined_eqNode)
+		if (isConcatFunc(t, _node)) {
 			std::vector<std::vector<Z3_ast>> arg0_eq;
 			std::vector<std::vector<Z3_ast>> arg1_eq;
-			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_eqNode[i]), 0);
-			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, refined_eqNode[i]), 1);
+			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 0);
+			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 1);
 
 			if (!isAutomatonFunc(t, arg0)) { /* variable or Concat ... */
 				if (allEqPossibilities.find(arg0) == allEqPossibilities.end()) {
@@ -4525,20 +4525,20 @@ void extendVariableToFindAllPossibleEqualities(
 			}
 		}
 		else {
-			__debugPrint(logFile, "%d current checking node: %s \n", __LINE__, Z3_ast_to_string(ctx, refined_eqNode[i]));
+			__debugPrint(logFile, "%d current checking node: %s \n", __LINE__, Z3_ast_to_string(ctx, _node));
 
 			/* must be automata */
-			if ((constNode != NULL && constNode != refined_eqNode[i]) ||
+			if ((constNode != NULL && constNode != _node) ||
 					constNode == NULL){
 				/* skip the generic automata */
-				std::string automaton2str = Z3_ast_to_string(ctx, refined_eqNode[i]);
+				std::string automaton2str = Z3_ast_to_string(ctx, _node);
 				/* count number of | or ~ in that string */
 				int orCnt = 0;
 				for (unsigned int pos = 0; pos < automaton2str.length(); ++pos)
 					orCnt = (automaton2str[pos] == '~') ? orCnt + 1 : orCnt;
 				__debugPrint(logFile, "%d should not check it\n", __LINE__);
 				if (orCnt < 20)
-					result.push_back({refined_eqNode[i]});
+					result.push_back({_node});
 			}
 			else
 				__debugPrint(logFile, "%d skipped\n", __LINE__);
@@ -4552,16 +4552,18 @@ void extendVariableToFindAllPossibleEqualities(
 	 *
 	 * if both are false, keep original, print length
 	 */
-	for (unsigned int i = 0; i < result.size(); ++i){
+	for (const auto& _eq: result){
 		bool added = false;
-		for (unsigned int j = 0; j < result[i].size(); ++j) {
-			if (isAutomatonFunc(t, result[i][j]) || connectedVariables.find(result[i][j]) != connectedVariables.end()) {
-				refined_result.push_back(result[i]);
+		for (const auto _node : _eq) {
+			if (isAutomatonFunc(t, _node) ||
+					connectedVariables.find(_node) != connectedVariables.end()) {
+				refined_result.push_back(_eq);
 				added = true;
 				break;
 			}
 
 		}
+
 		/* do not need to print this case because it can be implied from SMT file */
 		if (added == false) {
 		}
@@ -4578,17 +4580,10 @@ void extendVariableToFindAllPossibleEqualities(
 
 		}
 
-		for (unsigned int i = 0; i < refined_result.size(); ++i)
-			displayListNode(t, refined_result[i], " :found const ");
-
 		/* --> update: he = const */
 		allEqPossibilities[node].push_back({constNode});
 	}
 	else {
-
-		for (unsigned int i = 0; i < refined_result.size(); ++i)
-			displayListNode(t, refined_result[i], " :no const found ");
-
 		/* he = himself */
 		if (refined_result.size() == 0) {
 			refined_result.push_back({node});
@@ -4714,38 +4709,37 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		else if (isConcatFunc(t, itor->first))
 			continue;
 
-		for (const auto& _eq : itor->second) {
-			combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, _eq));
+		/* update eq for itself */
+		if (non_root.find(varName) == non_root.end() ||
+				grm_astNode_map.find(itor->first) != grm_astNode_map.end()){
+			/* add them to the result set */
+			__debugPrint(logFile, "%d var: %s , eq size = %ld\n", __LINE__, Z3_ast_to_string(ctx, itor->first), itor->second.size());
+
+			for (const auto& _eq : itor->second)
+				combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, _eq));
+
+			/* add all equal nodes of itor->first to repeated list */
+			std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
+			for (const auto& _node : eqNode)
+				if (isStrVariable(t, _node) && _node != itor->first) {
+					non_root.insert(std::string(Z3_ast_to_string(ctx, _node)));
+				}
+		}
+		else if (non_root.find(varName) != non_root.end()){
+			/* keep one eq to export length constraint */
+			assert(itor->second.size() > 0);
+			combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[0]));
 		}
 
-//		std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
-//		for (const auto& node : eqNode)
-//			if (isStrVariable(t, node) && node != itor->first) {
-//				combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, {node}));
-//			}
+		/* update eq for its friends */
+		std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
+		for (const auto& node : eqNode)
+			if (isStrVariable(t, node) && node != itor->first) {
+				std::string name = std::string(Z3_ast_to_string(ctx, node));
 
-//		/* add grm variable */
-//		if (variableBelongToOthers.find(varName) == variableBelongToOthers.end() ||
-//				grm_astNode_map.find(itor->first) != grm_astNode_map.end()){
-//			/* add them to the result set */
-//			__debugPrint(logFile, "%d var: %s , eq size = %ld\n", __LINE__, Z3_ast_to_string(ctx, itor->first), itor->second.size());
-//
-//			for (unsigned int i = 0; i < itor->second.size(); ++i) {
-//				combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[i]));
-//			}
-//
-//			/* add all equal nodes of itor->first to repeated list */
-//			std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
-//			for (unsigned int i = 0 ; i < eqNode.size(); ++i)
-//				if (isStrVariable(t, eqNode[i]) && eqNode[i] != itor->first) {
-//					variableBelongToOthers.insert(std::string(Z3_ast_to_string(ctx, eqNode[i])));
-//				}
-//		}
-//		else if (variableBelongToOthers.find(varName) != variableBelongToOthers.end()){
-//			/* keep one eq to export length constraint */
-//			assert(itor->second.size() > 0);
-//			combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[0]));
-//		}
+				assert(combinationOverVariables[varName].size() > 0);
+				combinationOverVariables[name].push_back(combinationOverVariables[varName][0]);
+			}
 	}
 
 	return combinationOverVariables;

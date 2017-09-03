@@ -1810,7 +1810,6 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 
 		for (const auto& s : connectedVariables){
 			__debugPrint(logFile, "%s\n", s.c_str());
-//			__debugPrint(logFile, "%s at %s\n", s.c_str(), usedComponents[s].c_str());
 		}
 		__debugPrint(logFile, "\n");
 	}
@@ -1841,9 +1840,6 @@ void decodeEqualMap(){
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (unsigned int j = 0; j < eq.second.size(); ++j){
-			/* itself */
-			if (eq.second[j].size() == 1 && eq.second[j][0].compare(eq.first) == 0)
-				continue;
 
 			/* push to map */
 			std::vector<std::string> tmp;
@@ -1869,20 +1865,28 @@ void decodeEqualMap(){
  */
 void refineEqualMap(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
-		if (connectedVariables.find(it->first) == connectedVariables.end() && it->first.find("$$") != std::string::npos)
+	for (const auto& var : connectedVariables)
+		equalitiesMap[var].push_back({var});
+
+	for (const auto& varEq: equalitiesMap) {
+		if (connectedVariables.find(varEq.first) == connectedVariables.end() && varEq.first.find("$$") != std::string::npos)
 			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
-		for (unsigned int j = 0; j < it->second.size(); ++j){
-			/* itself */
-			if (it->second[j].size() == 1 && it->second[j][0].compare(it->first) == 0)
+		for (const auto& _eq : varEq.second){
+			/* remove itself if it is not a connected var */
+			if (_eq.size() == 1 &&
+					_eq[0].compare(varEq.first) == 0 &&
+					connectedVariables.find(_eq[0]) == connectedVariables.end()) {
+				__debugPrint(logFile, "%d *** %s ***: remove %s\n", __LINE__, __FUNCTION__, _eq[0].c_str());
 				continue;
+			}
+
 			/* push to map */
-			for (unsigned int k = 0; k < it->second[j].size(); ++k) {
-				if (it->second[j][k][0] == '\"' /* const */ ||
-						connectedVariables.find(it->second[j][k]) != connectedVariables.end()) {
-					tmp_vector.push_back(it->second[j]);
+			for (unsigned int k = 0; k < _eq.size(); ++k) {
+				if (_eq[k][0] == '\"' /* const */ ||
+						connectedVariables.find(_eq[k]) != connectedVariables.end()) {
+					tmp_vector.push_back(_eq);
 					break;
 				}
 			}
@@ -1902,7 +1906,7 @@ void refineEqualMap(){
 				tmp_vector01.push_back(tmp_vector[i]);
 		}
 
-		new_eqMap[it->first] = tmp_vector01;
+		new_eqMap[varEq.first] = tmp_vector01;
 	}
 
 	equalitiesMap.clear();
