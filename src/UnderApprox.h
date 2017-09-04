@@ -445,11 +445,17 @@ bool isRegexStr(std::string str);
 	 */
 	void reset();
 
+	/*
+	 * replace all "Length " by "len_"
+	 */
+	std::set<std::string> reformat(std::set<std::string> _carryOnConstraints);
+
 	void init(std::map<std::string, std::string> rewriterStrMap);
 
 	bool underapproxController(
 			std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 			std::map<std::string, std::string> rewriterStrMap,
+			std::set<std::string> carryOnConstraints,
 			std::map<std::string, int> _currentLength,
 			std::string fileDir);
 

@@ -413,6 +413,12 @@ void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 void add_transitive_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
 /*
+ *	x = replace a b c
+ *	--> contain x y = contain a y if ...
+ */
+void add_replace_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
+/*
  * a = b && endwith a "abc" && endwith b "abce"  --> false
  * "abc" \in postfix(a) -> endwith a "c" = true *
  */
@@ -676,14 +682,16 @@ void collectContainValueInPositiveContext(
  */
 void collectIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap);
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
 /*
  *
  */
 void collectLastIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap);
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
 /*
  *
@@ -710,7 +718,8 @@ void collectStartsWithValueInPositiveContext (
  */
 void collectReplaceValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap);
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
 /*
  * Decide whether two n1 and n2 are ALREADY in a same eq class

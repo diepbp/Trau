@@ -2564,7 +2564,15 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 			std::string name = "arr_" + s.first.substr(4);
 			int lenValue = std::atoi(s.second.c_str());
 			if (strValue.find(name) != strValue.end()){
-				result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
+				if (lenValue <= (int)strValue[name].length())
+					result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
+				else {
+					std::string tmp = "";
+					for (int i = strValue[name].length(); i < lenValue; ++i)
+						tmp = tmp + 'z';
+					result[s.first.substr(4)] = strValue[name] + tmp;
+				}
+
 			}
 		}
 	}
@@ -2833,6 +2841,39 @@ void reset(){
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
 }
+
+/*
+ * replace all "Length " by "len_"
+ */
+std::set<std::string> reformat(std::set<std::string> _carryOnConstraints){
+	std::set<std::string> ret;
+
+	for (const auto& s : _carryOnConstraints){
+		std::string tmp = s;
+		while (true){
+			size_t pos = tmp.find("(Length ");
+			if (pos != std::string::npos){
+				std::string _tmp = tmp.substr(0, pos) + "len_";
+				for (unsigned int i = pos + 8; i < tmp.length(); ++i)
+					if (tmp[i] != ')')
+						_tmp = _tmp + tmp[i];
+					else {
+						_tmp = _tmp + tmp.substr(i + 1);
+						break;
+					}
+				tmp = _tmp;
+			}
+			else {
+				ret.emplace(tmp);
+				break;
+			}
+		}
+	}
+
+	displayListString(ret, " reformat _carryOnConstraints");
+	return ret;
+}
+
 /*
  *
  */
@@ -2852,6 +2893,7 @@ void init(std::map<std::string, std::string> rewriterStrMap){
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, std::string> rewriterStrMap,
+		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
@@ -2870,12 +2912,17 @@ bool underapproxController(
 	parseEqualityMap(_equalMap);
 
 	reset();
+
 	init(rewriterStrMap);
 
 	handle_NOTContains(rewriterStrMap);
 	handle_StartsWith(rewriterStrMap);
 	handle_EndsWith(rewriterStrMap);
 	handle_Replace(rewriterStrMap);
+
+	std::set<std::string> carryOnConstraints = reformat(_carryOnConstraints);
+	for (const auto& s : carryOnConstraints)
+		global_smtStatements.push_back({s});
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);

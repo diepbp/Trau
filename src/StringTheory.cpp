@@ -34,7 +34,7 @@ std::map<std::string, std::string> endsWithStrMap;
 std::map<std::string, std::string> startsWithStrMap;
 
 std::map<std::string, std::string> replaceStrMap;
-std::set<Z3_ast> replaceList;
+std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> endsWithPairBoolMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> startsWithPairBoolMap;
@@ -42,6 +42,8 @@ std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> startsWithPairBoolMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containNodeMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 std::map<Z3_ast, std::set<std::pair<Z3_ast, Z3_ast> > > containPairIdxMap;
+
+std::map<Z3_ast, Z3_ast> carryOn;
 
 //std::set<char> charSet;
 std::vector<Z3_ast> consideredVars;
@@ -1077,7 +1079,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		*result = reduce_replace(t, convertedArgs, breakDownAst);
 
 		if (isVariable(t, *result))
-			replaceList.emplace(*result);
+			replaceNodeMap[std::make_pair(convertedArgs[0], std::make_pair(convertedArgs[1], convertedArgs[2]))] = *result;
 
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2260,6 +2262,8 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 
 	add_endsWith_consistency(t, nn1, nn2);
 
+	add_replace_consistency(t, nn1, nn2);
+
 	//	for (int i = 0; i < lengthPropagation.size(); ++i) {
 	//		int minLength;
 	//		int maxLength;
@@ -2972,6 +2976,64 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	return true;
 }
 
+/*
+ *	x = replace a b c
+ *	--> contain x y = contain a y if ...
+ */
+void add_replace_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
+
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "%d *** %s ***: (", __LINE__, __FUNCTION__);
+	printZ3Node(t, nn1);
+	__debugPrint(logFile, ", ");
+	printZ3Node(t, nn2);
+	__debugPrint(logFile, ")\n");
+#endif
+	Z3_context ctx = Z3_theory_get_context(t);
+
+	for (const auto& replaceNode: replaceNodeMap){
+		if (replaceNode.second == nn1 || replaceNode.second == nn2){
+			__debugPrint(logFile, "%d replaceNode: %s\n", __LINE__, Z3_ast_to_string(ctx, replaceNode.second));
+			for (const auto& containNode : containPairBoolMap)
+				if (containNode.first.first == nn1 || containNode.first.first == nn2) {
+
+					__debugPrint(logFile, "%d containNode .... : %s\n", __LINE__, Z3_ast_to_string(ctx, containNode.first.first));
+					printZ3Node(t, replaceNode.first.second.first);
+					__debugPrint(logFile, ", ");
+					printZ3Node(t, containNode.first.second);
+					__debugPrint(logFile, "\n");
+
+					if ((isAutomatonFunc(t, replaceNode.first.second.first) || isConstStr(t, replaceNode.first.second.first)) &&
+						 isAutomatonFunc(t, containNode.first.second)){
+
+						__debugPrint(logFile, "%d containNode: %s\n", __LINE__, Z3_ast_to_string(ctx, containNode.first.first));
+
+						std::string _str00 = "";
+						if (isStrVariable(t, replaceNode.first.second.first))
+							_str00 = Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, replaceNode.first.second.first), 0));
+						else
+							_str00 = getConstStrValue(t, replaceNode.first.second.first);
+						std::string _str01 = Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, containNode.first.second), 0));
+
+						std::string str00 = customizeString(_str00);
+						std::string str01 = customizeString(_str01);
+
+						if (str00.find(str01) == std::string::npos &&
+							str01.find(str00) == std::string::npos){
+							Z3_ast tmp = registerInternalContain(t, replaceNode.first.first, containNode.first.second);
+							if (tmp != containNode.second)
+								addAxiom(t, Z3_mk_eq(ctx, containNode.second, tmp), __LINE__, true);
+						}
+					}
+				}
+		}
+
+		if (replaceNode.first.first == nn1 || replaceNode.second == nn2){
+
+		}
+	}
+
+}
 /*
  *
  */
@@ -4679,11 +4741,24 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		}
 	}
 
-	for (const auto& var: replaceList) {
-		std::string currentVarName = Z3_ast_to_string(ctx, var);
+	__debugPrint(logFile, "%d *** %s ***: replaceNodeMap\n", __LINE__, __FUNCTION__);
+	for (const auto& var: replaceNodeMap) {
+
+		printZ3Node(t, var.first.first);
+		__debugPrint(logFile, ", <")
+		printZ3Node(t, var.first.second.first);
+		__debugPrint(logFile, ", ")
+		printZ3Node(t, var.first.second.second);
+		__debugPrint(logFile, ">: ")
+		printZ3Node(t, var.second);
+		__debugPrint(logFile, "\n")
+	}
+
+	for (const auto& var: replaceNodeMap) {
+		std::string currentVarName = Z3_ast_to_string(ctx, var.second);
 		if (non_root.find(currentVarName) == non_root.end()){
 			extendVariableToFindAllPossibleEqualities(t,
-					var,
+					var.second,
 					connectedVariables,
 					non_root,
 					allEqPossibilities,
@@ -4854,20 +4929,30 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 
 		std::map<std::string, std::string> rewriterStrMap;
+		std::set<std::string> carryOnConstraints;
 		collectContainValueInPositiveContext(t, rewriterStrMap);
-		collectIndexOfValueInPositiveContext(t, rewriterStrMap);
-		collectLastIndexOfValueInPositiveContext(t, rewriterStrMap);
+		collectIndexOfValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		collectLastIndexOfValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 		collectEndsWithValueInPositiveContext(t, rewriterStrMap);
 		collectStartsWithValueInPositiveContext(t, rewriterStrMap);
 		collectEqualValueInPositiveContext(t, rewriterStrMap);
-		collectReplaceValueInPositiveContext(t, rewriterStrMap);
+
+		collectReplaceValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
 		for (const auto& elem : rewriterStrMap){
 			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.c_str(), elem.second.c_str());
 		}
 
+		for (const auto& s : carryOnConstraints){
+			__debugPrint(logFile, "%d carryOnConstraints: \t%s\n", __LINE__, s.c_str());
+		}
+
 		std::map<std::string, int> currentLength = collectCurrentLength(t);
-		if (!underapproxController(combination, rewriterStrMap, currentLength, inputFile)) {
+		for (const auto& s : currentLength){
+			__debugPrint(logFile, "%d currentLength: \t%s\n", __LINE__, s.first.c_str());
+		}
+
+		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints,currentLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -7304,7 +7389,8 @@ void collectContainValueInPositiveContext(
  */
 void collectIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
@@ -7320,6 +7406,7 @@ void collectIndexOfValueInPositiveContext(
 				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
 					if (astToString.compare(it->second.first) == 0){
 						rewriterStrMap[it->first] = it->second.second;
+						carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
 						break;
 					}
 				}
@@ -7353,7 +7440,8 @@ void collectIndexOfValueInPositiveContext(
  */
 void collectLastIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
@@ -7369,6 +7457,7 @@ void collectLastIndexOfValueInPositiveContext(
 				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
 					if (astToString.compare(it->second.first) == 0){
 						rewriterStrMap[it->first] = it->second.second;
+						carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
 						break;
 					}
 				}
@@ -7526,7 +7615,8 @@ void collectStartsWithValueInPositiveContext(
  */
 void collectReplaceValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
@@ -7546,6 +7636,7 @@ void collectReplaceValueInPositiveContext(
 				for (const auto& s : replaceStrMap) {
 					if (astToString.compare(s.second) == 0){
 						rewriterStrMap[s.first] = "true";
+						carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
 						break;
 					}
 				}
