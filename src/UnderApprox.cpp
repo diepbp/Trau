@@ -58,7 +58,7 @@ void updatePossibleArrangements(
  *
  */
 bool isRegexStr(std::string str){
-	return str.find('*') != std::string::npos || str.find('+') != std::string::npos;
+	return str.find(")*") != std::string::npos || str.find(")+") != std::string::npos;
 }
 
 /*
@@ -1491,127 +1491,6 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
 		return "(+" + result + ")";
 }
 
-/*
- * read equality file
- * save data to equalMap
- * save all variables to allVariables
- */
-void readFileEquality(std::string inputFile){
-	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in) {
-		printf("%d %s", __LINE__, inputFile.c_str());
-		throw std::runtime_error("Cannot open input file!");
-	}
-	std::map<std::string, std::vector<std::vector<std::string>>> equalMapTmp;
-	char buffer[1000];
-
-	/* read lengths of variables */
-	while (1) {
-		if (!fgets(buffer, sizeof buffer, in)) break;
-		std::string tmp = buffer;
-
-		if (tmp.length() > 0 && (tmp[tmp.length() - 1] == '\n' || tmp[tmp.length() - 1] == 10))
-			tmp = tmp.substr(0, tmp.length() - 1);
-
-		if (tmp.length() == 0) { /* break when get an empty line */
-			break;
-		}
-		else {
-			std::vector<std::string> tokens = parse_string_language(tmp, " ");
-			assert(tokens.size() == 2);
-			varLength[tokens[0]] = atoi(tokens[1].c_str());
-		}
-	}
-
-	while (1) {
-		if (!fgets(buffer, sizeof buffer, in)) break;
-		std::string line = buffer;
-		if (line.length() > 0 && line[line.length() - 1] == '\n')
-			line = line.substr(0, line.length() - 1);
-
-		if (line.compare("00") == 0)
-			break;
-
-		if (line.length() != 0) {
-			if (line[0] == '=') { /* start of an equalities */
-				/* read until get empty line */
-				std::vector<std::string> components;
-				while (1) {
-					if (!fgets(buffer, sizeof buffer, in)) break;
-					std::string tmp = buffer;
-
-					if (tmp.length() > 0 && (tmp[tmp.length() - 1] == '\n' || tmp[tmp.length() - 1] == 10))
-						tmp = tmp.substr(0, tmp.length() - 1);
-
-					if (tmp.length() == 0) { /* break when get an empty line */
-						break;
-					}
-					else {
-						if (tmp[0] == '(') {
-							tmp = collectConst(tmp);
-							components.push_back(tmp);
-						}
-						else {
-							std::vector<std::string> tokens = parse_string_language(tmp, " ");
-							assert(tokens.size() == 1);
-							if (varLength.find(tokens[0]) == varLength.end() || /* does not know its length */
-									(varLength.find(tokens[0]) != varLength.end() && varLength[tokens[0]] > 0)) /* or length > 0 */
-								components.push_back(tokens[0]);
-						}
-					}
-				}
-
-#ifdef ALLVAR
-				for (unsigned int i = 0; i < components.size(); ++i)
-					if (components[i][0] != '\"') { /* a new variables */
-						allVariables.insert(components[i]);
-					}
-#endif
-
-				line = line.substr(2); // skip "= "
-
-#ifdef ALLVAR
-				if (line[0] != '\"')  /* a new variables */
-					allVariables.insert(line);
-#endif
-
-				if (equalMapTmp.find(line) == equalMapTmp.end()) {
-					std::vector<std::vector<std::string>> tmp;
-					tmp.push_back(components);
-					equalMapTmp[line] = tmp;
-				}
-				else
-					equalMapTmp[line].push_back(components);
-			}
-		}
-	}
-
-	/* read repeated variables*/
-	std::vector<std::string> repeatedVariables;
-	while (1) {
-		if (!fgets(buffer, sizeof buffer, in)) break;
-		std::string line = buffer;
-		if (line.length() > 0 && line[line.length() - 1] == '\n')
-			line = line.substr(0, line.length() - 1);
-
-		repeatedVariables.push_back(line.substr(0, line.length() - 9)); /* " repeated" */
-		// printf("%s\n", line.substr(0, line.length() - 9).c_str());
-	}
-
-	/* refine equal map*/
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalMapTmp.begin(); it != equalMapTmp.end(); ++it)
-		if (std::find(repeatedVariables.begin(), repeatedVariables.end(), it->first) == repeatedVariables.end())
-			equalitiesMap[it->first] = it->second;
-		else {
-			/* create length constraint for this variable*/
-			std::string result = "(assert (= len_" + it->first + " " + generate_simple_constraint(it->second) + "))";
-			// printf("%s \n", result.c_str());
-			repeatedVariableConstraints.push_back(result);
-		}
-
-	pclose(in);
-}
-
 /**
  * collect all variables we need to handle
  */
@@ -1671,31 +1550,30 @@ void sumConstString(){
 	std::map<std::string, std::vector<std::string>> parserMap;
 
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
+	for (const auto& _eq :  equalitiesMap) {
 		std::vector<std::vector<std::string>> tmp_vector;
-		for (unsigned int j = 0; j < it->second.size(); ++j){
-//			displayListString(it->second[j], "equalitiesMap to handle");
+		for (const auto& vt : _eq.second){
 			std::vector<std::string> elements;
 			std::string tmpStr = "";
 			/* push to map */
-			for (unsigned int k = 0; k < it->second[j].size(); ++k) {
-				if (it->second[j][k][0] == '\"') {
+			for (const auto& s : vt) {
+				if (s[0] == '\"') {
 					/* prevent the case: (abc)*  + def */
-					if (isRegexStr(it->second[j][k])) {
+					if (isRegexStr(s)) {
 						std::vector<std::string> localElements;
 						/* reuse the parse result */
-						if (parserMap.find(it->second[j][k]) != parserMap.end()) {
-							localElements = parserMap[it->second[j][k]];
+						if (parserMap.find(s) != parserMap.end()) {
+							localElements = parserMap[s];
 						}
 						else {
 							/* update regex */
-							unsigned int tmpPos = it->second[j][k].length() - 1;
-							for (tmpPos = it->second[j][k].length() - 1; tmpPos >= 0; --tmpPos)
-								if (it->second[j][k][tmpPos] == '\"') {
+							unsigned int tmpPos = s.length() - 1;
+							for (tmpPos = s.length() - 1; tmpPos >= 0; --tmpPos)
+								if (s[tmpPos] == '\"') {
 									break;
 								}
 
-							std::string content = it->second[j][k].substr(1, tmpPos - 1);
+							std::string content = s.substr(1, tmpPos - 1);
 
 							__debugPrint(logFile, "%d content = %s\n", __LINE__, content.c_str());
 							/* parse this regex */
@@ -1720,7 +1598,7 @@ void sumConstString(){
 								pos++;
 							}
 
-							parserMap[it->second[j][k]] = localElements;
+							parserMap[s] = localElements;
 						}
 
 						displayListString(localElements, " localElements list ");
@@ -1749,23 +1627,26 @@ void sumConstString(){
 						}
 					}
 					else /* meet const str */
-						tmpStr = tmpStr + it->second[j][k].substr(1, it->second[j][k].length() - 2);
+						tmpStr = tmpStr + s.substr(1, s.length() - 2);
 				}
 				else { /* meet variable */
 					if (tmpStr.length() > 0) {
 						elements.push_back("\"" + tmpStr + "\"");
 						tmpStr = "";
 					}
-					elements.push_back(it->second[j][k]);
+					elements.push_back(s);
 				}
 			}
+
 			if (tmpStr.length() > 0) {
 				elements.push_back("\"" + tmpStr + "\"");
 				tmpStr = "";
 			}
-			tmp_vector.push_back(elements);
+
+			if (elements.size() > 0)
+				tmp_vector.push_back(elements);
 		}
-		new_eqMap[it->first] = tmp_vector;
+		new_eqMap[_eq.first] = tmp_vector;
 	}
 
 	equalitiesMap.clear();
@@ -1944,7 +1825,10 @@ void decodeEqualMap(){
 			tmp_vector.push_back(tmp);
 		}
 
-		new_eqMap[eq.first] = tmp_vector;
+		if (eq.first[0] != '\"')
+			new_eqMap[eq.first] = tmp_vector;
+		else
+			new_eqMap[decodeStr(eq.first)] = tmp_vector;
 	}
 
 	equalitiesMap.clear();
@@ -2319,11 +2203,8 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 
 	for (unsigned int k = 0; k < list.size(); ++k)
 		if (list[k][0] == '\"') {
-			size_t starPos = list[k].find('*');
-			if (starPos == std::string::npos)
-				starPos = list[k].find('+');
 
-			if (starPos == std::string::npos) {
+			if (!isRegexStr(list[k])) {
 				if (list[k].length() > SPLIT_UNDER_BOUND) /* const string */ {
 					for (int j = 0; j < QCONSTMAX; ++j) { /* split variables into QMAX parts */
 						elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
@@ -2411,6 +2292,25 @@ void optimizeEquality(
 }
 
 /*
+ *
+ */
+std::string constraintsIfEmpty(
+		std::vector<std::string> lhs,
+		std::vector<std::string> rhs){
+	if (lhs.size() == 0 || rhs.size() == 0){
+		std::string tmpStr = "";
+		if (lhs.size() == 0)
+			tmpStr = createLengthConstraintForAssignment("", rhs);
+		if (rhs.size() == 0)
+			tmpStr = createLengthConstraintForAssignment("", lhs);
+		if (tmpStr.size() > 0)
+			return tmpStr;
+		else
+			return "true";
+	}
+	return "";
+}
+/*
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
@@ -2449,9 +2349,9 @@ void *convertEqualities(void *tid){
 		const int flatP = 1;
 		const int maxPConsidered = 6;
 		unsigned int maxLocal = 0;
-		for (unsigned int i = 0; i < it->second.size(); ++i) {
-			maxLocal = it->second[i].size() > maxLocal ? it->second[i].size() : maxLocal;
-		}
+		for (const auto& element : it->second)
+			maxLocal = element.size() > maxLocal ? element.size() : maxLocal;
+
 #ifdef PRINTTEST_UNDERAPPROX
 		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
 #endif
@@ -2461,11 +2361,11 @@ void *convertEqualities(void *tid){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
 
 			/* compare with others */
-			for (unsigned int i = 0; i < it->second.size(); ++i) {
-				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[i]);
+			for (const auto& element: it->second) {
+				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
 				t = clock();
 				std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(genericFlat),
-						sumStringVector(it->second[i]),
+						sumStringVector(element),
 						lhs_elements,
 						rhs_elements
 				);
@@ -2487,8 +2387,8 @@ void *convertEqualities(void *tid){
 					}
 					/* sync result*/
 					pthread_mutex_lock (&smt_mutex);
-					for (std::map<std::string, int>::iterator iter = result.second.begin(); iter != result.second.end(); ++iter) {
-						global_smtVars[iter->first] = 'd';
+					for (const auto& r : result.second) {
+						global_smtVars[r.first] = 'd';
 					}
 					global_smtStatements.push_back(result.first);
 
@@ -2499,6 +2399,7 @@ void *convertEqualities(void *tid){
 					pthread_mutex_unlock (&smt_mutex);
 				}
 				else {
+					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
@@ -2514,23 +2415,30 @@ void *convertEqualities(void *tid){
 					global_smtStatements.push_back(lenConstraint);
 				}
 				lenConstraint.clear();
-				if (connectedVariables.find(it->first) != connectedVariables.end()) {
-					std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
-					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[0]);
-					t = clock();
-					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
-																											sumStringVector(it->second[0]),
-																											lhs_elements,
-																											rhs_elements
-					);
-					if (result.first.size() != 0) {
-						pthread_mutex_lock (&smt_mutex);
-						for (std::map<std::string, int>::iterator iter = result.second.begin(); iter != result.second.end(); ++iter) {
-							global_smtVars[iter->first] = 'd';
-						}
-						global_smtStatements.push_back(result.first);
 
-						pthread_mutex_unlock (&smt_mutex);
+				if (connectedVariables.find(it->first) != connectedVariables.end()) {
+					if (it->second[0].size() == 0){
+						global_smtStatements.push_back({constraintsIfEmpty({it->first}, it->second[0])});
+						continue;
+					}
+					else {
+						std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
+						std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[0]);
+
+						std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
+								sumStringVector(it->second[0]),
+								lhs_elements,
+								rhs_elements
+						);
+						if (result.first.size() != 0) {
+							pthread_mutex_lock (&smt_mutex);
+							for (const auto& r : result.second)
+								global_smtVars[r.first] = 'd';
+
+							global_smtStatements.push_back(result.first);
+
+							pthread_mutex_unlock (&smt_mutex);
+						}
 					}
 
 				}
@@ -2542,8 +2450,10 @@ void *convertEqualities(void *tid){
 					std::vector<std::string> rhs;
 					optimizeEquality(it->second[i], it->second[j], lhs, rhs);
 
-					displayListString(lhs, " ---lhs--- ");
-					displayListString(rhs, " ---rhs--- ");
+					if (lhs.size() == 0 || rhs.size() == 0){
+						global_smtStatements.push_back({constraintsIfEmpty(lhs, rhs)});
+						continue;
+					}
 
 					/* [i] = [j] */
 					std::vector<std::pair<std::string, int>> lhs_elements = createEquality(lhs);
@@ -2583,6 +2493,7 @@ void *convertEqualities(void *tid){
 						pthread_mutex_unlock (&smt_mutex);
 					}
 					else {
+						__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
 						/* trivial unsat */
 						trivialUnsat = true;
 					}
@@ -2670,14 +2581,20 @@ std::string getValueFromRegex(std::string s, int length){
 	assert (openPar != std::string::npos);
 	unsigned int closePar = findCorrespondRightParentheses(openPar, s);
 	std::set<std::string> components = extendComponent(s.substr(openPar + 1, closePar - openPar - 1));
-	std::string ret = "";
-	bool found = false;
-	createStringFromSet(components, length, ret, found);
-	displayListString(components, " components ");
-	__debugPrint(logFile, "%d *** %s ***: <%s, %d> -> %s\n", __LINE__, __FUNCTION__, s.c_str(), length, ret.c_str());
-	if (found == true)
-		return ret;
+
+	if(components.size() == 1) {
+		std::string ret = "";
+		bool found = false;
+		createStringFromSet(components, length, ret, found);
+		displayListString(components, " components ");
+		__debugPrint(logFile, "%d *** %s ***: <%s, %d> -> %s\n", __LINE__, __FUNCTION__, s.c_str(), length, ret.c_str());
+		if (found == true)
+			return ret;
+		else
+			return "!fOuNd";
+	}
 	else
+		/* TODO: not support yet */
 		return "!fOuNd";
 }
 
@@ -2716,7 +2633,14 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 					if (!isRegexStr(s))
 						value = value + s.substr(1, s.length() - 2);
 					else {
-						value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+						if (tmp.compare("!fOuNd") != 0)
+							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+						else {
+							value = "";
+							gotValue = false;
+							break;
+						}
 					}
 				}
 				else if (result.find(s) != result.end())
@@ -2743,6 +2667,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 				tmp = tmp + "\\\"";
 			else if (var.second[i] == '\\')
 				tmp = tmp + "\\\\";
+			else if (var.second[i] == 9) // tab
+				tmp = tmp + "\\t";
 			else if (var.second[i] < 32 || var.second[i] > 126)
 				tmp = tmp + 'z';
 			else
@@ -2814,8 +2740,7 @@ bool Z3_run(
 								break;
 							}
 							else {
-								assert(tokens.size() == 4);
-								valueMap[std::atoi(tokens[2].c_str())] = std::atoi(tokens[3].c_str());
+								valueMap[std::atoi(tokens[2].c_str())] = std::atoi(tokens[tokens.size() - 1].c_str());
 							}
 						}
 						/* convert map to string */
@@ -3009,7 +2934,7 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 /*
  *
  */
-void init(std::map<std::string, std::string> rewriterStrMap){
+void init(std::map<std::string, std::string> &rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
 	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
@@ -3103,7 +3028,7 @@ bool underapproxController(
 		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
 		pthreadController();
 		if (trivialUnsat) {
-			printf("%d false \n", __LINE__);
+			printf("%d trivialUnsat\n", __LINE__);
 			return false;
 		}
 		else {

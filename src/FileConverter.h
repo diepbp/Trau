@@ -31,7 +31,8 @@ static std::map<char, int> ENCODEMAP{
 	{'^', 'S'},
 	{'&', 'T'},
 	{'*', 'U'},
-	{'+', 'V'}
+	{'+', 'V'},
+	{'\t', 'X'}
 };
 
 static std::map<int, int> DECODEMAP{
@@ -53,7 +54,8 @@ static std::map<int, int> DECODEMAP{
 	{'S', '^'},
 	{'T', '&'},
 	{'U', '*'},
-	{'V', '+'}
+	{'V', '+'},
+	{'X', '\t'}
 };
 
 template< typename T >

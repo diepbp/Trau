@@ -972,6 +972,7 @@ void customizeLine_ToCreateLengthLine(
 						else {
 							constStr = "\"" + constStr + "\"";
 							constList.insert(constStr);
+							__debugPrint(logFile, "%d found const: %s\n", __LINE__, constStr.c_str());
 							constStr = "";
 						}
 						break;
@@ -1001,11 +1002,15 @@ void customizeLine_ToCreateLengthLine(
 				}
 			}
 			else if (textState == 1 || textState == 3) {
-				textState = 1;
-				if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end()) {
+
+				if (strTmp[i] == 't' && textState == 3)
+					strTmp[i] = ENCODEMAP['\t'];
+				else
+					if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end())
 					strTmp[i] = ENCODEMAP[strTmp[i]];
-				}
+
 				constStr = constStr + strTmp[i];
+				textState = 1;
 			}
 
 			else if (strTmp[i] == '(') {
@@ -1078,7 +1083,7 @@ void customizeLine_ToCreateLengthLine(
 			}
 			lastParentheses = false;
 		}
-		__debugPrint(logFile, "%d step 00 %s\n", __LINE__, newStr.c_str());
+
 		if (changeByNotOp) {
 			checkAssignWellForm(newStr);
 			changeByNotOp = false;
@@ -1086,7 +1091,7 @@ void customizeLine_ToCreateLengthLine(
 		/* skip this assertion because of NotOp*/
 		if (newStr.find("(assert )") != std::string::npos || newStr.find("(assert  )") != std::string::npos)
 			return;
-
+		__debugPrint(logFile, "%d * %s * : %s\n", __LINE__, __FUNCTION__, newStr.c_str());
 		updateImplies(newStr);
 		updateRegexIn(newStr);
 		updateContain(newStr, rewriterStrMap);
@@ -1096,7 +1101,9 @@ void customizeLine_ToCreateLengthLine(
 		updateStartsWith(newStr, rewriterStrMap);
 		updateReplace(newStr, rewriterStrMap);
 
+		displayListString(constList, "constttlist");
 
+		__debugPrint(logFile, "%d step 00 %s\n", __LINE__, newStr.c_str());
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
 //		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
 		updateStr2Regex(newStr);
@@ -1165,10 +1172,13 @@ std::string customizeLine_removeSpecialChars(std::string str){
 			}
 		}
 		else if (textState == 1 || textState == 3) {
-			textState = 1;
-			if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end()) {
+
+			if (strTmp[i] == 't' && textState == 3)
+				strTmp[i] = ENCODEMAP['\t'];
+			else if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end())
 				strTmp[i] = ENCODEMAP[strTmp[i]];
-			}
+
+			textState = 1;
 		}
 
 		if (!reduceSize)
