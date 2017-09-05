@@ -7555,10 +7555,16 @@ void collectEqualValueInPositiveContext(
 				/* add this constraint */
 				if (astToString.find("(not ") == 0){
 					Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-					rewriterStrMap[node_to_string(t, boolNode)] = "false";
+					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 0);
+					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 1);
+					if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
+						rewriterStrMap[node_to_string(t, boolNode)] = "false";
 				}
 				else {
-					rewriterStrMap[node_to_string(t, argAst)] = "true";
+					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
+					if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
+						rewriterStrMap[node_to_string(t, argAst)] = "true";
 				}
 			}
 		}

@@ -770,7 +770,7 @@ void create_constraints_Replace(std::string lhs, std::vector<std::string> args, 
 /*
  *
  */
-void create_constraints_NOTContain(std::string var, std::string value){
+std::string create_constraints_NOTContain(std::string var, std::string value){
 	std::string lenName = generateVarLength(var);
 	std::string arrName = generateVarArray(var);
 
@@ -794,9 +794,88 @@ void create_constraints_NOTContain(std::string var, std::string value){
 		}
 		andConstraints.push_back(orConstraint(tmp));
 	}
-	global_smtStatements.push_back({andConstraint(andConstraints)});
+
 	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
+
+	return andConstraint(andConstraints);
 }
+
+
+
+/*
+ *
+ */
+std::string create_constraints_NOTEqual(
+		std::string str00,
+		std::string str01){
+	__debugPrint(logFile, "%d *** %s ***: NOTEqual %s %s\n", __LINE__, __FUNCTION__, str00.c_str(), str01.c_str());
+	bool isConst_00 = false;
+	bool isConst_01 = false;
+	if (str00[0] == '\"' )
+		isConst_00 = true;
+
+	if (str01[0] == '\"')
+		isConst_01 = true;
+
+	assert(!(isConst_00 && isConst_01));
+
+	std::vector<std::string> orConstraints;
+	std::vector<std::string> andConstraints;
+
+	std::string ret = "";
+
+	if (isConst_00 || isConst_01) {
+		if (isConst_01) {
+			/* swap */
+			std::string tmp = str00;
+			str00 = str01;
+			str01 = tmp;
+		}
+
+		std::string len01 = generateVarLength(str01);
+		std::string arr01 = generateVarArray(str01);
+
+		/* != "a" b */
+		orConstraints.push_back("(not (= " + len01 + " " + std::to_string((int)str00.length() - 2) + "))");
+
+		/* (length a != 0 && ...) || length b = 1 && ...*/
+		if (str00.length() > 2) {
+			andConstraints.push_back("(= " + len01 + " " + std::to_string(str00.length() - 2) + ")");
+			for (unsigned int j = 0; j < str00.length() - 2; ++j) {
+				andConstraints.push_back("(= (select " + arr01 + " " + std::to_string(j) + ") " + std::to_string((int)str00[j]) + ")");
+			}
+			orConstraints.push_back("(not (" + andConstraint(andConstraints) + ")");
+		}
+
+		ret = orConstraint(orConstraints);
+
+	}
+	else {
+		std::string len00 = generateVarLength(str00);
+		std::string len01 = generateVarLength(str01);
+		std::string arr00 = generateVarArray(str00);
+		std::string arr01 = generateVarArray(str01);
+		/* != "a" b */
+		orConstraints.push_back("(not (= " + len00 + " " + len01 + "))");
+
+		andConstraints.push_back("(= " + len00 + " " + len01 + ")");
+		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+			/*len a = len b <= i || a[i - 1] == b [i-1] */
+			andConstraints.push_back("(or " + len00 + " " + len01 + ")");
+			std::string tmp = "";
+			tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
+			tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
+			tmp = "(or " + tmp + ")";
+			andConstraints.push_back(tmp);
+		}
+		orConstraints.push_back(andConstraint(andConstraints));
+		ret = orConstraint(orConstraints);
+	}
+
+	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
+	return ret;
+}
+
 
 /*
  *
@@ -816,7 +895,9 @@ void handle_NOTContains(
 				std::string value01 = getPossibleValue(args.first);
 				if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") == 0 &&
 						done.find(std::make_pair(args.first, value02)) == done.end()) {
-					create_constraints_NOTContain(args.first, value02);
+
+					global_smtStatements.push_back({create_constraints_NOTContain(args.first, value02)});
+
 					done[std::make_pair(args.first, value02)] = true;
 				}
 				if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
@@ -836,7 +917,12 @@ void handle_NOTContains(
  */
 void handle_NOTEqual(
 		std::map<std::string, std::string> rewriterStrMap){
-
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0){
+			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_NOTEqual(tmpPair.first, tmpPair.second)});
+		}
+	}
 }
 /**
  * handle startswith constraints
@@ -1782,12 +1868,14 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 				s.first.find("(EndsWith ") != std::string::npos ||
 				s.first.find("(Replace ") != std::string::npos ||
 				s.first.find("(ReplaceAll ") != std::string::npos ||
-				(s.first.find("(Contains ") != std::string::npos && s.second.compare("false") == 0)){
+				(s.first.find("(Contains ") != std::string::npos && s.second.compare("false") == 0) ||
+				(s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0)){
 			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
 			if (tmpPair.first.find("(Concat ") != std::string::npos ||
 					tmpPair.second.find("(Concat ") != std::string::npos ||
 					tmpPair.second.find("(Automata") != std::string::npos)
 				continue;
+
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.c_str(), tmpPair.first.c_str(), tmpPair.second.c_str());
 			/* add all of variables to the connected var set*/
 			if (tmpPair.first[0] != '\"') {
@@ -2047,8 +2135,8 @@ void optimizeFlatAutomaton(std::string &s){
 	displayListString(ret, " *** optimizeFlatAutomaton ***");
 	assert(ret.size() > 0);
 	s = "";
-	for (std::set<std::string>::iterator it = ret.begin(); it != ret.end(); ++it){
-		s = s + "|" + *it;
+	for (const auto& it: ret){
+		s = s + "|" + it;
 	}
 	s = "(" + s.substr(1) + ")*";
 }
@@ -2555,6 +2643,45 @@ void testEqualityToSMT(){
 }
 
 /*
+ *
+ */
+void createStringFromSet(std::set<std::string> list, int length, std::string &ret, bool &found){
+	if ((int)ret.length() == length) {
+		found = true;
+		return;
+	}
+	for (const auto& s : list) {
+		if ((int)ret.length() + (int)s.length() <= length){
+			ret = ret + s;
+			createStringFromSet(list, length, ret, found);
+			if (found)
+				return;
+			else
+				ret = ret.substr(0, ret.length() - s.length());
+		}
+	}
+}
+
+/*
+ * len = 10, (ab)* --> abababababab
+ */
+std::string getValueFromRegex(std::string s, int length){
+	size_t openPar = s.find('(');
+	assert (openPar != std::string::npos);
+	unsigned int closePar = findCorrespondRightParentheses(openPar, s);
+	std::set<std::string> components = extendComponent(s.substr(openPar + 1, closePar - openPar - 1));
+	std::string ret = "";
+	bool found = false;
+	createStringFromSet(components, length, ret, found);
+	displayListString(components, " components ");
+	__debugPrint(logFile, "%d *** %s ***: <%s, %d> -> %s\n", __LINE__, __FUNCTION__, s.c_str(), length, ret.c_str());
+	if (found == true)
+		return ret;
+	else
+		return "!fOuNd";
+}
+
+/*
  * create str values after running Z3
  */
 std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue){
@@ -2585,8 +2712,13 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 		for (const auto& v : eq.second){
 			bool gotValue = true;
 			for (const auto& s : v){
-				if (s[0] == '\"')
-					value = value + s.substr(1, s.length() - 2);
+				if (s[0] == '\"') {
+					if (!isRegexStr(s))
+						value = value + s.substr(1, s.length() - 2);
+					else {
+						value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+					}
+				}
 				else if (result.find(s) != result.end())
 					value = value + result[s];
 				else {
@@ -2845,7 +2977,7 @@ void reset(){
 /*
  * replace all "Length " by "len_"
  */
-std::set<std::string> reformat(std::set<std::string> _carryOnConstraints){
+std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnConstraints){
 	std::set<std::string> ret;
 
 	for (const auto& s : _carryOnConstraints){
@@ -2915,12 +3047,13 @@ bool underapproxController(
 
 	init(rewriterStrMap);
 
+	handle_NOTEqual(rewriterStrMap);
 	handle_NOTContains(rewriterStrMap);
 	handle_StartsWith(rewriterStrMap);
 	handle_EndsWith(rewriterStrMap);
 	handle_Replace(rewriterStrMap);
 
-	std::set<std::string> carryOnConstraints = reformat(_carryOnConstraints);
+	std::set<std::string> carryOnConstraints = reformatCarryOnConstraints(_carryOnConstraints);
 	for (const auto& s : carryOnConstraints)
 		global_smtStatements.push_back({s});
 
@@ -2930,8 +3063,8 @@ bool underapproxController(
 	if (constMap.size() > 0) {
 		/* print test const map */
 		__debugPrint(logFile, "%d Const map:\n", __LINE__);
-		for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it) {
-			__debugPrint(logFile, "%s: %s\n", it->first.c_str(), it->second.c_str());
+		for (const auto& element : constMap) {
+			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
 		}
 		__debugPrint(logFile, "\n");
 	}

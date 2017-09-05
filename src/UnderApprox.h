@@ -160,7 +160,14 @@ bool isRegexStr(std::string str);
 	/*
 	 *
 	 */
-	void create_constraints_NOTContain(std::string var, std::string value);
+	std::string create_constraints_NOTContain(std::string var, std::string value);
+
+	/*
+	 *
+	 */
+	std::string create_constraints_NOTEqual(
+			std::string str00,
+			std::string str01);
 
 	/*
 	 *
@@ -448,7 +455,7 @@ bool isRegexStr(std::string str);
 	/*
 	 * replace all "Length " by "len_"
 	 */
-	std::set<std::string> reformat(std::set<std::string> _carryOnConstraints);
+	std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnConstraints);
 
 	void init(std::map<std::string, std::string> rewriterStrMap);
 
