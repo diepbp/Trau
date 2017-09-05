@@ -972,13 +972,11 @@ void customizeLine_ToCreateLengthLine(
 						else {
 							constStr = "\"" + constStr + "\"";
 							constList.insert(constStr);
-							__debugPrint(logFile, "%d found const: %s\n", __LINE__, constStr.c_str());
 							constStr = "";
 						}
 						break;
 					case 3:
 						textState = 1;
-						strTmp[i] = ENCODEMAP[strTmp[i]];
 						constStr = constStr + strTmp[i];
 						break;
 					default:
@@ -989,7 +987,6 @@ void customizeLine_ToCreateLengthLine(
 			else if (strTmp[i] == '\\') {
 				switch (textState) {
 					case 3:
-						strTmp[i] = ENCODEMAP[strTmp[i]];
 						textState = 1;
 						constStr = constStr + strTmp[i];
 						break;
@@ -1005,9 +1002,6 @@ void customizeLine_ToCreateLengthLine(
 
 				if (strTmp[i] == 't' && textState == 3)
 					strTmp[i] = ENCODEMAP['\t'];
-				else
-					if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end())
-					strTmp[i] = ENCODEMAP[strTmp[i]];
 
 				constStr = constStr + strTmp[i];
 				textState = 1;
@@ -1091,6 +1085,7 @@ void customizeLine_ToCreateLengthLine(
 		/* skip this assertion because of NotOp*/
 		if (newStr.find("(assert )") != std::string::npos || newStr.find("(assert  )") != std::string::npos)
 			return;
+
 		__debugPrint(logFile, "%d * %s * : %s\n", __LINE__, __FUNCTION__, newStr.c_str());
 		updateImplies(newStr);
 		updateRegexIn(newStr);
@@ -1112,8 +1107,6 @@ void customizeLine_ToCreateLengthLine(
 //		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
 		updateRegexPlus(newStr, regexCnt);
 //		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
-//		updateRegexIn(newStr);
-//		 printf("%d step 06 %s\n", __LINE__, newStr.c_str());
 		updateSubstring(newStr);
 
 

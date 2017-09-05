@@ -844,7 +844,7 @@ std::string create_constraints_NOTEqual(
 			for (unsigned int j = 0; j < str00.length() - 2; ++j) {
 				andConstraints.push_back("(= (select " + arr01 + " " + std::to_string(j) + ") " + std::to_string((int)str00[j]) + ")");
 			}
-			orConstraints.push_back("(not (" + andConstraint(andConstraints) + ")");
+			orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
 		}
 
 		ret = orConstraint(orConstraints);
@@ -2347,7 +2347,7 @@ void *convertEqualities(void *tid){
 
 		/* different tactic for size of it->second */
 		const int flatP = 1;
-		const int maxPConsidered = 6;
+		const int maxPConsidered = 7;
 		unsigned int maxLocal = 0;
 		for (const auto& element : it->second)
 			maxLocal = element.size() > maxLocal ? element.size() : maxLocal;
@@ -2611,6 +2611,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 				if (lenValue <= (int)strValue[name].length())
 					result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
 				else {
+					// TODO : find the final value
+					continue;
 					std::string tmp = "";
 					for (int i = strValue[name].length(); i < lenValue; ++i)
 						tmp = tmp + 'z';
@@ -2633,6 +2635,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 					if (!isRegexStr(s))
 						value = value + s.substr(1, s.length() - 2);
 					else {
+						// TODO : find the final regex value
 						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
 						if (tmp.compare("!fOuNd") != 0)
 							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
