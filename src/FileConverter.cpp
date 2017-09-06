@@ -309,6 +309,66 @@ void updateSubstring(std::string &s) {
 	}
 }
 
+/*
+ * ToUpper --> len = len
+ */
+void updateToUpper(std::string &s) {
+	std::size_t found = s.find("(ToUpper ");
+
+	while (found != std::string::npos) {
+		/* reach "a" */
+		unsigned int endPos = findCorrespondRightParentheses(found, s);
+		unsigned int pos = found + 9;
+		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
+		while (s[pos] == ' ')
+			pos++;
+		std::string tmp = "";
+		if (s[pos] == '('){
+			pos = findCorrespondRightParentheses(pos, s) + 1;
+			tmp = s.substr(pos, findCorrespondRightParentheses(pos, s) - pos + 1);
+		}
+		else while (s[pos] != ')' && pos < s.length()) {
+			tmp = tmp + s[pos];
+			pos++;
+		}
+		__debugPrint(logFile, "%d s = %s, tmp = %s, substr = %s\n", __LINE__, s.c_str(), tmp.c_str(), s.substr(found, endPos - found + 1).c_str());
+		s.replace(found, pos - found + 1, tmp);
+		__debugPrint(logFile, "%d %s: tmp = %s --> s = %s\n", __LINE__, __FUNCTION__, tmp.c_str(), s.c_str());
+		found = s.find("(ToUpper ");
+	}
+
+}
+
+/*
+ * ToLower --> len = len
+ */
+void updateToLower(std::string &s) {
+	std::size_t found = s.find("(ToLower ");
+
+	while (found != std::string::npos) {
+		/* reach "a" */
+		unsigned int endPos = findCorrespondRightParentheses(found, s);
+		unsigned int pos = found + 8;
+		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
+		while (s[pos] == ' ')
+			pos++;
+		std::string tmp = "";
+		if (s[pos] == '('){
+			pos = findCorrespondRightParentheses(pos, s) + 1;
+			tmp = s.substr(pos, findCorrespondRightParentheses(pos, s) - pos + 1);
+		}
+		else while (s[pos] != ')' && pos < s.length()) {
+			tmp = tmp + s[pos];
+			pos++;
+		}
+		__debugPrint(logFile, "%d s = %s, tmp = %s, substr = %s\n", __LINE__, s.c_str(), tmp.c_str(), s.substr(found, endPos - found + 1).c_str());
+		s.replace(found, pos - found + 1, tmp);
+		__debugPrint(logFile, "%d %s: tmp = %s --> s = %s\n", __LINE__, __FUNCTION__, tmp.c_str(), s.c_str());
+		found = s.find("(ToLower ");
+	}
+
+}
+
 
 /*
  * Concat --> +
@@ -1096,17 +1156,13 @@ void customizeLine_ToCreateLengthLine(
 		updateStartsWith(newStr, rewriterStrMap);
 		updateReplace(newStr, rewriterStrMap);
 
-		displayListString(constList, "constttlist");
+		updateToUpper(newStr);
+		updateToLower(newStr);
 
-		__debugPrint(logFile, "%d step 00 %s\n", __LINE__, newStr.c_str());
 		updateConst(newStr, constList); /* "abcdef" --> 6 */
-//		printf("%d step 02 %s\n", __LINE__, newStr.c_str());
 		updateStr2Regex(newStr);
-//		printf("%d step 03 %s\n", __LINE__, newStr.c_str());
 		updateRegexStar(newStr, regexCnt);
-//		printf("%d step 04 %s\n", __LINE__, newStr.c_str());
 		updateRegexPlus(newStr, regexCnt);
-//		printf("%d step 05 %s\n", __LINE__, newStr.c_str());
 		updateSubstring(newStr);
 
 

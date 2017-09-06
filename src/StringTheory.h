@@ -265,6 +265,16 @@ typedef struct _AutomatonStringData
  /*
   *
   */
+ Z3_ast reduce_toUpper(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+ /*
+  *
+  */
+ Z3_ast reduce_toLower(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+ /*
+  *
+  */
  Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
 
  /*

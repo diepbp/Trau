@@ -861,19 +861,68 @@ std::string create_constraints_NOTEqual(
 		andConstraints.push_back("(= " + len00 + " " + len01 + ")");
 		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 			/*len a = len b <= i || a[i - 1] == b [i-1] */
-			andConstraints.push_back("(or " + len00 + " " + len01 + ")");
 			std::string tmp = "";
 			tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
 			tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
 			tmp = "(or " + tmp + ")";
 			andConstraints.push_back(tmp);
 		}
-		orConstraints.push_back(andConstraint(andConstraints));
+		orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
 		ret = orConstraint(orConstraints);
 	}
 
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
+}
+
+/*
+ *
+ */
+std::string create_constraints_ToLower(std::string str00, std::string str01){
+	std::string len00 = generateVarLength(str00);
+	std::string len01 = generateVarLength(str01);
+	std::string arr00 = generateVarArray(str00);
+	std::string arr01 = generateVarArray(str01);
+
+	std::vector<std::string> andConstraints;
+
+	for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+		/*len a <= i || a[i - 1] == b [i-1] */
+		/*len a = len b <= i || a[i - 1] == b [i-1] */
+		std::string tmp = "";
+		tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
+		tmp = tmp + "(ite (and (<= 65 (select " + arr00 + " " + std::to_string(i - 1) + ")) (>= 90 (select " + arr00 + " " + std::to_string(i - 1) + ")))";
+		tmp = tmp + " (= (+ (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
+		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
+		tmp = "(or " + tmp + ")";
+		andConstraints.push_back(tmp);
+	}
+	return andConstraint(andConstraints);
+}
+
+/*
+ *
+ */
+std::string create_constraints_ToUpper(std::string str00, std::string str01){
+	std::string len00 = generateVarLength(str00);
+	std::string len01 = generateVarLength(str01);
+	std::string arr00 = generateVarArray(str00);
+	std::string arr01 = generateVarArray(str01);
+
+	std::vector<std::string> andConstraints;
+
+	for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+		/*len a <= i || a[i - 1] == b [i-1] */
+		/*len a = len b <= i || a[i - 1] == b [i-1] */
+		std::string tmp = "";
+		tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
+		tmp = tmp + "(ite (and (<= 97 (select " + arr00 + " " + std::to_string(i - 1) + ")) (>= 122 (select " + arr00 + " " + std::to_string(i - 1) + ")))";
+		tmp = tmp + " (= (- (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
+		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
+		tmp = "(or " + tmp + ")";
+		andConstraints.push_back(tmp);
+	}
+	return andConstraint(andConstraints);
 }
 
 
@@ -961,6 +1010,30 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 		if (s.first.find("(Replace ") != std::string::npos){
 			std::vector<std::string> args = extract_three_arguments(s.first);
 //			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
+		}
+	}
+}
+
+/*
+ *
+ */
+void handle_ToUpper(std::map<std::string, std::string> rewriterStrMap){
+	for (const auto& s : rewriterStrMap) {
+		if (s.second.compare("upper") == 0){
+			std::pair<std::string, std::string> args = extract_two_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_ToUpper(args.first, args.second)});
+		}
+	}
+}
+
+/*
+ *
+ */
+void handle_ToLower(std::map<std::string, std::string> rewriterStrMap){
+	for (const auto& s : rewriterStrMap) {
+		if (s.second.compare("lower") == 0){
+			std::pair<std::string, std::string> args = extract_two_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_ToLower(args.first, args.second)});
 		}
 	}
 }
@@ -1750,7 +1823,7 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 				s.first.find("(Replace ") != std::string::npos ||
 				s.first.find("(ReplaceAll ") != std::string::npos ||
 				(s.first.find("(Contains ") != std::string::npos && s.second.compare("false") == 0) ||
-				(s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0)){
+				(s.first.find("(= ") != std::string::npos && (s.second.compare("false") == 0 || s.second.compare("upper") == 0 || s.second.compare("lower") == 0))){
 			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
 			if (tmpPair.first.find("(Concat ") != std::string::npos ||
 					tmpPair.second.find("(Concat ") != std::string::npos ||
@@ -2980,6 +3053,8 @@ bool underapproxController(
 	handle_StartsWith(rewriterStrMap);
 	handle_EndsWith(rewriterStrMap);
 	handle_Replace(rewriterStrMap);
+	handle_ToUpper(rewriterStrMap);
+	handle_ToLower(rewriterStrMap);
 
 	std::set<std::string> carryOnConstraints = reformatCarryOnConstraints(_carryOnConstraints);
 	for (const auto& s : carryOnConstraints)

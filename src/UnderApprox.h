@@ -172,6 +172,16 @@ std::string create_constraints_NOTEqual(
 /*
  *
  */
+std::string create_constraints_ToLower(std::string str00, std::string str01);
+
+/*
+ *
+ */
+std::string create_constraints_ToUpper(std::string str00, std::string str01);
+
+/*
+ *
+ */
 void handle_NOTContains(
 		std::map<std::string, std::string> rewriterStrMap);
 
@@ -190,6 +200,16 @@ void handle_EndsWith(
  * handle replace constraints
  */
 void handle_Replace(std::map<std::string, std::string> rewriterStrMap);
+
+/*
+ *
+ */
+void handle_ToUpper(std::map<std::string, std::string> rewriterStrMap);
+
+/*
+ *
+ */
+void handle_ToLower(std::map<std::string, std::string> rewriterStrMap);
 
 /*
  * define array for connected variable

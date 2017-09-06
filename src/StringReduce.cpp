@@ -9,7 +9,13 @@ extern std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
 extern std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
 extern std::map<std::string, std::string> endsWithStrMap;
 extern std::map<std::string, std::string> startsWithStrMap;
+
+
 extern std::map<std::string, std::string> replaceStrMap;
+extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
+
+extern std::map<Z3_ast, Z3_ast> toUpperMap;
+extern std::map<Z3_ast, Z3_ast> toLowerMap;
 
 extern std::map<Z3_ast, Z3_ast> carryOn;
 
@@ -250,6 +256,57 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	else
 		return NULL;
 }
+
+/*
+ *
+ */
+Z3_ast reduce_toUpper(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
+	Z3_context ctx = Z3_theory_get_context(t);
+
+	if (getNodeType(t, args[0]) == my_Z3_ConstStr) {
+		std::string arg0Str = getConstStrValue(t, args[0]);
+		std::string tmp = "";
+		for (unsigned int i = 0 ; i < arg0Str.length(); ++i) {
+			if (arg0Str[i] >= 97 && arg0Str[i] <= 122)
+				tmp = tmp + (char)(arg0Str[i] - 32);
+			else
+				tmp = tmp + arg0Str[i];
+		}
+		return mk_str_value(t, tmp.c_str());
+	}
+	else {
+		Z3_ast ts0 = mk_internal_string_var(t);
+		breakdownAssert = Z3_mk_eq(ctx, mk_length(t, ts0), mk_length(t, args[0]));
+		toUpperMap[ts0] = args[0];
+		return ts0;
+	}
+}
+
+/*
+ *
+ */
+Z3_ast reduce_toLower(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
+	Z3_context ctx = Z3_theory_get_context(t);
+
+	if (getNodeType(t, args[0]) == my_Z3_ConstStr) {
+		std::string arg0Str = getConstStrValue(t, args[0]);
+		std::string tmp = "";
+		for (unsigned int i = 0 ; i < arg0Str.length(); ++i) {
+			if (arg0Str[i] >= 65 && arg0Str[i] <= 90)
+				tmp = tmp + (char)(arg0Str[i] + 32);
+			else
+				tmp = tmp + arg0Str[i];
+		}
+		return mk_str_value(t, tmp.c_str());
+	}
+	else {
+		Z3_ast ts0 = mk_internal_string_var(t);
+		breakdownAssert = Z3_mk_eq(ctx, mk_length(t, ts0), mk_length(t, args[0]));
+		toLowerMap[ts0] = args[0];
+		return ts0;
+	}
+}
+
 /*
  *
  */
@@ -708,6 +765,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		Z3_ast elseBranch = Z3_mk_eq(ctx, result, args[0]);
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst, mk_and_fromVector(t, thenItems), elseBranch);
+		replaceNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
 		return result;
 	}
 }
@@ -916,6 +974,606 @@ Z3_ast reduce_grammarIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) 
 		}
 	}
 	return Z3_mk_or(ctx, grmStr.size(), or_items);
+}
+
+/*
+ *Z3_bool Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result);
+ */
+int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "\n*** %s ***:", __FUNCTION__);
+#endif
+
+	// Convert the tricky "string" representation to string constant
+	int convertedFlag = 0;
+	Z3_ast * convertedArgs = new Z3_ast[n];
+	for (int i = 0; i < (int) n; i++) {
+		std::string symbolStr = std::string(Z3_ast_to_string(ctx, args[i]));
+		if (symbolStr.length() >= 11 && symbolStr.substr(0, 11) == "__cOnStStR_") {
+			convertedFlag = 1;
+			convertedArgs[i] = mk_str_value(t, convertInputTrickyConstStr(symbolStr).c_str());
+		} else {
+			convertedArgs[i] = args[i];
+		}
+	}
+
+	//---------------------------------
+	// reduce app: Concat
+	//---------------------------------
+	if (d == td->Concat) {
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Concat(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+#endif
+		bool updated = false;
+		Z3_ast tmp = mk_concat(t, convertedArgs[0], convertedArgs[1], updated);
+
+		// update children map
+
+		if (updated == false) {
+#ifdef DEBUGLOG
+			__debugPrint(logFile, "\nFalse update \n");
+#endif
+			delete[] convertedArgs;
+			return Z3_FALSE;
+		}
+
+		children_Map[tmp].push_back(convertedArgs[0]);
+		children_Map[tmp].push_back(convertedArgs[1]);
+
+		*result = tmp;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "\n convert to: ");
+		printZ3Node(t, *result);
+		__debugPrint(logFile, "\n\n");
+#endif
+		return Z3_TRUE;
+	}
+
+	//---------------------------------
+	// reduce app: Length
+	//---------------------------------
+	else if (d == td->Length) {
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Length( ");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, " ) = ");
+#endif
+		if (getNodeType(t, convertedArgs[0]) == my_Z3_ConstStr) {
+			int size = getConstStrValue(t, convertedArgs[0]).size();
+			*result = mk_int(ctx, size);
+			__debugPrint(logFile, "%d\n\n", size);
+			delete[] convertedArgs;
+			return Z3_TRUE;
+		}
+		else {
+			__debugPrint(logFile, "%d not const\n\n", __LINE__);
+			if (convertedFlag == 1) {
+				*result = mk_length(t, convertedArgs[0]);
+
+				delete[] convertedArgs;
+				return Z3_TRUE;
+			} else {
+				delete[] convertedArgs;
+				return Z3_FALSE;
+			}
+		}
+	}
+
+	//------------------------------------------
+	// Reduce app: Str2Reg
+	//------------------------------------------
+	else if (d == td->Str2Reg) {
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Str2Reg(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ")\n");
+#endif
+
+		if (!isConstStr(t, convertedArgs[0])) {
+			printf("> Error: the argument of Str2Reg function should be a constant string.\n");
+			printf("         (Str2Reg %s)\n", Z3_ast_to_string(ctx, convertedArgs[0]));
+			exit(0);
+		}
+
+		Z3_ast otherAssert = NULL;
+		*result = reduce_str2regex(t, d, convertedArgs, otherAssert);
+
+#ifdef DEBUGLOG
+		if( otherAssert != NULL )
+		{
+			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, otherAssert);
+			__debugPrint(logFile, "\n");
+		}
+		__debugPrint(logFile, "\n");
+#endif
+
+		if (otherAssert != NULL) {
+			Z3_assert_cnstr(ctx, otherAssert);
+		}
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: RegexConcat
+	//------------------------------------------
+	else if (d == td->RegexConcat) {
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "RegexConcat(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")\n");
+#endif
+
+		Z3_ast otherAssert = NULL;
+		Z3_ast tmpRes = reduce_regexConcat(t, convertedArgs, otherAssert);
+		delete[] convertedArgs;
+
+#ifdef DEBUGLOG
+		if (tmpRes != NULL) {
+			__debugPrint(logFile, "   --------------> ");
+			printZ3Node(t, tmpRes);
+			__debugPrint(logFile, "\n");
+		}
+		__debugPrint(logFile, "\n");
+#endif
+
+		if (tmpRes == NULL) {
+			return Z3_FALSE;
+		} else {
+			*result = tmpRes;
+			return Z3_TRUE;
+		}
+	}
+
+
+	//------------------------------------------
+	// Reduce app: RegexIn
+	//------------------------------------------
+	else if (d == td->RegexIn) {
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "RegexIn(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ") ==> ");
+#endif
+		Z3_ast otherAssert = NULL;
+		Z3_ast tmpRes = NULL;
+		tmpRes = reduce_regexIn(t, convertedArgs, otherAssert);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, tmpRes);
+		__debugPrint(logFile, "\n");
+		if( otherAssert != NULL )
+		{
+			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, otherAssert);
+			__debugPrint(logFile, "\n");
+		}
+		__debugPrint(logFile, "\n");
+#endif
+
+		delete[] convertedArgs;
+
+		if (tmpRes != NULL) {
+			if (otherAssert != NULL) {
+				Z3_assert_cnstr(ctx, otherAssert);
+			}
+			*result = tmpRes;
+			return Z3_TRUE;
+		}
+		return Z3_FALSE;
+	}
+
+	//------------------------------------------
+	// Reduce app: RegexStar
+	//------------------------------------------
+	else if (d == td->RegexStar) {
+		Z3_ast otherAssert = NULL;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "RegexStar(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ") --> ");
+#endif
+		*result = reduce_regexStar(t, convertedArgs, otherAssert);
+		delete[] convertedArgs;
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( otherAssert != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, otherAssert);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+
+		if (*result != NULL) {
+			if (otherAssert != NULL) {
+				Z3_assert_cnstr(ctx, otherAssert);
+			}
+			return Z3_TRUE;
+		}
+		return Z3_FALSE;
+	}
+	//------------------------------------------
+	// Reduce app: RegexPlus
+	//------------------------------------------
+	else if (d == td->RegexPlus) {
+		Z3_ast otherAssert = NULL;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "RegexPlus(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ") --> ");
+#endif
+		*result = reduce_regexPlus(t, convertedArgs, otherAssert);
+		delete[] convertedArgs;
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( otherAssert != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, otherAssert);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+
+		if (*result != NULL) {
+			if (otherAssert != NULL) {
+				Z3_assert_cnstr(ctx, otherAssert);
+			}
+			return Z3_TRUE;
+		}
+		return Z3_FALSE;
+	}
+
+	//------------------------------------------
+	// Reduce app: GrammarIn
+	//------------------------------------------
+	else if (d ==td->GrammarIn) {
+		Z3_ast otherAssert = NULL;
+		Z3_ast tmpRes = NULL;
+		tmpRes = reduce_grammarIn(t, convertedArgs, otherAssert);
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "GrammarIn(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ") ==> ");
+		printZ3Node(t, tmpRes);
+		__debugPrint(logFile, "\n");
+		if( otherAssert != NULL ){
+			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, otherAssert);
+			__debugPrint(logFile, "\n");
+		}
+		__debugPrint(logFile, "\n");
+#endif
+
+		delete[] convertedArgs;
+
+		if (tmpRes != NULL) {
+			if (otherAssert != NULL) {
+				Z3_assert_cnstr(ctx, otherAssert);
+			}
+			*result = tmpRes;
+			return Z3_TRUE;
+		}
+		return Z3_FALSE;
+	}
+
+	//---------------------------------
+	// reduce app: SubString
+	//---------------------------------
+	else if (d == td->SubString) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "SubString( ");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[2]);
+		__debugPrint(logFile, ")  =>  ");
+#endif
+
+		*result = reduce_subStr(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		__debugPrint(logFile, "\n-- ADD(@%d, Level %d):\n", __LINE__, sLevel);
+		printZ3Node(t, breakDownAst);
+		__debugPrint(logFile, "\n\n");
+#endif
+		Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: Contains
+	//------------------------------------------
+	else if (d == td->Contains) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Contains(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+		*result = reduce_contains(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( breakDownAst != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: Indexof
+	//------------------------------------------
+	else if (d == td->Indexof) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Indexof(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_indexof(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( breakDownAst != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: LastIndexof
+	//------------------------------------------
+	else if (d == td->LastIndexof) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "LastIndexof(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_lastindexof(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( breakDownAst != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: EndsWith
+	//------------------------------------------
+	else if (d == td->EndsWith) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "EndsWith(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_endswith(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if (breakDownAst != NULL) {
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: StartsWith
+	//------------------------------------------
+	else if (d == td->StartsWith) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "StartsWith(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_startswith(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
+	// Reduce app: Replace
+	//------------------------------------------
+	else if (d == td->Replace){
+		Z3_ast breakDownAst = NULL;
+		*result = reduce_replace(t, convertedArgs, breakDownAst);
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "Replace(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[2]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_replace(t, convertedArgs, breakDownAst);
+
+		if (isVariable(t, *result))
+			replaceNodeMap[std::make_pair(convertedArgs[0], std::make_pair(convertedArgs[1], convertedArgs[2]))] = *result;
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+
+		return Z3_TRUE;
+	}
+	else if (d == td->ToLower) {
+		Z3_ast breakDownAst = NULL;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "ToLower(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+		*result = reduce_toLower(t, convertedArgs, breakDownAst);
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+
+		return Z3_TRUE;
+	}
+	else if (d == td->ToUpper){
+		Z3_ast breakDownAst = NULL;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "ToUpper(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+		*result = reduce_toUpper(t, convertedArgs, breakDownAst);
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+
+		return Z3_TRUE;
+	}
+	else if (d == td->AutomataDef){
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "AutomataDef(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		__debugPrint(logFile, "  =>  nothing");
+#endif
+
+	}
+
+	if (convertedFlag == 1) {
+		*result = Z3_mk_app(ctx, d, n, convertedArgs);
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "%d Others --> ", __LINE__);
+		printZ3Node(t, *result);
+		__debugPrint(logFile, "\n\n");
+#endif
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+
+	delete[] convertedArgs;
+	return Z3_FALSE; // failed to simplify
 }
 
 /*

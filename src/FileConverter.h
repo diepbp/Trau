@@ -126,6 +126,16 @@ void updateContain(std::string &s, std::map<std::string, bool> containStrMap);
 void updateSubstring(std::string &s);
 
 /*
+ * ToUpper --> len = len
+ */
+void updateToUpper(std::string &s);
+
+/*
+ * ToLower --> len = len
+ */
+void updateToLower(std::string &s);
+
+/*
  * Concat --> +
  */
 void updateConcat(std::string &s);
