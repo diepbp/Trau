@@ -1845,7 +1845,7 @@ void classifyStrings_Variables(std::vector<int> queue, std::vector<std::string> 
  */
 Z3_theory mk_theory(Z3_context ctx) {
 	AutomatonStringData * td = (AutomatonStringData*)malloc(sizeof(AutomatonStringData));
-	Z3_theory Th          = Z3_mk_theory(ctx, "Automata String", td);
+	Z3_theory Th = Z3_mk_theory(ctx, "Automata String", td);
 	Z3_sort BoolSort = Z3_mk_bool_sort(ctx);
 	Z3_sort IntSort = Z3_mk_int_sort(ctx);
 	Z3_symbol string_name = Z3_mk_string_symbol(ctx, "String");
@@ -1924,7 +1924,18 @@ Z3_theory mk_theory(Z3_context ctx) {
 	charAt_domain[0] = td->String;
 	charAt_domain[1] = IntSort;
 	td->CharAt = Z3_theory_mk_func_decl(ctx, Th, charAt_name, 2, charAt_domain, td->String);
+
 	//---------------------------
+	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, "ToUpper");
+	Z3_sort toUpper_domain[1];
+	toUpper_domain[0] = td->String;
+	td->ToUpper = Z3_theory_mk_func_decl(ctx, Th, toUpper_name, 1, toUpper_domain, IntSort);
+
+	//---------------------------
+	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, "ToLower");
+	Z3_sort toLower_domain[1];
+	toLower_domain[0] = td->String;
+	td->ToLower = Z3_theory_mk_func_decl(ctx, Th, toLower_name, 1, toLower_domain, IntSort);
 
 	//===========================
 	// Str2Reg := String --> Regex
@@ -8656,7 +8667,13 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 					return my_Z3_ConstBool;
 				}
 			} else if (sk == Z3_INT_SORT) {
-				if (d == td->Length || d == td->Indexof || d == td->Indexof2 || d == td->LastIndexof || d ==td->Parikh) {
+				if (d == td->Length ||
+						d == td->Indexof ||
+						d == td->Indexof2 ||
+						d == td->LastIndexof ||
+						d == td->Parikh ||
+						d == td->ToLower ||
+						d == td->ToLower) {
 					return my_Z3_Func;
 				}
 			} else if (sk == Z3_UNKNOWN_SORT) {
@@ -8989,13 +9006,6 @@ void overApproxController() {
 	checkInputVar(Th, fs);
 
 	emptyConstStr = mk_str_value(Th, "");
-
-	__debugPrint(logFile, "String Input Var Set\n***********************************************\n");
-	for (std::map<Z3_ast, int>::iterator it = inputVarMap.begin(); it != inputVarMap.end(); it++) {
-		printZ3Node(Th, it->first);
-		__debugPrint(logFile, "\n");
-		//    basicStrVarAxiom(Th, it->first, __LINE__);
-	}
 
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "\n***********************************************\nInput loaded:\n-----------------------------------------------\n");
