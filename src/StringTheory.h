@@ -74,6 +74,7 @@ typedef struct _AutomatonStringData
 	Z3_func_decl EndsWith;
 	Z3_func_decl Contains;
 	Z3_func_decl Replace;
+	Z3_func_decl ReplaceAll;
 	Z3_func_decl LastIndexof;
 	Z3_func_decl CharAt;
 	Z3_func_decl ToUpper;

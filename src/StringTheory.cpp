@@ -1361,6 +1361,14 @@ Z3_theory mk_theory(Z3_context ctx) {
 	replace_domain[2] = td->String;
 	td->Replace = Z3_theory_mk_func_decl(ctx, Th, replace_name, 3, replace_domain, td->String);
 	//---------------------------
+	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, "ReplaceAll");
+	Z3_sort replaceAll_domain[3];
+	replaceAll_domain[0] = td->String;
+	replaceAll_domain[1] = td->String;
+	replaceAll_domain[2] = td->String;
+	td->ReplaceAll = Z3_theory_mk_func_decl(ctx, Th, replaceAll_name, 3, replaceAll_domain, td->String);
+
+	//---------------------------
 	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, "LastIndexof");
 	Z3_sort lastIndexof_domain[2];
 	lastIndexof_domain[0] = td->String;
