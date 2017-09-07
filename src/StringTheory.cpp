@@ -39,6 +39,9 @@ std::map<std::string, std::string> startsWithStrMap;
 std::map<std::string, std::string> replaceStrMap;
 std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
 
+std::map<std::string, std::string> replaceAllStrMap;
+std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceAllNodeMap;
+
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> endsWithPairBoolMap;
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> startsWithPairBoolMap;
 
@@ -4405,6 +4408,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectEqualValueInPositiveContext(t, rewriterStrMap);
 
 		collectReplaceValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		collectReplaceAllValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
 		for (const auto& elem : rewriterStrMap){
 			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.c_str(), elem.second.c_str());
@@ -7155,6 +7159,54 @@ void collectReplaceValueInPositiveContext(
 
 
 /*
+ *
+ */
+void collectReplaceAllValueInPositiveContext(
+		Z3_theory t,
+		std::map<std::string, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
+	Z3_context ctx = Z3_theory_get_context(t);
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+
+	/* update first */
+	for (const auto& s : replaceAllStrMap) {
+		rewriterStrMap[s.first] = s.second;
+	}
+
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
+			T_TheoryType type = getNodeType(t, argAst);
+			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				for (const auto& s : replaceAllStrMap) {
+					if (astToString.compare(s.second) == 0){
+						rewriterStrMap[s.first] = "true";
+						carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
+						break;
+					}
+				}
+			}
+			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				T_TheoryType type = getNodeType(t, boolNode);
+				astToString = Z3_ast_to_string(ctx, boolNode);
+				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+					for (const auto& s : replaceAllStrMap) {
+						if (astToString.compare(s.second) == 0){
+							rewriterStrMap[s.first] = "false";
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+/*
  * Decide whether two n1 and n2 are ALREADY in a same eq class
  * Or n1 and n2 are ALREADY treated equal by the core
  * BUT, they may or may not be really equal
@@ -8159,6 +8211,7 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 					if (d == td->Concat ||
 							d == td->SubString ||
 							d == td->Replace ||
+							d == td->ReplaceAll ||
 							d == td->Unroll ||
 							d == td->CharAt ||
 							d == td->AutomataDef ||

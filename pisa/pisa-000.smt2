@@ -15,6 +15,5 @@
 
 (assert (or (Contains ret "b") (Contains ret "a") ) )
 
-
 (check-sat)
 (get-model)

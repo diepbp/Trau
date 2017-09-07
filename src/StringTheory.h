@@ -266,6 +266,11 @@ typedef struct _AutomatonStringData
  /*
   *
   */
+ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
+
+ /*
+  *
+  */
  Z3_ast reduce_toUpper(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert);
 
  /*
@@ -734,6 +739,13 @@ typedef struct _AutomatonStringData
 		 std::map<std::string, std::string> &rewriterStrMap,
 		 std::set<std::string> &carryOnConstraints);
 
+ /*
+  *
+  */
+ void collectReplaceAllValueInPositiveContext(
+ 		Z3_theory t,
+ 		std::map<std::string, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
  /*
   * Decide whether two n1 and n2 are ALREADY in a same eq class
   * Or n1 and n2 are ALREADY treated equal by the core

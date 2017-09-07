@@ -106,6 +106,12 @@ void updateReplace(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap);
 
 /*
+ * = x (ReplaceAll ...) --> true
+ */
+void updateReplaceAll(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap);
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::string &s);

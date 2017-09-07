@@ -14,6 +14,9 @@ extern std::map<std::string, std::string> startsWithStrMap;
 extern std::map<std::string, std::string> replaceStrMap;
 extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
 
+extern std::map<std::string, std::string> replaceAllStrMap;
+extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceAllNodeMap;
+
 extern std::map<Z3_ast, Z3_ast> toUpperMap;
 extern std::map<Z3_ast, Z3_ast> toLowerMap;
 
@@ -219,7 +222,7 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 
 	if (isDetAutomatonFunc(t, args[1])) {
 		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
-		node02 = "\"" + customizeString(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
+		node02 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
 	}
 	else if (isConstStr(t, args[1])){
 		node02 = "\"" + customizeString(Z3_ast_to_string(ctx, args[1])) + "\"";
@@ -230,7 +233,18 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	if (name == td->Replace) {
 		if (isDetAutomatonFunc(t, args[2])) {
 			Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[2]), 0);
-			node03 = "\"" + customizeString(customizeString(Z3_ast_to_string(ctx, tmp))) + "\"";
+			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
+		}
+		else if (isConstStr(t, args[2])){
+			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, args[2])) + "\"";
+		}
+		else
+			node03 = Z3_ast_to_string(ctx, args[2]);
+	}
+	else if (name == td->ReplaceAll){
+		if (isDetAutomatonFunc(t, args[2])) {
+			Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[2]), 0);
+			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
 		}
 		else if (isConstStr(t, args[2])){
 			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, args[2])) + "\"";
@@ -253,8 +267,76 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	else if (name == td->Replace) {
 		return "(Replace " + node01 + " " + node02 + " " + node03 + ")";
 	}
+	else if (name == td->ReplaceAll)
+		return "(ReplaceAll " + node01 + " " + node02 + " " + node03 + ")";
 	else
 		return NULL;
+}
+
+/*
+ *
+ */
+Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+	/* convert to string, prepare for replaceStrMap */
+	std::string nodeName = exportNodeName(t, args, td->ReplaceAll);
+
+	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr && getNodeType(t, args[2]) == my_Z3_ConstStr) {
+		std::string arg0Str = getConstStrValue(t, args[0]);
+		std::string arg1Str = getConstStrValue(t, args[1]);
+		std::string arg2Str = getConstStrValue(t, args[2]);
+		if (arg0Str.find(arg1Str) != std::string::npos) {
+			while (arg0Str.find(arg1Str) != std::string::npos) {
+				int index1 = arg0Str.find(arg1Str);
+				int index2 = index1 + arg1Str.length();
+				std::string substr0 = arg0Str.substr(0, index1);
+				std::string substr2 = arg0Str.substr(index2);
+				arg0Str = substr0 + arg2Str + substr2;
+			}
+			replaceAllStrMap[nodeName] = "true";
+			return mk_str_value(t, arg0Str.c_str());
+		} else {
+			replaceAllStrMap[nodeName] = "false";
+			return args[0];
+		}
+	} else {
+		Z3_ast x1 = mk_internal_string_var(t);
+		Z3_ast x2 = mk_internal_string_var(t);
+		Z3_ast result = mk_internal_string_var(t);
+
+		// condAst = Contains(args[0], args[1])
+		Z3_ast condAst = registerContain(t, args[0], args[1]);
+		std::string boolName = Z3_ast_to_string(ctx, condAst);
+		replaceAllStrMap[nodeName] = boolName;
+
+		// -----------------------
+		// true branch
+		std::vector<Z3_ast> thenItems;
+		//  args[0] = x1 . args[1] . x2
+		bool update = true;
+		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update)));
+
+		//  args[0]  = x3 . x4 /\ |x3| = |x1| + |args[1]| - 1 /\ ! contains(x3, args[1])
+		Z3_ast x3 = mk_internal_string_var(t);
+		Z3_ast x4 = mk_internal_string_var(t);
+		Z3_ast tmpLenItems[3] = {mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1) };
+		Z3_ast tmpLen = Z3_mk_add(ctx, 3, tmpLenItems);
+		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
+		thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
+		thenItems.push_back(Z3_mk_not(ctx, mk_contains(t, x3, args[1])));
+		thenItems.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], x2, update), update)));
+
+		carryOn[condAst] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+		// -----------------------
+		// false branch
+		Z3_ast elseBranch = Z3_mk_eq(ctx, result, args[0]);
+
+		breakdownAssert = Z3_mk_ite(ctx, condAst, mk_and_fromVector(t, thenItems), elseBranch);
+		replaceAllNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
+		return result;
+	}
 }
 
 /*
@@ -1472,7 +1554,6 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	//------------------------------------------
 	else if (d == td->Replace){
 		Z3_ast breakDownAst = NULL;
-		*result = reduce_replace(t, convertedArgs, breakDownAst);
 #ifdef DEBUGLOG
 		__debugPrint(logFile, "Replace(");
 		printZ3Node(t, convertedArgs[0]);
@@ -1486,8 +1567,38 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 
 		*result = reduce_replace(t, convertedArgs, breakDownAst);
 
-		if (isVariable(t, *result))
-			replaceNodeMap[std::make_pair(convertedArgs[0], std::make_pair(convertedArgs[1], convertedArgs[2]))] = *result;
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if ( breakDownAst != NULL ){
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+
+		return Z3_TRUE;
+	}
+	//------------------------------------------
+	// Reduce app: ReplaceAll
+	//------------------------------------------
+	else if (d == td->ReplaceAll){
+		Z3_ast breakDownAst = NULL;
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "ReplaceAll(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[2]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_replaceAll(t, convertedArgs, breakDownAst);
 
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
