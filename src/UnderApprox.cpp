@@ -735,7 +735,44 @@ std::string create_constraints_EndsWith(
  * replace "a" b c
  * replace a "b" c
  */
-void create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue){
+std::string create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue){
+	bool isConst_00 = false;
+	bool isConst_01 = false;
+	bool isConst_02 = false;
+	if (args[0][0] == '\"' )
+		isConst_00 = true;
+
+	if (args[1][0] == '\"')
+		isConst_01 = true;
+
+	if (args[2][0] == '\"')
+		isConst_02 = true;
+
+	/* do not replace */
+	if (boolValue.compare("false") == 0){
+		/* new value = old value = args[0] */
+		/* len = len && value = value */
+		std::vector<std::string> andConstraints;
+		andConstraints.push_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
+		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
+				connectedVariables.find(lhs) != connectedVariables.end()){
+			// TODO replace constraints: two connected variables
+		}
+		return;
+	}
+
+	/* */
+	if (isConst_01) {
+
+	}
+}
+
+/*
+ * replaceAll a b c
+ * replaceAll "a" b c
+ * replaceAll a "b" c
+ */
+std::string create_constraints_ReplaceAll(std::string lhs, std::vector<std::string> args, std::string boolValue){
 	bool isConst_00 = false;
 	bool isConst_01 = false;
 	bool isConst_02 = false;
@@ -1014,6 +1051,18 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 	}
 }
 
+/*
+ * handle replace constraints
+ * TODO handle_ReplaceAll
+ */
+void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap){
+	for (const auto& s : rewriterStrMap) {
+		if (s.first.find("(Replace ") != std::string::npos){
+			std::vector<std::string> args = extract_three_arguments(s.first);
+			global_smtStatements.push_back({create_constraints_ReplaceAll("xxxxx", args, s.second)});
+		}
+	}
+}
 /*
  *
  */
@@ -3055,6 +3104,7 @@ bool underapproxController(
 	handle_Replace(rewriterStrMap);
 	handle_ToUpper(rewriterStrMap);
 	handle_ToLower(rewriterStrMap);
+	handle_ReplaceAll(rewriterStrMap);
 
 	std::set<std::string> carryOnConstraints = reformatCarryOnConstraints(_carryOnConstraints);
 	for (const auto& s : carryOnConstraints)

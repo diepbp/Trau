@@ -155,7 +155,14 @@ std::string create_constraints_EndsWith(
  * replace "a" b c
  * replace a "b" c
  */
-void create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue);
+std::string create_constraints_Replace(std::string lhs, std::vector<std::string> args, std::string boolValue);
+
+/*
+ * replaceAll a b c
+ * replaceAll "a" b c
+ * replaceAll a "b" c
+ */
+std::string create_constraints_ReplaceAll(std::string lhs, std::vector<std::string> args, std::string boolValue);
 
 /*
  *
@@ -200,6 +207,11 @@ void handle_EndsWith(
  * handle replace constraints
  */
 void handle_Replace(std::map<std::string, std::string> rewriterStrMap);
+
+/*
+ * handle replace constraints
+ */
+void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap);
 
 /*
  *
