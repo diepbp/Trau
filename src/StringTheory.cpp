@@ -2314,6 +2314,39 @@ void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 		}
 
 	}
+
+	/* a = concat b c && c contains d --> a contains d */
+	if (isConcatFunc(t, nn1)){
+		std::vector<Z3_ast> nodeList;
+		getNodesInConcat(t, nn1, nodeList);
+		for (const auto& n : nodeList){
+			for (const auto& containsNode : containPairBoolMap){
+				if (containsNode.first.first == n){
+					std::pair<Z3_ast, Z3_ast> p = std::make_pair(nn2, containsNode.first.second);
+					if (containPairBoolMap.find(p) != containPairBoolMap.end()){
+						Z3_ast tmp = Z3_mk_implies(ctx, containsNode.second, containPairBoolMap[p]);
+						addAxiom(t, tmp, __LINE__, true);
+					}
+				}
+			}
+		}
+	}
+
+	if (isConcatFunc(t, nn2)){
+		std::vector<Z3_ast> nodeList;
+		getNodesInConcat(t, nn2, nodeList);
+		for (const auto& n : nodeList){
+			for (const auto& containsNode : containPairBoolMap){
+				if (containsNode.first.first == n){
+					std::pair<Z3_ast, Z3_ast> p = std::make_pair(nn1, containsNode.first.second);
+					if (containPairBoolMap.find(p) != containPairBoolMap.end()){
+						Z3_ast tmp = Z3_mk_implies(ctx, containsNode.second, containPairBoolMap[p]);
+						addAxiom(t, tmp, __LINE__, true);
+					}
+				}
+			}
+		}
+	}
 }
 
 /*

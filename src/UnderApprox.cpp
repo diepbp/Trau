@@ -758,13 +758,13 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
 				connectedVariables.find(lhs) != connectedVariables.end()){
 			// TODO replace constraints: two connected variables
 		}
-		return;
 	}
 
 	/* */
 	if (isConst_01) {
 
 	}
+	return "true";
 }
 
 /*
@@ -788,20 +788,20 @@ std::string create_constraints_ReplaceAll(std::string lhs, std::vector<std::stri
 	/* do not replace */
 	if (boolValue.compare("false") == 0){
 		/* new value = old value = args[0] */
-		/* len = len && value = value */
 		std::vector<std::string> andConstraints;
 		andConstraints.push_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
 		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
 				connectedVariables.find(lhs) != connectedVariables.end()){
 			// TODO replace constraints: two connected variables
 		}
-		return;
+		return "true";
 	}
 
 	/* */
-	if (isConst_01) {
+	if (isConst_01 && isConst_02) {
 
 	}
+	return "true";
 }
 
 /*
