@@ -3977,6 +3977,7 @@ void extendVariableToFindAllPossibleEqualities(
 
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
+	displayListNode(t, eqNode, "EQ to current node ");
 
 	Z3_ast constNode = findConstInList(t, eqNode);
 
@@ -4080,6 +4081,13 @@ void extendVariableToFindAllPossibleEqualities(
 			assert(arg1_eq.size() > 0);
 
 			/* combine */
+			__debugPrint(logFile, "%d combine lhs + rhs: ", __LINE__);
+			printZ3Node(t, node);
+			__debugPrint(logFile, " = (");
+			printZ3Node(t, arg0);
+			__debugPrint(logFile, ", ");
+			printZ3Node(t, arg1);
+			__debugPrint(logFile, "\n");
 			for (unsigned int j = 0; j < arg0_eq.size(); ++j) {
 				for (unsigned int k = 0; k < arg1_eq.size(); ++k) {
 					std::vector<Z3_ast> tmp;
@@ -4134,7 +4142,7 @@ void extendVariableToFindAllPossibleEqualities(
 		}
 	}
 
-	__debugPrint(logFile, ">> %d node %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+	__debugPrint(logFile, ">> %d node %s: size = %u\n", __LINE__, Z3_ast_to_string(ctx, node), refined_result.size());
 
 	if (constNode != NULL) /* found a const at the beginning */ {
 		/* create a new combination for const */
@@ -4142,7 +4150,6 @@ void extendVariableToFindAllPossibleEqualities(
 		if (refined_result.size() > 0) {
 			refined_result.push_back({constNode});
 			allEqPossibilities[constNode] = refined_result;
-
 		}
 
 		/* --> update: he = const */
@@ -4158,6 +4165,7 @@ void extendVariableToFindAllPossibleEqualities(
 		/* update */
 		allEqPossibilities[node] = refined_result;
 	}
+	__debugPrint(logFile, ">> %d node %s: size = %u\n", __LINE__, Z3_ast_to_string(ctx, node), allEqPossibilities[node].size());
 }
 
 /*
@@ -4243,6 +4251,8 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 					0);
 		}
 	}
+
+	displayListString(non_root, "*** non_root ***");
 
 	__debugPrint(logFile, "%d *** %s ***: replaceNodeMap\n", __LINE__, __FUNCTION__);
 	for (const auto& var: replaceNodeMap) {
@@ -6239,7 +6249,6 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
@@ -6247,10 +6256,11 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 		for (int i = 0; i < argCount; i++) {
 			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
 			std::string astToString = Z3_ast_to_string(ctx, argAst);
-
-			T_TheoryType type = getNodeType(t, argAst);
-			if (astToString.find("$$_bool") != std::string::npos) {
+			if (astToString.find("$$_bool") != std::string::npos &&
+					astToString.find("(ite") == std::string::npos &&
+					astToString.find("(let (") == std::string::npos) {
 				andVector.push_back(argAst);
+				__debugPrint(logFile, "%d %s\n", __LINE__, astToString.c_str());
 			}
 		}
 		return Z3_mk_not(ctx, mk_and_fromVector(t, andVector));

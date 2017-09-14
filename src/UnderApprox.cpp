@@ -494,7 +494,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		possibleCases[i].constMap.clear();
 		possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 		std::string tmp = possibleCases[i].
@@ -502,8 +502,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -1450,7 +1450,9 @@ void verifyOutput(std::string outFile,
 		std::string value = lengthResultMap[tokens[1]];
 
 		__debugPrint(logFile, "%d %s %s\n", __LINE__, def.c_str(), value.c_str());
-		if (value.length() > 0 && tokens[1].find("$$") == std::string::npos) {
+		if (value.length() > 0 &&
+				tokens[1].find("$$") == std::string::npos &&
+				tokens[1].find("__flat_") == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare("len_") == 0) {
 				std::string tmp = def.substr(4);
 				additionalAssertions.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
@@ -1462,7 +1464,8 @@ void verifyOutput(std::string outFile,
 	}
 
 	for (const auto& value : strValue)
-		if (value.first.find("$$") == std::string::npos){
+		if (value.first.find("$$") == std::string::npos &&
+				value.first.find("__flat_") == std::string::npos){
 			additionalAssertions.push_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
 		}
 
@@ -1911,6 +1914,7 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
  *
  */
 std::string decodeStr(std::string s){
+	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
 	std::string tmp = "";
 	for (unsigned int i = 0; i < s.length(); ++i){
 		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
@@ -1919,6 +1923,7 @@ std::string decodeStr(std::string s){
 		else
 			tmp = tmp + s[i];
 	}
+	__debugPrint(logFile, " %s\n", tmp.c_str());
 	return tmp;
 }
 
@@ -2471,13 +2476,18 @@ void *convertEqualities(void *tid){
 		const int flatP = 1;
 		const int maxPConsidered = 7;
 		unsigned int maxLocal = 0;
-		for (const auto& element : it->second)
-			maxLocal = element.size() > maxLocal ? element.size() : maxLocal;
+		for (const auto& element : it->second) {
+			unsigned int cnt = 0;
+			for (const auto& s : element)
+				if ((s[0] == '\"' && s.length() > 3) || s[0] != '\"')
+					cnt++;
+			maxLocal = cnt > maxLocal ? cnt : maxLocal;
+		}
 
 #ifdef PRINTTEST_UNDERAPPROX
 		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
 #endif
-		if (maxLocal >= maxPConsidered) {
+		if (maxLocal > maxPConsidered) {
 			/* add an eq = flat . flat . flat, then other equalities will compare will it*/
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
@@ -2832,13 +2842,12 @@ bool Z3_run(
 		getSat = getSat.substr(0, 3);
 
 		if (getSat.compare("sat") == 0) {
-			printf(">> SAT\n\n");
+			printf(">> Z3: SAT\n\n");
 			sat = true;
 		}
 		else {
 			if (finalCall == true)
-				printf(">> UNSAT\n\n");
-			printf("%d here\n", __LINE__);
+				printf(">> Z3: UNSAT\n\n");
 			return sat;
 		}
 		std::map<std::string, std::string> array_map;
@@ -3022,6 +3031,7 @@ void reset(){
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
+	trivialUnsat = false;
 }
 
 /*

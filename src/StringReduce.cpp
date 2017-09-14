@@ -329,7 +329,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast x_m1 = mk_internal_string_var(t);
 		thenItems00.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x_n1, x_m1, update)));
 		thenItems00.push_back(Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01));
-		thenItems00.push_back(Z3_mk_not(ctx, mk_contains(t, x_n1, args[1])));
+
+		Z3_ast condAst00n = registerContain(t, x_n1, args[1]);
+		thenItems00.push_back(Z3_mk_not(ctx, condAst00n));
 
 		thenItems00.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], x2, update), update)));
 
@@ -410,13 +412,14 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		// false branch
 		//  args[0] = x1 . args[1] . x2 . args[1] . x3 . args[1] . x4 . args[1] . x5
 
-		Z3_ast tmpAll[5] = {ite00,
+		Z3_ast tmpAll[6] = {ite00,
+							Z3_mk_implies(ctx, condAst00n, condAst00),
 							Z3_mk_implies(ctx, condAst02, condAst00),
 							Z3_mk_implies(ctx, condAst02n, condAst00),
 							Z3_mk_implies(ctx, condAst04, condAst02),
-							Z3_mk_implies(ctx, condAst04, condAst02)};
+							Z3_mk_implies(ctx, condAst04n, condAst02)};
 
-		breakdownAssert = Z3_mk_and(ctx, 5, tmpAll);
+		breakdownAssert = Z3_mk_and(ctx, 6, tmpAll);
 		replaceAllNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
 		return result;
 	}

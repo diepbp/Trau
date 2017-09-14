@@ -15,6 +15,7 @@
 static std::map<char, int> ENCODEMAP{
 	{'"', 'A'},
 	{'\\', 'B'},
+	{'\'', 'C'},
 	{'?', 'D'},
 	{'|', 'E'},
 	{'[', 'F'},
@@ -38,6 +39,7 @@ static std::map<char, int> ENCODEMAP{
 static std::map<int, int> DECODEMAP{
 	{'A', '"'},
 	{'B', '\\'},
+	{'C', '\''},
 	{'D', '?'},
 	{'E', '|'},
 	{'F', '['},
