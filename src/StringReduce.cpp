@@ -333,6 +333,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast condAst00n = registerContain(t, x_n1, args[1]);
 		thenItems00.push_back(Z3_mk_not(ctx, condAst00n));
 
+		Z3_ast condAstx2 = registerContain(t, x2, args[1]);
+		thenItems00.push_back(Z3_mk_not(ctx, condAstx2));
+
 		thenItems00.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], x2, update), update)));
 
 		carryOn[condAst00] = Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01);
@@ -345,6 +348,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		//  x2 = x3 . args[1] . x4
 		std::vector<Z3_ast> thenItems01;
 		thenItems01.push_back(arg0_tmp);
+		thenItems01.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x_n1, x_m1, update)));
+		thenItems01.push_back(Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01));
+		thenItems01.push_back(Z3_mk_not(ctx, condAst00n));
 
 		Z3_ast x3 = mk_internal_string_var(t);
 		Z3_ast x4 = mk_internal_string_var(t);
@@ -362,6 +368,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast condAst02n = registerContain(t, x_n2, args[1]);
 		thenItems01.push_back(Z3_mk_not(ctx, condAst02n));
 
+		Z3_ast condAstx4 = registerContain(t, x4, args[1]);
+		thenItems01.push_back(Z3_mk_not(ctx, condAstx4));
+
 		thenItems01.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], mk_concat(t, x3, mk_concat(t, args[2], x4, update), update), update), update)));
 
 		carryOn[condAst02] = Z3_mk_eq(ctx, mk_length(t, x_n2), tmpLen02);
@@ -370,10 +379,18 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		// false branch
 		Z3_ast condAst04 = registerContain(t, x4, args[1]);
 
-		//  args[0] = x1 . args[1] . x3 . args[1] . x4
+		//  x4 = x5 . args[1] . x6
 		std::vector<Z3_ast> thenItems02;
 		thenItems02.push_back(arg0_tmp);
 		thenItems02.push_back(x2_tmp);
+
+		thenItems02.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x_n1, x_m1, update)));
+		thenItems02.push_back(Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01));
+		thenItems02.push_back(Z3_mk_not(ctx, condAst00n));
+
+		thenItems02.push_back(Z3_mk_eq(ctx, x2, mk_concat(t, x_n2, x_m2, update)));
+		thenItems02.push_back(Z3_mk_eq(ctx, mk_length(t, x_n2), tmpLen02));
+		thenItems02.push_back(Z3_mk_not(ctx, condAst02n));
 
 		Z3_ast x5 = mk_internal_string_var(t);
 		Z3_ast x6 = mk_internal_string_var(t);
@@ -390,6 +407,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 		Z3_ast condAst04n = registerContain(t, x_n4, args[1]);
 		thenItems02.push_back(Z3_mk_not(ctx, condAst04n));
+
+		Z3_ast condAstx6 = registerContain(t, x6, args[1]);
+		thenItems02.push_back(Z3_mk_not(ctx, condAstx6));
 
 		thenItems02.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], mk_concat(t, x3, mk_concat(t, args[2], mk_concat(t, x5, mk_concat(t, args[2], x6, update), update), update), update), update), update)));
 

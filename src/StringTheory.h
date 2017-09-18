@@ -421,7 +421,7 @@ typedef struct _AutomatonStringData
  int calculateAutomatonSize(Z3_theory t, Z3_ast node);
 
  /*
-  * a contains "xyz" && a = "123xyz" --> true
+  * a contains "xyz" == false && b = x . "123xyz" . y && a == b --> false
   */
  void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
@@ -642,6 +642,11 @@ typedef struct _AutomatonStringData
 
  Z3_ast negatedConstraint(Z3_theory t);
 
+ /**
+  *
+  */
+Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+
  /*
   *
   */
@@ -811,8 +816,6 @@ typedef struct _AutomatonStringData
  void __printNodeAxiom(Z3_theory t, Z3_ast node);
 
  void display_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2, std::vector<Z3_ast> eq01, std::vector<Z3_ast> eq01_parent, std::vector<Z3_ast> eq02, std::vector<Z3_ast> eq02_parent);
-
- void displayStringSolverInformation(Z3_theory t);
 
  void collect_from_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2, std::vector<Z3_ast>& eq01, std::vector<Z3_ast>& eq01_parent, std::vector<Z3_ast>& eq02, std::vector<Z3_ast>& eq02_parent);
 
