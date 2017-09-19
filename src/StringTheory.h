@@ -226,7 +226,7 @@ typedef struct _AutomatonStringData
  /*
   * check if leng = 1 --> skip generate new constraints in indexof, lastindexof...
   */
- bool canSkipExt(Z3_theory t, Z3_ast node)
+ bool canSkipExt(Z3_theory t, Z3_ast node);
 
  /*
   * convert a node to string
@@ -704,6 +704,13 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  void collectContainValueInPositiveContext(
 		 Z3_theory t,
 		 std::map<std::string, std::string> &rewriterStrMap);
+
+ /*
+  *
+  */
+ void collectSubstrValueInPositiveContext(
+ 		Z3_theory t,
+ 		std::map<std::string, std::string> &rewriterStrMap);
 
  /*
   *

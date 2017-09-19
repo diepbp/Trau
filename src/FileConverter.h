@@ -131,7 +131,8 @@ void updateContain(std::string &s, std::map<std::string, bool> containStrMap);
 /*
  * (Substring a b c) --> c
  */
-void updateSubstring(std::string &s);
+void updateSubstring(std::string &s,
+		std::map<std::string, std::string> rewriterStrMap);
 
 /*
  * ToUpper --> len = len

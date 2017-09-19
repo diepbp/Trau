@@ -281,11 +281,21 @@ void updateReplaceAll(std::string &s,
 /*
  * (Substring a b c) --> c
  */
-void updateSubstring(std::string &s) {
+void updateSubstring(
+		std::string &s,
+		std::map<std::string, std::string> rewriterStrMap) {
 
 	std::size_t found = s.find("(Substring ");
 
 	while (found != std::string::npos) {
+		/* find (= */
+		int startAssignment = found - 1;
+		while (startAssignment >= 0){
+			if (s[startAssignment] == '(' && s[startAssignment + 1] == '=')
+				break;
+			startAssignment --;
+		}
+
 		/* reach "a" */
 		unsigned int endPos = findCorrespondRightParentheses(found, s);
 		unsigned int pos = found + 10;
@@ -321,12 +331,23 @@ void updateSubstring(std::string &s) {
 			pos++;
 		}
 
+
 		std::string c = s.substr(start, pos - start);
 
 
 
 		__debugPrint(logFile, "%d s = %s, c = %s, substr = %s\n", __LINE__, s.c_str(), c.c_str(), s.substr(found, endPos - found + 1).c_str());
-		s.replace(found, endPos - found + 1, c);
+		std::string tmpS = s.substr(found, endPos - found + 1);
+
+		std::string orgSubstr = s.substr(startAssignment, findCorrespondRightParentheses(startAssignment, s) - startAssignment + 1);
+		std::string extraConstraint = rewriterStrMap[tmpS];
+		__debugPrint(logFile, "%d updateSubstring: orgSubstr = %s\n", __LINE__, orgSubstr.c_str());
+		size_t tmpPos = orgSubstr.find(tmpS);
+		assert(tmpPos >= 0);
+		orgSubstr.replace(tmpPos, tmpS.length(), c);
+		orgSubstr = "(and " + extraConstraint + " " + orgSubstr +")";
+		s.replace(startAssignment, findCorrespondRightParentheses(startAssignment, s) - startAssignment + 1, orgSubstr);
+
 		__debugPrint(logFile, "%d updateSubstring: c = %s --> s = %s\n", __LINE__, c.c_str(), s.c_str());
 
 		found = s.find("(Substring ");
@@ -1188,7 +1209,7 @@ void customizeLine_ToCreateLengthLine(
 		updateStr2Regex(newStr);
 		updateRegexStar(newStr, regexCnt);
 		updateRegexPlus(newStr, regexCnt);
-		updateSubstring(newStr);
+		updateSubstring(newStr, rewriterStrMap);
 
 
 		updateConcat(newStr); /* Concat --> + */

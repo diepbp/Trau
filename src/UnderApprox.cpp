@@ -2473,7 +2473,7 @@ void *convertEqualities(void *tid){
 
 		/* different tactic for size of it->second */
 		const int flatP = 1;
-		const int maxPConsidered = 4;
+		const int maxPConsidered = 6;
 		unsigned int maxLocal = 0;
 		for (const auto& element : it->second) {
 			unsigned int cnt = 0;
@@ -3088,12 +3088,10 @@ bool underapproxController(
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
+	printf("Running Under Approximation...\n");
 	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
 	for (unsigned int i = 0; i < test.size(); ++i)
 		displayListString(test[i], " parse regex ");
-
-	printf("Running Under Approximation...\n");
-
 
 	/* init varLength */
 	varLength.clear();
