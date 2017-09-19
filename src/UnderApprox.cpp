@@ -1589,7 +1589,6 @@ std::string collectConst(std::string str) {
 		}
 		str = "\"" + str + "\"" + extra;
 	}
-	__debugPrint(logFile, "%d collectConst: %s\n", __LINE__, str.c_str());
 	return str;
 }
 
@@ -2474,7 +2473,7 @@ void *convertEqualities(void *tid){
 
 		/* different tactic for size of it->second */
 		const int flatP = 1;
-		const int maxPConsidered = 7;
+		const int maxPConsidered = 4;
 		unsigned int maxLocal = 0;
 		for (const auto& element : it->second) {
 			unsigned int cnt = 0;
@@ -3031,6 +3030,7 @@ void reset(){
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
+	connectedVariables.clear();
 	trivialUnsat = false;
 }
 

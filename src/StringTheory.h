@@ -224,6 +224,11 @@ typedef struct _AutomatonStringData
  std::string convertInputTrickyConstStr(std::string inputStr);
 
  /*
+  * check if leng = 1 --> skip generate new constraints in indexof, lastindexof...
+  */
+ bool canSkipExt(Z3_theory t, Z3_ast node)
+
+ /*
   * convert a node to string
   */
  std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name);

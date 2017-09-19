@@ -10,6 +10,8 @@ extern std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStr
 extern std::map<std::string, std::string> endsWithStrMap;
 extern std::map<std::string, std::string> startsWithStrMap;
 
+std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
+std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
 
 extern std::map<std::string, std::string> replaceStrMap;
 extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
@@ -201,6 +203,19 @@ extern std::map<Z3_ast, Z3_ast> carryOn;
 ////
 
 /*
+ * check if leng = 1 --> skip generate new constraints in indexof, lastindexof...
+ */
+bool canSkipExt(Z3_theory t, Z3_ast node){
+	bool canSkip = false;
+	if (getNodeType(t, node) == my_Z3_ConstStr) {
+		std::string nodeStr = getConstStrValue(t, node);
+		if (nodeStr.length() == 1) {
+			return true;
+		}
+	}
+	return false;
+}
+/*
  * convert a node to string
  */
 std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name) {
@@ -308,8 +323,8 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 
 		// condAst = Contains(args[0], args[1])
-		Z3_ast condAst00 = registerContain(t, args[0], args[1]);
-		std::string boolName = Z3_ast_to_string(ctx, condAst00);
+		Z3_ast condAst_arg00 = registerContain(t, args[0], args[1]);
+		std::string boolName = Z3_ast_to_string(ctx, condAst_arg00);
 		replaceAllStrMap[nodeName] = boolName;
 
 		bool update = true;
@@ -333,17 +348,20 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast condAst00n = registerContain(t, x_n1, args[1]);
 		thenItems00.push_back(Z3_mk_not(ctx, condAst00n));
 
-		Z3_ast condAstx2 = registerContain(t, x2, args[1]);
-		thenItems00.push_back(Z3_mk_not(ctx, condAstx2));
+		Z3_ast condAst01 = registerContain(t, x1, args[1]);
+		thenItems00.push_back(Z3_mk_not(ctx, condAst01));
+
+		Z3_ast condAst02 = registerContain(t, x2, args[1]);
+		thenItems00.push_back(Z3_mk_not(ctx, condAst02));
 
 		thenItems00.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], x2, update), update)));
 
-		carryOn[condAst00] = Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01);
+		carryOn[condAst_arg00] = Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01);
 
 
 		// -----------------------
 		// false branch
-		Z3_ast condAst02 = registerContain(t, x2, args[1]);
+		// condAst02 = registerContain(t, x2, args[1]);
 
 		//  x2 = x3 . args[1] . x4
 		std::vector<Z3_ast> thenItems01;
@@ -351,6 +369,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		thenItems01.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x_n1, x_m1, update)));
 		thenItems01.push_back(Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01));
 		thenItems01.push_back(Z3_mk_not(ctx, condAst00n));
+		thenItems01.push_back(Z3_mk_not(ctx, condAst01));
 
 		Z3_ast x3 = mk_internal_string_var(t);
 		Z3_ast x4 = mk_internal_string_var(t);
@@ -368,8 +387,11 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast condAst02n = registerContain(t, x_n2, args[1]);
 		thenItems01.push_back(Z3_mk_not(ctx, condAst02n));
 
-		Z3_ast condAstx4 = registerContain(t, x4, args[1]);
-		thenItems01.push_back(Z3_mk_not(ctx, condAstx4));
+		Z3_ast condAst03 = registerContain(t, x3, args[1]);
+		thenItems01.push_back(Z3_mk_not(ctx, condAst03));
+
+		Z3_ast condAst04 = registerContain(t, x4, args[1]);
+		thenItems01.push_back(Z3_mk_not(ctx, condAst04));
 
 		thenItems01.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], mk_concat(t, x3, mk_concat(t, args[2], x4, update), update), update), update)));
 
@@ -377,7 +399,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 		// -----------------------
 		// false branch
-		Z3_ast condAst04 = registerContain(t, x4, args[1]);
+		// condAst04 = registerContain(t, x4, args[1]);
 
 		//  x4 = x5 . args[1] . x6
 		std::vector<Z3_ast> thenItems02;
@@ -387,10 +409,12 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		thenItems02.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x_n1, x_m1, update)));
 		thenItems02.push_back(Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01));
 		thenItems02.push_back(Z3_mk_not(ctx, condAst00n));
+		thenItems02.push_back(Z3_mk_not(ctx, condAst01));
 
 		thenItems02.push_back(Z3_mk_eq(ctx, x2, mk_concat(t, x_n2, x_m2, update)));
 		thenItems02.push_back(Z3_mk_eq(ctx, mk_length(t, x_n2), tmpLen02));
 		thenItems02.push_back(Z3_mk_not(ctx, condAst02n));
+		thenItems02.push_back(Z3_mk_not(ctx, condAst03));
 
 		Z3_ast x5 = mk_internal_string_var(t);
 		Z3_ast x6 = mk_internal_string_var(t);
@@ -408,8 +432,11 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast condAst04n = registerContain(t, x_n4, args[1]);
 		thenItems02.push_back(Z3_mk_not(ctx, condAst04n));
 
-		Z3_ast condAstx6 = registerContain(t, x6, args[1]);
-		thenItems02.push_back(Z3_mk_not(ctx, condAstx6));
+		Z3_ast condAst05 = registerContain(t, x5, args[1]);
+		thenItems02.push_back(Z3_mk_not(ctx, condAst05));
+
+		Z3_ast condAst06 = registerContain(t, x6, args[1]);
+		thenItems02.push_back(Z3_mk_not(ctx, condAst06));
 
 		thenItems02.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], mk_concat(t, x3, mk_concat(t, args[2], mk_concat(t, x5, mk_concat(t, args[2], x6, update), update), update), update), update), update)));
 
@@ -419,27 +446,23 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 		Z3_ast ite04 = Z3_mk_ite(ctx, condAst04, mk_and_fromVector(t, thenItems02), mk_and_fromVector(t, thenItems01));
 		Z3_ast ite02 = Z3_mk_ite(ctx, condAst02, ite04, mk_and_fromVector(t, thenItems00));
-		Z3_ast ite00 = Z3_mk_ite(ctx, condAst00, ite02, elseBranch);
-		// -----------------------
-		// false branch
-		//  args[0] = x1 . args[1] . x2 . args[1] . x3 . args[1] . x4 . args[1] . x5
+		Z3_ast ite00 = Z3_mk_ite(ctx, condAst_arg00, ite02, elseBranch);
 
-		// -----------------------
-		// false branch
-		//  args[0] = x1 . args[1] . x2 . args[1] . x3 . args[1] . x4 . args[1] . x5 . args[1] . x6
+		Z3_ast tmpAll[10] = {ite00,
+							Z3_mk_implies(ctx, condAst00n, condAst_arg00),
+							Z3_mk_implies(ctx, condAst01, condAst00n),
+							Z3_mk_implies(ctx, condAst02, condAst_arg00),
 
-		// -----------------------
-		// false branch
-		//  args[0] = x1 . args[1] . x2 . args[1] . x3 . args[1] . x4 . args[1] . x5
-
-		Z3_ast tmpAll[6] = {ite00,
-							Z3_mk_implies(ctx, condAst00n, condAst00),
-							Z3_mk_implies(ctx, condAst02, condAst00),
-							Z3_mk_implies(ctx, condAst02n, condAst00),
+							Z3_mk_implies(ctx, condAst02n, condAst02),
+							Z3_mk_implies(ctx, condAst03, condAst02n),
 							Z3_mk_implies(ctx, condAst04, condAst02),
-							Z3_mk_implies(ctx, condAst04n, condAst02)};
 
-		breakdownAssert = Z3_mk_and(ctx, 6, tmpAll);
+							Z3_mk_implies(ctx, condAst04n, condAst04),
+							Z3_mk_implies(ctx, condAst05, condAst04n),
+							Z3_mk_implies(ctx, condAst06, condAst04)
+		};
+
+		breakdownAssert = Z3_mk_and(ctx, 10, tmpAll);
 		replaceAllNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
 		return result;
 	}
@@ -657,116 +680,74 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 			return mk_int(ctx, -1);
 		}
 	} else {
+		/* check if the contraint is handled */
+		// TODO
+
 		Z3_ast x1 = mk_internal_string_var(t);
 		Z3_ast x2 = mk_internal_string_var(t);
 		Z3_ast indexAst = mk_internal_int_var(t);
 
 		// condAst = Contains(args[0], args[1])
-		Z3_ast condAst = registerContain(t, args[0], args[1]);
+		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
 
-		std::string boolVar = Z3_ast_to_string(ctx, condAst);
+		std::string boolVar = Z3_ast_to_string(ctx, condAst_arg0);
 
 		// -----------------------
 		bool update;
 		// true branch
 		std::vector<Z3_ast> thenItems;
 		//  args[0] = x1 . args[1] . x2
-		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update)));
+		Z3_ast tmp00 = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update));
+		Z3_ast condAst_x1 = mk_contains(t, x1, args[1]);
+		Z3_ast tmp01 = Z3_mk_not(ctx, condAst_x1);
+
+
 		//  indexAst = |x1|
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
 
 		indexOfStrMap[nodeName] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 
-		//     args[0]  = x3 . x4
-		//  /\ |x3| = |x1| + |args[1]| - 1
-		//  /\ ! contains(x3, args[1])
-		Z3_ast x3 = mk_internal_string_var(t);
-		Z3_ast x4 = mk_internal_string_var(t);
-		Z3_ast tmpLenItems[3] = { mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1) };
-		Z3_ast tmpLen = Z3_mk_add(ctx, 3, tmpLenItems);
-		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-		thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
-		thenItems.push_back(Z3_mk_not(ctx, mk_contains(t, x3, args[1])));
+		if (!canSkipExt(t, args[1])) {
+			//     args[0]  = x3 . x4
+			//  /\ |x3| = |x1| + |args[1]| - 1
+			//  /\ ! contains(x3, args[1])
+			Z3_ast x3 = mk_internal_string_var(t);
+			Z3_ast x4 = mk_internal_string_var(t);
+			Z3_ast tmpLenItems[3] = { mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1) };
+			Z3_ast tmpLen = Z3_mk_add(ctx, 3, tmpLenItems);
 
-		carryOn[condAst] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+			Z3_ast tmp02 = Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update));
+			Z3_ast tmp03 = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+			Z3_ast condAst_x3 = mk_contains(t, x3, args[1]);
+			Z3_ast tmp04 = Z3_mk_not(ctx, condAst_x3);
+			Z3_ast tmp05 = Z3_mk_implies(ctx, condAst_x1, condAst_x3);
+			Z3_ast tmp06 = Z3_mk_implies(ctx, condAst_x3, condAst_arg0);
+
+			Z3_ast tmpArr[7] = {tmp00, tmp01, tmp02, tmp03, tmp04, tmp05, tmp06};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 7, tmpArr);
+
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2, x3, x4};
+			thenItems.push_back(tmpNode);
+
+			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+		}
+		else {
+			Z3_ast tmp02 = Z3_mk_implies(ctx, condAst_x1, condAst_arg0);
+			Z3_ast tmpArr[3] = {tmp00, tmp01, tmp02};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 3, tmpArr);
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2};
+			thenItems.push_back(tmpNode);
+		}
 
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
 
-		breakdownAssert = Z3_mk_ite(ctx, condAst, mk_and_fromVector(t, thenItems), elseBranch);
+		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch);
 		return indexAst;
 	}
 }
 
-
-///*
-// *
-// */
-//Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
-//  Z3_context ctx = Z3_theory_get_context(t);
-//  if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr && getNodeType(t, args[2]) == my_Z3_Num) {
-//    std::string arg0 = getConstStrValue(t, args[0]);
-//    std::string arg1 = getConstStrValue(t, args[1]);
-//    int arg2Int = getConstIntValue(t, args[2]);
-//    if (arg2Int >= (int)arg0.length()) {
-//      return mk_int(ctx, -1);
-//    } else if (arg2Int < 0) {
-//      int index = arg0.find(arg1);
-//      return mk_int(ctx, index);
-//    } else {
-//      std::string suffixStr = arg0.substr(arg2Int, arg0.length() - arg2Int);
-//      if (suffixStr.find(arg1) != std::string::npos) {
-//        int index = suffixStr.find(arg1) + arg2Int;
-//        return mk_int(ctx, index);
-//      } else {
-//        return mk_int(ctx, -1);
-//      }
-//    }
-//  } else {
-//    // -------------------------------------------------------------------------------
-//    //   if (arg[2] >= length(arg[0]))                          // ite2
-//    //     resAst = -1
-//    //   else
-//    //     args[0] = prefix . suffix
-//    //     /\ indexAst = indexof(suffix, arg[1])
-//    //     /\ args[2] = len(prefix)
-//    //     /\ if (indexAst == -1)  resAst = indexAst            // ite3
-//    //        else   resAst = args[2] + indexAst
-//    // -------------------------------------------------------------------------------
-//    PATheoryData * td = (PATheoryData*) Z3_theory_get_ext_data(t);
-//    Z3_ast resAst = my_mk_internal_int_var(t);
-//    Z3_ast indexAst = my_mk_internal_int_var(t);
-//    Z3_ast prefix = my_mk_internal_string_var(t);
-//    Z3_ast suffix = my_mk_internal_string_var(t);
-//    Z3_ast prefixLen = mk_length(t, prefix);
-//    Z3_ast zeroAst = mk_int(ctx, 0);
-//    Z3_ast negOneAst = mk_int(ctx, -1);
-//
-//    Z3_ast ite3 = Z3_mk_ite(ctx, Z3_mk_eq(ctx, indexAst, negOneAst),
-//                                 Z3_mk_eq(ctx, resAst, negOneAst),
-//                                 Z3_mk_eq(ctx, resAst, mk_2_add(t, args[2], indexAst))
-//                           );
-//    Z3_ast ite2ElseItems[4];
-//    ite2ElseItems[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, prefix, suffix));
-//    ite2ElseItems[1] = Z3_mk_eq(ctx, indexAst, mk_2_arg_app(ctx, td->Indexof, suffix, args[1]));
-//    ite2ElseItems[2] = Z3_mk_eq(ctx, args[2], prefixLen);
-//    ite2ElseItems[3] = ite3;
-//    Z3_ast ite2Else = Z3_mk_and(ctx, 4, ite2ElseItems);
-//
-//    Z3_ast ite2 = Z3_mk_ite(ctx, Z3_mk_ge(ctx, args[2], mk_length(t, args[0])),
-//                                 Z3_mk_eq(ctx, resAst, negOneAst),
-//                                 ite2Else
-//                           );
-//
-//    Z3_ast ite1 = Z3_mk_ite(ctx, Z3_mk_lt(ctx, args[2], zeroAst),
-//                                 Z3_mk_eq(ctx, resAst, mk_2_arg_app(ctx, td->Indexof, args[0], args[1])),
-//                                 ite2
-//                            );
-//    breakdownAssert = ite1;
-//    return resAst;
-//  }
-//}
 
 /*
  *
@@ -796,59 +777,69 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 		Z3_ast x1 = mk_internal_string_var(t);
 		Z3_ast x2 = mk_internal_string_var(t);
 		Z3_ast indexAst = mk_internal_int_var(t);
-		std::vector<Z3_ast> items;
 
 		bool update;
 
 		// args[0] = x1 . args[1] . x2
-		Z3_ast eq1 = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update));
-		Z3_ast arg0HasArg1 = registerContain(t, args[0], args[1]);  // arg0HasArg1 = Contains(args[0], args[1])
-		items.push_back(Z3_mk_eq(ctx, arg0HasArg1, eq1));
+		Z3_ast tmp00 = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update));
+		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
 
-		Z3_ast condAst = arg0HasArg1;
-		std::string boolVar = Z3_ast_to_string(ctx, condAst);
+		std::string boolVar = Z3_ast_to_string(ctx, condAst_arg0);
 		//----------------------------
 		// true branch
 		std::vector<Z3_ast> thenItems;
 		thenItems.push_back(Z3_mk_ge(ctx, indexAst, mk_int(ctx, 0)));
 		//  args[0] = x1 . args[1] . x2
-		//  x1 doesn't contain args[1]
-		thenItems.push_back(Z3_mk_not(ctx, mk_contains(t, x2, args[1])));
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
+
+		//  x2 doesn't contain args[1]
+		Z3_ast condAst_x2 = mk_contains(t, x2, args[1]);
+		Z3_ast tmp01 = Z3_mk_not(ctx, condAst_x2);
+
 
 		if (isDetAutomatonFunc(t, args[1]) || isConstStr(t, args[1]))
 			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 		else
 			lastIndexOfStrMap[nodeName] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 
-		bool canSkip = false;
-		if (getNodeType(t, args[1]) == my_Z3_ConstStr) {
-			std::string arg1Str = getConstStrValue(t, args[1]);
-			if (arg1Str.length() == 1) {
-				canSkip = true;
-			}
-		}
-
-		if (!canSkip) {
+		if (!canSkipExt(t, args[1])) {
 			// args[0]  = x3 . x4 /\ |x3| = |x1| + 1 /\ ! contains(x4, args[1])
 			Z3_ast x3 = mk_internal_string_var(t);
 			Z3_ast x4 = mk_internal_string_var(t);
 			Z3_ast tmpLenItems[2] = { mk_length(t, x1), mk_int(ctx, 1) };
 			Z3_ast tmpLen = Z3_mk_add(ctx, 2, tmpLenItems);
-			thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-			thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
-			thenItems.push_back(Z3_mk_not(ctx, mk_contains(t, x4, args[1])));
+			Z3_ast tmp02 = Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update));
+			Z3_ast tmp03 = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+			Z3_ast condAst_x4 = mk_contains(t, x4, args[1]);
+			Z3_ast tmp04 = Z3_mk_not(ctx, condAst_x4);
 
-			carryOn[condAst] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+			Z3_ast tmp05 = Z3_mk_implies(ctx, condAst_x2, condAst_x4);
+			Z3_ast tmp06 = Z3_mk_implies(ctx, condAst_x4, condAst_arg0);
+
+			Z3_ast tmpArr[7] = {tmp00, tmp01, tmp02, tmp03, tmp04, tmp05, tmp06};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 7, tmpArr);
+
+			thenItems.push_back(tmpNode);
+
+			lastIndexOf_toAstMap[std::make_pair(args[0], args[1])] = tmpNode;
+
+			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 		}
+		else {
+			Z3_ast tmp02 = Z3_mk_implies(ctx, condAst_x2, condAst_arg0);
+			Z3_ast tmpArr[3] = {tmp00, tmp01, tmp02};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 3, tmpArr);
+			thenItems.push_back(tmpNode);
+
+			lastIndexOf_toAstMap[std::make_pair(args[0], args[1])] = tmpNode;
+		}
+
 		//----------------------------
 		// else branch
 		std::vector<Z3_ast> elseItems;
 		elseItems.push_back(Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
 
-		items.push_back(Z3_mk_ite(ctx, condAst, mk_and_fromVector(t, thenItems), mk_and_fromVector(t, elseItems)));
-
-		breakdownAssert = mk_and_fromVector(t, items);
+		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), mk_and_fromVector(t, elseItems));
 
 		return indexAst;
 	}
@@ -925,9 +916,8 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		Z3_ast x2 = mk_internal_string_var(t);
 		Z3_ast result = mk_internal_string_var(t);
 
-		// condAst = Contains(args[0], args[1])
-		Z3_ast condAst = registerContain(t, args[0], args[1]);
-		std::string boolName = Z3_ast_to_string(ctx, condAst);
+		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
+		std::string boolName = Z3_ast_to_string(ctx, condAst_arg0);
 		replaceStrMap[nodeName] = boolName;
 
 		// -----------------------
@@ -935,29 +925,48 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		std::vector<Z3_ast> thenItems;
 		//  args[0] = x1 . args[1] . x2
 		bool update = true;
-		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update)));
+		Z3_ast tmp00 = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, args[1], x2, update), update));
+		Z3_ast condAst_x1 = mk_contains(t, x1, args[1]);
+		Z3_ast tmp01 = Z3_mk_not(ctx, condAst_x1);
 
-		//  args[0]  = x3 . x4 /\ |x3| = |x1| + |args[1]| - 1 /\ ! contains(x3, args[1])
-		Z3_ast x3 = mk_internal_string_var(t);
-		Z3_ast x4 = mk_internal_string_var(t);
-		Z3_ast tmpLenItems[3] = {mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1) };
-		Z3_ast tmpLen = Z3_mk_add(ctx, 3, tmpLenItems);
-		thenItems.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-		thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
+		if (!canSkipExt(t, args[1])) {
+			//  args[0]  = x3 . x4 /\ |x3| = |x1| + |args[1]| - 1 /\ ! contains(x3, args[1])
+			Z3_ast x3 = mk_internal_string_var(t);
+			Z3_ast x4 = mk_internal_string_var(t);
+			Z3_ast tmpLenItems[3] = {mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1) };
+			Z3_ast tmpLen = Z3_mk_add(ctx, 3, tmpLenItems);
+			Z3_ast tmp02 = Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update));
+			Z3_ast tmp03 = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 
-		Z3_ast condAst_n = mk_contains(t, x3, args[1]);
-		thenItems.push_back(Z3_mk_not(ctx, condAst_n));
+			Z3_ast condAst_x3 = mk_contains(t, x3, args[1]);
+			Z3_ast tmp04 = Z3_mk_not(ctx, condAst_x3);
+			Z3_ast tmp05 = Z3_mk_implies(ctx, condAst_x1, condAst_x3);
+			Z3_ast tmp06 = Z3_mk_implies(ctx, condAst_x3, condAst_arg0);
+			Z3_ast tmpArr[7] = {tmp00, tmp01, tmp02, tmp03, tmp04, tmp05, tmp06};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 7, tmpArr);
+
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = tmpNode;
+			thenItems.push_back(tmpNode);
+
+			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
+		}
+		else {
+			Z3_ast tmp02 = Z3_mk_implies(ctx, condAst_x1, condAst_arg0);
+			Z3_ast tmpArr[3] = {tmp00, tmp01, tmp02};
+			Z3_ast tmpNode = Z3_mk_and(ctx, 3, tmpArr);
+
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = tmpNode;
+			thenItems.push_back(tmpNode);
+		}
+
 		thenItems.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, args[2], x2, update), update)));
 
-		carryOn[condAst] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, result, args[0]);
 
-		Z3_ast tmpAll[2] = {Z3_mk_ite(ctx, condAst, mk_and_fromVector(t, thenItems), elseBranch),
-								Z3_mk_implies(ctx, condAst_n, condAst)};
+		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch);
 
-		breakdownAssert = Z3_mk_and(ctx, 2, tmpAll);
 		replaceNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
 		return result;
 	}
