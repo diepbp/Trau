@@ -1,7 +1,7 @@
 (declare-fun a () String)
 (declare-fun b () String) 
 
-(assert (= a "eOfferCode") ) 
+(assert (= a "eOffercode") ) 
 (assert (= b (ToUpper a) ))  
  
 
