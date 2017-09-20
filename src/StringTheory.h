@@ -234,6 +234,16 @@ typedef struct _AutomatonStringData
  std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name);
 
  /*
+  * return str if it is const or automatadet
+  */
+ std::string getConstString(Z3_theory t, Z3_ast node);
+
+ /*
+  *
+  */
+ Z3_ast convertToAutomtaNodeIfPossible(Z3_theory t, Z3_ast node);
+
+ /*
   * startswith A, "abc" --> contains A, "c"
   */
  void addStartsWithRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
@@ -474,14 +484,14 @@ typedef struct _AutomatonStringData
   * prefix_01 not contain "s"
   * --> prefix_02 not contain "s"
   */
- void addRelationBetween_subStr_Index_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void add_prefix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * |posfix_01| > |posfix_02|
   * posfix_01 not contain "s"
   * --> posfix_02 not contain "s"
   */
- void addRelationBetween_subStr_LastIndex_Contain(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void add_posfix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * check satisfiable of 'nn1 = nn2'
@@ -587,7 +597,7 @@ typedef struct _AutomatonStringData
  bool hasLanguageConstraints(Z3_theory t, Z3_ast node);
 
  std::pair<int, int> getLengthDomain(Z3_ast node);
- void assignLanguageForLength(Z3_theory t, bool &assignSomethingNew, bool &satified);
+ void assignLanguageByLength(Z3_theory t, bool &assignSomethingNew, bool &satified);
  void assignLanguage(Z3_theory t, bool &hasLanguage);
  bool assignConcreteValue(Z3_theory t);
  void assignFinalValues(Z3_theory t);
@@ -763,6 +773,11 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  		Z3_theory t,
  		std::map<std::string, std::string> &rewriterStrMap,
  		std::set<std::string> &carryOnConstraints);
+
+ /*
+  *
+  */
+ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t);
  /*
   * Decide whether two n1 and n2 are ALREADY in a same eq class
   * Or n1 and n2 are ALREADY treated equal by the core

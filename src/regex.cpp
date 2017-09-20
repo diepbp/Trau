@@ -336,8 +336,28 @@ std::string RegEx::PreProcessBracket( std::string strRegEx) {
 	endPos   = strRegEx.find_first_of("]");
 	separatorPos = strRegEx.find_first_of("-");
 
-	if ( startPos == std::string::npos || endPos == std::string::npos )
-		return strRegEx;
+	if ( startPos == std::string::npos || endPos == std::string::npos ) {
+		ReplacedStrRegEx = strRegEx;
+		if (startPos != std::string::npos)
+			ReplacedStrRegEx[startPos] = 20;
+		if (endPos != std::string::npos)
+			ReplacedStrRegEx[endPos] = 21;
+		return ReplacedStrRegEx;
+	}
+
+	if (!(startPos < separatorPos && separatorPos < endPos) || separatorPos == std::string::npos) {
+		ReplacedStrRegEx = strRegEx;
+		if (separatorPos != std::string::npos)
+			ReplacedStrRegEx[separatorPos] = 19;
+		if (!(startPos < separatorPos && separatorPos < endPos)) {
+			if (startPos != std::string::npos)
+				ReplacedStrRegEx[startPos] = 20;
+			if (endPos != std::string::npos)
+				ReplacedStrRegEx[endPos] = 21;
+		}
+		return ReplacedStrRegEx;
+	}
+
 
 	ReplacedStrRegEx += strRegEx.substr( 0, startPos );
 	ReplacedStrRegEx.push_back('(');
@@ -374,6 +394,17 @@ bool RegEx::Compile(std::string strRegEx) {
 	while ( strRegEx.find( "[" ) != std::string::npos ) {
 		strRegEx = PreProcessBracket(strRegEx);
 	}
+
+	for (unsigned int i = 0; i < strRegEx.size(); ++i)
+		if (strRegEx[i] == 20)
+			strRegEx[i] = '[';
+		else if (strRegEx[i] == 21)
+			strRegEx[i] = ']';
+		else
+			if (strRegEx[i] == 19)
+				strRegEx[i] = '-';
+
+
 
 	m_InfixRegEx = const_cast<char*>(strRegEx.c_str());
 	CleanUp();

@@ -227,44 +227,21 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	std::string node02 = "";
 	std::string node03 = "";
 
-	if (isDetAutomatonFunc(t, args[0])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[0]), 0);
-		node01 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
-	}
-	else if (isConstStr(t, args[0])){
-		node01 = "\"" + customizeString(Z3_ast_to_string(ctx, args[0])) + "\"";
+	if (isDetAutomatonFunc(t, args[0]) || isConstStr(t, args[0])) {
+		node01 = "\"" + getConstString(t, args[0]) + "\"";
 	}
 	else
 		node01 = Z3_ast_to_string(ctx, args[0]);
 
-	if (isDetAutomatonFunc(t, args[1])) {
-		Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[1]), 0);
-		node02 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
-	}
-	else if (isConstStr(t, args[1])){
-		node02 = "\"" + customizeString(Z3_ast_to_string(ctx, args[1])) + "\"";
+	if (isDetAutomatonFunc(t, args[1]) || isConstStr(t, args[1])) {
+		node02 = "\"" + getConstString(t, args[1]) + "\"";
 	}
 	else
 		node02 = Z3_ast_to_string(ctx, args[1]);
 
-	if (name == td->Replace) {
-		if (isDetAutomatonFunc(t, args[2])) {
-			Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[2]), 0);
-			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
-		}
-		else if (isConstStr(t, args[2])){
-			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, args[2])) + "\"";
-		}
-		else
-			node03 = Z3_ast_to_string(ctx, args[2]);
-	}
-	else if (name == td->ReplaceAll){
-		if (isDetAutomatonFunc(t, args[2])) {
-			Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, args[2]), 0);
-			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, tmp)) + "\"";
-		}
-		else if (isConstStr(t, args[2])){
-			node03 = "\"" + customizeString(Z3_ast_to_string(ctx, args[2])) + "\"";
+	if (name == td->Replace || name == td->ReplaceAll) {
+		if (isDetAutomatonFunc(t, args[2]) || isConstStr(t, args[2])) {
+			node03 = "\"" + getConstString(t, args[2]) + "\"";
 		}
 		else
 			node03 = Z3_ast_to_string(ctx, args[2]);
@@ -415,7 +392,6 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		}
 		else {
 			pushVectors(Z3_mk_implies(ctx, condAst_x1, condAst_arg00), thenItems00, thenItems01, thenItems02);
-			pushVectors(Z3_mk_implies(ctx, condAst_x2, condAst_arg00), thenItems00, thenItems01, thenItems02);
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2};
 		}
 
