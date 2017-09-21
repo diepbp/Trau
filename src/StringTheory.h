@@ -580,6 +580,16 @@ typedef struct _AutomatonStringData
   */
  std::set<Z3_ast> collectConnectedVars(Z3_theory t);
 
+ /*
+  * how many letters in a combination
+  * */
+ std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
+
+ /*
+  * x = a . b . c = d . e . f --> possible or not
+  */
+ bool quick_check_const(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+
  /**
   *
   */

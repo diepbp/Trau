@@ -4238,7 +4238,7 @@ std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std:
 /*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+bool quick_check_const(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	if (list.size() <= 1)
 		return true;
@@ -4275,6 +4275,113 @@ bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3
 				if (m[p.first] >= 0 && m[p.first] != p.second)
 					return false;
 			}
+		}
+	}
+
+
+	return true;
+}
+
+/*
+ * 0 : not s0 + s1
+ * 1 : s0 contains
+ * 2 : s1 contains
+ * 3 : both contain
+ */
+int contains_not_contain_char(std::string s0, std::string s1, std::set<char> l){
+	bool b0 = false;
+	bool b1 = false;
+
+	for (unsigned i = 0; i < s0.length(); ++i)
+		if (l.find(s0[i]) != l.end()) {
+			b0 = true;
+			break;
+		}
+
+	for (unsigned i = 0; i < s1.length(); ++i)
+		if (l.find(s1[i]) != l.end()) {
+			b1 = true;
+			break;
+		}
+
+	if (b0 && b1)
+		return 3;
+	else if (b1)
+		return 2;
+	else if (b0)
+		return 1;
+	else
+		return 0;
+}
+
+/*
+ * x = a . b . c = d . e . f --> possible or not
+ */
+bool quick_check_regex(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	if (list.size() <= 1)
+		return true;
+
+	for (const auto& l : list)
+		displayListNode(t, l, "Quick check list: ");
+	std::map<char, int> m = eval_combination(t, list[0], boolValues);
+	for (const auto& p : m)
+		__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
+	for (unsigned i = 1; i < list.size(); ++i) {
+		std::map<char, int> tmp = eval_combination(t, list[i], boolValues);
+		__debugPrint(logFile, "%d comparing to \n", __LINE__);
+		for (const auto& p : tmp)
+			__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
+
+		std::set<char> intersection;
+		for (const auto& p : tmp)
+			if (m.find(p.first) != m.end()) {
+				intersection.emplace(p.first);
+			}
+
+		unsigned pos00 = 0;
+		unsigned pos01 = 0;
+		while (pos00 < list[0].size() && pos01 < list[i].size()){
+			if (isNonDetAutomatonFunc(t, list[0][pos00]) &&
+					isNonDetAutomatonFunc(t, list[i][pos01])) {
+				/* both contain "not contain char */
+				std::string s0 = parse_regex_content(getConstString(t, list[0][pos00]));
+				std::string s1 = parse_regex_content(getConstString(t, list[i][pos01]));
+				int checkValue = contains_not_contain_char(s0, s1, intersection);
+
+				__debugPrint(logFile, "%d * %s *: %s vs %s --> %d\n", __LINE__, __FUNCTION__, s0.c_str(), s1.c_str(), checkValue);
+				switch (checkValue){
+				case 0:
+					pos00++; pos01++;
+					break;
+				case 1:
+					pos01++;
+					break;
+				case 2:
+					pos00++;
+					break;
+				case 3:
+					if (s0.length() < s1.length()) {
+						std::string tmpStr = s0;
+						s0 = s1;
+						s1 = tmpStr;
+					}
+					std::string sx = s1;
+					while (s0.length() > sx.length()){
+						sx = sx + s1;
+					}
+
+					if (sx.compare(s0) != 0)
+						return false;
+
+					break;
+				}
+
+			}
+			if (!isNonDetAutomatonFunc(t, list[0][pos00]))
+				pos00++;
+			if (!isNonDetAutomatonFunc(t, list[i][pos01]))
+				pos01++;
 		}
 	}
 
@@ -4351,7 +4458,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
-		bool fine = quick_check(t, itor->second, boolMapValues);
+		bool fine = quick_check_const(t, itor->second, boolMapValues);
 		if (!fine) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveContext(t), __LINE__, true);
