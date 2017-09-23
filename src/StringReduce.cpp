@@ -341,6 +341,9 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 		Z3_ast result = mk_internal_string_var(t);
 
+		printZ3Node(t, args[1]);
+		std::string arg01Plus = "(" + getConstString(t, args[1]) + ")+";
+		std::string arg02Plus = "(" + getConstString(t, args[2]) + ")+";
 
 		// condAst = Contains(args[0], args[1])
 		Z3_ast condAst_arg00 = registerContain(t, args[0], args[1]);
@@ -358,7 +361,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		std::vector<Z3_ast> thenItems02;
 
 		//  args[0] = x1 . args[1] . x2
-		Z3_ast arg0_tmp = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[1]), x2, update), update));
+		Z3_ast arg0_tmp = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg01Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x2, update), update));
 		pushVectors(arg0_tmp, thenItems00, thenItems01, thenItems02);
 
 		Z3_ast condAst_x1 = registerContain(t, x1, args[1]);
@@ -398,7 +401,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		}
 
 		pushVectors(Z3_mk_not(ctx, condAst_x2), thenItems00);
-		pushVectors(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), x2, update), update)), thenItems00);
+		pushVectors(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x2, update), update)), thenItems00);
 
 		// -----------------------
 		// case 2
@@ -418,7 +421,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			x4 = tmpInternalVars01[1];
 		}
 
-		Z3_ast x2_tmp = Z3_mk_eq(ctx, x2, mk_concat(t, x3, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[1]), x4, update), update));
+		Z3_ast x2_tmp = Z3_mk_eq(ctx, x2, mk_concat(t, x3, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg01Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x4, update), update));
 		pushVectors(x2_tmp, thenItems01, thenItems02);
 
 		Z3_ast condAst_x3 = registerContain(t, x3, args[1]);
@@ -457,7 +460,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			indexOf_toAstMap[std::make_pair(x2, args[1])] = {x3, x4};
 		}
 
-		thenItems01.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), mk_concat(t, x3, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), x4, update), update), update), update)));
+		thenItems01.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), mk_concat(t, x3, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x4, update), update), update), update)));
 		thenItems01.push_back(Z3_mk_not(ctx, condAst_x4));
 
 
@@ -481,7 +484,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			x6 = tmpInternalVars02[1];
 		}
 
-		thenItems02.push_back(Z3_mk_eq(ctx, x4, mk_concat(t, x5, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[1]), x6, update), update)));
+		thenItems02.push_back(Z3_mk_eq(ctx, x4, mk_concat(t, x5, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg01Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x6, update), update)));
 		Z3_ast condAst_x5 = registerContain(t, x5, args[1]);
 		thenItems02.push_back(Z3_mk_not(ctx, condAst_x5));
 
@@ -519,7 +522,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			indexOf_toAstMap[std::make_pair(x4, args[1])] = {x5, x6};
 		}
 
-		thenItems02.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), mk_concat(t, x3, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), mk_concat(t, x5, mk_concat(t, mk_unary_app(ctx, td->RegexPlus, args[2]), x6, update), update), update), update), update), update)));
+		thenItems02.push_back(Z3_mk_eq(ctx, result, mk_concat(t, x1, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), mk_concat(t, x3, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), mk_concat(t, x5, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg02Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x6, update), update), update), update), update), update)));
 
 		Z3_ast elseBranch = Z3_mk_eq(ctx, result, args[0]);
 

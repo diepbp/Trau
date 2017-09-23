@@ -2140,6 +2140,7 @@ std::set<std::string> extendComponent(std::string s){
  * (abc|cde|ghi)*
  */
 void optimizeFlatAutomaton(std::string &s){
+	std::string org = s;
 	std::string tmp = s.substr(1, s.length() - 3);
 	std::set<std::string> ret = extendComponent(tmp);
 	displayListString(ret, " *** optimizeFlatAutomaton ***");
@@ -2148,7 +2149,15 @@ void optimizeFlatAutomaton(std::string &s){
 	for (const auto& it: ret){
 		s = s + "|" + it;
 	}
-	s = "(" + s.substr(1) + ")*";
+
+	if (org[org.length() - 1] == '*')
+		s = "(" + s.substr(1) + ")*";
+	else if (org[org.length() - 1] == '+')
+		s = "(" + s.substr(1) + ")+";
+	else {
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, org.c_str());
+		assert(false);
+	}
 }
 
 /*

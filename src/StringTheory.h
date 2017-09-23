@@ -583,12 +583,17 @@ typedef struct _AutomatonStringData
  /*
   * how many letters in a combination
   * */
- std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
+ std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
+
+ /*
+  * how many letters in a combination
+  * */
+ std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
 
  /*
   * x = a . b . c = d . e . f --> possible or not
   */
- bool quick_check_const(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+ bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
 
  /**
   *
@@ -871,6 +876,8 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  bool isNonDetAutomatonFunc(Z3_theory t, Z3_ast n);
 
  bool isDetAutomatonFunc(Z3_theory t, Z3_ast n);
+
+ bool isRegexPlusFunc(Z3_theory t, Z3_ast n);
 
  bool isConcatFunc(Z3_theory t, Z3_ast n);
 

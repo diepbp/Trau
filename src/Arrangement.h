@@ -1533,11 +1533,14 @@ public:
 		std::string tmp = parse_regex_content(str);
 		std::vector<std::string> components = collectAlternativeComponents(tmp);
 		std::vector<int> tmpList;
-		for (unsigned int i = 0; i < components.size(); ++i)
-			if (components[i].length() != 1)
+		for (const auto& s : components)
+			if (s.length() != 1)
 				return std::make_pair(-1, -1);
 			else
-				tmpList.push_back(components[i][0]);
+				tmpList.push_back(s[0]);
+
+		if (tmpList.size() <= 1)
+			return std::make_pair(-1, -1);
 
 		std::sort(tmpList.begin(), tmpList.end());
 		for (unsigned int i = 0; i < tmpList.size() - 1; ++i)
@@ -1574,7 +1577,8 @@ public:
 		std::string rhs_array = generateFlatArray(elementNames[regexPos], rhs_str);
 
 		std::string regex_length = generateFlatSize(elementNames[regexPos], rhs_str);
-		char strTmp[1000];
+
+		char strTmp[5000];
 
 #if 0
 		/* forall ((i Int)) (and (< i a.first.length()))*/
@@ -1610,9 +1614,10 @@ public:
 			}
 		}
 		else {
+			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
 			for (int i = 0; i < CONNECTSIZE; ++i) {
-				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s)))",
+				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
 						pre_lhs.c_str(),
@@ -1623,6 +1628,7 @@ public:
 				andConstraints.push_back(strTmp);
 			}
 		}
+
 		return andConstraint(andConstraints);
 #endif
 	}
@@ -1720,7 +1726,7 @@ public:
 			content = elementNames[constPos].first;
 		else
 			content = parse_regex_content(elementNames[constPos].first);
-
+//		__debugPrint(logFile, "%d *** %s ***: const pos: %s\n", __LINE__, __FUNCTION__, content.c_str());
 		/* find the start position --> */
 		std::vector<std::string> locationConstraint;
 
@@ -1745,6 +1751,7 @@ public:
 		}
 
 		std::string result = orConstraint(possibleCases);
+//		__debugPrint(logFile, "%d >> leaving %s\n", __LINE__, __FUNCTION__);
 		return result;
 	}
 
@@ -1757,7 +1764,7 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			std::set<std::string> connectedVariables,
 			std::map<std::string, int> &newVars){
-		__debugPrint(logFile, "%d connected var = const | regex \n", __LINE__);
+		__debugPrint(logFile, "%d connected var = const | regex: lhs = %s; rhs = %s \n", __LINE__, lhs_str.c_str(), rhs_str.c_str());
 
 		assert(connectedVariables.find(a.first) != connectedVariables.end());
 		/* (and ...) */

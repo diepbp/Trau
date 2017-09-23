@@ -401,10 +401,7 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 		bool hasEqcValue = false;
 		Z3_ast node00 = get_eqc_value(t, n1, hasEqcValue);
 		if (hasEqcValue) {
-			std::string str = getConstStrValue(t, node00);
-			// handle special string of the form | a |
-			if (str[0] == '|' && str[str.length() - 1] == '|')
-				str = str.substr(1, str.length() - 2);
+			std::string str = getConstString(t, node00);
 			if (str.size() >= 0) {
 				// create automata def for const string
 				if (str.find('*') != std::string::npos || str.find('+') != std::string::npos)
@@ -427,9 +424,7 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 		Z3_ast node02 = get_eqc_value(t, n2, hasEqcValue);
 		if (hasEqcValue) {
 
-			std::string str = getConstStrValue(t, node02);
-			if (str[0] == '|' && str[str.length() - 1] == '|')
-				str = str.substr(1, str.length() - 2);
+			std::string str = getConstString(t, node02);
 			if (str.size() >= 0) {
 				//create automata def for const string
 				if (str.find('*') != std::string::npos || str.find('+') != std::string::npos)
@@ -2299,9 +2294,8 @@ void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 			std::string tmpStr = getConstString(t, containsNode.first.second);
 
 			for (const auto& itor : children02)
-				if (isDetAutomatonFunc(t, itor)){
-					Z3_ast tmp = Z3_get_app_arg(ctx, Z3_to_app(ctx, itor), 0);
-					std::string wholeStr = customizeString(Z3_ast_to_string(ctx, tmp));
+				if (isDetAutomatonFunc(t, itor) || isRegexPlusFunc(t, itor)){
+					std::string wholeStr = getConstString(t, itor);
 					if (wholeStr.find(tmpStr) != std::string::npos){
 						addAxiom(t, Z3_mk_implies(ctx, Z3_mk_not(ctx, containsNode.second), Z3_mk_not(ctx, Z3_mk_eq(ctx, nn1 ,nn2))), __LINE__, true);
 					}
@@ -2315,7 +2309,7 @@ void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 			std::string tmpStr = getConstString(t, containsNode.first.second);
 
 			for (const auto& itor : children01)
-				if (isDetAutomatonFunc(t, itor)){
+				if (isDetAutomatonFunc(t, itor) || isRegexPlusFunc(t, itor)){
 					std::string wholeStr = getConstString(t, itor);
 					if (wholeStr.find(tmpStr) != std::string::npos){
 						addAxiom(t, Z3_mk_implies(ctx, Z3_mk_not(ctx, containsNode.second), Z3_mk_not(ctx, Z3_mk_eq(ctx, nn1 ,nn2))), __LINE__, true);
@@ -4193,9 +4187,9 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 }
 
 /*
- * how many letters in a combination
- * */
-std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
+ *
+ */
+std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
 	std::map<char, int> m;
 	/* init map */
 	std::set<char> initSet;
@@ -4221,16 +4215,47 @@ std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std:
 					newSet.emplace(ch);
 			initSet = newSet;
 		}
+		else if (isNonDetAutomatonFunc(t, node)) {
+			/* not contain chars */
+			std::string tmpStr = getConstString(t, node);
+			/* intersection*/
+			std::set<char> newSet;
+			for (const auto& ch : initSet)
+				if (tmpStr.find(ch) == std::string::npos)
+					newSet.emplace(ch);
+			initSet = newSet;
+		}
 	}
 
 	for (const auto& node: list)
 		if (isConstStr(t, node) || isDetAutomatonFunc(t, node)) {
 			std::string str = getConstString(t, node);
 			for (unsigned i = 0; i < str.length(); ++i)
-				if (initSet.find(str[i]) == initSet.end())
-					m[str[i]] = m[str[i]] - 1;
-				else
-					m[str[i]] = m[str[i]] + 1;
+				m[str[i]] = m[str[i]] + 1;
+		}
+	return m;
+}
+
+/*
+ *
+ */
+std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
+	std::map<char, int> m;
+	/* init map */
+	std::set<char> initSet;
+	for (unsigned i = 0; i < 255; ++i)
+		m[i]= 0;
+
+	for (const auto& node: list)
+		if (isConstStr(t, node) || isDetAutomatonFunc(t, node)) {
+			std::string str = getConstString(t, node);
+			for (unsigned i = 0; i < str.length(); ++i)
+				m[str[i]] = m[str[i]] + 1;
+		}
+		else if (isRegexPlusFunc(t, node)) {
+			std::string str = parse_regex_content(getConstString(t, node));
+			for (unsigned i = 0; i < str.length(); ++i)
+				m[str[i]] = m[str[i]] + 1;
 		}
 	return m;
 }
@@ -4238,7 +4263,7 @@ std::map<char, int> eval_combination(Z3_theory t, std::vector<Z3_ast> list, std:
 /*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool quick_check_const(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	if (list.size() <= 1)
 		return true;
@@ -4246,146 +4271,60 @@ bool quick_check_const(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::
 	for (const auto& l : list)
 		displayListNode(t, l, "Quick check list: ");
 
-	std::map<char, int> m = eval_combination(t, list[0], boolValues);
-	for (const auto& p : m)
-		__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
 	for (unsigned i = 1; i < list.size(); ++i) {
-		std::map<char, int> tmp = eval_combination(t, list[i], boolValues);
-		__debugPrint(logFile, "%d comparing to \n", __LINE__);
-		for (const auto& p : tmp)
-				__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
+		/* cut common prefix and suffix */
+		std::vector<Z3_ast> l00;
+		std::vector<Z3_ast> l01;
+		unsigned start = 0, finish = list[0].size() - 1;
+		while (start < list[0].size())
+			if (list[0][start] == list[i][start])
+				++start;
+			else
+				break;
+		while (finish >= 0)
+			if (list[0][finish] == list[i][list[i].size() - (list[0].size() - finish)])
+				--finish;
+			else
+				break;
 
-		for (const auto& p : m){
-			if (p.second >= 0 &&
-					tmp.find(p.first) != tmp.end()){
+		/* --> cut */
+		for (unsigned j = start; j <= finish; ++j)
+			l00.push_back(list[0][j]);
+		for (unsigned j = start; j <= list[i].size() - (list[0].size() - finish); ++j)
+			l01.push_back(list[i][j]);
 
-				if (abs(tmp[p.first]) > p.second)
-					return false;
-				if (tmp[p.first] >= 0 && tmp[p.first] != p.second)
-					return false;
-			}
-		}
+		/* compare */
+		std::map<char, int> fixed00 = eval_parikh_fixedbound(t, l00, boolValues);
+		std::map<char, int> lower00 = eval_parikh_lowerbound(t, l00, boolValues);
+		std::map<char, int> fixed01 = eval_parikh_fixedbound(t, l01, boolValues);
+		std::map<char, int> lower01 = eval_parikh_lowerbound(t, l01, boolValues);
 
-		for (const auto& p : tmp){
-			if (p.second >= 0 &&
-					m.find(p.first) != m.end()){
+		__debugPrint(logFile, "%d fixed00 bound\n", __LINE__);
+		for (const auto& p : fixed00)
+			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
 
-				if (abs(m[p.first]) > p.second)
-					return false;
-				if (m[p.first] >= 0 && m[p.first] != p.second)
-					return false;
-			}
-		}
+		__debugPrint(logFile, "%d fixed01 bound\n", __LINE__);
+		for (const auto& p : fixed01)
+			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+
+		__debugPrint(logFile, "%d lower00 bound\n", __LINE__);
+		for (const auto& p : lower00)
+			if (p.second > 0)
+				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+
+		__debugPrint(logFile, "%d lower01 bound\n", __LINE__);
+		for (const auto& p : lower01)
+			if (p.second > 0)
+				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+
+		for (const auto& ch : fixed00)
+			if (lower01[ch.first] > ch.second)
+				return false;
+
+		for (const auto& ch : fixed01)
+			if (lower00[ch.first] > ch.second)
+				return false;
 	}
-
-
-	return true;
-}
-
-/*
- * 0 : not s0 + s1
- * 1 : s0 contains
- * 2 : s1 contains
- * 3 : both contain
- */
-int contains_not_contain_char(std::string s0, std::string s1, std::set<char> l){
-	bool b0 = false;
-	bool b1 = false;
-
-	for (unsigned i = 0; i < s0.length(); ++i)
-		if (l.find(s0[i]) != l.end()) {
-			b0 = true;
-			break;
-		}
-
-	for (unsigned i = 0; i < s1.length(); ++i)
-		if (l.find(s1[i]) != l.end()) {
-			b1 = true;
-			break;
-		}
-
-	if (b0 && b1)
-		return 3;
-	else if (b1)
-		return 2;
-	else if (b0)
-		return 1;
-	else
-		return 0;
-}
-
-/*
- * x = a . b . c = d . e . f --> possible or not
- */
-bool quick_check_regex(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
-	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	if (list.size() <= 1)
-		return true;
-
-	for (const auto& l : list)
-		displayListNode(t, l, "Quick check list: ");
-	std::map<char, int> m = eval_combination(t, list[0], boolValues);
-	for (const auto& p : m)
-		__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
-	for (unsigned i = 1; i < list.size(); ++i) {
-		std::map<char, int> tmp = eval_combination(t, list[i], boolValues);
-		__debugPrint(logFile, "%d comparing to \n", __LINE__);
-		for (const auto& p : tmp)
-			__debugPrint(logFile, "%d %c : %d\n", __LINE__, p.first, p.second);
-
-		std::set<char> intersection;
-		for (const auto& p : tmp)
-			if (m.find(p.first) != m.end()) {
-				intersection.emplace(p.first);
-			}
-
-		unsigned pos00 = 0;
-		unsigned pos01 = 0;
-		while (pos00 < list[0].size() && pos01 < list[i].size()){
-			if (isNonDetAutomatonFunc(t, list[0][pos00]) &&
-					isNonDetAutomatonFunc(t, list[i][pos01])) {
-				/* both contain "not contain char */
-				std::string s0 = parse_regex_content(getConstString(t, list[0][pos00]));
-				std::string s1 = parse_regex_content(getConstString(t, list[i][pos01]));
-				int checkValue = contains_not_contain_char(s0, s1, intersection);
-
-				__debugPrint(logFile, "%d * %s *: %s vs %s --> %d\n", __LINE__, __FUNCTION__, s0.c_str(), s1.c_str(), checkValue);
-				switch (checkValue){
-				case 0:
-					pos00++; pos01++;
-					break;
-				case 1:
-					pos01++;
-					break;
-				case 2:
-					pos00++;
-					break;
-				case 3:
-					if (s0.length() < s1.length()) {
-						std::string tmpStr = s0;
-						s0 = s1;
-						s1 = tmpStr;
-					}
-					std::string sx = s1;
-					while (s0.length() > sx.length()){
-						sx = sx + s1;
-					}
-
-					if (sx.compare(s0) != 0)
-						return false;
-
-					break;
-				}
-
-			}
-			if (!isNonDetAutomatonFunc(t, list[0][pos00]))
-				pos00++;
-			if (!isNonDetAutomatonFunc(t, list[i][pos01]))
-				pos01++;
-		}
-	}
-
-
 	return true;
 }
 
@@ -4458,7 +4397,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
-		bool fine = quick_check_const(t, itor->second, boolMapValues);
+		bool fine = quick_check(t, itor->second, boolMapValues);
 		if (!fine) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveContext(t), __LINE__, true);
@@ -4573,19 +4512,19 @@ Z3_bool Th_final_check(Z3_theory t) {
 	//**************************************************************
 	// Assign node length
 	//**************************************************************
-	bool assignSomethingNew = false, satified = true;
-	if (lengthDefined == false) {
-		// determine domain of variables
-		reduceVariableDomain(t);
-		findVariableDomain();
-
-		updateLength(t);
-		assignLanguageByLength(t, assignSomethingNew, satified);
-		if (assignSomethingNew) {
-			__debugPrint(logFile, " should Pass level 1\n");
-			lengthDefined = true;
-		}
-	}
+//	bool assignSomethingNew = false, satified = true;
+//	if (lengthDefined == false) {
+//		// determine domain of variables
+//		reduceVariableDomain(t);
+//		findVariableDomain();
+//
+//		updateLength(t);
+//		assignLanguageByLength(t, assignSomethingNew, satified);
+//		if (assignSomethingNew) {
+//			__debugPrint(logFile, " should Pass level 1\n");
+//			lengthDefined = true;
+//		}
+//	}
 
 	__debugPrint(logFile, " Pass level 1\n");
 
@@ -4649,7 +4588,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s\n", __LINE__, s.first.c_str());
 		}
 
-		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints,currentLength, inputFile)) {
+		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, currentLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -8042,6 +7981,21 @@ bool isDetAutomatonFunc(Z3_theory t, Z3_ast n) {
 /*
  *
  */
+bool isRegexPlusFunc(Z3_theory t, Z3_ast n) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	Z3_func_decl d = Z3_get_app_decl(ctx, Z3_to_app(ctx, n));
+	if (d == td->NonDet_AutomataDef) {
+		std::string str = getConstString(t, n);
+		if (str.find('+') != std::string::npos)
+			return true;
+	}
+	return false;
+}
+
+/*
+ *
+ */
 bool isConcatFunc(Z3_theory t, Z3_ast n) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
@@ -8277,8 +8231,7 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 						d == td->StartsWith ||
 						d == td->EndsWith ||
 						d == td->RegexIn ||
-						d == td->GrammarIn ||
-						d == td->NonDet_AutomataDef) {
+						d == td->GrammarIn) {
 					return my_Z3_Func;
 				} else {
 					return my_Z3_ConstBool;
@@ -8287,10 +8240,7 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 				if (d == td->Length ||
 						d == td->Indexof ||
 						d == td->Indexof2 ||
-						d == td->LastIndexof ||
-						d == td->Parikh ||
-						d == td->ToLower ||
-						d == td->ToLower) {
+						d == td->LastIndexof) {
 					return my_Z3_Func;
 				}
 			} else if (sk == Z3_UNKNOWN_SORT) {
@@ -8302,25 +8252,22 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 							d == td->Unroll ||
 							d == td->CharAt ||
 							d == td->AutomataDef ||
-							d == td->GrammarIn ||
-							d == td->Str2Grm ||
-							d == td->NonDet_AutomataDef) {
+							d == td->NonDet_AutomataDef ||
+							d == td->ToLower ||
+							d == td->ToUpper ) {
 						return my_Z3_Func;
 					} else {
 						return my_Z3_ConstStr;
 					}
 				}
+
 				if (s == td->Regex) {
 					if (d == td->RegexConcat ||
 							d == td->RegexStar ||
 							d == td->RegexPlus ||
 							d == td->RegexCharRange ||
 							d == td->RegexUnion ||
-							d == td->Str2Reg ||
-							d == td->AutomataDef ||
-							d == td->GrammarIn ||
-							d == td->Str2Grm ||
-							d == td->NonDet_AutomataDef) // TODO update list of functions
+							d == td->Str2Reg) // TODO update list of functions
 									return my_Z3_Func;
 					else
 						return my_Z3_Regex_Var;
