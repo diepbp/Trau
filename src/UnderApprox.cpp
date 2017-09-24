@@ -771,36 +771,85 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
  * replaceAll a b c
  * replaceAll "a" b c
  * replaceAll a "b" c
+ *
+ * --> iter = iter
  */
-std::string create_constraints_ReplaceAll(std::string lhs, std::vector<std::string> args, std::string boolValue){
-	bool isConst_00 = false;
+std::string create_constraints_ReplaceAll(
+		std::vector<std::string> args,
+		std::string boolValue,
+		std::map<std::string, std::vector<std::string>> eqToStr){
+
+	__debugPrint(logFile, "%d *** %s ***: %s %s %s %s\n", __LINE__, __FUNCTION__, args[0].c_str(), args[1].c_str(), args[2].c_str(), boolValue.c_str());
 	bool isConst_01 = false;
 	bool isConst_02 = false;
-	if (args[0][0] == '\"' )
-		isConst_00 = true;
 
-	if (args[1][0] == '\"')
+	if (args[1][0] == '"')
 		isConst_01 = true;
 
-	if (args[2][0] == '\"')
+	if (args[2][0] == '"')
 		isConst_02 = true;
 
-	/* do not replace */
-	if (boolValue.compare("false") == 0){
-		/* new value = old value = args[0] */
-		std::vector<std::string> andConstraints;
-		andConstraints.push_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
-		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
-				connectedVariables.find(lhs) != connectedVariables.end()){
-			// TODO replace constraints: two connected variables
-		}
-		return "true";
-	}
+	std::string s0 = "(" + args[1].substr(1, args[1].length() - 2) + ")+";
+	std::string s1 = "(" + args[2].substr(1, args[2].length() - 2) + ")+";
 
+	assert(isConst_01);
+	assert(isConst_02);
+	assert(boolValue.compare("true") == 0);
 	/* */
-	if (isConst_01 && isConst_02) {
+	if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
+		assert (equalitiesMap.find(args[0]) != equalitiesMap.end());
+		for (const auto& list : equalitiesMap[args[0]]) {
+			/* if all internal vars */
+			std::string tmp = "";
+			std::vector<std::string> listRegexPlus00;
+			for (const auto& s : list)
+				if (s[0] == '$')
+					tmp = tmp + s;
+				else if (s[0] != '"') {
+					tmp = "";
+					break;
+				}
+				else if (s.find(s0) == std::string::npos) {
+					tmp = "";
+					break;
+				}
+				else
+					listRegexPlus00.push_back(s.substr(1, s.length() - 2));
 
+			if (tmp.length() == 0)
+				continue;
+
+			__debugPrint(logFile, "%d reach half: %s\n", __LINE__, tmp.c_str());
+			/* */
+			for (const auto& var : eqToStr) {
+
+				if (var.first.compare(args[0]) != 0)
+					for (unsigned i = 0; i < var.second.size(); ++i)
+						if (var.second[i].compare(tmp) == 0) {
+							/* check matching one more time */
+							assert (equalitiesMap[var.first].size() > i);
+							std::vector<std::string> listRegexPlus01;
+							for (const auto& s : equalitiesMap[var.first][i])
+								if (s[0] == '"') {
+									if (s.find(s1) != std::string::npos)
+										listRegexPlus01.push_back(s.substr(1, s.length() - 2));
+								}
+							if (listRegexPlus00.size() == listRegexPlus01.size()) {
+								std::string result = "";
+								for (unsigned i = 0; i < listRegexPlus00.size(); ++i) {
+									result = result + "(= " + constMap[listRegexPlus00[i]] + "__p0 " + constMap[listRegexPlus01[i]] +"__p0) ";
+									__debugPrint(logFile, "%d %s vs %s\n", __LINE__, listRegexPlus00[i].c_str(), listRegexPlus01[i].c_str());
+								}
+								__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, result.c_str());
+								return "(and " + result + ")";
+							}
+							else
+								assert (listRegexPlus01.size() == 0);
+						}
+			}
+		}
 	}
+	assert (false);
 	return "true";
 }
 
@@ -1055,11 +1104,34 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
  * handle replace constraints
  * TODO handle_ReplaceAll
  */
-void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap){
+void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
+		){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	/* prepare */
+	std::map<std::string, std::vector<std::string>> eqToStr;
+	for (const auto& var : equalitiesMap) {
+
+		for (const auto& l : var.second) {
+			std::string tmp = "";
+			for (const auto s : l)
+				if (s[0] != '"')
+					tmp = tmp + s;
+				eqToStr[var.first].push_back(tmp);
+		}
+	}
+
+	for (const auto& l : eqToStr) {
+		__debugPrint(logFile, "%d %s: ", __LINE__, l.first.c_str());
+		for (const auto& s : l.second)
+			__debugPrint(logFile, "%d \t %s\n", __LINE__, s.c_str());
+		__debugPrint(logFile, "\n");
+	}
+
+
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(Replace ") != std::string::npos){
+		if (s.first.find("(ReplaceAll ") != std::string::npos){
 			std::vector<std::string> args = extract_three_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_ReplaceAll("xxxxx", args, s.second)});
+			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
 	}
 }
@@ -1138,6 +1210,7 @@ void create_const_array(
  *
  */
 void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<std::string> &constraints){
+	__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, regexCnt);
 	for (int i = 0 ; i < regexCnt; ++i) {
 		defines.push_back("(declare-const __regex_" + std::to_string(i) + " Int)");
 		constraints.push_back("(assert (>= __regex_" + std::to_string(i) + " 0))");
@@ -1687,9 +1760,8 @@ void sumConstString(){
 					if (isRegexStr(s)) {
 						std::vector<std::string> localElements;
 						/* reuse the parse result */
-						if (parserMap.find(s) != parserMap.end()) {
+						if (parserMap.find(s) != parserMap.end())
 							localElements = parserMap[s];
-						}
 						else {
 							/* update regex */
 							unsigned int tmpPos = s.length() - 1;
@@ -1916,12 +1988,19 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 std::string decodeStr(std::string s){
 	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
 	std::string tmp = "";
+	int cnt = 0;
 	for (unsigned int i = 0; i < s.length(); ++i){
-		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
+		if (s[i] == '"') {
+			cnt++;
+			tmp = tmp + s[i];
+			continue;
+		}
+		if (DECODEMAP.find(s[i]) != DECODEMAP.end() && cnt == 1){
 			tmp = tmp + (char)DECODEMAP[s[i]];
 		}
 		else
 			tmp = tmp + s[i];
+
 	}
 	__debugPrint(logFile, " %s\n", tmp.c_str());
 	return tmp;
@@ -3100,9 +3179,9 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	printf("Running Under Approximation...\n");
-	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
-	for (unsigned int i = 0; i < test.size(); ++i)
-		displayListString(test[i], " parse regex ");
+//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
+//	for (unsigned int i = 0; i < test.size(); ++i)
+//		displayListString(test[i], " parse regex ");
 
 	/* init varLength */
 	varLength.clear();

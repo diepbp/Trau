@@ -161,8 +161,13 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
  * replaceAll a b c
  * replaceAll "a" b c
  * replaceAll a "b" c
+ *
+ * --> iter = iter
  */
-std::string create_constraints_ReplaceAll(std::string lhs, std::vector<std::string> args, std::string boolValue);
+std::string create_constraints_ReplaceAll(
+		std::vector<std::string> args,
+		std::string boolValue,
+		std::map<std::string, std::vector<std::string>> eqToStr);
 
 /*
  *
