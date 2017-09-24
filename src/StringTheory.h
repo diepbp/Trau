@@ -593,7 +593,7 @@ typedef struct _AutomatonStringData
  /*
   * x = a . b . c = d . e . f --> possible or not
   */
- bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+ bool parikh_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
 
  /**
   *

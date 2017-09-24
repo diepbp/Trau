@@ -4187,10 +4187,9 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 }
 
 /*
- *
+ * all vars do not contain some chars
  */
-std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
-	std::map<char, int> m;
+std::set<char> get_notContain_set(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
 	/* init map */
 	std::set<char> initSet;
 	for (unsigned i = 0; i < 255; ++i)
@@ -4215,7 +4214,20 @@ std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list
 					newSet.emplace(ch);
 			initSet = newSet;
 		}
-		else if (isNonDetAutomatonFunc(t, node)) {
+	}
+	return initSet;
+}
+
+/*
+ *
+ */
+std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
+	std::map<char, int> m;
+	/* init map */
+	std::set<char> initSet = get_notContain_set(t, list, boolValues);
+
+	for (const auto& node : list) {
+		if (isNonDetAutomatonFunc(t, node)) {
 			/* not contain chars */
 			std::string tmpStr = getConstString(t, node);
 			/* intersection*/
@@ -4237,7 +4249,7 @@ std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list
 }
 
 /*
- *
+ * the string has at least some chars
  */
 std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
 	std::map<char, int> m;
@@ -4263,7 +4275,7 @@ std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list
 /*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+bool parikh_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	if (list.size() <= 1)
 		return true;
@@ -4303,16 +4315,16 @@ bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3
 		for (const auto& p : fixed00)
 			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
 
-		__debugPrint(logFile, "%d fixed01 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d fixed01 bound\n", __LINE__);
 		for (const auto& p : fixed01)
 			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
 
-		__debugPrint(logFile, "%d lower00 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d lower00 bound\n", __LINE__);
 		for (const auto& p : lower00)
 			if (p.second > 0)
 				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
 
-		__debugPrint(logFile, "%d lower01 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d lower01 bound\n", __LINE__);
 		for (const auto& p : lower01)
 			if (p.second > 0)
 				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
@@ -4324,6 +4336,47 @@ bool quick_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3
 		for (const auto& ch : fixed01)
 			if (lower00[ch.first] > ch.second)
 				return false;
+
+		/* check regex plus for replaceall */
+		__debugPrint(logFile, "%d checking regex plus\n", __LINE__);
+		std::set<char> notContain00 = get_notContain_set(t, list[0], boolValues);
+		std::set<char> notContain01 = get_notContain_set(t, list[i], boolValues);
+
+		for (const auto& ch : notContain00)
+			if (notContain01.find(ch) != notContain01.end()) {
+				int cnt00 = 0, cnt01 = 0;
+				/* count list 0 */
+				for (const auto& p : list[0])
+					if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
+						cnt00 = -1;
+						break;
+					}
+					else if (isRegexPlusFunc(t, p)) {
+						std::string s = parse_regex_content(getConstString(t, p));
+						if (s.find(ch) != std::string::npos)
+							++cnt00;
+					}
+				if (cnt00 == -1)
+					continue;
+
+				/* count list i */
+				for (const auto& p : list[i])
+					if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
+						cnt01 = -1;
+						break;
+					}
+					else if (isRegexPlusFunc(t, p)) {
+						std::string s = parse_regex_content(getConstString(t, p));
+						if (s.find(ch) != std::string::npos)
+							++cnt01;
+					}
+				if (cnt01 == -1)
+					continue;
+
+				__debugPrint(logFile, "%d compare regex plus: char = %c: %d %d\n", __LINE__, ch, cnt00, cnt01);
+				if (cnt00 != cnt01)
+					return false;
+			}
 	}
 	return true;
 }
@@ -4397,7 +4450,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
-		bool fine = quick_check(t, itor->second, boolMapValues);
+		bool fine = parikh_check(t, itor->second, boolMapValues);
 		if (!fine) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveContext(t), __LINE__, true);

@@ -200,6 +200,11 @@ std::vector<std::string> collectAlternativeComponents(std::string str){
 	}
 	if (startPos != 0)
 		result.push_back(str.substr(startPos, str.length() - startPos));
+	else {
+		assert (str.find('|') == std::string::npos && str.find('~') == std::string::npos);
+		return {str};
+	}
+
 	return result;
 }
 

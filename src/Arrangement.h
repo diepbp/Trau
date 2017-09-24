@@ -1381,6 +1381,7 @@ public:
 			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
 			/* at_0 = x && at_1 == y && ..*/
 			char strTmp[1000];
+			std::string len_connectedVar = generateFlatSize(elementNames[connectedVarPos], rhs);
 #if 0
 			sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod (+ i %s) %ld)))))",
 					subLen.c_str(),
@@ -1393,14 +1394,16 @@ public:
 #else
 			resultParts.push_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
 			for (int i = 0; i < CONNECTSIZE; ++i) {
-				sprintf(strTmp, "(= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld)))",
+				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 									arrayRhs.c_str(),
 									i,
 									prefix_rhs.c_str(),
 									arrayLhs.c_str(),
 									i,
 									prefix_lhs.c_str(),
-									content.length());
+									content.length(),
+									len_connectedVar.c_str(),
+									i + 1);
 				resultParts.push_back(strTmp);
 			}
 #endif
@@ -1530,8 +1533,7 @@ public:
 	 * (a|b|c)*_xxx --> range <a, c>
 	 */
 	std::pair<int, int> collect_char_range(std::string str){
-		std::string tmp = parse_regex_content(str);
-		std::vector<std::string> components = collectAlternativeComponents(tmp);
+		std::vector<std::string> components = collectAlternativeComponents(parse_regex_content(str));
 		std::vector<int> tmpList;
 		for (const auto& s : components)
 			if (s.length() != 1)

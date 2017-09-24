@@ -26,6 +26,8 @@ extern std::map<Z3_ast, Z3_ast> toLowerMap;
 
 extern std::map<Z3_ast, Z3_ast> carryOn;
 
+extern int nondeterministicCounter;
+
 //std::map<std::string, std::set<char>> charSet;
 //
 //std::map<Z3_ast, std::vector<std::string>> eqMap;
@@ -359,6 +361,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		std::vector<Z3_ast> thenItems00;
 		std::vector<Z3_ast> thenItems01;
 		std::vector<Z3_ast> thenItems02;
+		std::vector<Z3_ast> generalConstraints;
 
 		//  args[0] = x1 . args[1] . x2
 		Z3_ast arg0_tmp = Z3_mk_eq(ctx, args[0], mk_concat(t, x1, mk_concat(t, mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, arg01Plus.c_str()), mk_int(ctx, nondeterministicCounter++)), x2, update), update));
@@ -368,7 +371,8 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		pushVectors(Z3_mk_not(ctx, condAst_x1), thenItems00, thenItems01, thenItems02);
 
 		Z3_ast condAst_x2 = registerContain(t, x2, args[1]);
-		pushVectors(Z3_mk_implies(ctx, condAst_x2, condAst_arg00), thenItems00, thenItems01, thenItems02);
+//		pushVectors(Z3_mk_implies(ctx, condAst_x2, condAst_arg00), thenItems00, thenItems01, thenItems02);
+		generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x2, condAst_arg00));
 
 		if (!canSkip) {
 			//  args[0]  = x_n1 . x_m1 /\ |x_n1| = |x1| + |args[1]| - 1 /\ ! contains(x_n1, args[1])
@@ -389,14 +393,17 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			Z3_ast condAst00n = registerContain(t, x_n1, args[1]);
 			pushVectors(Z3_mk_not(ctx, condAst00n), thenItems00, thenItems01, thenItems02);
 
-			pushVectors(Z3_mk_implies(ctx, condAst_x1, condAst00n), thenItems00, thenItems01, thenItems02);
-			pushVectors(Z3_mk_implies(ctx, condAst00n, condAst_arg00), thenItems00, thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst_x1, condAst00n), thenItems00, thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst00n, condAst_arg00), thenItems00, thenItems01, thenItems02);
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x1, condAst00n));
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst00n, condAst_arg00));
 
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2, x_n1, x_m1};
 			carryOn[condAst_arg00] = Z3_mk_eq(ctx, mk_length(t, x_n1), tmpLen01);
 		}
 		else {
-			pushVectors(Z3_mk_implies(ctx, condAst_x1, condAst_arg00), thenItems00, thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst_x1, condAst_arg00), thenItems00, thenItems01, thenItems02);
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x1, condAst_arg00));
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2};
 		}
 
@@ -428,6 +435,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		pushVectors(Z3_mk_not(ctx, condAst_x3), thenItems01, thenItems02);
 
 		Z3_ast condAst_x4 = registerContain(t, x4, args[1]);
+		generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x4, condAst_x2));
 
 		if (! canSkip) {
 			Z3_ast x_n2 = mk_internal_string_var(t);
@@ -447,15 +455,17 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			Z3_ast condAst02n = registerContain(t, x_n2, args[1]);
 			pushVectors(Z3_mk_not(ctx, condAst02n), thenItems01, thenItems02);
 
-			pushVectors(Z3_mk_implies(ctx, condAst02n, condAst_x2), thenItems01, thenItems02);
-			pushVectors(Z3_mk_implies(ctx, condAst_x3, condAst02n), thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst02n, condAst_x2), thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst_x3, condAst02n), thenItems01, thenItems02);
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst02n, condAst_x2));
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x3, condAst02n));
 
 			indexOf_toAstMap[std::make_pair(x2, args[1])] = {x3, x4, x_n2, x_m2};
 			carryOn[condAst_x2] = Z3_mk_eq(ctx, mk_length(t, x_n2), tmpLen02);
 		}
 		else {
-			pushVectors(Z3_mk_implies(ctx, condAst_x3, condAst_x2), thenItems01, thenItems02);
-			pushVectors(Z3_mk_implies(ctx, condAst_x4, condAst_x2), thenItems01, thenItems02);
+//			pushVectors(Z3_mk_implies(ctx, condAst_x3, condAst_x2), thenItems01, thenItems02);
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x3, condAst_x2));
 
 			indexOf_toAstMap[std::make_pair(x2, args[1])] = {x3, x4};
 		}
@@ -490,6 +500,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 
 		Z3_ast condAst_x6 = registerContain(t, x6, args[1]);
 		thenItems02.push_back(Z3_mk_not(ctx, condAst_x6));
+		generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x6, condAst_x4));
 
 		if (!canSkip) {
 			Z3_ast tmpLenItems04[3] = {mk_length(t, x4), mk_length(t, args[1]), mk_int(ctx, -1) };
@@ -509,15 +520,18 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			Z3_ast condAst04n = registerContain(t, x_n4, args[1]);
 			thenItems02.push_back(Z3_mk_not(ctx, condAst04n));
 
-			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x5, condAst04n));
-			thenItems02.push_back(Z3_mk_implies(ctx, condAst04n, condAst_x4));
+//			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x5, condAst04n));
+//			thenItems02.push_back(Z3_mk_implies(ctx, condAst04n, condAst_x4));
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x5, condAst04n));
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst04n, condAst_x4));
 
 			indexOf_toAstMap[std::make_pair(x4, args[1])] = {x5, x6, x_n4, x_m4};
 			carryOn[condAst_x4] = Z3_mk_eq(ctx, mk_length(t, x_n4), tmpLen04);
 		}
 		else {
-			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x5, condAst_x4));
-			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x6, condAst_x4));
+//			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x5, condAst_x4));
+//			thenItems02.push_back(Z3_mk_implies(ctx, condAst_x6, condAst_x4));
+			generalConstraints.push_back(Z3_mk_implies(ctx, condAst_x5, condAst_x4));
 
 			indexOf_toAstMap[std::make_pair(x4, args[1])] = {x5, x6};
 		}
@@ -529,7 +543,8 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast ite04 = Z3_mk_ite(ctx, condAst_x4, mk_and_fromVector(t, thenItems02), mk_and_fromVector(t, thenItems01));
 		Z3_ast ite02 = Z3_mk_ite(ctx, condAst_x2, ite04, mk_and_fromVector(t, thenItems00));
 
-		breakdownAssert = Z3_mk_ite(ctx, condAst_arg00, ite02, elseBranch);
+		Z3_ast breakdown[2] = {mk_and_fromVector(t, generalConstraints), Z3_mk_ite(ctx, condAst_arg00, ite02, elseBranch)};
+		breakdownAssert = Z3_mk_and(ctx, 2, breakdown);
 		replaceAllNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = result;
 		return result;
 	}

@@ -502,8 +502,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -1114,10 +1114,10 @@ void create_const_array(
 			std::string regexContent = parse_regex_content(it->first);
 			std::vector<std::string> components = collectAlternativeComponents(regexContent);
 			std::string constraint = "";
-			for (unsigned int i = 0 ; i < components.size(); ++i) {
+			for (const auto& c: components) {
 				constraint = constraint + "\t (and ";
-				for (unsigned int j = 0 ; j < components[i].length(); ++j) {
-					constraint = constraint + ("(= (select arr_" + it->second + " " + std::to_string(j) + ") " + std::to_string(components[i][j]) + ") ");
+				for (unsigned int j = 0 ; j < c.length(); ++j) {
+					constraint = constraint + ("(= (select arr_" + it->second + " " + std::to_string(j) + ") " + std::to_string(c[j]) + ") ");
 				}
 				constraint = constraint + ")\n";
 			}
@@ -1232,19 +1232,20 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
  */
 void create_constraints_regex(std::vector<std::string> &defines, std::vector<std::string> &constraints, std::string regex, std::string name){
 	std::vector<std::string> components = collectAlternativeComponents(parse_regex_content(regex));
+
+	assert(components.size() > 0);
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, regex.c_str());
 	displayListString(components, "components");
 	std::set<int> componentSizes;
-	for (unsigned int i = 0 ; i < components.size(); ++i) {
-		componentSizes.emplace(components[i].length());
-	}
+	for (const auto& c: components)
+		componentSizes.emplace(c.length());
 
 	int cnt = 0;
 	std::string constraint = "(assert (= len_" + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
-	for (std::set<int>::iterator it = componentSizes.begin(); it != componentSizes.end(); ++it){
+	for (const auto& size : componentSizes){
 		std::string tmp = name + "__p" + std::to_string(cnt++);
 		defines.push_back("(declare-const " + tmp + " Int)");
-		constraint = constraint + "(* " + tmp + " " + std::to_string(*it) + ") ";
+		constraint = constraint + "(* " + tmp + " " + std::to_string(size) + ") ";
 	}
 	constraint = constraint + ") ) )";
 	constraints.push_back(constraint);
@@ -1259,19 +1260,19 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 
 	std::string lenX = "";
 	int cnt = 0;
-	for (unsigned int i = 0 ; i < components.size(); ++i){
-		if (components[i][0] != '\"'){ /* not a const */
-			lenX = lenX + " len_" + components[i];
+	for (const auto& component: components){
+		if (component[0] != '\"'){ /* not a const */
+			lenX = lenX + " len_" + component;
 			cnt ++;
 		}
-		else if (components[i].length() > 2) { /* const is not an empty string */
-			if(!isRegexStr(components[i])) {
-				lenX = lenX + " " + std::to_string(components[i].length() - 2);
+		else if (component.length() > 2) { /* const is not an empty string */
+			if(!isRegexStr(component)) {
+				lenX = lenX + " " + std::to_string(component.length() - 2);
 				cnt ++;
 			}
 			else {
 				/* regex */
-				lenX = lenX + " len_" + constMap[components[i].substr(1, components[i].length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
+				lenX = lenX + " len_" + constMap[component.substr(1, component.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
 				cnt ++;
 			}
 		}
@@ -1292,7 +1293,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 		}
 	}
 
-	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __PRETTY_FUNCTION__, lenX.c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, lenX.c_str());
 
 	return lenX;
 }
@@ -2122,6 +2123,8 @@ std::set<std::string> extendComponent(std::string s){
 	__debugPrint(logFile, "%d *** %s ***: \"%s\"\n", __LINE__, __FUNCTION__, s.c_str());
 	std::vector<std::string> components = collectAlternativeComponents(s);
 	if (components.size() > 0) {
+		if (components.size() == 1)
+			return {components[0]};
 		std::set<std::string> ret;
 		for (unsigned int i = 0 ; i < components.size(); ++i) {
 			removeExtraParentheses(components[i]);
@@ -2130,10 +2133,9 @@ std::set<std::string> extendComponent(std::string s){
 		}
 		return ret;
 	}
-	else {
-		removeExtraParentheses(s);
-		return {s};
-	}
+	else
+		assert(false);
+	return {};
 }
 
 /**
@@ -2170,10 +2172,10 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 
 	std::vector<std::vector<std::string>> result;
 
-	std::vector<std::string> alternativeRegex = collectAlternativeComponents(str);
-	if (alternativeRegex.size() != 0){
-		for (unsigned int i = 0; i < alternativeRegex.size(); ++i) {
-			std::vector<std::vector<std::string>> tmp = parseRegexComponents(alternativeRegex[i]);
+	std::vector<std::string> components = collectAlternativeComponents(str);
+	if (components.size() > 1){
+		for (const auto& c : components) {
+			std::vector<std::vector<std::string>> tmp = parseRegexComponents(c);
 			assert(tmp.size() <= 1);
 			if (tmp.size() == 1)
 				result.push_back(tmp[0]);
