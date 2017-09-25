@@ -107,6 +107,13 @@ void handleCase_n_n_general(
 		std::vector<std::pair<std::string, int>> rhs_elements);
 
 /*
+ *
+ */
+Arrangment manuallyCreate_arrangment(
+		std::vector<std::pair<std::string, int>> lhs_elements,
+		std::vector<std::pair<std::string, int>> rhs_elements);
+
+/*
  * lhs: size of the lhs
  * rhs: size of the rhs
  * lhs_elements: elements of lhs

@@ -227,9 +227,9 @@ public:
 		}
 
 		/* print test */
-		for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-			printf("\t%d %d at pos = %d\n", __LINE__, possibleCases[i], posLhs);
-		}
+//		for (unsigned int i = 0; i < possibleCases.size(); ++i) {
+//			printf("\t%d %d at pos = %d\n", __LINE__, possibleCases[i], posLhs);
+//		}
 
 		return possibleCases;
 	}
@@ -477,7 +477,7 @@ public:
 		}
 
 		else if (elementNames[currentSplit.size()].second == -1 && currentSplit.size() + 1 < elementNames.size() && QCONSTMAX == 2) /* head, not the last element */ {
-			printf("%d Case 04: const head at middle\n", __LINE__);
+//			printf("%d Case 04: const head at middle\n", __LINE__);
 			/* check full string */
 			if (elementNames[currentSplit.size() + 1].second == -2){
 				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
@@ -514,7 +514,7 @@ public:
 			if (loop == true) /* assign value < 0 */
 				for (unsigned int i = 1 ; i < regexPos.size(); ++i) {
 					/* because of loop, do not care about 0 iteration */
-					printf("%d Case 06: value = (loop)%ld %s\n", __LINE__, - content.length() * regexPos[i], content.c_str());
+//					printf("%d Case 06: value = (loop)%ld %s\n", __LINE__, - content.length() * regexPos[i], content.c_str());
 					int tmp = (content.length() * regexPos[i]) % str.length();
 					if (tmp == 0)
 						currentSplit.push_back(MINUSZERO);
@@ -526,7 +526,7 @@ public:
 			else
 				for (unsigned int i = 0 ; i < regexPos.size(); ++i) { /* assign value >= 0 */
 					int tmp = (pos + content.length() * regexPos[i]) % str.length();
-					printf("%d Case 06: value = (unloop)%d\n", __LINE__, tmp);
+//					printf("%d Case 06: value = (unloop)%d\n", __LINE__, tmp);
 					currentSplit.push_back(content.length() * regexPos[i]);
 					collectAllPossibleSplits_regex(tmp, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
@@ -681,7 +681,7 @@ public:
 		}
 		else if (lhs.second == REGEX_CODE) /* regex */ {
 			std::vector<int> curr;
-			printf("%d handle regex case\n", __LINE__);
+//			printf("%d handle regex case\n", __LINE__);
 			std::string regexContent = parse_regex_content(lhs.first);
 			collectAllPossibleSplits_regex(0, regexContent, 10, alias, curr, allPossibleSplits);
 		}
@@ -917,7 +917,7 @@ public:
 							split[splitPos],
 							lhs, rhs,
 							connectedVariables);
-					__debugPrint(logFile, "%d constraintForConnectedVar: %s\n", __LINE__, constraintForConnectedVar.c_str());
+//					__debugPrint(logFile, "%d constraintForConnectedVar: %s\n", __LINE__, constraintForConnectedVar.c_str());
 					strAnd.push_back(constraintForConnectedVar);
 					if (split[splitPos] == MINUSZERO) {
 						/* looping */
@@ -980,7 +980,7 @@ public:
 					split[splitPos],
 					lhs, rhs,
 					connectedVariables);
-			__debugPrint(logFile, "%d constraintForConnectedVar: %s", __LINE__, constraintForConnectedVar.c_str());
+//			__debugPrint(logFile, "%d constraintForConnectedVar: %s", __LINE__, constraintForConnectedVar.c_str());
 			strAnd.push_back(constraintForConnectedVar);
 
 			/* create a sum for previous elements */
@@ -1616,7 +1616,7 @@ public:
 			}
 		}
 		else {
-			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
+//			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
 			for (int i = 0; i < CONNECTSIZE; ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
@@ -1693,18 +1693,29 @@ public:
 		/* optimize length of generated string */
 		std::string arrLhs = generateFlatArray(a, lhs_str);
 		std::string arrRhs = generateFlatArray(elementNames[pos], rhs_str);
-		std::string lenRhs = generateFlatSize(elementNames[pos], rhs_str);
+
 		std::vector<std::string> andConstraints;
+		std::string lenRhs = "";
+		/* combine two parts if it is possible */
+		if (elementNames[pos].second == 0 && pos < (int)elementNames.size() - 1 && QMAX > 1) {
+			assert(elementNames[pos + 1].second == 1);
+			assert(QMAX == 2);
+			//lenRhs = "(+ " + generateFlatSize(elementNames[pos], rhs_str) + " " + generateFlatSize(elementNames[pos + 1], rhs_str) + ")";
+			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
+			lenRhs = lenRhs.substr(0, lenRhs.length() - 2);
+		}
+		else
+			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
+
 		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 			std::vector<std::string> orConstraints;
 			orConstraints.push_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
-									   "(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
+					"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
 			orConstraints.push_back("(< " + lenRhs + " " + std::to_string(i) + ")");
 			andConstraints.push_back(orConstraint(orConstraints));
 		}
 
 		std::string result = andConstraint(andConstraints) + "\n";
-//		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, result.c_str());
 		return result;
 	}
 
@@ -1766,7 +1777,7 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			std::set<std::string> connectedVariables,
 			std::map<std::string, int> &newVars){
-		__debugPrint(logFile, "%d connected var = const | regex: lhs = %s; rhs = %s \n", __LINE__, lhs_str.c_str(), rhs_str.c_str());
+//		__debugPrint(logFile, "%d connected var = const | regex: lhs = %s; rhs = %s \n", __LINE__, lhs_str.c_str(), rhs_str.c_str());
 
 		assert(connectedVariables.find(a.first) != connectedVariables.end());
 		/* (and ...) */
@@ -1796,7 +1807,9 @@ public:
 				}
 			}
 			else if (elementNames[i].second >= 0 && connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
-				// TODO connected var in both sides
+				if (elementNames[i].second == 1 && i > 0)
+					continue;
+
 				possibleCases.push_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 
 			}

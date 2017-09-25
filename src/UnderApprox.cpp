@@ -430,6 +430,24 @@ void handleCase_n_n_general(
 }
 
 /*
+ *
+ */
+Arrangment manuallyCreate_arrangment(
+		std::vector<std::pair<std::string, int>> lhs_elements,
+		std::vector<std::pair<std::string, int>> rhs_elements){
+
+	/* create manually */
+	/*9999999 10000000 vs 1 1 1 1 1 */
+	std::vector<int> left_arr;
+	std::vector<int> right_arr;
+	left_arr.push_back(EMPTYFLAT);
+	left_arr.push_back(SUMFLAT);
+	for (unsigned i = 0; i < rhs_elements.size(); ++i)
+		right_arr.push_back(1);
+	return Arrangment(left_arr, right_arr, constMap, notMap);
+}
+
+/*
  * lhs: size of the lhs
  * rhs: size of the rhs
  * lhs_elements: elements of lhs
@@ -460,7 +478,14 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* because of "general" functions, we need to refine arrangements */
 	std::vector<Arrangment> possibleCases;
-	updatePossibleArrangements(lhs_elements, rhs_elements, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)], possibleCases);
+	if (lhs_elements[0].first.find("__flat_") == std::string::npos) {
+		updatePossibleArrangements(lhs_elements, rhs_elements, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)], possibleCases);
+	}
+	else {
+		/* create manually */
+		/*9999999 10000000 vs 1 1 1 1 1 */
+		possibleCases.push_back(manuallyCreate_arrangment(lhs_elements, rhs_elements));
+	}
 #else
 	arrangements.clear();
 	handleCase_0_0(arrangements);
@@ -502,8 +527,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -792,9 +817,6 @@ std::string create_constraints_ReplaceAll(
 	std::string s0 = "(" + args[1].substr(1, args[1].length() - 2) + ")+";
 	std::string s1 = "(" + args[2].substr(1, args[2].length() - 2) + ")+";
 
-	assert(isConst_01);
-	assert(isConst_02);
-	assert(boolValue.compare("true") == 0);
 	/* */
 	if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
 		assert (equalitiesMap.find(args[0]) != equalitiesMap.end());
@@ -849,7 +871,6 @@ std::string create_constraints_ReplaceAll(
 			}
 		}
 	}
-	assert (false);
 	return "true";
 }
 
@@ -2568,8 +2589,9 @@ void *convertEqualities(void *tid){
 		for (const auto& element : it->second) {
 			unsigned int cnt = 0;
 			for (const auto& s : element)
-				if ((s[0] == '\"' && s.length() > 3) || s[0] != '\"')
+				if (s[0] == '\"' || s.length() > 3)
 					cnt++;
+
 			maxLocal = cnt > maxLocal ? cnt : maxLocal;
 		}
 
