@@ -246,7 +246,10 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 
 	/* create file */
 	outFile = outFile + fileName;
+
+	prepareEncoderDecoderMap(fileDir);
 	rewriteFileSMTToRemoveSpecialChar(fileDir, outFile);
+
 	return outFile;
 }
 /**
@@ -330,6 +333,7 @@ int main(int argc, char* argv[])
 		if (cleanLog == true)
 			removeFile(inputFile);
 	}
+
 #ifdef DEBUGLOG
 	fclose(logFile);
 	fclose(logAxiom);

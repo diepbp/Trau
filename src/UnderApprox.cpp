@@ -206,17 +206,17 @@ void handleCase_0_n_general(
 	tmpRight.push_back(0);
 
 	for (int i = 1 ; i < rhs; ++i){
-			tmpRight.push_back(0);
+		tmpRight.push_back(0);
 
-			std::vector<Arrangment> tmp04;
-			tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		std::vector<Arrangment> tmp04;
+		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
-			/* update */
-			/* add directly without checking */
-			if (arrangements[std::make_pair(0, i)].size() == 0) {
-				arrangements[std::make_pair(0, i)] = tmp04;
-			}
+		/* update */
+		/* add directly without checking */
+		if (arrangements[std::make_pair(0, i)].size() == 0) {
+			arrangements[std::make_pair(0, i)] = tmp04;
 		}
+	}
 }
 
 /*
@@ -416,15 +416,15 @@ void handleCase_n_n_general(
 				/* update */
 				/* add directly */
 				std::vector<Arrangment> possibleCases;
-//				possibleCases.insert(possibleCases.end(), tmp01_ext.begin(), tmp01_ext.end());
-//				possibleCases.insert(possibleCases.end(), tmp02_ext.begin(), tmp02_ext.end());
+				//				possibleCases.insert(possibleCases.end(), tmp01_ext.begin(), tmp01_ext.end());
+				//				possibleCases.insert(possibleCases.end(), tmp02_ext.begin(), tmp02_ext.end());
 				possibleCases.insert(possibleCases.end(), tmp03.begin(), tmp03.end());
 				possibleCases.insert(possibleCases.end(), tmp04.begin(), tmp04.end());
 				possibleCases.insert(possibleCases.end(), tmp05.begin(), tmp05.end());
 
-//				std::vector<Arrangment> possibleCases_filtered;
-//				updatePossibleArrangements(possibleCases, possibleCases_filtered);
-//				arrangements[std::make_pair(i, j)] = possibleCases_filtered;
+				//				std::vector<Arrangment> possibleCases_filtered;
+				//				updatePossibleArrangements(possibleCases, possibleCases_filtered);
+				//				arrangements[std::make_pair(i, j)] = possibleCases_filtered;
 				arrangements[std::make_pair(i, j)] = possibleCases;
 			}
 }
@@ -478,13 +478,16 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* because of "general" functions, we need to refine arrangements */
 	std::vector<Arrangment> possibleCases;
-	if (lhs_elements[0].first.find("__flat_") == std::string::npos) {
-		updatePossibleArrangements(lhs_elements, rhs_elements, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)], possibleCases);
-	}
-	else {
+	if (lhs_elements[0].first.find("__flat_") != std::string::npos ||
+			(lhs_elements.size() == 2 &&
+					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second == 1) ||
+					  (lhs_elements[0].second == -1 && lhs_elements[1].second == -2)))) {
 		/* create manually */
 		/*9999999 10000000 vs 1 1 1 1 1 */
 		possibleCases.push_back(manuallyCreate_arrangment(lhs_elements, rhs_elements));
+	}
+	else {
+		updatePossibleArrangements(lhs_elements, rhs_elements, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)], possibleCases);
 	}
 #else
 	arrangements.clear();
@@ -519,7 +522,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+		//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		possibleCases[i].constMap.clear();
 		possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 		std::string tmp = possibleCases[i].
@@ -527,8 +530,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.push_back(tmp);
-//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+						arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+						__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -669,11 +672,11 @@ std::string create_constraints_StartsWith(
 			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (unsigned int i = 0; i < j; ++i) {
 				andConstraints.push_back("(= (select " +
-												generateVarArray(str00) + " " +
-												std::to_string(i) + ") " +
-											"(= (select " +
-												generateVarArray(str01) + " " +
-												std::to_string(i) + ") " + ")");
+						generateVarArray(str00) + " " +
+						std::to_string(i) + ") " +
+						"(= (select " +
+						generateVarArray(str01) + " " +
+						std::to_string(i) + ") " + ")");
 			}
 			orConstraints.push_back(andConstraint(andConstraints));
 			andConstraints.clear();
@@ -1057,7 +1060,7 @@ void handle_NOTContains(
 					done[std::make_pair(args.first, value02)] = true;
 				}
 				if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
-										done.find(std::make_pair(value01, args.second)) == done.end()) {
+						done.find(std::make_pair(value01, args.second)) == done.end()) {
 					// TODO handle_NOTContains
 				}
 				else {
@@ -1116,7 +1119,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.find("(Replace ") != std::string::npos){
 			std::vector<std::string> args = extract_three_arguments(s.first);
-//			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
+			//			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
 		}
 	}
 }
@@ -1126,7 +1129,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
  * TODO handle_ReplaceAll
  */
 void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
-		){
+){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	/* prepare */
 	std::map<std::string, std::vector<std::string>> eqToStr;
@@ -1137,7 +1140,7 @@ void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
 			for (const auto s : l)
 				if (s[0] != '"')
 					tmp = tmp + s;
-				eqToStr[var.first].push_back(tmp);
+			eqToStr[var.first].push_back(tmp);
 		}
 	}
 
@@ -1595,7 +1598,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 			lhs, rhs,
 			lhs_elements, rhs_elements,
 			newVars);
-//	displayListString(cases, " print cases");
+	//	displayListString(cases, " print cases");
 	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
 	if (cases.size() == 0)
 		newVars.clear();
@@ -1745,7 +1748,7 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 
 #ifdef PRINTTEST_UNDERAPPROX
 	/* print test the equal map*/
-	 printEqualMap(equalitiesMap);
+	printEqualMap(equalitiesMap);
 #endif
 }
 /*
@@ -2006,30 +2009,6 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 /*
  *
  */
-std::string decodeStr(std::string s){
-	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
-	std::string tmp = "";
-	int cnt = 0;
-	for (unsigned int i = 0; i < s.length(); ++i){
-		if (s[i] == '"') {
-			cnt++;
-			tmp = tmp + s[i];
-			continue;
-		}
-		if (DECODEMAP.find(s[i]) != DECODEMAP.end() && cnt == 1){
-			tmp = tmp + (char)DECODEMAP[s[i]];
-		}
-		else
-			tmp = tmp + s[i];
-
-	}
-	__debugPrint(logFile, " %s\n", tmp.c_str());
-	return tmp;
-}
-
-/*
- *
- */
 void decodeEqualMap(){
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	for (const auto& eq : equalitiesMap) {
@@ -2068,9 +2047,6 @@ void decodeEqualMap(){
 void refineEqualMap(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
-	/* add connected var */
-	for (const auto& var : connectedVariables)
-		equalitiesMap[var].push_back({var});
 
 	/* remove duplications */
 	for (const auto& varEq: equalitiesMap) {
@@ -2284,7 +2260,7 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 	}
 
 	size_t leftParentheses = str.find('(');
-//	if (leftParentheses == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
+	//	if (leftParentheses == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
 	if (leftParentheses == std::string::npos)
 		return {{str}};
 
@@ -2465,9 +2441,9 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 			}
 		}
 
-//	for (unsigned int i = 0; i < elements.size(); ++i)
-//		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
-//	printf("%d\n",__LINE__);
+	//	for (unsigned int i = 0; i < elements.size(); ++i)
+	//		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
+	//	printf("%d\n",__LINE__);
 
 	return elements;
 }
@@ -2577,9 +2553,7 @@ void *convertEqualities(void *tid){
 		// printf ("Thread %d doing: %s, size = %ld\n", *mytid, it->first.c_str(), it->second.size());
 #endif
 
-		std::vector<std::string> lenConstraint;
 		std::string tmp = " ";
-		bool lengthRecord = false;
 		clock_t t;
 
 		/* different tactic for size of it->second */
@@ -2598,8 +2572,49 @@ void *convertEqualities(void *tid){
 #ifdef PRINTTEST_UNDERAPPROX
 		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
 #endif
-		if (maxLocal > maxPConsidered) {
-			/* add an eq = flat . flat . flat, then other equalities will compare will it*/
+		if (it->second.size() == 0)
+			continue;
+		assert (it->second[0].size() > 0);
+
+		pthread_mutex_lock (&smt_mutex);
+		global_smtStatements.push_back({createLengthConstraintForAssignment(it->first, it->second[0])});
+		pthread_mutex_unlock (&smt_mutex);
+
+		if (connectedVariables.find(it->first) != connectedVariables.end() || it->first[0] == '"'){
+			std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
+			/* compare with others */
+			for (const auto& element: it->second) {
+				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
+				t = clock();
+				std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
+						sumStringVector(element),
+						lhs_elements,
+						rhs_elements
+				);
+				t = clock() - t;
+
+#ifdef PRINTTEST_UNDERAPPROX
+				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
+#endif
+				if (result.first.size() != 0) {
+					/* sync result */
+					pthread_mutex_lock (&smt_mutex);
+					for (const auto& r : result.second)
+						global_smtVars[r.first] = 'd';
+
+					global_smtStatements.push_back(result.first);
+					pthread_mutex_unlock (&smt_mutex);
+				}
+				else {
+					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
+					/* trivial unsat */
+					trivialUnsat = true;
+				}
+			}
+
+		}
+		else if (maxLocal > maxPConsidered) {
+			/* add an eq = flat . flat . flat, then other equalities will compare will it */
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
 
@@ -2618,27 +2633,12 @@ void *convertEqualities(void *tid){
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
 				if (result.first.size() != 0) {
-					if (lengthRecord == false) {
-						/* (= len_X (+ sum(len_y)) */
-						if (it->second.size() > 0) {
-							std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
-							if (tmpStr.length() > 0){
-								lenConstraint.push_back(tmpStr);
-								lengthRecord = true;
-							}
-						}
-					}
-					/* sync result*/
+					/* sync result */
 					pthread_mutex_lock (&smt_mutex);
 					for (const auto& r : result.second) {
 						global_smtVars[r.first] = 'd';
 					}
 					global_smtStatements.push_back(result.first);
-
-					if (lenConstraint.size() > 0) {
-						global_smtStatements.push_back(lenConstraint);
-						lenConstraint.clear();
-					}
 					pthread_mutex_unlock (&smt_mutex);
 				}
 				else {
@@ -2651,42 +2651,7 @@ void *convertEqualities(void *tid){
 		else {
 
 			/* work as usual */
-			if (it->second.size() == 1) {
-				std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
-				if (tmpStr.length() > 0) {
-					lenConstraint.push_back(tmpStr);
-					global_smtStatements.push_back(lenConstraint);
-				}
-				lenConstraint.clear();
-
-				if (connectedVariables.find(it->first) != connectedVariables.end()) {
-					if (it->second[0].size() == 0){
-						global_smtStatements.push_back({constraintsIfEmpty({it->first}, it->second[0])});
-						continue;
-					}
-					else {
-						std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
-						std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[0]);
-
-						std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
-								sumStringVector(it->second[0]),
-								lhs_elements,
-								rhs_elements
-						);
-						if (result.first.size() != 0) {
-							pthread_mutex_lock (&smt_mutex);
-							for (const auto& r : result.second)
-								global_smtVars[r.first] = 'd';
-
-							global_smtStatements.push_back(result.first);
-
-							pthread_mutex_unlock (&smt_mutex);
-						}
-					}
-
-				}
-			}
-			else for (unsigned int i = 0; i < it->second.size(); ++i)
+			for (unsigned int i = 0; i < it->second.size(); ++i)
 				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
 					/* optimize: find longest common prefix and posfix */
 					std::vector<std::string> lhs;
@@ -2703,36 +2668,22 @@ void *convertEqualities(void *tid){
 					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(rhs);
 					t = clock();
 					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(it->second[i]),
-																											sumStringVector(it->second[j]),
-																											lhs_elements,
-																											rhs_elements
-																										);
+							sumStringVector(it->second[j]),
+							lhs_elements,
+							rhs_elements
+					);
 					t = clock() - t;
 #ifdef PRINTTEST_UNDERAPPROX
 					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
 					if (result.first.size() != 0) {
-						if (lengthRecord == false) {
-							/* (= len_X (+ sum(len_y)) */
-							if (it->second.size() > 0){
-								std::string tmpStr = createLengthConstraintForAssignment(it->first, it->second[0]);
-								if (tmpStr.length() > 0) {
-									lenConstraint.push_back(tmpStr);
-									lengthRecord = true;
-								}
-							}
-						}
+
 						/* sync result*/
 						pthread_mutex_lock (&smt_mutex);
 						for (const auto& smtVar : result.second) {
 							global_smtVars[smtVar.first] = 'd';
 						}
 						global_smtStatements.push_back(result.first);
-
-						if (lenConstraint.size() > 0) {
-							global_smtStatements.push_back(lenConstraint);
-							lenConstraint.clear();
-						}
 						pthread_mutex_unlock (&smt_mutex);
 					}
 					else {
@@ -2742,7 +2693,6 @@ void *convertEqualities(void *tid){
 					}
 				}
 		}
-		/**/
 
 	}
 
@@ -2846,25 +2796,25 @@ std::string getValueFromRegex(std::string s, int length){
  */
 std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue){
 	std::map<std::string, std::string> result;
-	for (const auto& s : len){
-		if (s.first.find("len_") == 0){
-			std::string name = "arr_" + s.first.substr(4);
-			int lenValue = std::atoi(s.second.c_str());
-			if (strValue.find(name) != strValue.end()){
-				if (lenValue <= (int)strValue[name].length())
-					result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
-				else {
-					// TODO : find the final value
-					continue;
-					std::string tmp = "";
-					for (int i = strValue[name].length(); i < lenValue; ++i)
-						tmp = tmp + 'z';
-					result[s.first.substr(4)] = strValue[name] + tmp;
-				}
-
-			}
-		}
-	}
+//	for (const auto& s : len){
+//		if (s.first.find("len_") == 0){
+//			std::string name = "arr_" + s.first.substr(4);
+//			int lenValue = std::atoi(s.second.c_str());
+//			if (strValue.find(name) != strValue.end()){
+//				if (lenValue <= (int)strValue[name].length())
+//					result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
+//				else {
+//					// TODO : find the final value
+//					continue;
+//					std::string tmp = "";
+//					for (int i = strValue[name].length(); i < lenValue; ++i)
+//						tmp = tmp + 'z';
+//					result[s.first.substr(4)] = strValue[name] + tmp;
+//				}
+//
+//			}
+//		}
+//	}
 
 	for (const auto& eq : equalitiesMap){
 		if (result.find(eq.first) != result.end() || eq.first[0] == '\"')
@@ -3201,9 +3151,9 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	printf("Running Under Approximation...\n");
-//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
-//	for (unsigned int i = 0; i < test.size(); ++i)
-//		displayListString(test[i], " parse regex ");
+	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
+	//	for (unsigned int i = 0; i < test.size(); ++i)
+	//		displayListString(test[i], " parse regex ");
 
 	/* init varLength */
 	varLength.clear();
@@ -3243,7 +3193,7 @@ bool underapproxController(
 	}
 #endif
 
-//	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
+	//	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
 	rewriteGRM_toNewFile(orgInput, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */

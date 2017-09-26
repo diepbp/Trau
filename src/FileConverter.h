@@ -11,25 +11,9 @@
 #include "utils.h"
 #include <regex>
 
-static std::map<char, int> ENCODEMAP{
-	{'\\', '2'},
-	{'|', '3'},
-	{'(', '6'},
-	{')', '7'},
-	{'~', '8'},
-	{'&', '9'},
-	{'\t', '0'}
-};
+static std::map<char, char> ENCODEMAP;
 
-static std::map<int, int> DECODEMAP{
-	{'2', '\\'},
-	{'3', '|'},
-	{'6', '('},
-	{'7', ')'},
-	{'8', '~'},
-	{'9', '&'},
-	{'0', '\t'}
-};
+static std::map<char, char> DECODEMAP;
 
 template< typename T >
 std::string int_to_hex( T i );
@@ -161,6 +145,16 @@ bool strContaintStringVar(std::string notStr, std::vector<std::string> strVars);
 void checkAssignWellForm(std::string &s);
 
 /*
+ * Get all chars in consts
+ */
+std::set<char> getUsedChars(std::string str);
+
+/*
+ *
+ */
+void prepareEncoderDecoderMap(std::string fileName);
+
+/*
  * "abc123" 			--> 6
  * Concat abc def --> + len_abc len_def
  * Length abc 		--> len_abc
@@ -233,4 +227,8 @@ void addConstraintsToSMTFile(
 		std::vector<std::string> lengthConstraints,
 		std::string outFile);
 
+/*
+ *
+ */
+std::string decodeStr(std::string s);
 #endif /* FILECONVERTER_H_ */

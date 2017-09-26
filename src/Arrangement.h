@@ -661,7 +661,7 @@ public:
 		/* use alias instead of elementNames */
 		std::vector<std::vector<int> > allPossibleSplits;
 		if (lhs.second == -2) /* tail */ {
-			for (unsigned int i = 1; i <= lhs.first.length(); ++i) {
+			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
 				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
@@ -2126,7 +2126,6 @@ public:
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
-
 					/* check feasibility */
 					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar_andConst(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
 				}
@@ -2223,8 +2222,9 @@ public:
 							left_arr[i + 1] == EMPTYFLAT &&
 							lhs_elements[i].first.length() > 0) ||
 						(QCONSTMAX == 1 &&
-							lhs_elements[i].first.length() > 0)) /* const string is empty */
+							lhs_elements[i].first.length() > 0)) /* const string is empty */ {
 						return "";
+					}
 				}
 				checkLeft[i] = true;
 				std::string tmp = generateConstraint00(lhs_elements[i], lhs_str, newVars);

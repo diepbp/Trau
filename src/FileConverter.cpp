@@ -855,6 +855,118 @@ bool hasNoVar(std::vector<std::string> list){
 }
 
 /*
+ * Get all chars in consts
+ */
+std::set<char> getUsedChars(std::string str){
+	std::set<char> result;
+
+	int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
+
+	for (unsigned int i = 0; i < str.length(); ++i) {
+		if (str[i] == '"') {
+			switch (textState) {
+				case 1:
+					textState = 2;
+					break;
+				case 3:
+					textState = 1;
+					result.emplace(str[i]);
+					break;
+				default:
+					textState = 1;
+					break;
+			}
+		}
+		else if (str[i] == '\\') {
+			switch (textState) {
+				case 3:
+					result.emplace(str[i]);
+					textState = 1;
+					break;
+				default:
+					textState = 3;
+					break;
+			}
+		}
+		else if (textState == 1 || textState == 3) {
+
+			if (str[i] == 't' && textState == 3)
+				result.emplace('\t');
+			else
+				result.emplace(str[i]);
+
+			textState = 1;
+		}
+	}
+
+	return result;
+}
+
+/*
+ *
+ */
+void prepareEncoderDecoderMap(std::string fileName){
+	FILE* in = fopen(fileName.c_str(), "r");
+	if (!in) {
+		printf("%d %s", __LINE__, fileName.c_str());
+		throw std::runtime_error("Cannot open input file!");
+	}
+
+	char buffer[5000];
+	bool used[255];
+	memset(used, sizeof used, false);
+	while (!feof(in)) {
+		/* read a line */
+		if (fgets(buffer, 5000, in) != NULL){
+			std::set<char> tmp = getUsedChars(buffer);
+			for (const auto& ch : tmp)
+				used[(int)ch] = true;
+		}
+	}
+	pclose(in);
+
+	std::vector<char> unused;
+	for (unsigned i = '0'; i <= '9'; ++i)
+		if (used[i] == false)
+			unused.push_back(i);
+
+	for (unsigned i = 'a'; i <= 'z'; ++i)
+		if (used[i] == false)
+			unused.push_back(i);
+
+	for (unsigned i = 'A'; i <= 'Z'; ++i)
+		if (used[i] == false)
+			unused.push_back(i);
+
+	assert(unused.size() >= 10);
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+
+	for (const auto& ch : unused)
+		__debugPrint(logFile, "%c ", ch);
+	__debugPrint(logFile, "\n");
+
+	ENCODEMAP['?'] = unused[0];
+	ENCODEMAP['\\'] = unused[1];
+	ENCODEMAP['|'] = unused[2];
+	ENCODEMAP['"'] = unused[3];
+	ENCODEMAP['('] = unused[4];
+	ENCODEMAP[')'] = unused[5];
+	ENCODEMAP['~'] = unused[6];
+	ENCODEMAP['&'] = unused[7];
+	ENCODEMAP['\t'] = unused[8];
+
+	DECODEMAP[unused[0]] = '?';
+	DECODEMAP[unused[1]] = '\\';
+	DECODEMAP[unused[2]] = '|';
+	DECODEMAP[unused[3]] = '"';
+	DECODEMAP[unused[4]] = '(';
+	DECODEMAP[unused[5]] = ')';
+	DECODEMAP[unused[6]] = '~';
+	DECODEMAP[unused[7]] = '&';
+	DECODEMAP[unused[8]] = '\t';
+}
+
+/*
  * "GrammarIn" -->
  * it is the rewriteGRM callee
  */
@@ -1327,8 +1439,7 @@ std::string customizeLine_replaceConst(std::string str, std::set<std::string> &c
  */
 void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFile){
 	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in)
-	{
+	if (!in) {
 		printf("%d %s", __LINE__, inputFile.c_str());
 		throw std::runtime_error("Cannot open input file!");
 	}
@@ -1493,4 +1604,26 @@ void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 	out.close();
 }
 
+/*
+ *
+ */
+std::string decodeStr(std::string s){
+	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
+	std::string tmp = "";
+	int cnt = 0;
+	for (unsigned int i = 0; i < s.length(); ++i){
+		if (s[i] == '"') {
+			cnt++;
+			tmp = tmp + s[i];
+			continue;
+		}
+		if (DECODEMAP.find(s[i]) != DECODEMAP.end() && cnt == 1){
+			tmp = tmp + (char)DECODEMAP[s[i]];
+		}
+		else
+			tmp = tmp + s[i];
 
+	}
+	__debugPrint(logFile, " %s\n", tmp.c_str());
+	return tmp;
+}

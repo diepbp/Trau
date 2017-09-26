@@ -4243,7 +4243,8 @@ std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list
 		if (isConstStr(t, node) || isDetAutomatonFunc(t, node)) {
 			std::string str = getConstString(t, node);
 			for (unsigned i = 0; i < str.length(); ++i)
-				m[str[i]] = m[str[i]] + 1;
+				if (initSet.find(str[i]) != initSet.end())
+					m[str[i]] = m[str[i]] + 1;
 		}
 	return m;
 }
@@ -4566,18 +4567,18 @@ Z3_bool Th_final_check(Z3_theory t) {
 	// Assign node length
 	//**************************************************************
 //	bool assignSomethingNew = false, satified = true;
-//	if (lengthDefined == false) {
+	if (lengthDefined == false) {
 //		// determine domain of variables
 //		reduceVariableDomain(t);
-//		findVariableDomain();
+		findVariableDomain();
 //
 //		updateLength(t);
 //		assignLanguageByLength(t, assignSomethingNew, satified);
 //		if (assignSomethingNew) {
 //			__debugPrint(logFile, " should Pass level 1\n");
-//			lengthDefined = true;
+		lengthDefined = true;
 //		}
-//	}
+	}
 
 	__debugPrint(logFile, " Pass level 1\n");
 
@@ -6347,7 +6348,10 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::vector<Z3_ast> tmp = collectBoolValueInPositiveContext(t);
-	return Z3_mk_not(ctx, mk_and_fromVector(t, tmp));
+	if (tmp.size() == 0)
+		return Z3_mk_false(ctx);
+	else
+		return Z3_mk_not(ctx, mk_and_fromVector(t, tmp));
 }
 
 /*
@@ -6776,7 +6780,7 @@ std::string createGenericLanguage(Z3_theory t, Z3_ast node, std::map<std::string
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::set<char> subCharSet = charSet[Z3_ast_to_string(ctx, tmpVariableNode)];
 
-//	if (ourGrm.size() > 0) {
+	if (ourGrm.size() > 0) {
 		for (int i = '0'; i <= '9'; ++i)
 			subCharSet.insert(i);
 		for (int i = 'A'; i <= 'Z'; ++i)
@@ -6789,7 +6793,7 @@ std::string createGenericLanguage(Z3_theory t, Z3_ast node, std::map<std::string
 		subCharSet.insert(';');
 		subCharSet.insert(' ');
 		subCharSet.insert('/');
-//	}
+	}
 
 	for (const auto& ch: subCharSet){
 		__debugPrint(logFile, "%c ", ch);
