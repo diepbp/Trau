@@ -919,8 +919,13 @@ void prepareEncoderDecoderMap(std::string fileName){
 		/* read a line */
 		if (fgets(buffer, 5000, in) != NULL){
 			std::set<char> tmp = getUsedChars(buffer);
-			for (const auto& ch : tmp)
+			for (const auto& ch : tmp) {
 				used[(int)ch] = true;
+				if (ch >= 'a' && ch <= 'z')
+					used[int(ch) - 32] = true;
+				else if (ch >= 'A' && ch <= 'Z')
+					used[int(ch) + 32] = true;
+			}
 		}
 	}
 	pclose(in);
@@ -931,10 +936,6 @@ void prepareEncoderDecoderMap(std::string fileName){
 			unused.push_back(i);
 
 	for (unsigned i = 'a'; i <= 'z'; ++i)
-		if (used[i] == false)
-			unused.push_back(i);
-
-	for (unsigned i = 'A'; i <= 'Z'; ++i)
 		if (used[i] == false)
 			unused.push_back(i);
 
