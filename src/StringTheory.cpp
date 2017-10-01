@@ -4072,12 +4072,8 @@ void extendVariableToFindAllPossibleEqualities(
 					constNode == NULL){
 				/* skip the generic automata */
 				std::string automaton2str = Z3_ast_to_string(ctx, _node);
-				/* count number of | or ~ in that string */
-				int orCnt = 0;
-				for (unsigned int pos = 0; pos < automaton2str.length(); ++pos)
-					orCnt = (automaton2str[pos] == '~') ? orCnt + 1 : orCnt;
 				__debugPrint(logFile, "%d should not check it\n", __LINE__);
-				if (orCnt < 20)
+				if (automaton2str.find("$$") == std::string::npos && automaton2str.find("!!") == std::string::npos)
 					result.push_back({_node});
 			}
 			else
