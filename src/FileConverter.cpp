@@ -921,10 +921,10 @@ void prepareEncoderDecoderMap(std::string fileName){
 			std::set<char> tmp = getUsedChars(buffer);
 			for (const auto& ch : tmp) {
 				used[(int)ch] = true;
-				if (ch >= 'a' && ch <= 'z')
-					used[int(ch) - 32] = true;
-				else if (ch >= 'A' && ch <= 'Z')
-					used[int(ch) + 32] = true;
+//				if (ch >= 'a' && ch <= 'z')
+//					used[int(ch) - 32] = true;
+//				else if (ch >= 'A' && ch <= 'Z')
+//					used[int(ch) + 32] = true;
 			}
 		}
 	}
