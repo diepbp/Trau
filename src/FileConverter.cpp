@@ -912,6 +912,8 @@ void prepareEncoderDecoderMap(std::string fileName){
 		throw std::runtime_error("Cannot open input file!");
 	}
 
+	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\''};
+	std::vector<char> encoded;
 	char buffer[5000];
 	bool used[255];
 	memset(used, sizeof used, false);
@@ -921,6 +923,8 @@ void prepareEncoderDecoderMap(std::string fileName){
 			std::set<char> tmp = getUsedChars(buffer);
 			for (const auto& ch : tmp) {
 				used[(int)ch] = true;
+				if (tobeEncoded.find(ch) != tobeEncoded.end())
+					encoded.push_back(ch);
 //				if (ch >= 'a' && ch <= 'z')
 //					used[int(ch) - 32] = true;
 //				else if (ch >= 'A' && ch <= 'Z')
@@ -939,32 +943,24 @@ void prepareEncoderDecoderMap(std::string fileName){
 		if (used[i] == false)
 			unused.push_back(i);
 
-	assert(unused.size() >= 10);
-	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	for (unsigned i = 'A'; i <= 'Z'; ++i)
+			if (used[i] == false)
+				unused.push_back(i);
+
+	__debugPrint(logFile, "%d *** %s ***: unused = %u, encoded = %u\n", __LINE__, __FUNCTION__, unused.size(), encoded.size());
+	assert(unused.size() >= encoded.size());
+
 
 	for (const auto& ch : unused)
 		__debugPrint(logFile, "%c ", ch);
 	__debugPrint(logFile, "\n");
 
-	ENCODEMAP['?'] = unused[0];
-	ENCODEMAP['\\'] = unused[1];
-	ENCODEMAP['|'] = unused[2];
-	ENCODEMAP['"'] = unused[3];
-	ENCODEMAP['('] = unused[4];
-	ENCODEMAP[')'] = unused[5];
-	ENCODEMAP['~'] = unused[6];
-	ENCODEMAP['&'] = unused[7];
-	ENCODEMAP['\t'] = unused[8];
-
-	DECODEMAP[unused[0]] = '?';
-	DECODEMAP[unused[1]] = '\\';
-	DECODEMAP[unused[2]] = '|';
-	DECODEMAP[unused[3]] = '"';
-	DECODEMAP[unused[4]] = '(';
-	DECODEMAP[unused[5]] = ')';
-	DECODEMAP[unused[6]] = '~';
-	DECODEMAP[unused[7]] = '&';
-	DECODEMAP[unused[8]] = '\t';
+	unsigned cnt = 0;
+	for (const char& ch : encoded) {
+		ENCODEMAP[ch] = unused[cnt];
+		DECODEMAP[unused[cnt]] = ch;
+		cnt++;
+	}
 }
 
 /*
