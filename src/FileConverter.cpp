@@ -587,9 +587,8 @@ void updateVariables(std::string &s, std::vector<std::string> strVars) {
 bool strContaintStringVar(std::string notStr, std::vector<std::string> strVars) {
 	if (notStr.find("Length") != std::string::npos)
 		return false;
-	for (unsigned int i = 0; i < strVars.size(); ++i) {
-		std::string tmp = strVars[i];
-		if (notStr.find(tmp) != std::string::npos)
+	for (const auto& s : strVars) {
+		if (notStr.find(s) != std::string::npos)
 			return true;
 	}
 	return false;
@@ -912,8 +911,8 @@ void prepareEncoderDecoderMap(std::string fileName){
 		throw std::runtime_error("Cannot open input file!");
 	}
 
-	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\''};
-	std::vector<char> encoded;
+	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\'', '+', '%', '#'};
+	std::set<char> encoded;
 	char buffer[5000];
 	bool used[255];
 	memset(used, sizeof used, false);
@@ -924,7 +923,7 @@ void prepareEncoderDecoderMap(std::string fileName){
 			for (const auto& ch : tmp) {
 				used[(int)ch] = true;
 				if (tobeEncoded.find(ch) != tobeEncoded.end())
-					encoded.push_back(ch);
+					encoded.emplace(ch);
 //				if (ch >= 'a' && ch <= 'z')
 //					used[int(ch) - 32] = true;
 //				else if (ch >= 'A' && ch <= 'Z')
@@ -1123,8 +1122,7 @@ void customizeLine_ToCreateLengthLine(
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
-		std::vector<std::string> &smtLenConstraints,
-		std::vector<std::string> &notConstraints){
+		std::vector<std::string> &smtLenConstraints){
 
 	std::set<std::string> constList;
 	bool changeByNotOp = false;
@@ -1164,13 +1162,9 @@ void customizeLine_ToCreateLengthLine(
 		int tabNum[1000];
 		memset(tabNum, 0, sizeof tabNum);
 
-		int notBool = -1;
-		std::string notStr = "";
-
 		int bracketCnt = 0;
 		int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
 		std::string constStr = "";
-		bool lastParentheses = false;
 
 		for (unsigned int i = 0; i < strTmp.length(); ++i) {
 			bool reduceSize = false;
@@ -1231,9 +1225,6 @@ void customizeLine_ToCreateLengthLine(
 							keyword02.compare("or") == 0) {
 						tabNum[bracketCnt + 1] = abs(tabNum[bracketCnt]) + 1;
 					}
-					else if (keyword01.compare("not") == 0) {
-						notBool = abs(bracketCnt + 1);
-					}
 				}
 				else
 					tabNum[bracketCnt] = - abs(tabNum[bracketCnt - 1]);
@@ -1244,35 +1235,18 @@ void customizeLine_ToCreateLengthLine(
 				for (int j = 0; j < tabNum[bracketCnt]; ++j)
 					newStr = newStr + "\t";
 				bracketCnt ++;
+
+				int closePar = findCorrespondRightParentheses(i, strTmp);
+				std::string par = strTmp.substr(i, closePar - i + 1);
+				if (rewriterStrMap.find(par) != rewriterStrMap.end()) {
+					if (rewriterStrMap[par].compare("false") == 0)
+						if (!handleNotOp){
+							strTmp.replace(i, closePar - i + 1, "false");
+//							__debugPrint(logFile, "%d * %s *: %s; par: %s\n", __LINE__, __FUNCTION__, strTmp.c_str(), par.c_str());
+						}
+				}
 			}
 			else if (strTmp[i] == ')') {
-				if (notBool > 0 && bracketCnt == notBool) {
-					if (!reduceSize)
-						notStr = notStr + strTmp[i];
-					if (handleNotOp || !strContaintStringVar(notStr, strVars)) {
-						/* not (= x "abc")*/
-						newStr = newStr + notStr;
-					}
-					else {
-						notStr = refine_not_equality(notStr);
-						__debugPrint(logFile, "%d not constraint: %s\n", __LINE__, notStr.c_str());
-						if (rewriterStrMap.find(notStr) != rewriterStrMap.end()) {
-							if (rewriterStrMap[notStr] == "true")
-								newStr = newStr + "false";
-							else
-								newStr = newStr + "true";
-						}
-						else {
-							notConstraints.push_back(notStr);
-							// remove this constraint
-							changeByNotOp = true;
-							newStr = newStr + "";
-						}
-					}
-					lastParentheses = true;
-					notBool = -1;
-					notStr = "";
-				}
 				if (tabNum[bracketCnt] > 0)
 					newStr = newStr + "\n";
 				for (int j = 0; j < tabNum[bracketCnt]; ++j)
@@ -1280,16 +1254,8 @@ void customizeLine_ToCreateLengthLine(
 				bracketCnt--;
 			}
 
-			if (notBool < 0) {
-				if (!reduceSize && lastParentheses == false)
-					newStr = newStr + strTmp[i];
-			}
-			else {
-				if (!reduceSize) {
-					notStr = notStr + strTmp[i];
-				}
-			}
-			lastParentheses = false;
+			if (!reduceSize)
+				newStr = newStr + strTmp[i];
 		}
 
 		if (changeByNotOp) {
@@ -1300,7 +1266,7 @@ void customizeLine_ToCreateLengthLine(
 		if (newStr.find("(assert )") != std::string::npos || newStr.find("(assert  )") != std::string::npos)
 			return;
 
-		__debugPrint(logFile, "%d * %s * : %s\n", __LINE__, __FUNCTION__, newStr.c_str());
+//		__debugPrint(logFile, "%d * %s * : %s\n", __LINE__, __FUNCTION__, newStr.c_str());
 		updateImplies(newStr);
 		updateRegexIn(newStr);
 		updateContain(newStr, rewriterStrMap);
@@ -1325,7 +1291,7 @@ void customizeLine_ToCreateLengthLine(
 		updateLength(newStr); /* Length --> "" */
 		updateVariables(newStr, strVars); /* xyz --> len_xyz */
 
-		__debugPrint(logFile, "%d newStr: %s\n",__LINE__, newStr.c_str());
+//		__debugPrint(logFile, "%d newStr: %s\n",__LINE__, newStr.c_str());
 		smtLenConstraints.push_back(newStr);
 	}
 	else
@@ -1512,11 +1478,9 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
-		std::vector<std::string> &smtLenConstraints,
-		std::vector<std::string> &notConstraints){
+		std::vector<std::string> &smtLenConstraints){
 	smtVarDefinition.clear();
 	smtLenConstraints.clear();
-	notConstraints.clear();
 	FILE* in = fopen(inputFile.c_str(), "r");
 	if (!in){
 		printf("%d %s", __LINE__, inputFile.c_str());
@@ -1533,7 +1497,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		}
 	}
 

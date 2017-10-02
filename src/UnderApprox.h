@@ -19,7 +19,6 @@
 
 extern std::string orgInput;
 extern bool getModel;
-static pthread_mutex_t smt_mutex;
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, int> global_smtVars;
 static std::vector<std::vector<std::string>> global_smtStatements;
@@ -38,7 +37,6 @@ static std::set<std::string> connectedVariables;
 //static std::map<std::pair<std::string, std::string>, std::string> constMap;
 static std::map<std::string, std::string> constMap;
 static std::map<std::string, std::set<std::string>> notMap;
-static std::vector<std::string> notConstraints;
 static std::map<std::string, int> varLength;
 static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 
@@ -341,11 +339,6 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 std::string sumStringVector(std::vector<std::string> list);
 
 /*
- * (not (= T4_2 "LLutmaC169413169."))
- */
-void extractNotConstraints();
-
-/*
  * sum const strings
  * "a" . "b" = "ab"
  */
@@ -452,7 +445,7 @@ void optimizeEquality(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void *convertEqualities(void *tid);
+void convertEqualities();
 
 /*
  * Just do sequential to compare performance

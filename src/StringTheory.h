@@ -601,6 +601,11 @@ typedef struct _AutomatonStringData
  std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationOverVariables(Z3_theory t);
 
  /**
+  * collect lengths of string variables
+  */
+ std::map<std::string, int> collectCurrentLength(Z3_theory t);
+
+ /**
    \brief Callback: invoked before Z3 starts building a model.
    This callback can be used to perform expensive operations lazily.
   */

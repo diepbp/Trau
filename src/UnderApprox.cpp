@@ -961,24 +961,32 @@ std::string create_constraints_NOTEqual(
 
 	}
 	else {
-		std::string len00 = generateVarLength(str00);
-		std::string len01 = generateVarLength(str01);
-		std::string arr00 = generateVarArray(str00);
-		std::string arr01 = generateVarArray(str01);
-		/* != "a" b */
-		orConstraints.push_back("(not (= " + len00 + " " + len01 + "))");
+		bool concat00 = str00.find("(Concat") != std::string::npos;
+		bool concat01 = str01.find("(Concat") != std::string::npos;
+		if (!concat00 && !concat01) {
+			std::string len00 = generateVarLength(str00);
+			std::string len01 = generateVarLength(str01);
+			std::string arr00 = generateVarArray(str00);
+			std::string arr01 = generateVarArray(str01);
+			/* != "a" b */
+			orConstraints.push_back("(not (= " + len00 + " " + len01 + "))");
 
-		andConstraints.push_back("(= " + len00 + " " + len01 + ")");
-		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
-			/*len a = len b <= i || a[i - 1] == b [i-1] */
-			std::string tmp = "";
-			tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
-			tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
-			tmp = "(or " + tmp + ")";
-			andConstraints.push_back(tmp);
+			andConstraints.push_back("(= " + len00 + " " + len01 + ")");
+			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+				/*len a = len b <= i || a[i - 1] == b [i-1] */
+				std::string tmp = "";
+				tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
+				tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
+				tmp = "(or " + tmp + ")";
+				andConstraints.push_back(tmp);
+			}
+			orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
+			ret = orConstraint(orConstraints);
 		}
-		orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
-		ret = orConstraint(orConstraints);
+		else {
+			// TODO not equal concat
+			ret = "true";
+		}
 	}
 
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
@@ -1189,7 +1197,7 @@ void handle_ToLower(std::map<std::string, std::string> rewriterStrMap){
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	for (const auto& s : connectedVariables){
 		defines.push_back("(declare-const arr_" + s + " (Array Int Int))");
-		constraints.push_back("(assert (< " + generateVarLength(s) + " " + std::to_string(CONNECTSIZE) +"))");
+//		constraints.push_back("(assert (< " + generateVarLength(s) + " " + std::to_string(100) +"))");
 	}
 }
 
@@ -1305,7 +1313,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.push_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.push_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.push_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 100))");
+//			constraints.push_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 100))");
 			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
 		}
 
@@ -1609,7 +1617,7 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
  * print input
  */
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
-	__debugPrint(logFile, "%d Equal Map\n", __LINE__);
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalMap.begin();
 			it != equalMap.end(); ++it) {
 		__debugPrint(logFile, "%s = (%ld cases) \n", it->first.c_str(), it->second.size());
@@ -1918,16 +1926,6 @@ void createConstMap(){
 		__debugPrint(logFile, "\n");
 	}
 #endif
-}
-
-/*
- *
- */
-void extractNotConstraints(){
-	for (unsigned int i = 0; i < notConstraints.size(); ++i) {
-		std::vector<std::string> tokens = parse_string_language(notConstraints[i], " ()");
-		notMap[tokens[2]].insert(tokens[3].substr(1, tokens[3].length() - 2));
-	}
 }
 
 /*
@@ -2452,7 +2450,6 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
  * extra variables
  */
 std::vector<std::string> createSetOfFlatVariables(int flatP) {
-	pthread_mutex_lock (&smt_mutex);
 	std::vector<std::string> result;
 	for (int i = 0 ; i < flatP; ++i) {
 		std::string varName = "__flat_" + std::to_string(noFlatVariables + i);
@@ -2461,7 +2458,6 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 		allVariables.insert(varName);
 	}
 	noFlatVariables += flatP;
-	pthread_mutex_unlock (&smt_mutex);
 	return result;
 }
 
@@ -2527,27 +2523,10 @@ std::string constraintsIfEmpty(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void *convertEqualities(void *tid){
-	int start, *mytid, end;
-	mytid = (int *) tid;
-
-	/* define elements that will be handled by this thread*/
-	start = (*mytid * (equalitiesMap.size() / NUM_THREADS));
-	if (*mytid != NUM_THREADS - 1)
-		end = start + (equalitiesMap.size() / NUM_THREADS);
-	else
-		end = equalitiesMap.size();
-
-#ifdef DEBUGLOG
-	// printf("Thread %d starting...\n", *mytid);
-	// printf ("Thread %d doing iterations %d to %d\n", *mytid, start, end-1);
-#endif
-
+void convertEqualities(){
 	/* return a number of results*/
-	auto startIt = std::next(equalitiesMap.begin(), start);
-	auto endIt = std::next(equalitiesMap.begin(), end);
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = startIt;
-			it != endIt;
+	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
+			it != equalitiesMap.begin();
 			++it) {
 #ifdef DEBUGLOG
 		// printf ("Thread %d doing: %s, size = %ld\n", *mytid, it->first.c_str(), it->second.size());
@@ -2576,9 +2555,8 @@ void *convertEqualities(void *tid){
 			continue;
 		assert (it->second[0].size() > 0);
 
-		pthread_mutex_lock (&smt_mutex);
 		global_smtStatements.push_back({createLengthConstraintForAssignment(it->first, it->second[0])});
-		pthread_mutex_unlock (&smt_mutex);
+
 
 		if (connectedVariables.find(it->first) != connectedVariables.end() || it->first[0] == '"'){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
@@ -2598,12 +2576,10 @@ void *convertEqualities(void *tid){
 #endif
 				if (result.first.size() != 0) {
 					/* sync result */
-					pthread_mutex_lock (&smt_mutex);
 					for (const auto& r : result.second)
 						global_smtVars[r.first] = 'd';
 
 					global_smtStatements.push_back(result.first);
-					pthread_mutex_unlock (&smt_mutex);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2634,12 +2610,10 @@ void *convertEqualities(void *tid){
 #endif
 				if (result.first.size() != 0) {
 					/* sync result */
-					pthread_mutex_lock (&smt_mutex);
 					for (const auto& r : result.second) {
 						global_smtVars[r.first] = 'd';
 					}
 					global_smtStatements.push_back(result.first);
-					pthread_mutex_unlock (&smt_mutex);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2679,12 +2653,10 @@ void *convertEqualities(void *tid){
 					if (result.first.size() != 0) {
 
 						/* sync result*/
-						pthread_mutex_lock (&smt_mutex);
 						for (const auto& smtVar : result.second) {
 							global_smtVars[smtVar.first] = 'd';
 						}
 						global_smtStatements.push_back(result.first);
-						pthread_mutex_unlock (&smt_mutex);
 					}
 					else {
 						__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2695,11 +2667,6 @@ void *convertEqualities(void *tid){
 		}
 
 	}
-
-#ifdef DEBUGLOG
-	// printf("Thread %d done.\n", *mytid);
-#endif
-	pthread_exit(NULL);
 }
 
 /*
@@ -2901,6 +2868,7 @@ bool Z3_run(
 		fgets(buffer, 4000, in);
 		std::string getSat = buffer;
 		getSat = getSat.substr(0, 3);
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, buffer);
 
 		if (getSat.compare("sat") == 0) {
 			printf(">> Z3: SAT\n\n");
@@ -3011,7 +2979,7 @@ bool S3_assist(std::string fileName){
 		while (!feof(in)) {
 			std::string line = "";
 			if (fgets(buffer, 5000, in) != NULL) {
-				//				printf("%s\n", buffer);
+//				printf("%s\n", buffer);
 				line = buffer;
 				if (line.length() > 0 && line[0] == '*')
 					printf("================================================\n");
@@ -3020,6 +2988,9 @@ bool S3_assist(std::string fileName){
 				else {
 					if (line.substr(0, 6).compare(">> SAT") == 0)
 						sat = true;
+					else if (line.substr(0, 8).compare(">> UNSAT") == 0)
+						assert(false);
+
 					if (line.find("String!val!") == std::string::npos)
 						printf("%s", buffer);
 				}
@@ -3041,54 +3012,13 @@ bool S3_assist(std::string fileName){
  * Pthread Caller
  */
 void pthreadController(){
-	pthread_t thread[NUM_THREADS];
-	int  tids[NUM_THREADS];
-	pthread_attr_t attr;
-	int rc;
-
-	/* Initialize and set thread detached attribute */
-	pthread_mutex_init(&smt_mutex, NULL);
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-	/* create threads */
-	for(int t = 0; t < NUM_THREADS; t++) {
-		tids[t] = t;
-#ifdef DEBUGLOG
-		// printf("Controller: creating thread %d\n", t);
-#endif
-		rc = pthread_create(&thread[t], &attr, convertEqualities, (void *) &tids[t]);
-		if (rc) {
-			printf("ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
-		}
-	}
-
-	/* Free attribute and wait for the other threads */
-	pthread_attr_destroy(&attr);
-
-	/* join threads */
-	void *result;
-	for(int t = 0; t < NUM_THREADS; t++) {
-		rc = pthread_join(thread[t], &result);
-		if (rc) {
-			printf("ERROR; return code from pthread_join() is %d\n", rc);
-		}
-#ifdef DEBUGLOG
-		// printf("Controller: completed join with thread %d.\n", t);
-#endif
-	}
-
-	pthread_mutex_destroy(&smt_mutex);
-
-	//	pthread_exit(NULL);
+	convertEqualities();
 }
 
 /*
  *
  */
 void reset(){
-	notConstraints.clear();
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
@@ -3159,7 +3089,6 @@ bool underapproxController(
 	varLength.clear();
 	varLength.insert(_currentLength.begin(), _currentLength.end());
 
-
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
 
@@ -3202,7 +3131,7 @@ bool underapproxController(
 	bool result = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		convertSMTFileToLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf("%d false \n", __LINE__);
 			return false;
@@ -3213,7 +3142,7 @@ bool underapproxController(
 		bool val = Z3_run(_equalMap, false);
 		if (val == false){
 			regexCnt = 0;
-			convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+			convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
 				printf("%d false \n", __LINE__);
 				return false;
@@ -3223,7 +3152,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints, notConstraints);
+		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf("%d trivialUnsat\n", __LINE__);

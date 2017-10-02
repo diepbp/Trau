@@ -65,6 +65,8 @@ std::map<Z3_ast, int> intInputVarMap;
 std::set<Z3_ast> inputVarInLen;
 std::set<Z3_ast> internalStrVars;
 
+std::map<std::string, int> initLength;
+
 std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
 std::vector<Z3_ast> global_leaves_list;
 int leavePos = 0;
@@ -1585,6 +1587,7 @@ void Th_init_search(Z3_theory t) {
 
 	searchStart = 1;
 	Z3_theory_set_arith_new_eq_cb(t, cb_arith_new_eq);
+
 }
 
 /**
@@ -1595,14 +1598,12 @@ void Th_push(Z3_theory t) {
 	__debugPrint(logFile, "\n*******************************************\n");
 	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
 	__debugPrint(logFile, "\n*******************************************\n");
-
-//	collectContainValueInPositiveContext(t);
-//
-//	std::map<std::string, std::string> rewriterStrMap;
-//	collectEndsWithValueInPositiveContext(t, rewriterStrMap);
-//	Z3_context ctx = Z3_theory_get_context(t);
-//	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-//	printZ3Node(t, ctxAssign);
+	if (sLevel == 1 && initLength.size() == 0) {
+		initLength = collectCurrentLength(t);
+		for (const auto& s : initLength){
+			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
+		}
+	}
 }
 
 /**
@@ -4054,7 +4055,7 @@ void extendVariableToFindAllPossibleEqualities(
 			printZ3Node(t, arg0);
 			__debugPrint(logFile, ", ");
 			printZ3Node(t, arg1);
-			__debugPrint(logFile, "\n");
+			__debugPrint(logFile, "): size = %ld * %ld\n", arg0_eq.size(), arg1_eq.size());
 			for (unsigned int j = 0; j < arg0_eq.size(); ++j) {
 				for (unsigned int k = 0; k < arg1_eq.size(); ++k) {
 					std::vector<Z3_ast> tmp;
@@ -4073,8 +4074,10 @@ void extendVariableToFindAllPossibleEqualities(
 				/* skip the generic automata */
 				std::string automaton2str = Z3_ast_to_string(ctx, _node);
 				__debugPrint(logFile, "%d should not check it\n", __LINE__);
-				if (automaton2str.find("$$") == std::string::npos && automaton2str.find("!!") == std::string::npos)
+				if (automaton2str.find("$$") == std::string::npos && automaton2str.find("!!") == std::string::npos) {
+					__debugPrint(logFile, "%d add const \"%s\" to node: %s\n", __LINE__, automaton2str.c_str(), Z3_ast_to_string(ctx, node));
 					result.push_back({_node});
+				}
 			}
 			else
 				__debugPrint(logFile, "%d skipped\n", __LINE__);
@@ -4088,6 +4091,7 @@ void extendVariableToFindAllPossibleEqualities(
 	 *
 	 * if both are false, keep original, print length
 	 */
+	__debugPrint(logFile, ">> %d before refine node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), result.size());
 	for (const auto& _eq: result){
 		bool added = false;
 		for (const auto _node : _eq) {
@@ -4103,11 +4107,14 @@ void extendVariableToFindAllPossibleEqualities(
 		/* do not need to print this case because it can be implied from SMT file */
 		if (added == false) {
 		}
+		else
+			displayListNode(t, _eq, "yyy");
 	}
 
-	__debugPrint(logFile, ">> %d node %s: size = %u\n", __LINE__, Z3_ast_to_string(ctx, node), refined_result.size());
+	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), refined_result.size());
 
 	if (constNode != NULL) /* found a const at the beginning */ {
+		__debugPrint(logFile, "%d found const\n", __LINE__);
 		/* create a new combination for const */
 		/* update: const = lhs . rhs | automaton */
 		if (refined_result.size() > 0) {
@@ -4128,7 +4135,9 @@ void extendVariableToFindAllPossibleEqualities(
 		/* update */
 		allEqPossibilities[node] = refined_result;
 	}
-	__debugPrint(logFile, ">> %d node %s: size = %u\n", __LINE__, Z3_ast_to_string(ctx, node), allEqPossibilities[node].size());
+	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), allEqPossibilities[node].size());
+	if (allEqPossibilities[node].size() > 0)
+		displayListNode(t, allEqPossibilities[node][0], "zzzz");
 }
 
 /*
@@ -4462,7 +4471,6 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 			return {};
 		}
 
-		__debugPrint(logFile, "%d checking allEqPossibilities %s, size = %ld\n", __LINE__, varName.c_str(), itor->second.size());
 		if (isAutomatonFunc(t, itor->first)) {
 			Z3_ast arg = Z3_get_app_arg(ctx,  Z3_to_app(ctx, itor->first), 0);
 			std::string regex = std::string(Z3_ast_to_string(ctx, arg));
@@ -4476,7 +4484,6 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		if (non_root.find(varName) == non_root.end() ||
 				grm_astNode_map.find(itor->first) != grm_astNode_map.end()){
 			/* add them to the result set */
-			__debugPrint(logFile, "%d var: %s , eq size = %ld\n", __LINE__, Z3_ast_to_string(ctx, itor->first), itor->second.size());
 
 			for (const auto& _eq : itor->second)
 				combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, _eq));
@@ -4491,15 +4498,15 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		else if (non_root.find(varName) != non_root.end()){
 			/* keep one eq to export length constraint */
 			assert(itor->second.size() > 0);
+
 			combinationOverVariables[varName].push_back(vectorAst_to_vectorString(t, itor->second[0]));
 		}
 
 		/* update eq for its friends */
 		std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
-		for (const auto& node : eqNode)
-			if (isStrVariable(t, node) && node != itor->first) {
-				std::string name = std::string(Z3_ast_to_string(ctx, node));
-
+		for (const auto& n : eqNode)
+			if (isStrVariable(t, n) && n != itor->first) {
+				std::string name = std::string(Z3_ast_to_string(ctx, n));
 				assert(combinationOverVariables[varName].size() > 0);
 				combinationOverVariables[name].push_back(combinationOverVariables[varName][0]);
 			}
@@ -4606,9 +4613,6 @@ Z3_bool Th_final_check(Z3_theory t) {
 		if (combination.size() == 0)
 			return Z3_TRUE;
 
-		for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combination.begin(); it != combination.end(); ++it)
-			__debugPrint(logFile, "%d check var: %s\n", __LINE__, it->first.c_str());
-
 		for (std::map<std::string, std::string>::iterator it = endsWithStrMap.begin(); it != endsWithStrMap.end(); ++it){
 			__debugPrint(logFile, "%d endsWithStrMap \t%s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
 		}
@@ -4641,12 +4645,11 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d carryOnConstraints: \t%s\n", __LINE__, s.c_str());
 		}
 
-		std::map<std::string, int> currentLength = collectCurrentLength(t);
-		for (const auto& s : currentLength){
-			__debugPrint(logFile, "%d currentLength: \t%s\n", __LINE__, s.first.c_str());
+		for (const auto& s : initLength){
+			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
-		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, currentLength, inputFile)) {
+		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -4996,6 +4999,9 @@ void assignLanguage(Z3_theory t, bool &hasLanguage){
 //	}
 
 	displayListNode(t, tmpVector, "List of variables to assign language");
+
+	if (tmpVector.size() > 50)
+		return;
 
 	// step 2: if (A == B) then only create language for variable A
 	std::map<Z3_ast, bool> tmpMap;

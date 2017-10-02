@@ -166,8 +166,7 @@ void customizeLine_ToCreateLengthLine(
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
-		std::vector<std::string> &smtLenConstraints,
-		std::vector<std::string> &notConstraints);
+		std::vector<std::string> &smtLenConstraints);
 
 /*
  * Replace special const in constraints
@@ -214,8 +213,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::map<std::string, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
-		std::vector<std::string> &smtLenConstraints,
-		std::vector<std::string> &notConstraints);
+		std::vector<std::string> &smtLenConstraints);
 
 /*
  * read SMT file
