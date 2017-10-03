@@ -43,7 +43,7 @@ void updatePossibleArrangements(
 		std::vector<Arrangment> &possibleCases) {
 	for (unsigned int i = 0; i < tmp.size(); ++i)
 		if (tmp[i].isPossibleArrangement(lhs_elements, rhs_elements))
-			possibleCases.push_back(tmp[i]);
+			possibleCases.emplace_back(tmp[i]);
 }
 
 void updatePossibleArrangements(
@@ -51,7 +51,7 @@ void updatePossibleArrangements(
 		std::vector<Arrangment> &possibleCases) {
 	for (unsigned int i = 0; i < tmp.size(); ++i)
 		if (tmp[i].isPossibleArrangement())
-			possibleCases.push_back(tmp[i]);
+			possibleCases.emplace_back(tmp[i]);
 }
 
 /*
@@ -71,9 +71,9 @@ void handleCase_0_0(
 	std::vector<int> tmpRight;
 
 	/* left = right */
-	tmpLeft.push_back(0);
-	tmpRight.push_back(0);
-	arrangements[std::make_pair(0, 0)].push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+	tmpLeft.emplace_back(0);
+	tmpRight.emplace_back(0);
+	arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 }
 
 /*
@@ -85,9 +85,9 @@ void handleCase_0_0_general(){
 
 	if (arrangements[std::make_pair(0, 0)].size() == 0) {
 		/* left = right */
-		tmpLeft.push_back(0);
-		tmpRight.push_back(0);
-		arrangements[std::make_pair(0, 0)].push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmpLeft.emplace_back(0);
+		tmpRight.emplace_back(0);
+		arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 	}
 }
 
@@ -101,17 +101,17 @@ void handleCase_n_0(
 
 	/* right always has SUMFLAT */
 	std::vector<int> tmpRight;
-	tmpRight.push_back(SUMFLAT);
+	tmpRight.emplace_back(SUMFLAT);
 
 	/* left has i number of 0 */
 	std::vector<int> tmpLeft;
-	tmpLeft.push_back(0);
+	tmpLeft.emplace_back(0);
 
 	for (unsigned int i = 1; i < lhs_elements.size(); ++i) {
-		tmpLeft.push_back(0);
+		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
 		/* update */
 		if (usingFilter == true) {
@@ -136,17 +136,17 @@ void handleCase_n_0_general(
 
 	/* right always has SUMFLAT */
 	std::vector<int> tmpRight;
-	tmpRight.push_back(SUMFLAT);
+	tmpRight.emplace_back(SUMFLAT);
 
 	/* left has i number of 0 */
 	std::vector<int> tmpLeft;
-	tmpLeft.push_back(0);
+	tmpLeft.emplace_back(0);
 
 	for (int i = 1; i < lhs; ++i) {
-		tmpLeft.push_back(0);
+		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
 		/* add directly without checking */
 		if (arrangements[std::make_pair(i, 0)].size() == 0) {
@@ -165,17 +165,17 @@ void handleCase_0_n(
 
 	/* left always has SUMFLAT */
 	std::vector<int> tmpLeft;
-	tmpLeft.push_back(SUMFLAT);
+	tmpLeft.emplace_back(SUMFLAT);
 
 	/* right has i number of 0 */
 	std::vector<int> tmpRight;
-	tmpRight.push_back(0);
+	tmpRight.emplace_back(0);
 
 	for (unsigned int i = 1 ; i < rhs_elements.size(); ++i) {
-		tmpRight.push_back(0);
+		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
 		/* update */
 		if (usingFilter == true) {
@@ -199,17 +199,17 @@ void handleCase_0_n_general(
 
 	/* left always has SUMFLAT */
 	std::vector<int> tmpLeft;
-	tmpLeft.push_back(SUMFLAT);
+	tmpLeft.emplace_back(SUMFLAT);
 
 	/* right has i number of 0 */
 	std::vector<int> tmpRight;
-	tmpRight.push_back(0);
+	tmpRight.emplace_back(0);
 
 	for (int i = 1 ; i < rhs; ++i){
-		tmpRight.push_back(0);
+		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 
 		/* update */
 		/* add directly without checking */
@@ -237,13 +237,13 @@ void handleCase_n_n(
 					/* [i] = sum (0..j) */
 					std::vector<int> tmpLeft;
 					for (unsigned int k = 0; k < i; ++k)
-						tmpLeft.push_back(EMPTYFLAT);
-					tmpLeft.push_back(SUMFLAT);
+						tmpLeft.emplace_back(EMPTYFLAT);
+					tmpLeft.emplace_back(SUMFLAT);
 
 					std::vector<int> tmpRight;
 					for (unsigned int k = 0 ; k <= j; ++k)
-						tmpRight.push_back(i);
-					tmp03.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+						tmpRight.emplace_back(i);
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 				}
 
 				/* [i] = sum (k..j) */
@@ -277,13 +277,13 @@ void handleCase_n_n(
 					/* sum (0..i)  = [j] */
 					std::vector<int> tmpLeft;
 					for (unsigned int k = 0 ; k <= i; ++k)
-						tmpLeft.push_back(j);
+						tmpLeft.emplace_back(j);
 
 					std::vector<int> tmpRight;
 					for (unsigned int k = 0; k < j; ++k)
-						tmpRight.push_back(EMPTYFLAT);
-					tmpRight.push_back(SUMFLAT);
-					tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+						tmpRight.emplace_back(EMPTYFLAT);
+					tmpRight.emplace_back(SUMFLAT);
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 				}
 
 				/* fourth case: left = right */
@@ -343,16 +343,16 @@ void handleCase_n_n_general(
 					/* [i] = sum (0..j) */
 					std::vector<int> tmpLeft;
 					for (int k = 0; k < i; ++k)
-						tmpLeft.push_back(EMPTYFLAT);
-					tmpLeft.push_back(SUMFLAT);
+						tmpLeft.emplace_back(EMPTYFLAT);
+					tmpLeft.emplace_back(SUMFLAT);
 
 					std::vector<int> tmpRight;
 					for (int k = 0 ; k <= j; ++k)
-						tmpRight.push_back(i);
+						tmpRight.emplace_back(i);
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp03.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 				}
 
 				/* [i] = sum (k..j) */
@@ -394,16 +394,16 @@ void handleCase_n_n_general(
 					/* sum (0..i)  = [j] */
 					std::vector<int> tmpLeft;
 					for (int k = 0 ; k <= i; ++k)
-						tmpLeft.push_back(j);
+						tmpLeft.emplace_back(j);
 
 					std::vector<int> tmpRight;
 					for (int k = 0; k < j; ++k)
-						tmpRight.push_back(EMPTYFLAT);
-					tmpRight.push_back(SUMFLAT);
+						tmpRight.emplace_back(EMPTYFLAT);
+					tmpRight.emplace_back(SUMFLAT);
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp04.push_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
 				}
 
 				/* fourth case: left = right */
@@ -440,10 +440,10 @@ Arrangment manuallyCreate_arrangment(
 	/*9999999 10000000 vs 1 1 1 1 1 */
 	std::vector<int> left_arr;
 	std::vector<int> right_arr;
-	left_arr.push_back(EMPTYFLAT);
-	left_arr.push_back(SUMFLAT);
+	left_arr.emplace_back(EMPTYFLAT);
+	left_arr.emplace_back(SUMFLAT);
 	for (unsigned i = 0; i < rhs_elements.size(); ++i)
-		right_arr.push_back(1);
+		right_arr.emplace_back(1);
 	return Arrangment(left_arr, right_arr, constMap, notMap);
 }
 
@@ -484,7 +484,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 					  (lhs_elements[0].second == -1 && lhs_elements[1].second == -2)))) {
 		/* create manually */
 		/*9999999 10000000 vs 1 1 1 1 1 */
-		possibleCases.push_back(manuallyCreate_arrangment(lhs_elements, rhs_elements));
+		possibleCases.emplace_back(manuallyCreate_arrangment(lhs_elements, rhs_elements));
 	}
 	else {
 		updatePossibleArrangements(lhs_elements, rhs_elements, arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)], possibleCases);
@@ -513,7 +513,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 		std::string tmp = arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].
 				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
 		if (tmp.length() > 0) {
-			cases.push_back(tmp);
+			cases.emplace_back(tmp);
 		}
 		else {
 		}
@@ -529,9 +529,9 @@ std::vector<std::string> collectAllPossibleArrangements(
 				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
 
 		if (tmp.length() > 0) {
-			cases.push_back(tmp);
-//						arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//						__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+			cases.emplace_back(tmp);
+			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -640,14 +640,14 @@ std::string create_constraints_StartsWith(
 		/* (length b = 0 && ...) || length b = 1 && ...*/
 		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (unsigned int i = 1; i < j + 1; ++i) {
-				andConstraints.push_back("(= (select " +
+				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str01) + " " +
 						std::to_string(i - 1) + ") " +
 						std::to_string(str00[i]) + ")");
 			}
-			orConstraints.push_back(andConstraint(andConstraints));
+			orConstraints.emplace_back(andConstraint(andConstraints));
 			andConstraints.clear();
 		}
 
@@ -656,9 +656,9 @@ std::string create_constraints_StartsWith(
 	}
 	else if (isConst_01){
 		/* (length a >= ... && ...) */
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
+		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
 		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
-			andConstraints.push_back("(= (select " +
+			andConstraints.emplace_back("(= (select " +
 					generateVarArray(str00) + " " +
 					std::to_string(i - 1) + ") " +
 					std::to_string(str01[i]) + ")");
@@ -666,19 +666,19 @@ std::string create_constraints_StartsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
+		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
 		for (unsigned int j = 0; j < CONNECTSIZE; ++j) {
 			/* length b = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (unsigned int i = 0; i < j; ++i) {
-				andConstraints.push_back("(= (select " +
+				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str00) + " " +
 						std::to_string(i) + ") " +
 						"(= (select " +
 						generateVarArray(str01) + " " +
 						std::to_string(i) + ") " + ")");
 			}
-			orConstraints.push_back(andConstraint(andConstraints));
+			orConstraints.emplace_back(andConstraint(andConstraints));
 			andConstraints.clear();
 		}
 		ret = orConstraint(orConstraints);
@@ -720,14 +720,14 @@ std::string create_constraints_EndsWith(
 		/* (length b = 0 && ...) || length b = 1 && ...*/
 		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
-			andConstraints.push_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (unsigned int i = str00.length() - 1 - j; i < str00.length() - 1; ++i) {
-				andConstraints.push_back("(= (select " +
+				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str01) + " " +
 						std::to_string(i - str00.length() + 1 + j) + ") " +
 						std::to_string(str00[i]) + ")");
 			}
-			orConstraints.push_back(andConstraint(andConstraints));
+			orConstraints.emplace_back(andConstraint(andConstraints));
 			andConstraints.clear();
 		}
 
@@ -737,9 +737,9 @@ std::string create_constraints_EndsWith(
 	else if (isConst_01){
 		/* endswith a "b" */
 		/* (length a >= ... && ...) */
-		andConstraints.push_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
+		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
 		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
-			andConstraints.push_back("(= (select " +
+			andConstraints.emplace_back("(= (select " +
 					generateVarArray(str00) + " " +
 					"(+ (- " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ") " + std::to_string(i - 1) + ")) " +
 					std::to_string(str01[i]) + ")");
@@ -781,7 +781,7 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
 		/* new value = old value = args[0] */
 		/* len = len && value = value */
 		std::vector<std::string> andConstraints;
-		andConstraints.push_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
+		andConstraints.emplace_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
 		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
 				connectedVariables.find(lhs) != connectedVariables.end()){
 			// TODO replace constraints: two connected variables
@@ -839,7 +839,7 @@ std::string create_constraints_ReplaceAll(
 					break;
 				}
 				else
-					listRegexPlus00.push_back(s.substr(1, s.length() - 2));
+					listRegexPlus00.emplace_back(s.substr(1, s.length() - 2));
 
 			if (tmp.length() == 0)
 				continue;
@@ -857,7 +857,7 @@ std::string create_constraints_ReplaceAll(
 							for (const auto& s : equalitiesMap[var.first][i])
 								if (s[0] == '"') {
 									if (s.find(s1) != std::string::npos)
-										listRegexPlus01.push_back(s.substr(1, s.length() - 2));
+										listRegexPlus01.emplace_back(s.substr(1, s.length() - 2));
 								}
 							if (listRegexPlus00.size() == listRegexPlus01.size()) {
 								std::string result = "";
@@ -896,13 +896,13 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	 * */
 	for (unsigned int i = value.length() - 2; i < CONNECTSIZE; ++i){
 		std::vector<std::string> tmp;
-		tmp.push_back("(< " + lenName + " " + std::to_string(i) + " )");
+		tmp.emplace_back("(< " + lenName + " " + std::to_string(i) + " )");
 
 		for (unsigned int k = 0; k < value.length() - 2; ++k) {
 			unsigned int pos = k + i - value.length() + 2;
-			tmp.push_back("(not (= (select " + arrName + " " + std::to_string(pos) + ") " + std::to_string(value[k + 1]) + "))");
+			tmp.emplace_back("(not (= (select " + arrName + " " + std::to_string(pos) + ") " + std::to_string(value[k + 1]) + "))");
 		}
-		andConstraints.push_back(orConstraint(tmp));
+		andConstraints.emplace_back(orConstraint(tmp));
 	}
 
 	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
@@ -946,15 +946,15 @@ std::string create_constraints_NOTEqual(
 		std::string arr01 = generateVarArray(str01);
 
 		/* != "a" b */
-		orConstraints.push_back("(not (= " + len01 + " " + std::to_string((int)str00.length() - 2) + "))");
+		orConstraints.emplace_back("(not (= " + len01 + " " + std::to_string((int)str00.length() - 2) + "))");
 
 		/* (length a != 0 && ...) || length b = 1 && ...*/
 		if (str00.length() > 2) {
-			andConstraints.push_back("(= " + len01 + " " + std::to_string(str00.length() - 2) + ")");
-			for (unsigned int j = 0; j < str00.length() - 2; ++j) {
-				andConstraints.push_back("(= (select " + arr01 + " " + std::to_string(j) + ") " + std::to_string((int)str00[j]) + ")");
+			andConstraints.emplace_back("(= " + len01 + " " + std::to_string(str00.length() - 2) + ")");
+			for (unsigned int j = 1; j < str00.length() - 2; ++j) {
+				andConstraints.emplace_back("(= (select " + arr01 + " " + std::to_string(j) + ") " + std::to_string((int)str00[j]) + ")");
 			}
-			orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
+			orConstraints.emplace_back("(not " + andConstraint(andConstraints) + ")");
 		}
 
 		ret = orConstraint(orConstraints);
@@ -969,18 +969,18 @@ std::string create_constraints_NOTEqual(
 			std::string arr00 = generateVarArray(str00);
 			std::string arr01 = generateVarArray(str01);
 			/* != "a" b */
-			orConstraints.push_back("(not (= " + len00 + " " + len01 + "))");
+			orConstraints.emplace_back("(not (= " + len00 + " " + len01 + "))");
 
-			andConstraints.push_back("(= " + len00 + " " + len01 + ")");
+			andConstraints.emplace_back("(= " + len00 + " " + len01 + ")");
 			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 				/*len a = len b <= i || a[i - 1] == b [i-1] */
 				std::string tmp = "";
 				tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
 				tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
 				tmp = "(or " + tmp + ")";
-				andConstraints.push_back(tmp);
+				andConstraints.emplace_back(tmp);
 			}
-			orConstraints.push_back("(not " + andConstraint(andConstraints) + ")");
+			orConstraints.emplace_back("(not " + andConstraint(andConstraints) + ")");
 			ret = orConstraint(orConstraints);
 		}
 		else {
@@ -1013,7 +1013,7 @@ std::string create_constraints_ToLower(std::string str00, std::string str01){
 		tmp = tmp + " (= (+ (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
 		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
 		tmp = "(or " + tmp + ")";
-		andConstraints.push_back(tmp);
+		andConstraints.emplace_back(tmp);
 	}
 	return andConstraint(andConstraints);
 }
@@ -1038,7 +1038,7 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 		tmp = tmp + " (= (- (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
 		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
 		tmp = "(or " + tmp + ")";
-		andConstraints.push_back(tmp);
+		andConstraints.emplace_back(tmp);
 	}
 	return andConstraint(andConstraints);
 }
@@ -1127,7 +1127,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.find("(Replace ") != std::string::npos){
 			std::vector<std::string> args = extract_three_arguments(s.first);
-			//			global_smtStatements.push_back({create_constraints_Replace("xxxxx", args, s.second)});
+			//			global_smtStatements.emplace_back({create_constraints_Replace("xxxxx", args, s.second)});
 		}
 	}
 }
@@ -1148,7 +1148,7 @@ void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
 			for (const auto s : l)
 				if (s[0] != '"')
 					tmp = tmp + s;
-			eqToStr[var.first].push_back(tmp);
+			eqToStr[var.first].emplace_back(tmp);
 		}
 	}
 
@@ -1196,8 +1196,8 @@ void handle_ToLower(std::map<std::string, std::string> rewriterStrMap){
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	for (const auto& s : connectedVariables){
-		defines.push_back("(declare-const arr_" + s + " (Array Int Int))");
-//		constraints.push_back("(assert (< " + generateVarLength(s) + " " + std::to_string(100) +"))");
+		defines.emplace_back("(declare-const arr_" + s + " (Array Int Int))");
+//		constraints.emplace_back("(assert (< " + generateVarLength(s) + " " + std::to_string(100) +"))");
 	}
 }
 
@@ -1209,10 +1209,10 @@ void create_const_array(
 		std::vector<std::string> &constraints){
 
 	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
-		defines.push_back("(declare-const arr_" + it->second + " (Array Int Int))");
+		defines.emplace_back("(declare-const arr_" + it->second + " (Array Int Int))");
 		if (!isRegexStr(it->first))
 			for (unsigned int i = 0 ; i < it->first.length(); ++i) {
-				constraints.push_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
+				constraints.emplace_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
 			}
 		else {
 			std::string regexContent = parse_regex_content(it->first);
@@ -1226,7 +1226,7 @@ void create_const_array(
 				constraint = constraint + ")\n";
 			}
 			constraint = "(assert (or \n" + constraint + "\n))";
-			constraints.push_back(constraint);
+			constraints.emplace_back(constraint);
 		}
 	}
 }
@@ -1244,8 +1244,8 @@ void create_const_array(
 void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, regexCnt);
 	for (int i = 0 ; i < regexCnt; ++i) {
-		defines.push_back("(declare-const __regex_" + std::to_string(i) + " Int)");
-		constraints.push_back("(assert (>= __regex_" + std::to_string(i) + " 0))");
+		defines.emplace_back("(declare-const __regex_" + std::to_string(i) + " Int)");
+		constraints.emplace_back("(assert (>= __regex_" + std::to_string(i) + " 0))");
 	}
 }
 
@@ -1267,13 +1267,13 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 			std::string lenX = "";
 			std::string varName = "len_" + it->second + "_";
 			if ( it->first.length() <= SPLIT_UNDER_BOUND - 2) { /* -2 because of "xxxx" */
-				defines.push_back("(declare-const len_" + it->second + "_" + "1 Int)");
-				constraints.push_back("(assert (>= len_" + it->second + "_" + "1 0))");
+				defines.emplace_back("(declare-const len_" + it->second + "_" + "1 Int)");
+				constraints.emplace_back("(assert (>= len_" + it->second + "_" + "1 0))");
 				lenX = varName + "1 0";
 			}
 			else for (int i = 1; i <= QCONSTMAX; ++i) {
-				defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(i) + " Int)");
-				constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(i) + " 0))");
+				defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(i) + " Int)");
+				constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(i) + " 0))");
 				lenX = lenX + varName + std::to_string(i) + " ";
 			}
 
@@ -1285,11 +1285,11 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 			/*(assert (= const (+ sum(len_x_i)))) */
 			lenX = "(assert (= " + lenName + " " + lenX  + "))";
 
-			constraints.push_back(lenX);
+			constraints.emplace_back(lenX);
 		}
 		else {
-			defines.push_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
-			constraints.push_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+			defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
+			constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
 
 			create_constraints_regex(defines, constraints, it->first, it->second);
 		}
@@ -1311,9 +1311,9 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		std::string lenX = "";
 		std::string lenVarName = generateVarLength(var);
 		for (int i = 0; i < QMAX; ++i) {
-			defines.push_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
-			constraints.push_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-//			constraints.push_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 100))");
+			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
+			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 300))");
 			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
 		}
 
@@ -1322,12 +1322,12 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			lenX = "(+ " + lenX + ")";
 
 		/*(assert (= const (+ sum(len_x_i)))) */
-		// constraints.push_back("(assert (< " + lenName + " 200))");
-		constraints.push_back("(assert (= " + lenVarName + " " + lenX  + "))");
+		// constraints.emplace_back("(assert (< " + lenName + " 200))");
+		constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
 
 		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
 			/* they are internal variables */
-			defines.push_back("(declare-const " + lenVarName + " Int)");
+			defines.emplace_back("(declare-const " + lenVarName + " Int)");
 		}
 	}
 }
@@ -1349,11 +1349,11 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 	std::string constraint = "(assert (= len_" + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
 	for (const auto& size : componentSizes){
 		std::string tmp = name + "__p" + std::to_string(cnt++);
-		defines.push_back("(declare-const " + tmp + " Int)");
+		defines.emplace_back("(declare-const " + tmp + " Int)");
 		constraint = constraint + "(* " + tmp + " " + std::to_string(size) + ") ";
 	}
 	constraint = constraint + ") ) )";
-	constraints.push_back(constraint);
+	constraints.emplace_back(constraint);
 }
 
 /*
@@ -1561,10 +1561,10 @@ void verifyOutput(std::string outFile,
 				tokens[1].find("__flat_") == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare("len_") == 0) {
 				std::string tmp = def.substr(4);
-				additionalAssertions.push_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
+				additionalAssertions.emplace_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
 			}
 			else {
-				additionalAssertions.push_back("(assert (= " + tokens[1] + " " + value + "))\n");
+				additionalAssertions.emplace_back("(assert (= " + tokens[1] + " " + value + "))\n");
 			}
 		}
 	}
@@ -1572,7 +1572,7 @@ void verifyOutput(std::string outFile,
 	for (const auto& value : strValue)
 		if (value.first.find("$$") == std::string::npos &&
 				value.first.find("__flat_") == std::string::npos){
-			additionalAssertions.push_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
+			additionalAssertions.emplace_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
 		}
 
 	/* read & copy the input file */
@@ -1738,18 +1738,18 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 				if (it->second[i][j][0] == '\"') { /* AutomataDef */
 					std::string constStr = collectConst(it->second[i][j]);
 					if (constStr.length() > 0)
-						anEq.push_back(collectConst(it->second[i][j]));
+						anEq.emplace_back(collectConst(it->second[i][j]));
 				}
 				else {/* skip const */
 					if (varLength.find(it->second[i][j]) == varLength.end() || /* does not know its length */
 							(varLength.find(it->second[i][j]) != varLength.end() && varLength[it->second[i][j]] > 0)) /* or length > 0 */ {
 
-						anEq.push_back(it->second[i][j]);
+						anEq.emplace_back(it->second[i][j]);
 						allVariables.insert(it->second[i][j]);
 					}
 				}
 			}
-			setOfEQ.push_back(anEq);
+			setOfEQ.emplace_back(anEq);
 		}
 		equalitiesMap[it->first] = setOfEQ;
 	}
@@ -1819,10 +1819,10 @@ void sumConstString(){
 							/* add to vector, create a sum for two continuous elements */
 							while (pos < regexElements[0].size()){
 								if (isRegexStr(regexElements[0][pos])) {
-									localElements.push_back("\"" + regexElements[0][pos] + "__" + std::to_string(regexCnt++) + "\"");
+									localElements.emplace_back("\"" + regexElements[0][pos] + "__" + std::to_string(regexCnt++) + "\"");
 								}
 								else {
-									localElements.push_back(regexElements[0][pos]);
+									localElements.emplace_back(regexElements[0][pos]);
 								}
 								pos++;
 							}
@@ -1844,7 +1844,7 @@ void sumConstString(){
 
 						/* 2. add tmp the list */
 						if (tmpStr.length() > 0) {
-							elements.push_back("\"" + tmpStr + "\"");
+							elements.emplace_back("\"" + tmpStr + "\"");
 							tmpStr = "";
 						}
 
@@ -1852,7 +1852,7 @@ void sumConstString(){
 							elements.insert(elements.end(), localElements.begin(), localElements.end());
 						else {
 							for (unsigned int kk = 1; kk < localElements.size(); ++kk)
-								elements.push_back(localElements[kk]);
+								elements.emplace_back(localElements[kk]);
 						}
 					}
 					else /* meet const str */
@@ -1860,20 +1860,20 @@ void sumConstString(){
 				}
 				else { /* meet variable */
 					if (tmpStr.length() > 0) {
-						elements.push_back("\"" + tmpStr + "\"");
+						elements.emplace_back("\"" + tmpStr + "\"");
 						tmpStr = "";
 					}
-					elements.push_back(s);
+					elements.emplace_back(s);
 				}
 			}
 
 			if (tmpStr.length() > 0) {
-				elements.push_back("\"" + tmpStr + "\"");
+				elements.emplace_back("\"" + tmpStr + "\"");
 				tmpStr = "";
 			}
 
 			if (elements.size() > 0)
-				tmp_vector.push_back(elements);
+				tmp_vector.emplace_back(elements);
 		}
 		new_eqMap[_eq.first] = tmp_vector;
 	}
@@ -1908,7 +1908,7 @@ void createConstMap(){
 				if (it->second[j][k][0] == '\"'){
 					std::string content = it->second[j][k].substr(1, it->second[j][k].length() - 2);
 					/* string is regex ? */
-					if (content[content.length() - 1] == '*' || content[content.length() - 1] == '+') {
+					if (isRegexStr(content)) {
 						content = content + "__" + std::to_string(constCnt);
 					}
 					constMap[content] = "const_" + std::to_string(constCnt++);
@@ -1960,6 +1960,9 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 							usedComponents[eq.second[j][k]] = value;
 					}
 			}
+
+		if (eq.second.size() > 4)
+			connectedVarSet.insert(eq.first);
 	}
 
 	/* from rewriterMap */
@@ -1975,6 +1978,10 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 					tmpPair.second.find("(Concat ") != std::string::npos ||
 					tmpPair.second.find("(Automata") != std::string::npos)
 				continue;
+
+			if (s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0)
+				if (tmpPair.first.compare("\"\"") == 0 || tmpPair.second.compare("\"\"") == 0)
+					continue;
 
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.c_str(), tmpPair.first.c_str(), tmpPair.second.c_str());
 			/* add all of variables to the connected var set*/
@@ -2021,12 +2028,12 @@ void decodeEqualMap(){
 			std::vector<std::string> tmp;
 			for (const auto& s : eq.second[j]) {
 				if (s[0] != '\"') /* const */ {
-					tmp.push_back(s);
+					tmp.emplace_back(s);
 				}
 				else
-					tmp.push_back(decodeStr(s));
+					tmp.emplace_back(decodeStr(s));
 			}
-			tmp_vector.push_back(tmp);
+			tmp_vector.emplace_back(tmp);
 		}
 
 		if (eq.first[0] != '\"')
@@ -2066,7 +2073,7 @@ void refineEqualMap(){
 			for (unsigned int k = 0; k < _eq.size(); ++k) {
 				if (_eq[k][0] == '\"' /* const */ ||
 						connectedVariables.find(_eq[k]) != connectedVariables.end()) {
-					tmp_vector.push_back(_eq);
+					tmp_vector.emplace_back(_eq);
 					break;
 				}
 			}
@@ -2080,7 +2087,7 @@ void refineEqualMap(){
 		if (tmp_vector.size() == 0 ||
 				(tmp_vector.size() == 1 && connectedVariables.find(varEq.first) != connectedVariables.end())){
 			if (backup.size() > 0) {
-				tmp_vector.push_back(backup);
+				tmp_vector.emplace_back(backup);
 			}
 		}
 
@@ -2095,7 +2102,7 @@ void refineEqualMap(){
 				}
 			}
 			if (notAdd == false)
-				tmp_vector01.push_back(tmp_vector[i]);
+				tmp_vector01.emplace_back(tmp_vector[i]);
 		}
 
 		new_eqMap[varEq.first] = tmp_vector01;
@@ -2252,7 +2259,7 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 			std::vector<std::vector<std::string>> tmp = parseRegexComponents(c);
 			assert(tmp.size() <= 1);
 			if (tmp.size() == 1)
-				result.push_back(tmp[0]);
+				result.emplace_back(tmp[0]);
 		}
 		return result;
 	}
@@ -2269,7 +2276,7 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
 			std::vector<std::string> tmp = {header};
 			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
-			result.push_back(tmp);
+			result.emplace_back(tmp);
 		}
 		return result;
 	}
@@ -2316,7 +2323,7 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 							std::vector<std::string> tmp;
 							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
 							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
-							result.push_back(tmp);
+							result.emplace_back(tmp);
 						}
 				}
 				else {
@@ -2368,7 +2375,7 @@ std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std:
 	std::vector<std::vector<std::string>> result;
 	for (unsigned int i = 0 ; i < list.size(); ++i)
 		if (!duplicated[i])
-			result.push_back(list[i]);
+			result.emplace_back(list[i]);
 
 	for (unsigned int i = 0; i < result.size(); ++i)
 		for (unsigned int j = 0; j < result[i].size(); ++j)
@@ -2394,14 +2401,14 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
 					tmp[tmp.size() - 1] = "\"" + tmpStr.substr(1, tmpStr.length() - 2) + newStr.substr(1, newStr.length() - 2) + "\"";
 				}
 				else
-					tmp.push_back(regexElements[i][j]);
+					tmp.emplace_back(regexElements[i][j]);
 			}
 			else {
 				isRegex_prev = isRegexStr(regexElements[i][j]);
-				tmp.push_back(regexElements[i][j]);
+				tmp.emplace_back(regexElements[i][j]);
 			}
 		}
-		results.push_back(tmp);
+		results.emplace_back(tmp);
 	}
 	return results;
 }
@@ -2418,24 +2425,24 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 			if (!isRegexStr(list[k])) {
 				if (list[k].length() > SPLIT_UNDER_BOUND) /* const string */ {
 					for (int j = 0; j < QCONSTMAX; ++j) { /* split variables into QMAX parts */
-						elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
+						elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
 					}
 				}
 				else {
 					/* length < SPLIT_UNDER_BOUND */
-					elements.push_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
+					elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
 				}
 			}
 			else {
 				/* regex */
 				std::string content = list[k].substr(1, list[k].length() - 2);
 
-				elements.push_back(std::make_pair(content, REGEX_CODE));
+				elements.emplace_back(std::make_pair(content, REGEX_CODE));
 			}
 		}
 		else {
 			for (int j = 0; j < QMAX; ++j) { /* split variables into QMAX parts */
-				elements.push_back(std::make_pair(list[k], j));
+				elements.emplace_back(std::make_pair(list[k], j));
 			}
 		}
 
@@ -2453,7 +2460,7 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 	std::vector<std::string> result;
 	for (int i = 0 ; i < flatP; ++i) {
 		std::string varName = "__flat_" + std::to_string(noFlatVariables + i);
-		result.push_back(varName);
+		result.emplace_back(varName);
 		connectedVariables.insert(varName);
 		allVariables.insert(varName);
 	}
@@ -2494,10 +2501,10 @@ void optimizeEquality(
 	__debugPrint(logFile, "%d common prefix = %d; common posfix = %d\n", __LINE__, prefix, posfix);
 
 	for (unsigned int i = prefix + 1; i < lhs.size() - posfix - 1; ++i)
-		new_lhs.push_back(lhs[i]);
+		new_lhs.emplace_back(lhs[i]);
 
 	for (unsigned int i = prefix + 1; i < rhs.size() - posfix - 1; ++i)
-		new_rhs.push_back(rhs[i]);
+		new_rhs.emplace_back(rhs[i]);
 }
 
 /*
@@ -2577,7 +2584,7 @@ void convertEqualities(){
 					for (const auto& r : result.second)
 						global_smtVars[r.first] = 'd';
 
-					global_smtStatements.push_back(result.first);
+					global_smtStatements.emplace_back(result.first);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2611,7 +2618,7 @@ void convertEqualities(){
 					for (const auto& r : result.second) {
 						global_smtVars[r.first] = 'd';
 					}
-					global_smtStatements.push_back(result.first);
+					global_smtStatements.emplace_back(result.first);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2654,7 +2661,7 @@ void convertEqualities(){
 						for (const auto& smtVar : result.second) {
 							global_smtVars[smtVar.first] = 'd';
 						}
-						global_smtStatements.push_back(result.first);
+						global_smtStatements.emplace_back(result.first);
 					}
 					else {
 						__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
@@ -2703,11 +2710,11 @@ void testEqualityToSMT(){
 	int variables = 5;
 	for (int i = 0; i < variables; ++i)
 		for (int j = 0; j < QMAX; ++j) {
-			lhs_elements.push_back(std::make_pair("varX" + std::to_string(i), j));
-			rhs_elements.push_back(std::make_pair("varY" + std::to_string(i), j));
+			lhs_elements.emplace_back(std::make_pair("varX" + std::to_string(i), j));
+			rhs_elements.emplace_back(std::make_pair("varY" + std::to_string(i), j));
 		}
 
-	lhs_elements.push_back(std::make_pair(frame, -1));
+	lhs_elements.emplace_back(std::make_pair(frame, -1));
 	// std::cout << tim::measure<>::execution(equalityToSMT, lhs_elements, rhs_elements) << std::endl;
 }
 

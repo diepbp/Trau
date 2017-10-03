@@ -17,10 +17,15 @@
 #include <direct.h>   // _mkdir
 #endif
 
+#define LOGFILE "log.smt2"
+#define LOGAXIOMFILE "logAxiom.smt2"
+
 bool isDirExist(const std::string& path);
 
 bool makePath(const std::string& path);
 
 void removeFile(const std::string& fileName);
+
+void removeLog();
 
 #endif /* FILEUTILS_H_ */

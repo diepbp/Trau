@@ -236,14 +236,14 @@ void updateStartsWith(std::string &s,
 void updateReplace(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Replace ");
-	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+//	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 	while (found != std::string::npos){
 		while (found >= 0) {
 			if (s[found] == '(' && s[found + 1] == '='){
 				unsigned int pos = findCorrespondRightParentheses(found, s);
 
 				std::string substr = s.substr(found, pos - found + 1);
-				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+//				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 				s = s.replace(found, substr.length(), "true");
 				break;
 			}
@@ -260,14 +260,14 @@ void updateReplace(std::string &s,
 void updateReplaceAll(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(ReplaceAll ");
-	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+//	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 	while (found != std::string::npos){
 		while (found >= 0) {
 			if (s[found] == '(' && s[found + 1] == '='){
 				unsigned int pos = findCorrespondRightParentheses(found, s);
 
 				std::string substr = s.substr(found, pos - found + 1);
-				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+//				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 				s = s.replace(found, substr.length(), "true");
 				break;
 			}
@@ -569,7 +569,7 @@ void updateVariables(std::string &s, std::vector<std::string> strVars) {
 		for (unsigned int j = 0; j < anotherTmp.size(); ++j) {
 			if (std::find(strVars.begin(), strVars.end(), anotherTmp[j]) != strVars.end()){
 				// there exists string variables
-				vars.push_back(anotherTmp[j]);
+				vars.emplace_back(anotherTmp[j]);
 			}
 		}
 		for (unsigned int j = 0 ; j < vars.size(); ++j) {
@@ -655,12 +655,12 @@ std::vector<std::string> _collectAlternativeComponents(std::string str){
 			counter++;
 		}
 		else if ((str[j] == '|' || str[j] == '~') && counter == 0) {
-			result.push_back(str.substr(startPos, j - startPos));
+			result.emplace_back(str.substr(startPos, j - startPos));
 			startPos = j + 1;
 		}
 	}
 	if (startPos != 0)
-		result.push_back(str.substr(startPos, str.length() - startPos));
+		result.emplace_back(str.substr(startPos, str.length() - startPos));
 	return result;
 }
 
@@ -700,7 +700,7 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 			std::vector<std::vector<std::string>> tmp = _parseRegexComponents(alternativeRegex[i]);
 			assert(tmp.size() <= 1);
 			if (tmp.size() == 1)
-				result.push_back(tmp[0]);
+				result.emplace_back(tmp[0]);
 		}
 		return result;
 	}
@@ -717,7 +717,7 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
 			std::vector<std::string> tmp = {header};
 			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
-			result.push_back(tmp);
+			result.emplace_back(tmp);
 		}
 		return result;
 	}
@@ -762,7 +762,7 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 							std::vector<std::string> tmp;
 							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
 							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
-							result.push_back(tmp);
+							result.emplace_back(tmp);
 						}
 				}
 				else {
@@ -936,15 +936,15 @@ void prepareEncoderDecoderMap(std::string fileName){
 	std::vector<char> unused;
 	for (unsigned i = '0'; i <= '9'; ++i)
 		if (used[i] == false)
-			unused.push_back(i);
+			unused.emplace_back(i);
 
 	for (unsigned i = 'a'; i <= 'z'; ++i)
 		if (used[i] == false)
-			unused.push_back(i);
+			unused.emplace_back(i);
 
 	for (unsigned i = 'A'; i <= 'Z'; ++i)
 			if (used[i] == false)
-				unused.push_back(i);
+				unused.emplace_back(i);
 
 	__debugPrint(logFile, "%d *** %s ***: unused = %u, encoded = %u\n", __LINE__, __FUNCTION__, unused.size(), encoded.size());
 	assert(unused.size() >= encoded.size());
@@ -1011,8 +1011,8 @@ void rewriteGRM(std::string s,
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
-					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexStar (Str2Reg \"" + tmp + "\"))))\n");
+					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
+					constraints.emplace_back("(assert (RegexIn " + constMap[content] + "_100 (RegexStar (Str2Reg \"" + tmp + "\"))))\n");
 
 					if (result.length() > 0)
 						result = "(Concat " + result + " " + constMap[content]+ "_100)";
@@ -1024,8 +1024,8 @@ void rewriteGRM(std::string s,
 					unsigned int rightParentheses = components[j].find(')');
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
-					definitions.push_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.push_back("(assert (RegexIn " + constMap[content] + "_100 (RegexPlus (Str2Reg \"" + tmp + "\"))))\n");
+					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
+					constraints.emplace_back("(assert (RegexIn " + constMap[content] + "_100 (RegexPlus (Str2Reg \"" + tmp + "\"))))\n");
 					if (result.length() > 0)
 						result = "(Concat " + result + " " + constMap[content]+ "_100)";
 					else
@@ -1048,7 +1048,7 @@ void rewriteGRM(std::string s,
 	//assert(result.length() > 0);
 
 	result = "(assert (= " + varName + " " + result + "))\n";
-	constraints.push_back(result);
+	constraints.emplace_back(result);
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, result.c_str());
 }
 
@@ -1091,7 +1091,7 @@ void rewriteGRM_toNewFile(
 					rewriteGRM(tmp, equalitiesMap, constMap, definitions, constraints);
 				}
 				else
-					constraints.push_back(tmp);
+					constraints.emplace_back(tmp);
 			}
 		}
 	}
@@ -1132,9 +1132,9 @@ void customizeLine_ToCreateLengthLine(
 		std::vector<std::string> tokens = parse_string_language(str, " \n");
 		if (str.find("String)") != std::string::npos || str.find("String )") != std::string::npos ) {
 			/* length must be greater/equal than/to 0 */
-			smtLenConstraints.push_back("(assert (>= len_" + tokens[1] + " 0))\n");
+			smtLenConstraints.emplace_back("(assert (>= len_" + tokens[1] + " 0))\n");
 
-			strVars.push_back(tokens[1]); /* list of string variables */
+			strVars.emplace_back(tokens[1]); /* list of string variables */
 
 			if (tokens[1].find("const_") != 0)
 				str = redefineStringVar(tokens[1]);
@@ -1146,7 +1146,7 @@ void customizeLine_ToCreateLengthLine(
 		}
 
 		if (str.length() > 0)
-			smtVarDefinition.push_back(str);
+			smtVarDefinition.emplace_back(str);
 	}
 
 	/* assertion */
@@ -1292,10 +1292,10 @@ void customizeLine_ToCreateLengthLine(
 		updateVariables(newStr, strVars); /* xyz --> len_xyz */
 
 //		__debugPrint(logFile, "%d newStr: %s\n",__LINE__, newStr.c_str());
-		smtLenConstraints.push_back(newStr);
+		smtLenConstraints.emplace_back(newStr);
 	}
 	else
-		smtLenConstraints.push_back(str);
+		smtLenConstraints.emplace_back(str);
 }
 
 /*
@@ -1447,7 +1447,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
 	{
 		/* read a line */
 		if (fgets(buffer, 5000, in) != NULL) {
-			lines.push_back(customizeLine_replaceConst(buffer, constStr));
+			lines.emplace_back(customizeLine_replaceConst(buffer, constStr));
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
@@ -1541,7 +1541,7 @@ void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 					// rewriteGRM(tmp, _equalMap, newVars, definitions, constraints);
 				}
 				else {
-					constraints.push_back(tmp);
+					constraints.emplace_back(tmp);
 				}
 			}
 		}
@@ -1569,7 +1569,7 @@ void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
  *
  */
 std::string decodeStr(std::string s){
-	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
 	std::string tmp = "";
 	int cnt = 0;
 	for (unsigned int i = 0; i < s.length(); ++i){
@@ -1585,6 +1585,6 @@ std::string decodeStr(std::string s){
 			tmp = tmp + s[i];
 
 	}
-	__debugPrint(logFile, " %s\n", tmp.c_str());
+//	__debugPrint(logFile, " %s\n", tmp.c_str());
 	return tmp;
 }

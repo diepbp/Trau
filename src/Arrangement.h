@@ -48,11 +48,11 @@ public:
 	}
 
 	void addLeft(int number) {
-		left_arr.push_back(number);
+		left_arr.emplace_back(number);
 	}
 
 	void addRight(int number) {
-		right_arr.push_back(number);
+		right_arr.emplace_back(number);
 	}
 
 	bool canSplit(int boundedFlat, int boundSize, int pos, std::string frame, std::vector<std::string> &flats) {
@@ -61,7 +61,7 @@ public:
 
 		for (int size = 1; size <= boundSize; ++size) { /* size of a flat */
 			std::string flat = frame.substr(pos, size);
-			flats.push_back(flat); /* add to stack */
+			flats.emplace_back(flat); /* add to stack */
 			int tmpPos = pos + size;
 
 			while (true) {
@@ -152,7 +152,7 @@ public:
 			/* TODO: bound P */
 			else if (elementNames[i].second < 0) { /* const */
 				if (currentSplit[i] > (int)elementNames[i].first.length()) {
-					__debugPrint(logFile, "%d %s (%ld) -- %d\n", __LINE__, elementNames[i].first.c_str(), elementNames[i].first.length(), currentSplit[i]);
+					__debugPrint(logFile, "%d %s (%ld), part %d -- %d\n", __LINE__, elementNames[i].first.c_str(), elementNames[i].first.length(), elementNames[i].second, currentSplit[i]);
 				}
 				assert ((int)elementNames[i].first.length() >= currentSplit[i]);
 
@@ -201,19 +201,19 @@ public:
 		// bool isloopExist = true;
 
 		std::vector<int> possibleCases;
-		possibleCases.push_back(0);
+		possibleCases.emplace_back(0);
 		if (rhs.compare(initialLhs.substr(posLhs, rhs.length())) == 0) {
 			int pos_lhs = (posLhs + rhs.length()) % lhs.length();
 			int iterRhs = 1;
 
-			possibleCases.push_back(1);
+			possibleCases.emplace_back(1);
 
 			std::string double_str = initialLhs + initialLhs;
 			while (pos_lhs != posLhs) {
 
 				/* loop until it goes back the inital possition */
 				if (rhs.compare(double_str.substr(pos_lhs, rhs.length())) == 0) {
-					possibleCases.push_back(++iterRhs);
+					possibleCases.emplace_back(++iterRhs);
 					pos_lhs = (pos_lhs + rhs.length()) % lhs.length();
 				}
 				else {
@@ -266,7 +266,7 @@ public:
 				initialLhs = initialLhs + lhs;
 
 			if (tmpRhs.compare(initialLhs.substr(posLhs, tmpRhs.length())) == 0) {
-				potentialPos.push_back(rhs.length() - i);
+				potentialPos.emplace_back(rhs.length() - i);
 			}
 		}
 		return potentialPos;
@@ -288,7 +288,7 @@ public:
 				initialLhs = initialLhs + lhs;
 
 			if (tmpRhs.compare(initialLhs.substr(posLhs, tmpRhs.length())) == 0) {
-				potentialPos.push_back(i);
+				potentialPos.emplace_back(i);
 			}
 			else
 				return potentialPos;
@@ -313,18 +313,18 @@ public:
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
 		assert(pos <= (int) str.length());
-		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
+//		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
 		/* reach end */
 		if (currentSplit.size() == elementNames.size()){
 			if (pos == (int)str.length() &&
 					feasibleSplit_const(str, elementNames, currentSplit)) {
 
-				splitPrintTest(currentSplit, "Accepted");
-				allPossibleSplits.push_back(currentSplit);
+//				splitPrintTest(currentSplit, "Accepted");
+				allPossibleSplits.emplace_back(currentSplit);
 			}
 			else {
-				__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
-				splitPrintTest(currentSplit, "Rejected");
+//				__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
+//				splitPrintTest(currentSplit, "Rejected");
 			}
 			return;
 		}
@@ -337,7 +337,7 @@ public:
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
-					currentSplit.push_back(elementNames[currentSplit.size()].first.length());
+					currentSplit.emplace_back(elementNames[currentSplit.size()].first.length());
 					collectAllPossibleSplits_const(pos + elementNames[currentSplit.size() - 1].first.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
@@ -350,7 +350,7 @@ public:
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
 					for (int i = 1; i < std::min(7, (int)elementNames[currentSplit.size()].first.length()); ++i) {
-						currentSplit.push_back(i);
+						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_const(pos + i, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
@@ -365,7 +365,7 @@ public:
 			unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
 			if (length <= textLeft) {
-				currentSplit.push_back(length);
+				currentSplit.emplace_back(length);
 				collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -373,13 +373,15 @@ public:
 		}
 
 		/* head is const part 2*/
-		else if (currentSplit.size() == 0 && elementNames[0].second == -2 && QCONSTMAX == 2) /* const */ {
-			for (unsigned int i = 0; i < std::min(elementNames[0].first.length(), str.length()); ++i) {
+		else if (currentSplit.size() == 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
+
+			for (unsigned int i = 0; i < std::min(elementNames[currentSplit.size()].first.length(), str.length()); ++i) {
+
 				std::string tmp00 = elementNames[0].first.substr(i);
 				std::string tmp01 = str.substr(0, tmp00.length());
 				if (tmp00.compare(tmp01) == 0){
-					currentSplit.push_back(str.length() - tmp00.length());
-					collectAllPossibleSplits_const(tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+					currentSplit.emplace_back(tmp00.length());
+					collectAllPossibleSplits_const(pos + tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
 			}
@@ -398,13 +400,13 @@ public:
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
 					if (re.MatchAll(regexValue) == true) {
-						currentSplit.push_back(length);
+						currentSplit.emplace_back(length);
 						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
 				}
 				else {
-					currentSplit.push_back(length);
+					currentSplit.emplace_back(length);
 					collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
@@ -424,7 +426,7 @@ public:
 		if (currentSplit.size() == elementNames.size() &&
 				pos == 0) {
 
-			allPossibleSplits.push_back(currentSplit);
+			allPossibleSplits.emplace_back(currentSplit);
 			return;
 		}
 		else if (currentSplit.size() >= elementNames.size()) {
@@ -436,7 +438,7 @@ public:
 //			printf("%d Case 00: const qmax = 1\n", __LINE__);
 			/* compare text, check whether the string can start from the location pos in text */
 			if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
-				currentSplit.push_back(elementNames[currentSplit.size()].first.length());
+				currentSplit.emplace_back(elementNames[currentSplit.size()].first.length());
 				collectAllPossibleSplits_regex((pos + elementNames[currentSplit.size() - 1].first.length()) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -448,7 +450,7 @@ public:
 			assert (elementNames[currentSplit.size() - 1].second == -1);
 			int length = elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
-			currentSplit.push_back(length);
+			currentSplit.emplace_back(length);
 			collectAllPossibleSplits_regex((pos + length) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 			currentSplit.pop_back();
 		}
@@ -458,7 +460,7 @@ public:
 			/* find all possible start points */
 			std::vector<int> tail = tail_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
 			for (unsigned int i = 0 ; i < tail.size(); ++i) {
-				currentSplit.push_back(tail[i]);
+				currentSplit.emplace_back(tail[i]);
 				collectAllPossibleSplits_regex((pos + tail[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -470,7 +472,7 @@ public:
 			/* find all possible start points */
 			std::vector<int> head = head_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
 			for (unsigned int i = 0 ; i < head.size(); ++i) {
-				currentSplit.push_back(head[i]);
+				currentSplit.emplace_back(head[i]);
 				collectAllPossibleSplits_regex((pos + head[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -482,7 +484,7 @@ public:
 			if (elementNames[currentSplit.size() + 1].second == -2){
 				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
 					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
-						currentSplit.push_back(i);
+						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
@@ -492,7 +494,7 @@ public:
 				/* this const only has 1 part */
 				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
 					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
-						currentSplit.push_back(i);
+						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
@@ -517,9 +519,9 @@ public:
 //					printf("%d Case 06: value = (loop)%ld %s\n", __LINE__, - content.length() * regexPos[i], content.c_str());
 					int tmp = (content.length() * regexPos[i]) % str.length();
 					if (tmp == 0)
-						currentSplit.push_back(MINUSZERO);
+						currentSplit.emplace_back(MINUSZERO);
 					else
-						currentSplit.push_back(-tmp);
+						currentSplit.emplace_back(-tmp);
 					collectAllPossibleSplits_regex((pos + content.length() * regexPos[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
@@ -527,7 +529,7 @@ public:
 				for (unsigned int i = 0 ; i < regexPos.size(); ++i) { /* assign value >= 0 */
 					int tmp = (pos + content.length() * regexPos[i]) % str.length();
 //					printf("%d Case 06: value = (unloop)%d\n", __LINE__, tmp);
-					currentSplit.push_back(content.length() * regexPos[i]);
+					currentSplit.emplace_back(content.length() * regexPos[i]);
 					collectAllPossibleSplits_regex(tmp, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
 				}
@@ -538,9 +540,9 @@ public:
 			for (unsigned int i = 0; i < str.length(); ++i) { /* assign value < 0 because it can iterate many times */
 				int length = i;
 				if (length == 0)
-					currentSplit.push_back(MINUSZERO);
+					currentSplit.emplace_back(MINUSZERO);
 				else
-					currentSplit.push_back(- length);
+					currentSplit.emplace_back(- length);
 				collectAllPossibleSplits_regex((pos + length) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
@@ -648,15 +650,15 @@ public:
 		for (unsigned int i = 0; i < elementNames.size(); ++i)
 			if (elementNames[i].second < 0) {
 				if (pre > 0) {
-					alias.push_back(std::make_pair("e" + std::to_string(cnt++), pre));
+					alias.emplace_back(std::make_pair("e" + std::to_string(cnt++), pre));
 					pre = 0;
 				}
-				alias.push_back(elementNames[i]);
+				alias.emplace_back(elementNames[i]);
 			}
 			else
 				pre++;
 		if (pre > 0)
-			alias.push_back(std::make_pair("e" + std::to_string(cnt++), pre));
+			alias.emplace_back(std::make_pair("e" + std::to_string(cnt++), pre));
 
 		/* use alias instead of elementNames */
 		std::vector<std::vector<int> > allPossibleSplits;
@@ -742,11 +744,11 @@ public:
 
 		if (a.second != REGEX_CODE) {
 			for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
-				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
 			}
 
 			for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
 			}
 		}
 		else {
@@ -754,7 +756,7 @@ public:
 		}
 
 		for (int i = 0 ; i < pos; ++i) { /* pre-elements */
-			addElements.push_back(generateFlatSize(elementNames[i], rhs));
+			addElements.emplace_back(generateFlatSize(elementNames[i], rhs));
 		}
 
 		return addConstraint_half(addElements);
@@ -768,11 +770,11 @@ public:
 		std::vector<std::string> addElements;
 		if (a.second != REGEX_CODE) {
 			for (int i = a.second + 1; i < 0; ++i){ /* a is const */
-				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
 			}
 
 			for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-				addElements.push_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
 			}
 		}
 		else {
@@ -792,7 +794,7 @@ public:
 	//  	assert (pos < elementNames.size());
 	//
 	//  	for (int i = 0; i < pos; ++i){
-	//  		addElements.push_back(generateFlatSize(elementNames[i], rhs));
+	//  		addElements.emplace_back(generateFlatSize(elementNames[i], rhs));
 	//  	}
 	//
 	//  	return addConstraint(addElements);
@@ -880,7 +882,7 @@ public:
 			std::vector<int> split,
 			std::string lhs, std::string rhs,
 			std::set<std::string> connectedVariables){
-		__debugPrint(logFile, "%d const|regex = const + connected var\n", __LINE__);
+//		__debugPrint(logFile, "%d const|regex = const + connected var\n", __LINE__);
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
 			if (split[j] > 0 && split[j] != MINUSZERO)
@@ -892,7 +894,7 @@ public:
 
 		std::vector<std::string> strAnd;
 		if (totalLength > 0) /* only has const, does not have regex */ {
-			strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
+			strAnd.emplace_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
 		}
 		std::vector<std::string> addElements;
 
@@ -905,7 +907,7 @@ public:
 
 		for (unsigned int i = 0; i < elementNames.size(); ++i){
 			if (elementNames[i].second >= 0) /* not const */ {
-				addElements.push_back(generateFlatSize(elementNames[i]));
+				addElements.emplace_back(generateFlatSize(elementNames[i]));
 			}
 			else { /* const */
 				if (addElements.size() > 0){ /* create a sum for previous elements */
@@ -918,19 +920,19 @@ public:
 							lhs, rhs,
 							connectedVariables);
 //					__debugPrint(logFile, "%d constraintForConnectedVar: %s\n", __LINE__, constraintForConnectedVar.c_str());
-					strAnd.push_back(constraintForConnectedVar);
+					strAnd.emplace_back(constraintForConnectedVar);
 					if (split[splitPos] == MINUSZERO) {
 						/* looping */
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+						strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
 					}
 					else if (split[splitPos] < 0) {
 						/* looping */
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
+						strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
 					}
 					else {
-						strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
+						strAnd.emplace_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
 					}
 					splitPos++;
 					addElements.clear();
@@ -939,12 +941,12 @@ public:
 
 				if (elementNames[i].second == -1 && i < elementNames.size() - 1) {
 					if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
+						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
 						splitPos++;
 					}
 					else {
 						assert(elementNames[i + 1].second == -2);
-						strAnd.push_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
+						strAnd.emplace_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
 						i++;
 						splitPos += 2;
 					}
@@ -954,7 +956,7 @@ public:
 						/* looping at 0 */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+						strAnd.emplace_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
 								") 0)");
 						splitPos++;
 					}
@@ -962,11 +964,11 @@ public:
 						/* looping */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+						strAnd.emplace_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
 								") " + std::to_string(std::abs(split[splitPos++])) + ")");
 					}
 					else
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
+						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
 				}
 			}
 		}
@@ -981,21 +983,21 @@ public:
 					lhs, rhs,
 					connectedVariables);
 //			__debugPrint(logFile, "%d constraintForConnectedVar: %s", __LINE__, constraintForConnectedVar.c_str());
-			strAnd.push_back(constraintForConnectedVar);
+			strAnd.emplace_back(constraintForConnectedVar);
 
 			/* create a sum for previous elements */
 			if (split[splitPos] == MINUSZERO) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+				strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
 			}
 			else if (split[splitPos] < 0) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
+				strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
 			}
 			else {
-				strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
+				strAnd.emplace_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
 			}
 			splitPos++;
 		}
@@ -1024,7 +1026,7 @@ public:
 
 		std::vector<std::string> strAnd;
 		if (totalLength > 0) /* only has const, does not have regex */
-			strAnd.push_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
+			strAnd.emplace_back("(= " + generateFlatSize(a, lhs) + " " + std::to_string(totalLength) + ")");
 
 		std::vector<std::string> addElements;
 
@@ -1039,7 +1041,7 @@ public:
 					sumConst_0 = false;
 					break;
 				}
-				addElements.push_back(generateFlatSize(elementNames[i], rhs));
+				addElements.emplace_back(generateFlatSize(elementNames[i], rhs));
 				metVar = false;
 			}
 			else
@@ -1061,23 +1063,23 @@ public:
 
 		for (unsigned int i = 0; i < elementNames.size(); ++i){
 			if (elementNames[i].second >= 0) /* not const */ {
-				addElements.push_back(generateFlatSize(elementNames[i]));
+				addElements.emplace_back(generateFlatSize(elementNames[i]));
 			}
 			else { /* const */
 				if (addElements.size() > 0){ /* create a sum for previous elements */
 					if (split[splitPos] == MINUSZERO) {
 						/* looping */
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+						strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
 
 					}
 					else if (split[splitPos] < 0) {
 						/* looping */
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
+						strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(split[splitPos])) + ")");
 					}
 					else {
-						strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
+						strAnd.emplace_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
 					}
 					splitPos++;
 					addElements.clear();
@@ -1086,12 +1088,12 @@ public:
 
 				if (elementNames[i].second == -1 && i < elementNames.size() - 1) {
 					if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
+						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
 						splitPos++;
 					}
 					else {
 						assert(elementNames[i + 1].second == -2);
-						strAnd.push_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
+						strAnd.emplace_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
 						i++;
 						splitPos += 2;
 					}
@@ -1101,7 +1103,7 @@ public:
 						/* looping at 0 */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+						strAnd.emplace_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
 								") 0)");
 						splitPos++;
 					}
@@ -1109,30 +1111,30 @@ public:
 						/* looping */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.push_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
+						strAnd.emplace_back("(= (mod " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(content.length()) +
 								") " + std::to_string(std::abs(split[splitPos++])) + ")");
 					}
 					else
-						strAnd.push_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
+						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos++]) + ")");
 				}
 			}
 		}
 
 		if (addElements.size() > 0) {
-			__debugPrint(logFile, "%d addElements size = %ld, length = %d\n", __LINE__, addElements.size(), split[splitPos]);
+//			__debugPrint(logFile, "%d addElements size = %ld, length = %d\n", __LINE__, addElements.size(), split[splitPos]);
 			/* create a sum for previous elements */
 			if (split[splitPos] == MINUSZERO) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
+				strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length()) + ") 0)");
 			}
 			else if (split[splitPos] < 0) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.push_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
+				strAnd.emplace_back("(= (mod " + addConstraint_full(addElements) + " " + std::to_string(content.length())+ ") " + std::to_string(std::abs(split[splitPos])) + ")");
 			}
 			else {
-				strAnd.push_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
+				strAnd.emplace_back("(= " + addConstraint_full(addElements) + " " + std::to_string(split[splitPos]) + ")");
 			}
 			splitPos++;
 		}
@@ -1149,12 +1151,12 @@ public:
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string &subLen){
 		int partCnt = 1;
-		std::vector<std::string> addElements; addElements.push_back(generateFlatSize(elementNames[pos]));
+		std::vector<std::string> addElements; addElements.emplace_back(generateFlatSize(elementNames[pos]));
 		unsigned int j = pos + 1;
 		for (j = pos + 1; j < elementNames.size(); ++j)
 			if (elementNames[j].second > elementNames[j - 1].second && elementNames[j].second > 0 && elementNames[j].second != REGEX_CODE) {
 				partCnt++;
-				addElements.push_back(generateFlatSize(elementNames[j]));
+				addElements.emplace_back(generateFlatSize(elementNames[j]));
 			}
 			else
 				break;
@@ -1202,13 +1204,13 @@ public:
 							__debugPrint(logFile, ">> %d const|regex = connected var partCnt = 1. NOT TESTED\n", __LINE__);
 							/* this part = regex */
 							/* prefix mod lenth = 0 */
-							conditions.push_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
-							conditions.push_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
+							conditions.emplace_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
+							conditions.emplace_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
 
 #if 0
 							std::string partArray = generateFlatArray_forComponent(elementNames[i], rhs);
 							for (unsigned int j = 0; j < content.length(); ++j)
-								conditions.push_back("(= (select " + partArray + " " + std::to_string(j) + ") " + std::to_string(content[j]) + ")");
+								conditions.emplace_back("(= (select " + partArray + " " + std::to_string(j) + ") " + std::to_string(content[j]) + ")");
 #else
 							std::string arrName = generateFlatArray(elementNames[i], rhs);
 							std::string prefix = leng_prefix_rhs(elementNames[i], rhs);
@@ -1216,15 +1218,15 @@ public:
 							std::vector<std::string> cases;
 							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
 								std::vector<std::string> subcase;
-								subcase.push_back("(= " + subLen + " " + std::to_string(iter * content.length()) + ")");
+								subcase.emplace_back("(= " + subLen + " " + std::to_string(iter * content.length()) + ")");
 								for (unsigned int j = 0; j < iter * content.length(); ++j)
-									subcase.push_back("(= (select " + arrName + " (+ " + prefix + " " + std::to_string(j) + ")) " + std::to_string(content[j % content.length()]) + ")");
-								cases.push_back(andConstraint(subcase));
+									subcase.emplace_back("(= (select " + arrName + " (+ " + prefix + " " + std::to_string(j) + ")) " + std::to_string(content[j % content.length()]) + ")");
+								cases.emplace_back(andConstraint(subcase));
 							}
-							conditions.push_back(orConstraint(cases));
+							conditions.emplace_back(orConstraint(cases));
 #endif
 
-							resultParts.push_back(andConstraint(conditions));
+							resultParts.emplace_back(andConstraint(conditions));
 							__debugPrint(logFile, " --> %s \n", andConstraint(conditions).c_str());
 						}
 						else {
@@ -1233,15 +1235,15 @@ public:
 
 							/* this part = regex */
 							/* prefix mod lenth = 0 */
-							conditions.push_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
-							conditions.push_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
+							conditions.emplace_back("(= 0 (mod " + prefix_rhs + " " + std::to_string(content.length()) + "))");
+							conditions.emplace_back("(= 0 (mod " + subLen + " " + std::to_string(content.length())+ "))");
 
 							std::string arrName = generateFlatArray(elementNames[i], rhs);
 							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
 								for (unsigned int j = 0; j < content.length(); ++j)
-									conditions.push_back("(= (select " + arrName + " " + std::to_string(j + iter * content.length()) + ") " + std::to_string(content[j]) + ")");
+									conditions.emplace_back("(= (select " + arrName + " " + std::to_string(j + iter * content.length()) + ") " + std::to_string(content[j]) + ")");
 							}
-							resultParts.push_back(andConstraint(conditions));
+							resultParts.emplace_back(andConstraint(conditions));
 							__debugPrint(logFile, " --> %s \n", andConstraint(conditions).c_str());
 						}
 					}
@@ -1256,10 +1258,10 @@ public:
 						std::string arrayRhs = generateFlatArray(elementNames[i], rhs);
 
 						if (QCONSTMAX == 1) {
-							resultParts.push_back("(= " + subLen + " " + std::to_string(content.length()) + ")");
+							resultParts.emplace_back("(= " + subLen + " " + std::to_string(content.length()) + ")");
 							/* forall ((i Int)) (and (< i a.first.length()))*/
 							for (unsigned int k = 0; k < content.length(); ++k){
-								resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+								resultParts.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 										"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 							}
 						}
@@ -1283,47 +1285,47 @@ public:
 							if (lhs_zero && rhs_zero) {
 								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									subpossibleCases.emplace_back("(= " + subLen + " " + std::to_string(j) + ")");
 									for (int k = 0; k < j; ++k){
-										subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
+										subpossibleCases.emplace_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
 												"(select " + arrayRhs + " " + std::to_string(k) + "))");
 									}
-									possibleCases.push_back(andConstraint(subpossibleCases));
+									possibleCases.emplace_back(andConstraint(subpossibleCases));
 								}
 							}
 							else if (lhs_zero && !rhs_zero){
 								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									subpossibleCases.emplace_back("(= " + subLen + " " + std::to_string(j) + ")");
 									for (int k = 0; k < j; ++k){
-										subpossibleCases.push_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
+										subpossibleCases.emplace_back("(= (select " + arrayLhs + " " + std::to_string(k) + ") " +
 												"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 									}
-									possibleCases.push_back(andConstraint(subpossibleCases));
+									possibleCases.emplace_back(andConstraint(subpossibleCases));
 								}
 							}
 							else if (!lhs_zero && rhs_zero){
 								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-									subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+									subpossibleCases.emplace_back("(= " + subLen + " " + std::to_string(j) + ")");
 									for (int k = 0; k < j; ++k){
-										subpossibleCases.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+										subpossibleCases.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 												"(select " + arrayRhs + " " + std::to_string(k) + "))");
 									}
-									possibleCases.push_back(andConstraint(subpossibleCases));
+									possibleCases.emplace_back(andConstraint(subpossibleCases));
 								}
 							}
 							else for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
 								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
-								subpossibleCases.push_back("(= " + subLen + " " + std::to_string(j) + ")");
+								subpossibleCases.emplace_back("(= " + subLen + " " + std::to_string(j) + ")");
 								for (int k = 0; k < j; ++k){
-									subpossibleCases.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+									subpossibleCases.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 											"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 
 								}
-								possibleCases.push_back(andConstraint(subpossibleCases));
+								possibleCases.emplace_back(andConstraint(subpossibleCases));
 							}
-							resultParts.push_back(orConstraint(possibleCases));
+							resultParts.emplace_back(orConstraint(possibleCases));
 						}
 					}
 					i += (partCnt - 1);
@@ -1371,14 +1373,14 @@ public:
 			/* sublen = connectedVarLength */
 			/* at_0 = x && at_1 == y && ..*/
 			for (int k = 0; k < connectedVarLength; ++k){
-				resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+				resultParts.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 						"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 			}
 		}
 		else {
 			assert(a.second == REGEX_CODE);
-			// connectedVarLength == MINUSZERO --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
-			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
+			// connectedVarLength == MINUSZERO --> resultParts.emplace_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
+			// connectedVarLength < 0 --> resultParts.emplace_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
 			/* at_0 = x && at_1 == y && ..*/
 			char strTmp[1000];
 			std::string len_connectedVar = generateFlatSize(elementNames[connectedVarPos], rhs);
@@ -1390,10 +1392,10 @@ public:
 					arrayLhs.c_str(),
 					prefix_lhs.c_str(),
 					content.length());
-			resultParts.push_back(strTmp);
+			resultParts.emplace_back(strTmp);
 #else
-			resultParts.push_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
-			for (int i = 0; i < CONNECTSIZE; ++i) {
+			resultParts.emplace_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
+			for (int i = 0; i < CONNECTSIZE/2; ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 									arrayRhs.c_str(),
 									i,
@@ -1404,7 +1406,7 @@ public:
 									content.length(),
 									len_connectedVar.c_str(),
 									i + 1);
-				resultParts.push_back(strTmp);
+				resultParts.emplace_back(strTmp);
 			}
 #endif
 		}
@@ -1445,14 +1447,14 @@ public:
 			/* sublen = connectedVarLength */
 			/* at_0 = x && at_1 == y && ..*/
 			for (int k = 0; k < connectedVarLength; ++k){
-				resultParts.push_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
+				resultParts.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 						"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 			}
 		}
 		else {
 			assert(a.second == REGEX_CODE);
-			// connectedVarLength == MINUSZERO --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
-			// connectedVarLength < 0 --> resultParts.push_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
+			// connectedVarLength == MINUSZERO --> resultParts.emplace_back("(= (mod " + subLen + " " + std::to_string(connectedVarLength) + ") 0)");
+			// connectedVarLength < 0 --> resultParts.emplace_back("(= (mod " + subLen + " " + std::to_string(content.length()) + ") " + std::to_string(std::abs(connectedVarLength))+ ")");
 			/* at_0 = x && at_1 == y && ..*/
 			char strTmp[1000];
 			sprintf(strTmp, "(forall ((i Int)) (implies (and (< i %s) (>= i 0)) (= (select %s (+ i %s)) (select %s (mod (+ i %s) %ld)))))",
@@ -1462,7 +1464,7 @@ public:
 					arrayLhs.c_str(),
 					prefix_lhs.c_str(),
 					content.length());
-			resultParts.push_back(strTmp);
+			resultParts.emplace_back(strTmp);
 		}
 
 		return andConstraint(resultParts);
@@ -1539,7 +1541,7 @@ public:
 			if (s.length() != 1)
 				return std::make_pair(-1, -1);
 			else
-				tmpList.push_back(s[0]);
+				tmpList.emplace_back(s[0]);
 
 		if (tmpList.size() <= 1)
 			return std::make_pair(-1, -1);
@@ -1569,7 +1571,7 @@ public:
 
 		std::vector<std::string> locationConstraint;
 		if (extraConstraint.length() > 0)
-			locationConstraint.push_back(extraConstraint);
+			locationConstraint.emplace_back(extraConstraint);
 
 		/* find the start position --> */
 		std::string pre_lhs = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, regexPos);
@@ -1595,10 +1597,10 @@ public:
 
 #else
 		std::vector<std::string> andConstraints;
-		andConstraints.push_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
+		andConstraints.emplace_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
 		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
 		if (charRange.first != -1) {
-			for (int i = 0; i < CONNECTSIZE; ++i) {
+			for (int i = 0; i < CONNECTSIZE/2; ++i) {
 				sprintf(strTmp, "(or (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1612,13 +1614,13 @@ public:
 						i + 1,
 						generateFlatSize(elementNames[regexPos], rhs_str).c_str()
 						);
-				andConstraints.push_back(strTmp);
+				andConstraints.emplace_back(strTmp);
 			}
 		}
 		else {
 //			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
-			for (int i = 0; i < CONNECTSIZE; ++i) {
+			for (int i = 0; i < CONNECTSIZE/2; ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1627,7 +1629,7 @@ public:
 						i % tmpNum,
 						i + 1,
 						generateFlatSize(elementNames[regexPos], rhs_str).c_str());
-				andConstraints.push_back(strTmp);
+				andConstraints.emplace_back(strTmp);
 			}
 		}
 
@@ -1654,7 +1656,7 @@ public:
 
 		std::vector<std::string> locationConstraint;
 		if (extraConstraint.length() > 0)
-			locationConstraint.push_back(extraConstraint);
+			locationConstraint.emplace_back(extraConstraint);
 
 		/* find the start position --> */
 		std::string startPos = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, constPos);
@@ -1664,12 +1666,12 @@ public:
 
 		if (startPos.size() == 1 && startPos[0] == '0') {
 			for (int i = start; i < finish; ++i) {
-				locationConstraint.push_back("(= (select " + tmp01 + " " + std::to_string(i - start) + ") " + std::to_string(value[i]) + ")");
+				locationConstraint.emplace_back("(= (select " + tmp01 + " " + std::to_string(i - start) + ") " + std::to_string(value[i]) + ")");
 			}
 		}
 
 		else for (int i = start; i < finish; ++i) {
-			locationConstraint.push_back("(= (select " + tmp01 + " (+ " + std::to_string(i - start) + " " + startPos + ")) " + std::to_string(value[i]) + ")");
+			locationConstraint.emplace_back("(= (select " + tmp01 + " (+ " + std::to_string(i - start) + " " + startPos + ")) " + std::to_string(value[i]) + ")");
 		}
 
 		assert (locationConstraint.size() > 0);
@@ -1707,12 +1709,12 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+		for (unsigned int i = 1; i < CONNECTSIZE/2; ++i){
 			std::vector<std::string> orConstraints;
-			orConstraints.push_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
+			orConstraints.emplace_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
 					"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
-			orConstraints.push_back("(< " + lenRhs + " " + std::to_string(i) + ")");
-			andConstraints.push_back(orConstraint(orConstraints));
+			orConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(i) + ")");
+			andConstraints.emplace_back(orConstraint(orConstraints));
 		}
 
 		std::string result = andConstraint(andConstraints) + "\n";
@@ -1749,17 +1751,17 @@ public:
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				/*length = i*/
 				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i) + ")";
-				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, 0, i, newVars, tmp));
+				possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, 0, i, newVars, tmp));
 			}
 		}
 		else if (elementNames[constPos].second == REGEX_CODE) {
-			possibleCases.push_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
+			possibleCases.emplace_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
 		}
 		else {
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				/*length = i*/
 				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(content.length() - i) + ")";
-				possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, i, content.length(), newVars, tmp));
+				possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, i, content.length(), newVars, tmp));
 			}
 		}
 
@@ -1787,30 +1789,30 @@ public:
 			if (elementNames[i].second < 0){ /* const || regex */
 				/* |lhs| = 1 vs |rhs| = 1*/
 				if (elementNames.size() == 1 && QCONSTMAX > 1) {
-					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 				/* tail of string, head of elements*/
 				else if (i == 0 && elementNames[i].second == -2 && QCONSTMAX > 1) {
-					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 				/* head of string, tail of elements */
 				else if (i == elementNames.size() - 1 && elementNames[i].second == -1 && QCONSTMAX > 1)  {
-					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 				/* only care about first element */
 				else if (elementNames[i].second == -1)  {
 					// std::string tmp = "(= (+ " + generateFlatSize(elementNames[i], rhs_str) + " " + generateFlatSize(elementNames[i + 1], rhs_str) + ") " + std::to_string(elementNames[i].first.length()) + ")";
-					possibleCases.push_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0, elementNames[i].first.length(), newVars));
+					possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0, elementNames[i].first.length(), newVars));
 				}
 				else if (elementNames[i].second == REGEX_CODE) {
-					possibleCases.push_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 				}
 			}
 			else if (elementNames[i].second >= 0 && connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
 				if (elementNames[i].second == 1 && i > 0)
 					continue;
 
-				possibleCases.push_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i, newVars));
+				possibleCases.emplace_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i, newVars));
 
 			}
 		}
@@ -1856,7 +1858,7 @@ public:
 			/* size = size && it = it */
 			if (connectedVariables.find(b.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
-				elements.push_back(a);
+				elements.emplace_back(a);
 				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, newVars);
 			}
 		}
@@ -1878,7 +1880,7 @@ public:
 				for (int i = std::min(a.first.length(), b.first.length()); i >= 0; --i) {
 					if (a.first.substr(0, i).compare(b.first.substr(b.first.length() - i)) == 0) {
 						/* size can be i */
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(i) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(i) + ")");
 					}
 				}
 			}
@@ -1886,7 +1888,7 @@ public:
 				for (int i = std::min(a.first.length(), b.first.length()); i >= 0; --i) {
 					if (b.first.substr(0, i).compare(a.first.substr(a.first.length() - i)) == 0) {
 						/* size can be i */
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(i) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(i) + ")");
 					}
 				}
 			}
@@ -1907,7 +1909,7 @@ public:
 				printf("%d content 0: %s\n", __LINE__, content.c_str());
 				while (data.length() <= b.first.length()) {
 					if (data.compare(b.first.substr(0, data.length())) == 0)
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
 					printf("%d accept: %s\n", __LINE__, data.c_str());
@@ -1921,7 +1923,7 @@ public:
 				while (data.length() <= b.first.length()) {
 					printf("\t%d data: %s\n", __LINE__, b.first.substr(b.first.length() - data.length()).c_str());
 					if (data.compare(b.first.substr(b.first.length() - data.length())) == 0)
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
 					printf("%d accept: %s\n", __LINE__, data.c_str());
@@ -1934,7 +1936,7 @@ public:
 				printf("%d content 2: %s\n", __LINE__, content.c_str());
 				while (data.length() <= a.first.length()) {
 					if (data.compare(a.first.substr(0, data.length())) == 0)
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
 					printf("%d accept: %s\n", __LINE__, data.c_str());
@@ -1947,7 +1949,7 @@ public:
 				printf("%d content 3: %s\n", __LINE__, content.c_str());
 				while (data.length() <= a.first.length()) {
 					if (data.compare(a.first.substr(a.first.length() - data.length())) == 0)
-						possibleCases.push_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
 					printf("%d accept: %s\n", __LINE__, data.c_str());
@@ -1967,10 +1969,10 @@ public:
 				while (data02.length() != lcdLength)
 					data02 = data02 + content02;
 				if (data01.compare(data02) == 0) {
-					possibleCases.push_back("(= (mod " + nameA + " " + std::to_string(lcdLength) + ") 0)");
+					possibleCases.emplace_back("(= (mod " + nameA + " " + std::to_string(lcdLength) + ") 0)");
 				}
 				else {
-					possibleCases.push_back("(= " + nameA + " 0)");
+					possibleCases.emplace_back("(= " + nameA + " 0)");
 				}
 			}
 			else {
@@ -1993,7 +1995,7 @@ public:
 			/* record characters for some special variables */
 			if (connectedVariables.find(b.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
-				elements.push_back(a);
+				elements.emplace_back(a);
 				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, newVars);
 			}
 
@@ -2011,7 +2013,7 @@ public:
 			/* record characters for some special variables */
 			if (connectedVariables.find(a.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
-				elements.push_back(b);
+				elements.emplace_back(b);
 				result = result + " " + unrollConnectedVariable(a, elements, lhs_str, rhs_str, connectedVariables, newVars);
 			}
 
@@ -2082,7 +2084,7 @@ public:
 			/* only handle the case of splitting const string into two parts*/
 			std::vector<std::string> addElements;
 			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
-				addElements.push_back(generateFlatSize(elementNames[i], rhs_str));
+				addElements.emplace_back(generateFlatSize(elementNames[i], rhs_str));
 
 			result = result + " (= " + generateFlatSize(a, lhs_str) + " " + addConstraint_full(addElements) + ")";
 
@@ -2198,7 +2200,7 @@ public:
 				std::vector<std::pair<std::string, int>> elements;
 				for (unsigned int j = 0; j < right_arr.size(); ++j)
 					if (right_arr[j] == (int)i) {
-						elements.push_back(rhs_elements[j]);
+						elements.emplace_back(rhs_elements[j]);
 						checkRight[j] = true;
 					}
 
@@ -2208,7 +2210,7 @@ public:
 					__debugPrint(logFile, "\n%d 02 because of lhs[%d]\n", __LINE__, i);
 					return "";
 				}
-				result_element.push_back(tmp);
+				result_element.emplace_back(tmp);
 
 			}
 			else if (left_arr[i] == EMPTYFLAT) {
@@ -2232,7 +2234,7 @@ public:
 				if (tmp.length() == 0) {/* cannot happen due to const */
 					return "";
 				}
-				result_element.push_back(tmp);
+				result_element.emplace_back(tmp);
 			}
 
 		/* do the right */
@@ -2243,7 +2245,7 @@ public:
 				std::vector<std::pair<std::string, int>> elements;
 				for (unsigned int j = 0; j < left_arr.size(); ++j)
 					if (left_arr[j] == (int)i) {
-						elements.push_back(lhs_elements[j]);
+						elements.emplace_back(lhs_elements[j]);
 						checkLeft[j] = true;
 					}
 
@@ -2252,7 +2254,7 @@ public:
 					__debugPrint(logFile, "\n%d 02 because of rhs[%d]\n", __LINE__, i);
 					return "";
 				}
-				result_element.push_back(tmp);
+				result_element.emplace_back(tmp);
 			}
 			else if (right_arr[i] == EMPTYFLAT) {
 				/* empty */
@@ -2272,7 +2274,7 @@ public:
 				if (tmp.length() == 0) {/* cannot happen due to const */
 					return "";
 				}
-				result_element.push_back(tmp);
+				result_element.emplace_back(tmp);
 			}
 
 		/* do the rest */
@@ -2310,7 +2312,7 @@ public:
 			}
 
 		if (constraint01.length() > 5) {
-			result_element.push_back(constraint01);
+			result_element.emplace_back(constraint01);
 
 		}
 

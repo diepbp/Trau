@@ -273,8 +273,8 @@ void parseUserInput(int argc, char* argv[]){
 	std::string grammarFile = "";
 
 #ifdef DEBUGLOG
-	logFile = fopen("log.smt2", "w");
-	logAxiom = fopen("logAxiom.smt2", "w");
+	logFile = fopen(LOGFILE, "w");
+	logAxiom = fopen(LOGAXIOMFILE, "w");
 #endif
 
 	bool foundGrm = false;
@@ -314,6 +314,7 @@ void parseUserInput(int argc, char* argv[]){
 		__debugPrint(logFile, "Grammar file: %s\n\n", grammarFile.c_str());
 #endif
 }
+
 /**
  *
  */
@@ -338,5 +339,7 @@ int main(int argc, char* argv[])
 	fclose(logFile);
 	fclose(logAxiom);
 #endif
+	if (cleanLog == true)
+		removeLog();
 	return 0;
 }

@@ -617,7 +617,6 @@ typedef struct _AutomatonStringData
  bool hasLanguageConstraints(Z3_theory t, Z3_ast node);
 
  std::pair<int, int> getLengthDomain(Z3_ast node);
- void assignLanguageByLength(Z3_theory t, bool &assignSomethingNew, bool &satified);
  void assignLanguage(Z3_theory t, bool &hasLanguage);
  bool assignConcreteValue(Z3_theory t);
  void assignFinalValues(Z3_theory t);

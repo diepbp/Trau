@@ -67,6 +67,11 @@ bool makePath(const std::string& path)
     }
 }
 
+inline bool exists(const std::string& name){
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
+
 void removeFile(const std::string& fileName){
 	/*get fileName from fileDir */
 	std::string name = "";
@@ -77,13 +82,23 @@ void removeFile(const std::string& fileName){
 			break;
 
 	std::string filePath = "/tmp/fat_str_convert/" + name;
-	remove(filePath.c_str());
+	if (exists(filePath))
+		remove(filePath.c_str());
 
 	filePath = "/tmp/fat_str_convert/w_l_" + name;
-	remove(filePath.c_str());
+	if (exists(filePath))
+		remove(filePath.c_str());
 
 	filePath = "/tmp/fat_str_convert/converted_" + name;
-	remove(filePath.c_str());
+	if (exists(filePath))
+		remove(filePath.c_str());
+}
+
+void removeLog(){
+	if (exists(LOGFILE))
+		remove(LOGFILE);
+	if (exists(LOGAXIOMFILE))
+		remove(LOGAXIOMFILE);
 }
 
 
