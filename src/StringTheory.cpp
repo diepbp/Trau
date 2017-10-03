@@ -1051,10 +1051,10 @@ void getNodesInConcat_extended(Z3_theory t, Z3_ast node, std::set<Z3_ast> & node
 	for (const auto& n : tmpEq) {
 		if (getNodeType(t, n) != my_Z3_Func ||
 				(getNodeType(t, n) == my_Z3_Func && Z3_get_app_decl(ctx, Z3_to_app(ctx, n)) != td->Concat)) {
-			nodeList.insert(n);
+			if (std::find(nodeList.begin(), nodeList.end(), n) != nodeList.end())
+				nodeList.insert(n);
 			continue;
 		} else {
-
 			Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 0);
 			Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 1);
 			if (std::find(nodeList.begin(), nodeList.end(), leftArg) != nodeList.end())
@@ -3941,7 +3941,7 @@ void extendVariableToFindAllPossibleEqualities(
 		int level) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	__debugPrint(logFile, "%d extend node %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+	__debugPrint(logFile, "%d *** %s *** %s\n", __LINE__, Z3_ast_to_string(ctx, node), __FUNCTION__);
 
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
@@ -3964,6 +3964,11 @@ void extendVariableToFindAllPossibleEqualities(
 		if (isConcatFunc(t, _node)) {
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 1);
+
+			if (std::find(eqNode.begin(), eqNode.end(), arg0) != eqNode.end() ||
+					std::find(eqNode.begin(), eqNode.end(), arg1) != eqNode.end())
+				/* a = concat a x | a = concat b x && b = a*/
+				continue;
 
 			if (isStrVariable(t, arg0))
 				/* mark non-root variable --> dont care about him */
@@ -4136,8 +4141,6 @@ void extendVariableToFindAllPossibleEqualities(
 		allEqPossibilities[node] = refined_result;
 	}
 	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), allEqPossibilities[node].size());
-	if (allEqPossibilities[node].size() > 0)
-		displayListNode(t, allEqPossibilities[node][0], "zzzz");
 }
 
 /*

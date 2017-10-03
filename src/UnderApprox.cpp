@@ -2524,13 +2524,11 @@ std::string constraintsIfEmpty(
  * Each thread handles a part in the global map from start -> end
  */
 void convertEqualities(){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	/* return a number of results*/
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
-			it != equalitiesMap.begin();
+			it != equalitiesMap.end();
 			++it) {
-#ifdef DEBUGLOG
-		// printf ("Thread %d doing: %s, size = %ld\n", *mytid, it->first.c_str(), it->second.size());
-#endif
 
 		std::string tmp = " ";
 		clock_t t;
