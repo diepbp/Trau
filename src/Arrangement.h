@@ -1395,7 +1395,7 @@ public:
 			resultParts.emplace_back(strTmp);
 #else
 			resultParts.emplace_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
-			for (int i = 0; i < CONNECTSIZE/2; ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 									arrayRhs.c_str(),
 									i,
@@ -1600,7 +1600,7 @@ public:
 		andConstraints.emplace_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
 		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
 		if (charRange.first != -1) {
-			for (int i = 0; i < CONNECTSIZE/2; ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
 				sprintf(strTmp, "(or (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1620,7 +1620,7 @@ public:
 		else {
 //			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
-			for (int i = 0; i < CONNECTSIZE/2; ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1709,13 +1709,15 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		for (unsigned int i = 1; i < CONNECTSIZE/2; ++i){
+		for (int i = 1; i < std::min(CONNECTSIZE/2, 70); ++i){
 			std::vector<std::string> orConstraints;
 			orConstraints.emplace_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
 					"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
 			orConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(i) + ")");
 			andConstraints.emplace_back(orConstraint(orConstraints));
 		}
+
+		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE/2, 70)) + ")");
 
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;

@@ -17,8 +17,8 @@
 #include <direct.h>   // _mkdir
 #endif
 
-#define LOGFILE "log.smt2"
-#define LOGAXIOMFILE "logAxiom.smt2"
+#define LOGFILE "trau.log"
+#define LOGAXIOMFILE "z3.log"
 
 bool isDirExist(const std::string& path);
 

@@ -951,8 +951,8 @@ std::string create_constraints_NOTEqual(
 		/* (length a != 0 && ...) || length b = 1 && ...*/
 		if (str00.length() > 2) {
 			andConstraints.emplace_back("(= " + len01 + " " + std::to_string(str00.length() - 2) + ")");
-			for (unsigned int j = 1; j < str00.length() - 2; ++j) {
-				andConstraints.emplace_back("(= (select " + arr01 + " " + std::to_string(j) + ") " + std::to_string((int)str00[j]) + ")");
+			for (unsigned int j = 1; j < str00.length() - 1; ++j) {
+				andConstraints.emplace_back("(= (select " + arr01 + " " + std::to_string(j - 1) + ") " + std::to_string((int)str00[j]) + ")");
 			}
 			orConstraints.emplace_back("(not " + andConstraint(andConstraints) + ")");
 		}
@@ -1152,12 +1152,12 @@ void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
 		}
 	}
 
-	for (const auto& l : eqToStr) {
-		__debugPrint(logFile, "%d %s: ", __LINE__, l.first.c_str());
-		for (const auto& s : l.second)
-			__debugPrint(logFile, "%d \t %s\n", __LINE__, s.c_str());
-		__debugPrint(logFile, "\n");
-	}
+//	for (const auto& l : eqToStr) {
+//		__debugPrint(logFile, "%d %s: ", __LINE__, l.first.c_str());
+//		for (const auto& s : l.second)
+//			__debugPrint(logFile, "%d \t %s\n", __LINE__, s.c_str());
+//		__debugPrint(logFile, "\n");
+//	}
 
 
 	for (const auto& s : rewriterStrMap) {
@@ -1313,7 +1313,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 300))");
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 250))");
 			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
 		}
 
@@ -2968,7 +2968,7 @@ bool Z3_run(
  *
  */
 bool S3_assist(std::string fileName){
-	std::string cmd = std::string(S3_PATH) + " -f " + fileName;
+	std::string cmd = std::string(VERIFIER) + " -f " + fileName;
 	printf("Collecting concrete values...\n");
 
 	FILE* in = popen(cmd.c_str(), "r");

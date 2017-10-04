@@ -36,16 +36,16 @@
 //#define DEBUGLOG 1
 #define REMOVINGLOG 1
 #define PRINTTEST_UNDERAPPROX 1
-#define NUM_THREADS	16
+#define NUM_THREADS	1
 #define FLATMAX 100;
 #define PMAX 50 // size of a flat
 #define QMAX 2 // number of flats
 #define QCONSTMAX 2 // number of flats for const
 #define SPLIT_UNDER_BOUND 3
-#define CONNECTSIZE 50
+#define CONNECTSIZE 200
 
 #define Z3_PATH "z3 "
-#define S3_PATH "fat/run.py "
+#define VERIFIER "verifier/run.py "
 
 #define TMPDIR "/tmp/fat_str_convert/"
 
