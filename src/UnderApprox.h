@@ -500,6 +500,8 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 
 void init(std::map<std::string, std::string> &rewriterStrMap);
 
+void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
+
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, std::string> rewriterStrMap,

@@ -14,7 +14,33 @@ std::string int_to_hex( T i )
 	stream << "_x" << std::hex << i;
 	return stream.str();
 }
-
+/*
+ *
+ */
+std::string removeSpace(std::string s){
+	std::string ret = "";
+	int state = 0;
+	for (unsigned i = 0; i < s.length(); ++i) {
+		if (s[i] == ' ' || s[i] == '\t') {
+			if (state == 0 &&
+					(i == 0 ||
+							(i < s.length() - 1 && (s[i + 1] == ' ' || s[i + 1] == '\t' || s[i + 1] == ')'))))
+				continue;
+		}
+		else if (s[i] == '"' && ( i == 0 || (i > 0 && s[i-1] != '\\'))) {
+			switch (state) {
+			case 0:
+				state = 1;
+				break;
+			case 1:
+				state = 0;
+				break;
+			}
+		}
+		ret = ret + s[i];
+	}
+	return ret;
+}
 /*
  * (not (= a b))
  */
@@ -152,7 +178,7 @@ void updateContain(std::string &s, std::map<std::string, std::string> rewriterSt
 
 		std::string substr = s.substr(found, pos - found + 1);
 
-		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[removeSpace(substr)]);
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(Contains ");
 	}
@@ -187,7 +213,7 @@ void updateLastIndexOf(std::string &s,
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[removeSpace(substr)]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(LastIndexof ");
@@ -205,7 +231,7 @@ void updateEndsWith(std::string &s,
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[removeSpace(substr)]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(EndsWith ");
@@ -219,11 +245,11 @@ void updateStartsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(StartsWith ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
+		unsigned pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), rewriterStrMap[substr]);
+		s = s.replace(found, substr.length(), rewriterStrMap[removeSpace(substr)]);
 
 		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 		found = s.find("(StartsWith ");
@@ -340,7 +366,7 @@ void updateSubstring(
 		std::string tmpS = s.substr(found, endPos - found + 1);
 
 		std::string orgSubstr = s.substr(startAssignment, findCorrespondRightParentheses(startAssignment, s) - startAssignment + 1);
-		std::string extraConstraint = rewriterStrMap[tmpS];
+		std::string extraConstraint = rewriterStrMap[removeSpace(tmpS)];
 		__debugPrint(logFile, "%d updateSubstring: orgSubstr = %s\n", __LINE__, orgSubstr.c_str());
 		size_t tmpPos = orgSubstr.find(tmpS);
 		assert(tmpPos >= 0);
@@ -1209,7 +1235,8 @@ void customizeLine_ToCreateLengthLine(
 			else if (textState == 1 || textState == 3) {
 
 				if (strTmp[i] == 't' && textState == 3)
-					strTmp[i] = ENCODEMAP['\t'];
+					strTmp[i] = '\t';
+//					strTmp[i] = ENCODEMAP['\t'];
 
 				constStr = constStr + strTmp[i];
 				textState = 1;
@@ -1242,7 +1269,7 @@ void customizeLine_ToCreateLengthLine(
 					if (rewriterStrMap[par].compare("false") == 0)
 						if (!handleNotOp){
 							strTmp.replace(i, closePar - i + 1, "false");
-//							__debugPrint(logFile, "%d * %s *: %s; par: %s\n", __LINE__, __FUNCTION__, strTmp.c_str(), par.c_str());
+							__debugPrint(logFile, "%d * %s *: %s; par: %s\n", __LINE__, __FUNCTION__, strTmp.c_str(), par.c_str());
 						}
 				}
 			}
@@ -1497,6 +1524,7 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
 				break;
 			}
+//			__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, buffer);
 			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		}
 	}
@@ -1573,12 +1601,14 @@ std::string decodeStr(std::string s){
 	std::string tmp = "";
 	int cnt = 0;
 	for (unsigned int i = 0; i < s.length(); ++i){
-		if (s[i] == '"') {
+		if (s[i] == '"' && (i == 0 || (i > 0 && s[i - 1] != '\\'))) {
 			cnt++;
 			tmp = tmp + s[i];
 			continue;
 		}
 		if (DECODEMAP.find(s[i]) != DECODEMAP.end() && cnt == 1){
+			if (s[i] == '"' && i > 0 && s[i - 1] != '\\')
+				tmp = tmp.substr(0, tmp.length() - 1);
 			tmp = tmp + (char)DECODEMAP[s[i]];
 		}
 		else

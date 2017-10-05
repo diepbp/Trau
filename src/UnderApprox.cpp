@@ -828,8 +828,11 @@ std::string create_constraints_ReplaceAll(
 		std::map<std::string, std::vector<std::string>> eqToStr){
 
 	__debugPrint(logFile, "%d *** %s ***: %s %s %s %s\n", __LINE__, __FUNCTION__, args[0].c_str(), args[1].c_str(), args[2].c_str(), boolValue.c_str());
+	bool isConst_00 = false;
 	bool isConst_01 = false;
 	bool isConst_02 = false;
+	if (args[0][0] == '"')
+		isConst_00 = true;
 
 	if (args[1][0] == '"')
 		isConst_01 = true;
@@ -841,7 +844,9 @@ std::string create_constraints_ReplaceAll(
 	std::string s1 = "(" + args[2].substr(1, args[2].length() - 2) + ")+";
 
 	/* */
-	if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
+	if (isConst_00 && isConst_01 && isConst_02)
+		return "true";
+	else if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
 		assert (equalitiesMap.find(args[0]) != equalitiesMap.end());
 		for (const auto& list : equalitiesMap[args[0]]) {
 			/* if all internal vars */
@@ -860,6 +865,8 @@ std::string create_constraints_ReplaceAll(
 				}
 				else
 					listRegexPlus00.emplace_back(s.substr(1, s.length() - 2));
+
+			__debugPrint(logFile, "%d %s: tmp = %s\n", __LINE__, __FUNCTION__, tmp.c_str());
 
 			if (tmp.length() == 0)
 				continue;
@@ -882,6 +889,7 @@ std::string create_constraints_ReplaceAll(
 							if (listRegexPlus00.size() == listRegexPlus01.size()) {
 								std::string result = "";
 								for (unsigned i = 0; i < listRegexPlus00.size(); ++i) {
+									assert(constMap.find(listRegexPlus00[i]) != constMap.end());
 									result = result + "(= " + constMap[listRegexPlus00[i]] + "__p0 " + constMap[listRegexPlus01[i]] +"__p0) ";
 									__debugPrint(logFile, "%d %s vs %s\n", __LINE__, listRegexPlus00[i].c_str(), listRegexPlus01[i].c_str());
 								}
@@ -1362,6 +1370,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
  * len_const = (a * 1) + (b * 2) + ...
  */
 void create_constraints_regex(std::vector<std::string> &defines, std::vector<std::string> &constraints, std::string regex, std::string name){
+	__debugPrint(logFile, "%d *** %s ***: %s --> %s\n", __LINE__, __FUNCTION__, regex.c_str(), name.c_str());
 	std::vector<std::string> components = collectAlternativeComponents(parse_regex_content(regex));
 
 	assert(components.size() > 0);
@@ -1403,6 +1412,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 			}
 			else {
 				/* regex */
+				assert(constMap.find(component.substr(1, component.length() - 2)) != constMap.end());
 				lenX = lenX + " len_" + constMap[component.substr(1, component.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
 				cnt ++;
 			}
@@ -1838,15 +1848,20 @@ void sumConstString(){
 							localElements = parserMap[s];
 						else {
 							/* update regex */
-							unsigned int tmpPos = s.length() - 1;
+							unsigned tmpPos = s.length() - 1;
+							std::string indexStr = "";
 							for (tmpPos = s.length() - 1; tmpPos >= 0; --tmpPos)
 								if (s[tmpPos] == '\"') {
 									break;
 								}
+								else if (s[tmpPos] >= '0' && s[tmpPos] <= '9')
+									indexStr = s[tmpPos] + indexStr;
+							int index = atoi(indexStr.c_str());
+							assert(index >= 0);
 
 							std::string content = s.substr(1, tmpPos - 1);
 
-							__debugPrint(logFile, "%d content = %s\n", __LINE__, content.c_str());
+							__debugPrint(logFile, "%d content = %s, index = %d\n", __LINE__, content.c_str(), index);
 							/* parse this regex */
 							std::vector<std::vector<std::string>> regexElements = combineConstStr(refineVectors(parseRegexComponents(underApproxRegex(content))));
 
@@ -1861,7 +1876,7 @@ void sumConstString(){
 							/* add to vector, create a sum for two continuous elements */
 							while (pos < regexElements[0].size()){
 								if (isRegexStr(regexElements[0][pos])) {
-									localElements.emplace_back("\"" + regexElements[0][pos] + "__" + std::to_string(regexCnt++) + "\"");
+									localElements.emplace_back("\"" + regexElements[0][pos] + "___" + std::to_string(index) + "\"");
 								}
 								else {
 									localElements.emplace_back(regexElements[0][pos]);
@@ -1950,24 +1965,14 @@ void createConstMap(){
 				if (it->second[j][k][0] == '\"'){
 					std::string content = it->second[j][k].substr(1, it->second[j][k].length() - 2);
 					/* string is regex ? */
-					if (isRegexStr(content)) {
-						content = content + "__" + std::to_string(constCnt);
-					}
+//					if (isRegexStr(content)) {
+//						content = content + "__" + std::to_string(constCnt);
+//					}
+					__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
 					constMap[content] = "const_" + std::to_string(constCnt++);
 				}
 		}
 	}
-
-#ifdef PRINTTEST_UNDERAPPROX
-	if (constMap.size() > 0) {
-		/* print test const map */
-		__debugPrint(logFile, "%d Const map:\n", __LINE__);
-		for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it) {
-			__debugPrint(logFile, "%s: %s\n", it->first.c_str(), it->second.c_str());
-		}
-		__debugPrint(logFile, "\n");
-	}
-#endif
 }
 
 /*
@@ -2182,35 +2187,19 @@ void decodeRewriterMap(std::map<std::string, std::string> &rewriterStrMap){
 	std::map<std::string, std::string> update;
 	for (const auto& element : rewriterStrMap){
 		if (element.first.find("\"") != std::string::npos){
-			int textState = 0; /* 1 -> "; 0 -> "" */
-			std::string newStr = "";
-			for (unsigned int i = 0; i < element.first.length(); ++i) {
-				if (element.first[i] == '"') {
-					newStr = newStr + element.first[i];
-					switch (textState) {
-					case 1:
-						textState = 0;
-						break;
-					default:
-						textState = 1;
-						break;
-					}
-				}
-				else if (textState == 1) {
-					if (DECODEMAP.find(element.first[i]) != DECODEMAP.end()) {
-						newStr = newStr + (char)DECODEMAP[element.first[i]];
-					}
-					else
-						newStr = newStr + element.first[i];
-				}
-				else
-					newStr = newStr + element.first[i];
-			}
-			update[newStr] = element.second;
+			std::string tmp = decodeStr(element.first);
+//			std::string ret = "";
+//			for (unsigned i = 0 ; i < tmp.size(); ++i)
+//				if (tmp[i] == '\t')
+//					ret = ret + "\\t";
+//				else
+//					ret = ret + tmp[i];
+			update[tmp] = element.second;
 		}
 		else
 			update[element.first] = element.second;
 	}
+
 	rewriterStrMap.clear();
 	rewriterStrMap = update;
 
@@ -2536,9 +2525,9 @@ void optimizeEquality(
 		std::vector<std::string> rhs,
 		std::vector<std::string> &new_lhs,
 		std::vector<std::string> &new_rhs){
-	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	displayListString(lhs, " org lhs ");
-	displayListString(rhs, " org rhs ");
+//	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+//	displayListString(lhs, " org lhs ");
+//	displayListString(rhs, " org rhs ");
 
 	new_lhs.clear();
 	new_rhs.clear();
@@ -2861,6 +2850,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 						value = value + s.substr(1, s.length() - 2);
 					else {
 						// TODO : find the final regex value
+						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
 						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
 						if (tmp.compare("!fOuNd") != 0)
 							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
@@ -3139,6 +3129,23 @@ void init(std::map<std::string, std::string> &rewriterStrMap){
 	createConstMap();
 }
 
+/*
+ *
+ */
+void additionalHandling(std::map<std::string, std::string> rewriterStrMap){
+	handle_NOTEqual(rewriterStrMap);
+	handle_NOTContains(rewriterStrMap);
+	handle_StartsWith(rewriterStrMap);
+	handle_EndsWith(rewriterStrMap);
+	handle_Replace(rewriterStrMap);
+	handle_ToUpper(rewriterStrMap);
+	handle_ToLower(rewriterStrMap);
+	handle_ReplaceAll(rewriterStrMap);
+}
+
+/*
+ *
+ */
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, std::string> rewriterStrMap,
@@ -3161,14 +3168,7 @@ bool underapproxController(
 
 	init(rewriterStrMap);
 
-	handle_NOTEqual(rewriterStrMap);
-	handle_NOTContains(rewriterStrMap);
-	handle_StartsWith(rewriterStrMap);
-	handle_EndsWith(rewriterStrMap);
-	handle_Replace(rewriterStrMap);
-	handle_ToUpper(rewriterStrMap);
-	handle_ToLower(rewriterStrMap);
-	handle_ReplaceAll(rewriterStrMap);
+	additionalHandling(rewriterStrMap);
 
 	std::set<std::string> carryOnConstraints = reformatCarryOnConstraints(_carryOnConstraints);
 	for (const auto& s : carryOnConstraints)
@@ -3196,7 +3196,7 @@ bool underapproxController(
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
 		convertSMTFileToLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
-			printf("%d false \n", __LINE__);
+			printf(">> UNSAT\n");
 			return false;
 		}
 
@@ -3207,7 +3207,7 @@ bool underapproxController(
 			regexCnt = 0;
 			convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
-				printf("%d false \n", __LINE__);
+				printf(">> UNSAT\n");
 				return false;
 			}
 			writeOutput_basic(OUTPUT);
@@ -3218,7 +3218,7 @@ bool underapproxController(
 		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
-			printf(">> UNSAT\n", __LINE__);
+			printf(">> UNSAT\n");
 			return false;
 		}
 		else {
