@@ -1743,10 +1743,10 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 //	add_posfix_relation(t, nn1, nn2);
 
 //	implyEqualityForConcatMember(t, nn1, nn2);
-//
-//	add_endsWith_consistency(t, nn1, nn2);
-//
-//	add_replace_consistency(t, nn1, nn2);
+
+	add_endsWith_consistency(t, nn1, nn2);
+
+	add_replace_consistency(t, nn1, nn2);
 
 	if (consideredVars.size() > 0) {
 		std::vector<std::pair<Z3_ast, int>> langVal;

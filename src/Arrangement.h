@@ -565,7 +565,6 @@ public:
 
 			assert (constMap.find(a.first) != constMap.end());
 			result = result + "len_" + constMap[a.first] + "_" + std::to_string(std::abs(a.second));
-			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
 		}
 		return result;
 	}
@@ -583,9 +582,7 @@ public:
 		else {
 			/* const string */
 			assert (l_r_hs.length() > 0);
-			//			result = result + "arr_" + constMap[std::make_pair(a.first, l_r_hs)];
 			result = result + "arr_" + constMap[a.first];
-			// printf("%d, at generate flat size (%s of %s) = %s\n", __LINE__, a.first.c_str(), l_r_hs.c_str(),constMap[std::make_pair(a.first, l_r_hs)].c_str());
 		}
 		return result;
 	}
@@ -1395,7 +1392,7 @@ public:
 			resultParts.emplace_back(strTmp);
 #else
 			resultParts.emplace_back(("(> " + std::to_string(CONNECTSIZE) + + " " + subLen + ")"));
-			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 									arrayRhs.c_str(),
 									i,
@@ -1600,7 +1597,7 @@ public:
 		andConstraints.emplace_back("(> " + std::to_string(CONNECTSIZE) + " " + regex_length + ")");
 		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
 		if (charRange.first != -1) {
-			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
 				sprintf(strTmp, "(or (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1620,7 +1617,7 @@ public:
 		else {
 //			__debugPrint(logFile, "%d %s\n", __LINE__, __FUNCTION__);
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
-			for (int i = 0; i < std::min(CONNECTSIZE/2, 50); ++i) {
+			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1709,7 +1706,7 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		for (int i = 1; i < std::min(CONNECTSIZE/2, 70); ++i){
+		for (int i = 1; i <= std::min(CONNECTSIZE, 70); ++i){
 			std::vector<std::string> orConstraints;
 			orConstraints.emplace_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
 					"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
@@ -1717,7 +1714,7 @@ public:
 			andConstraints.emplace_back(orConstraint(orConstraints));
 		}
 
-		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE/2, 70)) + ")");
+		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE, 70)) + ")");
 
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;

@@ -437,13 +437,24 @@ Arrangment manuallyCreate_arrangment(
 		std::vector<std::pair<std::string, int>> rhs_elements){
 
 	/* create manually */
-	/*9999999 10000000 vs 1 1 1 1 1 */
+	/*10000000 10000000 vs 0 0 1 1 1 */
 	std::vector<int> left_arr;
 	std::vector<int> right_arr;
-	left_arr.emplace_back(EMPTYFLAT);
-	left_arr.emplace_back(SUMFLAT);
-	for (unsigned i = 0; i < rhs_elements.size(); ++i)
-		right_arr.emplace_back(1);
+	unsigned mid = rhs_elements.size() / 2;
+ 	if (false) {
+ 		left_arr.emplace_back(SUMFLAT);
+ 		left_arr.emplace_back(SUMFLAT);
+ 		for (unsigned i = 0; i <= mid; ++i)
+ 			right_arr.emplace_back(0);
+ 		for (unsigned i = mid + 1; i < rhs_elements.size(); ++i)
+ 			right_arr.emplace_back(1);
+ 	}
+ 	else {
+ 		left_arr.emplace_back(EMPTYFLAT);
+ 		left_arr.emplace_back(SUMFLAT);
+ 		for (unsigned i = 0; i < rhs_elements.size(); ++i)
+ 			right_arr.emplace_back(1);
+ 	}
 	return Arrangment(left_arr, right_arr, constMap, notMap);
 }
 
@@ -530,8 +541,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 		if (tmp.length() > 0) {
 			cases.emplace_back(tmp);
-			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 		}
 		else {
 		}
@@ -621,6 +632,10 @@ std::string create_constraints_StartsWith(
 		std::string str01,
 		std::string boolValue){
 	__debugPrint(logFile, "%d *** %s ***: StartsWith %s %s\n", __LINE__, __FUNCTION__, str00.c_str(), str01.c_str());
+
+	if (boolValue.compare("false") != 0)
+		return "true";
+
 	bool isConst_00 = false;
 	bool isConst_01 = false;
 	if (str00[0] == '\"' )
@@ -666,11 +681,11 @@ std::string create_constraints_StartsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
-		for (unsigned int j = 0; j < CONNECTSIZE; ++j) {
+
+		for (int j = 0; j <= std::min(CONNECTSIZE, 50); ++j) {
 			/* length b = j*/
 			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (unsigned int i = 0; i < j; ++i) {
+			for (int i = 0; i < j; ++i) {
 				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str00) + " " +
 						std::to_string(i) + ") " +
@@ -682,10 +697,15 @@ std::string create_constraints_StartsWith(
 			andConstraints.clear();
 		}
 		ret = orConstraint(orConstraints);
+		andConstraints.clear();
+		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
+		andConstraints.emplace_back(ret);
+
+		ret = andConstraint(andConstraints);
 	}
 
-	if (boolValue.compare("false") == 0)
-		ret = "(not " + ret + ")";
+	ret = "(and \t(not " + ret + ")" +
+				"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(CONNECTSIZE, 50)) + "))";
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
 }
@@ -894,7 +914,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	 * 		..
 	 * )
 	 * */
-	for (unsigned int i = value.length() - 2; i < CONNECTSIZE; ++i){
+	for (unsigned i = value.length() - 2; i < (unsigned)std::min(CONNECTSIZE, 50); ++i){
 		std::vector<std::string> tmp;
 		tmp.emplace_back("(< " + lenName + " " + std::to_string(i) + " )");
 
@@ -905,7 +925,8 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 		andConstraints.emplace_back(orConstraint(tmp));
 	}
 
-	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
+	andConstraints.emplace_back("(< " + lenName + " " + std::to_string(std::min(CONNECTSIZE, 50)) + " )");
+	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
 }
@@ -1060,6 +1081,7 @@ void handle_NOTContains(
 					continue;
 				std::string value02 = getPossibleValue(args.second);
 				std::string value01 = getPossibleValue(args.first);
+				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
 				if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") == 0 &&
 						done.find(std::make_pair(args.first, value02)) == done.end()) {
 
@@ -1067,9 +1089,16 @@ void handle_NOTContains(
 
 					done[std::make_pair(args.first, value02)] = true;
 				}
-				if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
+				else if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
 						done.find(std::make_pair(value01, args.second)) == done.end()) {
 					// TODO handle_NOTContains
+				}
+				else if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") != 0) {
+					/* const vs const */
+					if (value01.find(value02.substr(1, value02.length() - 2)) == std::string::npos)
+						return;
+					else
+						global_smtStatements.push_back({"false"});
 				}
 				else {
 					// not handle this case
@@ -1313,16 +1342,13 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 250))");
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 200))");
 			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
 		}
 
 		/* (+ sum(len_x_i) */
 		if (QMAX > 1)
 			lenX = "(+ " + lenX + ")";
-
-		/*(assert (= const (+ sum(len_x_i)))) */
-		// constraints.emplace_back("(assert (< " + lenName + " 200))");
 		constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
 
 		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
@@ -1771,6 +1797,22 @@ std::string sumStringVector(std::vector<std::string> list){
 }
 
 /*
+ * Remove common prefix and suffix
+ */
+std::string stringDiff(std::string a, std::string b){
+	unsigned pre = 0, suf = a.length() - 1;
+	while (pre < a.length() && pre < b.length() && a[pre] == b[pre])
+		++pre;
+	while (suf >= 0 && a[suf] == b[b.length() - (a.length() - suf)])
+		--suf;
+
+	if (pre >= suf)
+		return "";
+	else
+		return a.substr(pre, suf - pre + 1);
+}
+
+/*
  * sum & split const strings
  * "a" . "b" = "ab"
  *
@@ -1934,7 +1976,7 @@ void createConstMap(){
  */
 
 void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap){
-	std::map<std::string, std::string> usedComponents;
+	std::map<std::string, std::vector<std::string>> usedComponents;
 	std::set<std::string> connectedVarSet;
 
 	/* collect from equality map */
@@ -1942,27 +1984,45 @@ void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap
 		if (eq.second.size() <= 1)
 			continue;
 
-		for (unsigned int j = 0; j < eq.second.size(); ++j)
-			if (eq.second[j].size() > 1){
-				/* create a general value that the component belongs to */
-				std::string value = sumStringVector(eq.second[j]);
+		if (eq.second.size() > 4) {
+			connectedVarSet.insert(eq.first);
+			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
+		}
+
+		std::map<std::string, std::vector<std::string>> tmpUsedComponents;
+		for (const auto& v : eq.second)
+			if (v.size() > 1){
 
 				/* push to map */
-				for (unsigned int k = 0; k < eq.second[j].size(); ++k)
-					if (eq.second[j][k][0] != '\"') {
+				for (const auto& var : v)
+					if (var[0] != '\"') {
 						/* check if component is already in the map*/
-						if (usedComponents.find(eq.second[j][k]) != usedComponents.end()) {
-							if (usedComponents[eq.second[j][k]].compare(value) != 0) {
-								connectedVarSet.insert(eq.second[j][k]);
+						if (usedComponents.find(var) != usedComponents.end()) {
+							if (!equalVector(v, usedComponents[var])){
+								connectedVarSet.insert(var);
+								__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 							}
 						}
-						else /* update map */
-							usedComponents[eq.second[j][k]] = value;
+						else {
+							/* check the local equalities */
+							std::vector<std::string> lhs;
+							std::vector<std::string> rhs;
+							for (const auto& v1 : eq.second) {
+								optimizeEquality(v1, v, lhs, rhs);
+								if (std::find(rhs.begin(), rhs.end(), var) != rhs.end() &&
+										std::find(lhs.begin(), lhs.end(), var) != lhs.end()){
+									connectedVarSet.insert(var);
+									__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
+									break;
+								}
+							}
+
+							tmpUsedComponents[var] = v;
+						}
 					}
 			}
 
-		if (eq.second.size() > 4)
-			connectedVarSet.insert(eq.first);
+		usedComponents.insert(tmpUsedComponents.begin(), tmpUsedComponents.end());
 	}
 
 	/* from rewriterMap */
@@ -2469,7 +2529,7 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 }
 
 /*
- * cut the same prefix and posfix
+ * cut the same prefix and suffix
  * */
 void optimizeEquality(
 		std::vector<std::string> lhs,
@@ -2490,20 +2550,20 @@ void optimizeEquality(
 		else
 			break;
 
-	/* cut posfix */
-	int posfix = -1;
+	/* cut suffix */
+	int suffix = -1;
 	for (unsigned int i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
 		if (lhs[lhs.size() - 1 - i].compare(rhs[rhs.size() - 1 - i]) == 0)
-			posfix = i;
+			suffix = i;
 		else
 			break;
 
-	__debugPrint(logFile, "%d common prefix = %d; common posfix = %d\n", __LINE__, prefix, posfix);
+	__debugPrint(logFile, "%d common prefix = %d; common suffix = %d\n", __LINE__, prefix, lhs.size() - suffix);
 
-	for (unsigned int i = prefix + 1; i < lhs.size() - posfix - 1; ++i)
+	for (unsigned int i = prefix + 1; i < lhs.size() - suffix - 1; ++i)
 		new_lhs.emplace_back(lhs[i]);
 
-	for (unsigned int i = prefix + 1; i < rhs.size() - posfix - 1; ++i)
+	for (unsigned int i = prefix + 1; i < rhs.size() - suffix - 1; ++i)
 		new_rhs.emplace_back(rhs[i]);
 }
 
@@ -3116,7 +3176,6 @@ bool underapproxController(
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);
-#ifdef PRINTTEST_UNDERAPPROX
 	if (constMap.size() > 0) {
 		/* print test const map */
 		__debugPrint(logFile, "%d Const map:\n", __LINE__);
@@ -3125,7 +3184,6 @@ bool underapproxController(
 		}
 		__debugPrint(logFile, "\n");
 	}
-#endif
 
 	//	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
 	rewriteGRM_toNewFile(orgInput, NONGRM, equalitiesMap, constMap);
@@ -3160,7 +3218,7 @@ bool underapproxController(
 		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
-			printf("%d trivialUnsat\n", __LINE__);
+			printf(">> UNSAT\n", __LINE__);
 			return false;
 		}
 		else {
