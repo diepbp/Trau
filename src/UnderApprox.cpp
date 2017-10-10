@@ -537,7 +537,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 		possibleCases[i].constMap.clear();
 		possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 		std::string tmp = possibleCases[i].
-				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables, newVars);
+				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
 
 		if (tmp.length() > 0) {
 			cases.emplace_back(tmp);
@@ -979,11 +979,9 @@ std::string create_constraints_NOTEqual(
 
 		/* (length a != 0 && ...) || length b = 1 && ...*/
 		if (str00.length() > 2) {
-			andConstraints.emplace_back("(= " + len01 + " " + std::to_string(str00.length() - 2) + ")");
 			for (unsigned int j = 1; j < str00.length() - 1; ++j) {
-				andConstraints.emplace_back("(= (select " + arr01 + " " + std::to_string(j - 1) + ") " + std::to_string((int)str00[j]) + ")");
+				orConstraints.emplace_back("(not (= (select " + arr01 + " " + std::to_string(j - 1) + ") " + std::to_string((int)str00[j]) + "))");
 			}
-			orConstraints.emplace_back("(not " + andConstraint(andConstraints) + ")");
 		}
 
 		ret = orConstraint(orConstraints);
@@ -1000,7 +998,6 @@ std::string create_constraints_NOTEqual(
 			/* != "a" b */
 			orConstraints.emplace_back("(not (= " + len00 + " " + len01 + "))");
 
-			andConstraints.emplace_back("(= " + len00 + " " + len01 + ")");
 			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 				/*len a = len b <= i || a[i - 1] == b [i-1] */
 				std::string tmp = "";
@@ -1350,13 +1347,18 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 200))");
-			lenX = lenX + lenVarName + "_" + std::to_string(i) + " ";
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 270))");
+			lenX += lenVarName;
+			lenX += "_";
+			lenX += std::to_string(i);
+			lenX += " ";
 		}
 
 		/* (+ sum(len_x_i) */
 		if (QMAX > 1)
 			lenX = "(+ " + lenX + ")";
+
+		//constraints.emplace_back("(assert (< " + lenVarName + " 300))");
 		constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
 
 		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
@@ -1387,7 +1389,7 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 		defines.emplace_back("(declare-const " + tmp + " Int)");
 		constraint = constraint + "(* " + tmp + " " + std::to_string(size) + ") ";
 	}
-	constraint = constraint + ") ) )";
+	constraint += ") ) )";
 	constraints.emplace_back(constraint);
 }
 
@@ -2525,10 +2527,6 @@ void optimizeEquality(
 		std::vector<std::string> rhs,
 		std::vector<std::string> &new_lhs,
 		std::vector<std::string> &new_rhs){
-//	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-//	displayListString(lhs, " org lhs ");
-//	displayListString(rhs, " org rhs ");
-
 	new_lhs.clear();
 	new_rhs.clear();
 	/* cut prefix */
@@ -2546,8 +2544,6 @@ void optimizeEquality(
 			suffix = i;
 		else
 			break;
-
-	__debugPrint(logFile, "%d common prefix = %d; common suffix = %d\n", __LINE__, prefix, lhs.size() - suffix);
 
 	for (unsigned int i = prefix + 1; i < lhs.size() - suffix - 1; ++i)
 		new_lhs.emplace_back(lhs[i]);
@@ -2579,11 +2575,23 @@ std::string constraintsIfEmpty(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void convertEqualities(){
+void *convertEqualities(void *tid){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+
+	int start, *mytid, end;
+	mytid = (int *) tid;
+	/* define elements that will be handled by this thread*/
+	start = (*mytid * (equalitiesMap.size() / NUM_THREADS));
+	if (*mytid != NUM_THREADS - 1)
+		end = start + (equalitiesMap.size() / NUM_THREADS);
+	else
+		end = equalitiesMap.size();
+
 	/* return a number of results*/
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
-			it != equalitiesMap.end();
+	auto startIt = std::next(equalitiesMap.begin(), start);
+	auto endIt = std::next(equalitiesMap.begin(), end);
+	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = startIt;
+			it != endIt;
 			++it) {
 
 		std::string tmp = " ";
@@ -2592,9 +2600,9 @@ void convertEqualities(){
 		/* different tactic for size of it->second */
 		const int flatP = 1;
 		const int maxPConsidered = 6;
-		unsigned int maxLocal = 0;
+		unsigned maxLocal = 0;
 		for (const auto& element : it->second) {
-			unsigned int cnt = 0;
+			unsigned cnt = 0;
 			for (const auto& s : element)
 				if (s[0] == '\"' || s.length() > 3)
 					cnt++;
@@ -2609,8 +2617,9 @@ void convertEqualities(){
 			continue;
 		assert (it->second[0].size() > 0);
 
+		pthread_mutex_lock (&smt_mutex);
 		global_smtStatements.push_back({createLengthConstraintForAssignment(it->first, it->second[0])});
-
+		pthread_mutex_unlock (&smt_mutex);
 
 		if (connectedVariables.find(it->first) != connectedVariables.end() || it->first[0] == '"'){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
@@ -2625,6 +2634,7 @@ void convertEqualities(){
 				);
 				t = clock() - t;
 
+				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2640,14 +2650,16 @@ void convertEqualities(){
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
+				pthread_mutex_unlock (&smt_mutex);
 			}
 
 		}
 		else if (maxLocal > maxPConsidered) {
 			/* add an eq = flat . flat . flat, then other equalities will compare will it */
+			pthread_mutex_lock (&smt_mutex);
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
-
+			pthread_mutex_unlock (&smt_mutex);
 			/* compare with others */
 			for (const auto& element: it->second) {
 				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
@@ -2659,6 +2671,7 @@ void convertEqualities(){
 				);
 				t = clock() - t;
 
+				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2674,6 +2687,7 @@ void convertEqualities(){
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
+				pthread_mutex_unlock (&smt_mutex);
 			}
 		}
 		else {
@@ -2701,6 +2715,8 @@ void convertEqualities(){
 							rhs_elements
 					);
 					t = clock() - t;
+
+					pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2717,6 +2733,7 @@ void convertEqualities(){
 						/* trivial unsat */
 						trivialUnsat = true;
 					}
+					pthread_mutex_unlock (&smt_mutex);
 				}
 		}
 
@@ -3067,7 +3084,45 @@ bool S3_assist(std::string fileName){
  * Pthread Caller
  */
 void pthreadController(){
-	convertEqualities();
+	pthread_t thread[NUM_THREADS];
+	int  tids[NUM_THREADS];
+	pthread_attr_t attr;
+	int rc;
+
+	/* Initialize and set thread detached attribute */
+	pthread_mutex_init(&smt_mutex, NULL);
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	/* create threads */
+	for(int t = 0; t < NUM_THREADS; t++) {
+		tids[t] = t;
+#ifdef DEBUGLOG
+		// printf("Controller: creating thread %d\n", t);
+#endif
+		rc = pthread_create(&thread[t], &attr, convertEqualities, (void *) &tids[t]);
+		if (rc) {
+			printf("ERROR; return code from pthread_create() is %d\n", rc);
+			exit(-1);
+		}
+	}
+
+	/* Free attribute and wait for the other threads */
+	pthread_attr_destroy(&attr);
+
+	/* join threads */
+	void *result;
+	for(int t = 0; t < NUM_THREADS; t++) {
+		rc = pthread_join(thread[t], &result);
+		if (rc) {
+			printf("ERROR; return code from pthread_join() is %d\n", rc);
+		}
+#ifdef DEBUGLOG
+		// printf("Controller: completed join with thread %d.\n", t);
+#endif
+	}
+
+	pthread_mutex_destroy(&smt_mutex);
 }
 
 /*

@@ -35,7 +35,6 @@
 
 //#define DEBUGLOG 1
 #define REMOVINGLOG 1
-#define PRINTTEST_UNDERAPPROX 1
 #define NUM_THREADS	1
 #define FLATMAX 100;
 #define PMAX 50 // size of a flat

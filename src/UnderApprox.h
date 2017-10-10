@@ -27,6 +27,8 @@ static std::vector<std::vector<std::string>> global_smtStatements;
 static std::set<std::string> allVariables;
 #endif
 
+static pthread_mutex_t smt_mutex;
+
 static int regexCnt;
 static std::vector<std::string> smtVarDefinition;
 static std::vector<std::string> smtLenConstraints;
@@ -445,7 +447,7 @@ void optimizeEquality(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void convertEqualities();
+void *convertEqualities();
 
 /*
  * Just do sequential to compare performance
