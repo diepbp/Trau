@@ -4282,10 +4282,53 @@ std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list
 }
 
 /*
+ *
+ */
+bool parikh_check_contain(Z3_theory t, Z3_ast node, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	/* check the node */
+	std::set<char> data;
+	if (isConstStr(t, node) || isDetAutomatonFunc(t, node)){
+		std::string s = getConstString(t, node);
+		for (unsigned i = 0; i < s.size(); ++i)
+			data.emplace(s[i]);
+	}
+	else {
+		for (const auto& v : list){
+			for (const auto& n : v)
+				if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
+					std::string s = getConstString(t, n);
+					for (unsigned i = 0; i < s.size(); ++i)
+						data.emplace(s[i]);
+				}
+		}
+	}
+
+	for (const auto& ch : data)
+		__debugPrint(logFile, " %c ", ch);
+	__debugPrint(logFile, "\n");
+
+	if (data.size() > 0) {
+		for (const auto& contain : containPairBoolMap)
+			if (contain.first.first == node &&
+					(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) &&
+					boolValues[contain.second] == false){
+				std::string str = getConstString(t, contain.first.second);
+				__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
+				for (unsigned j = 0; j < str.length(); ++j)
+					if (data.find(str[j]) != data.end())
+						return false;
+			}
+	}
+	return true;
+}
+
+/*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool parikh_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+bool parikh_check_replaceall(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+
 	if (list.size() <= 1)
 		return true;
 
@@ -4459,8 +4502,10 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
-		bool fine = parikh_check(t, itor->second, boolMapValues);
-		if (!fine) {
+		bool fine_replace = parikh_check_replaceall(t, itor->second, boolMapValues);
+		bool fine_contain = parikh_check_contain(t, itor->first, itor->second, boolMapValues);
+
+		if (!fine_replace || !fine_contain) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveContext(t), __LINE__, true);
 			return {};
@@ -4621,6 +4666,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		std::map<std::string, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
 		collectContainValueInPositiveContext(t, rewriterStrMap);
+
 		collectSubstrValueInPositiveContext(t, rewriterStrMap);
 		collectIndexOfValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 		collectSubstrValueInPositiveContext(t, rewriterStrMap);

@@ -591,9 +591,14 @@ typedef struct _AutomatonStringData
  std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
 
  /*
+  *
+  */
+ bool parikh_check_contain(Z3_theory t, Z3_ast node, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+
+ /*
   * x = a . b . c = d . e . f --> possible or not
   */
- bool parikh_check(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+ bool parikh_check_replaceall(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
 
  /**
   *
