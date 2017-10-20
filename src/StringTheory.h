@@ -593,7 +593,25 @@ typedef struct _AutomatonStringData
  /*
   *
   */
- bool parikh_check_contain(Z3_theory t, Z3_ast node, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+ void compute_parikh(Z3_theory t,
+ 		Z3_ast node,
+ 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
+ 		std::map<Z3_ast, std::set<char>> &parikhImg);
+
+ /*
+  * x = replace y a b --> parikh image of x is almost the same as parikh image of y
+  */
+ std::map<Z3_ast, std::set<char>> calculate_minimumParikh(Z3_theory t, std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables);
+
+ /*
+  *
+  */
+ bool parikh_check_contain(
+ 		Z3_theory t,
+ 		Z3_ast node,
+ 		std::vector<std::vector<Z3_ast>> list,
+ 		std::map<Z3_ast, bool> boolValues,
+ 		std::map<Z3_ast, std::set<char>> parikhMap);
 
  /*
   * x = a . b . c = d . e . f --> possible or not
