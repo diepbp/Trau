@@ -447,7 +447,7 @@ void optimizeEquality(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void *convertEqualities();
+void convertEqualities();
 
 /*
  * Just do sequential to compare performance

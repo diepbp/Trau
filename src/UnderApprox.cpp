@@ -2575,23 +2575,24 @@ std::string constraintsIfEmpty(
  * Pthread
  * Each thread handles a part in the global map from start -> end
  */
-void *convertEqualities(void *tid){
+//void *convertEqualities(void *tid){
+void convertEqualities(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
-	int start, *mytid, end;
-	mytid = (int *) tid;
-	/* define elements that will be handled by this thread*/
-	start = (*mytid * (equalitiesMap.size() / NUM_THREADS));
-	if (*mytid != NUM_THREADS - 1)
-		end = start + (equalitiesMap.size() / NUM_THREADS);
-	else
-		end = equalitiesMap.size();
+//	int start, *mytid, end;
+//	mytid = (int *) tid;
+//	/* define elements that will be handled by this thread*/
+//	start = (*mytid * (equalitiesMap.size() / NUM_THREADS));
+//	if (*mytid != NUM_THREADS - 1)
+//		end = start + (equalitiesMap.size() / NUM_THREADS);
+//	else
+//		end = equalitiesMap.size();
 
 	/* return a number of results*/
-	auto startIt = std::next(equalitiesMap.begin(), start);
-	auto endIt = std::next(equalitiesMap.begin(), end);
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = startIt;
-			it != endIt;
+//	auto startIt = std::next(equalitiesMap.begin(), start);
+//	auto endIt = std::next(equalitiesMap.begin(), end);
+	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
+			it != equalitiesMap.end();
 			++it) {
 
 		std::string tmp = " ";
@@ -2617,9 +2618,9 @@ void *convertEqualities(void *tid){
 			continue;
 		assert (it->second[0].size() > 0);
 
-		pthread_mutex_lock (&smt_mutex);
+//		pthread_mutex_lock (&smt_mutex);
 		global_smtStatements.push_back({createLengthConstraintForAssignment(it->first, it->second[0])});
-		pthread_mutex_unlock (&smt_mutex);
+//		pthread_mutex_unlock (&smt_mutex);
 
 		if (connectedVariables.find(it->first) != connectedVariables.end() || it->first[0] == '"'){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
@@ -2634,7 +2635,7 @@ void *convertEqualities(void *tid){
 				);
 				t = clock() - t;
 
-				pthread_mutex_lock (&smt_mutex);
+//				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2650,16 +2651,16 @@ void *convertEqualities(void *tid){
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
-				pthread_mutex_unlock (&smt_mutex);
+//				pthread_mutex_unlock (&smt_mutex);
 			}
 
 		}
 		else if (maxLocal > maxPConsidered) {
 			/* add an eq = flat . flat . flat, then other equalities will compare will it */
-			pthread_mutex_lock (&smt_mutex);
+//			pthread_mutex_lock (&smt_mutex);
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
-			pthread_mutex_unlock (&smt_mutex);
+//			pthread_mutex_unlock (&smt_mutex);
 			/* compare with others */
 			for (const auto& element: it->second) {
 				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
@@ -2671,7 +2672,7 @@ void *convertEqualities(void *tid){
 				);
 				t = clock() - t;
 
-				pthread_mutex_lock (&smt_mutex);
+//				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2687,7 +2688,7 @@ void *convertEqualities(void *tid){
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
-				pthread_mutex_unlock (&smt_mutex);
+//				pthread_mutex_unlock (&smt_mutex);
 			}
 		}
 		else {
@@ -2716,7 +2717,7 @@ void *convertEqualities(void *tid){
 					);
 					t = clock() - t;
 
-					pthread_mutex_lock (&smt_mutex);
+//					pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
@@ -2733,7 +2734,7 @@ void *convertEqualities(void *tid){
 						/* trivial unsat */
 						trivialUnsat = true;
 					}
-					pthread_mutex_unlock (&smt_mutex);
+//					pthread_mutex_unlock (&smt_mutex);
 				}
 		}
 
@@ -3084,45 +3085,46 @@ bool S3_assist(std::string fileName){
  * Pthread Caller
  */
 void pthreadController(){
-	pthread_t thread[NUM_THREADS];
-	int  tids[NUM_THREADS];
-	pthread_attr_t attr;
-	int rc;
-
-	/* Initialize and set thread detached attribute */
-	pthread_mutex_init(&smt_mutex, NULL);
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-	/* create threads */
-	for(int t = 0; t < NUM_THREADS; t++) {
-		tids[t] = t;
-#ifdef DEBUGLOG
-		// printf("Controller: creating thread %d\n", t);
-#endif
-		rc = pthread_create(&thread[t], &attr, convertEqualities, (void *) &tids[t]);
-		if (rc) {
-			printf("ERROR; return code from pthread_create() is %d\n", rc);
-			exit(-1);
-		}
-	}
-
-	/* Free attribute and wait for the other threads */
-	pthread_attr_destroy(&attr);
-
-	/* join threads */
-	void *result;
-	for(int t = 0; t < NUM_THREADS; t++) {
-		rc = pthread_join(thread[t], &result);
-		if (rc) {
-			printf("ERROR; return code from pthread_join() is %d\n", rc);
-		}
-#ifdef DEBUGLOG
-		// printf("Controller: completed join with thread %d.\n", t);
-#endif
-	}
-
-	pthread_mutex_destroy(&smt_mutex);
+	convertEqualities();
+//	pthread_t thread[NUM_THREADS];
+//	int  tids[NUM_THREADS];
+//	pthread_attr_t attr;
+//	int rc;
+//
+//	/* Initialize and set thread detached attribute */
+//	pthread_mutex_init(&smt_mutex, NULL);
+//	pthread_attr_init(&attr);
+//	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+//
+//	/* create threads */
+//	for(int t = 0; t < NUM_THREADS; t++) {
+//		tids[t] = t;
+//#ifdef DEBUGLOG
+//		// printf("Controller: creating thread %d\n", t);
+//#endif
+//		rc = pthread_create(&thread[t], &attr, convertEqualities, (void *) &tids[t]);
+//		if (rc) {
+//			printf("ERROR; return code from pthread_create() is %d\n", rc);
+//			exit(-1);
+//		}
+//	}
+//
+//	/* Free attribute and wait for the other threads */
+//	pthread_attr_destroy(&attr);
+//
+//	/* join threads */
+//	void *result;
+//	for(int t = 0; t < NUM_THREADS; t++) {
+//		rc = pthread_join(thread[t], &result);
+//		if (rc) {
+//			printf("ERROR; return code from pthread_join() is %d\n", rc);
+//		}
+//#ifdef DEBUGLOG
+//		// printf("Controller: completed join with thread %d.\n", t);
+//#endif
+//	}
+//
+//	pthread_mutex_destroy(&smt_mutex);
 }
 
 /*
