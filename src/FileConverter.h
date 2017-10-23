@@ -9,7 +9,16 @@
 #define FILECONVERTER_H_
 
 #include "utils.h"
+#include "antlr4-runtime.h"
+#include "antlrParser/SMTLIB2Lexer.h"
+#include "antlrParser/SMTLIB2Parser.h"
+#include "antlrParser/SMTLIB2ParserBaseVisitor.h"
+#include "antlrParser/SMTLIB2ParserBaseListener.h"
+#include "antlrParser/SMTLIB2TrauListener.h"
+
+
 #include <regex>
+
 
 static std::map<char, char> ENCODEMAP;
 
@@ -171,12 +180,12 @@ void customizeLine_ToCreateLengthLine(
 /*
  * Replace special const in constraints
  */
-std::string customizeLine_removeSpecialChars(std::string str);
+std::string replaceSpecialChars(std::string str);
 
 /*
- * Replace special const in constraints
+ *
  */
-std::string customizeLine_replaceConst(std::string str, std::set<std::string> &constStr);
+std::string encodeConst(std::string constStr);
 
 /*
  * read SMT file

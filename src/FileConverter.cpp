@@ -972,7 +972,7 @@ void prepareEncoderDecoderMap(std::string fileName){
 			if (used[i] == false)
 				unused.emplace_back(i);
 
-	__debugPrint(logFile, "%d *** %s ***: unused = %u, encoded = %u\n", __LINE__, __FUNCTION__, unused.size(), encoded.size());
+	__debugPrint(logFile, "%d *** %s ***: unused = %ld, encoded = %ld\n", __LINE__, __FUNCTION__, unused.size(), encoded.size());
 	assert(unused.size() >= encoded.size());
 
 
@@ -1326,101 +1326,51 @@ void customizeLine_ToCreateLengthLine(
 }
 
 /*
- * Replace special const in constraints
+ *
  */
-std::string customizeLine_removeSpecialChars(std::string str){
-
-	std::string strTmp = str;
-	std::string newStr = "";
+std::string replaceSpecialChars(std::string constStr){
+	std::string strTmp = "";
 	int tabNum[1000];
 	memset(tabNum, 0, sizeof tabNum);
 
 
-	int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
-
-	for (unsigned int i = 0; i < strTmp.length(); ++i) {
-		bool reduceSize = false;
-		if (strTmp[i] == '"') {
-			switch (textState) {
-				case 1:
-					textState = 2;
-					break;
-				case 3:
-					textState = 1;
-					strTmp[i] = ENCODEMAP[strTmp[i]];
-					break;
-				default:
-					textState = 1;
-					break;
+	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
+		if (constStr[i] == '\\') {
+			if (i < constStr.length() - 1) {
+				if (constStr[i + 1] == 't'){
+					strTmp += ENCODEMAP['\t'];
+					i++;
+				}
+				else if (constStr[i + 1] == '"') {
+					strTmp += ENCODEMAP['"'];
+					i++;
+				}
+				else {
+					strTmp += constStr[i];
+				}
+			}
+			else {
+				strTmp += constStr[i];
 			}
 		}
-		else if (strTmp[i] == '\\') {
-			switch (textState) {
-				case 3:
-					strTmp[i] = ENCODEMAP[strTmp[i]];
-					textState = 1;
-					break;
-				default:
-					textState = 3;
-					strTmp.erase(i, 1);
-					i--;
-					reduceSize = true;
-					break;
-			}
-		}
-		else if (textState == 1 || textState == 3) {
+		else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
+				strTmp += ENCODEMAP[constStr[i]];
+		else
+			strTmp += constStr[i];
 
-			if (strTmp[i] == 't' && textState == 3)
-				strTmp[i] = ENCODEMAP['\t'];
-			else if (ENCODEMAP.find(strTmp[i]) != ENCODEMAP.end())
-				strTmp[i] = ENCODEMAP[strTmp[i]];
-
-			textState = 1;
-		}
-
-		if (!reduceSize)
-			newStr = newStr + strTmp[i];
 	}
 
-	return newStr;
+	return '"' + strTmp + '"';
 }
 
 /*
- * Replace special const in constraints
+ *
  */
-std::string customizeLine_replaceConst(std::string str, std::set<std::string> &constStr){
-
-	std::string strTmp = str;
-	std::string newStr = "";
-	int tabNum[1000];
-	memset(tabNum, 0, sizeof tabNum);
-
-	std::string constString = "";
-
-	int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
-
-	for (unsigned int i = 0; i < strTmp.length(); ++i) {
-		if (strTmp[i] == '"') {
-			if (textState == 1){
-				textState = 2;
-				constStr.insert("__cOnStStR_" + constString);
-			}
-			else {
-				constString = "";
-				newStr = newStr + "__cOnStStR_";
-				textState = 1;
-			}
-		}
-		else if (textState == 1) {
-			std::string hex = int_to_hex((int)strTmp[i]);
-			constString = constString + hex;
-			newStr = newStr + hex;
-		}
-		else
-			newStr = newStr + strTmp[i];
+std::string encodeConst(std::string constStr){
+	std::string newStr = "__cOnStStR_";
+	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
+		newStr = newStr + int_to_hex((int)constStr[i]);
 	}
-
-	__debugPrint(logFile, "%d *** %s ***: %s -> %s\n", __LINE__, __FUNCTION__, str.c_str(), newStr.c_str());
 	return newStr;
 }
 
@@ -1428,31 +1378,43 @@ std::string customizeLine_replaceConst(std::string str, std::set<std::string> &c
  * read SMT file
  */
 void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFile){
-	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in) {
-		printf("%d %s", __LINE__, inputFile.c_str());
-		throw std::runtime_error("Cannot open input file!");
+
+	ANTLRFileStream input(inputFile);
+	SMTLIB2Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB2Parser parser(&tokens);
+	tree::ParseTree *tree = parser.script();
+	SMTLIB2TrauListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	std::vector<std::vector<std::string>> newtokens;
+	std::set<std::string> constStr;
+	for (const auto& tokens : listener.smtTokens) {
+		std::vector<std::string> listTokens;
+		for (const auto &token : tokens) {
+			if (token.second == 86) /* string */{
+				std::string tmp = replaceSpecialChars(token.first);
+				constStr.emplace(tmp);
+				listTokens.emplace_back(tmp);
+			}
+			else {
+				listTokens.emplace_back(token.first);
+			}
+		}
+		newtokens.emplace_back(listTokens);
 	}
+
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
-	char buffer[5000];
-	while (!feof(in))
-	{
-		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL)
-		{
-			out << customizeLine_removeSpecialChars(buffer);
+	for (const auto& tokens : newtokens) {
+		for (const auto &token : tokens) {
+			out << token << " ";
 			out.flush();
-
-			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				break;
-			}
 		}
+		out << "\n";
 	}
-
-	pclose(in);
-
 	out.flush();
 	out.close();
 }
@@ -1461,36 +1423,47 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
  * read SMT file
  */
 void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
-	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in)
-		throw std::runtime_error("Cannot open input file!");
+
+	ANTLRFileStream input(inputFile);
+	SMTLIB2Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB2Parser parser(&tokens);
+	tree::ParseTree *tree = parser.script();
+	SMTLIB2TrauListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	std::vector<std::vector<std::string>> newtokens;
+	std::set<std::string> constStr;
+	for (const auto& tokens : listener.smtTokens) {
+		std::vector<std::string> listTokens;
+		for (const auto &token : tokens) {
+			if (token.second == 86) /* string */{
+				std::string tmp = encodeConst(token.first);
+				constStr.emplace(tmp);
+				listTokens.emplace_back(tmp);
+			}
+			else {
+				listTokens.emplace_back(token.first);
+			}
+		}
+		newtokens.emplace_back(listTokens);
+	}
+
 	std::ofstream out;
 	out.open(outFile.c_str(), std::ios::out);
 
-	char buffer[5000];
-	std::set<std::string> constStr;
-	std::vector<std::string> lines;
-	while (!feof(in))
-	{
-		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL) {
-			lines.emplace_back(customizeLine_replaceConst(buffer, constStr));
-			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				break;
-			}
+	for (const auto& s : constStr) {
+		out << "(declare-const " << s << " String)\n";
+		out.flush();
+	}
+
+	for (const auto& tokens : newtokens) {
+		for (const auto &token : tokens) {
+			out << token << " ";
+			out.flush();
 		}
-	}
-
-	pclose(in);
-
-	for (std::set<std::string>::iterator it = constStr.begin(); it != constStr.end(); ++it) {
-		out << "(declare-const " << *it << " String)\n";
-		out.flush();
-	}
-
-	for (unsigned int i = 0; i < lines.size(); ++i) {
-		out << lines[i];
-		out.flush();
+		out << "\n";
 	}
 
 	out.flush();
