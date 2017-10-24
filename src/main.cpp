@@ -256,8 +256,8 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
  *
  */
 void printHelp(){
-	printf("FAT string solver [version 0.9]\n");
-	printf("Usage ./FAT [option] file.smt2\n\n");
+	printf("Trau string solver [version 0.9]\n");
+	printf("Usage ./Trau [option] file.smt2\n\n");
 
 	printf("Input format:\n");
 	printf("\t -model 	\t print the concrete model if it is SAT.\n");

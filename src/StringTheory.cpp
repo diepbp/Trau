@@ -36,15 +36,15 @@ std::map<std::string, std::string> subStrStrMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
 
-std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
-std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
-std::map<std::string, std::string> endsWithStrMap;
-std::map<std::string, std::string> startsWithStrMap;
+std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
+std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
+std::map<StringOP, std::string> endsWithStrMap;
+std::map<StringOP, std::string> startsWithStrMap;
 
-std::map<std::string, std::string> replaceStrMap;
+std::map<StringOP, std::string> replaceStrMap;
 std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceNodeMap;
 
-std::map<std::string, std::string> replaceAllStrMap;
+std::map<StringOP, std::string> replaceAllStrMap;
 std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> replaceAllNodeMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> endsWithPairBoolMap;
@@ -4801,7 +4801,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		}
 
 
-		std::map<std::string, std::string> rewriterStrMap;
+		std::map<StringOP, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
 		collectContainValueInPositiveContext(t, rewriterStrMap);
 
@@ -7170,9 +7170,57 @@ void collectContainValueInPositiveContext(
 /*
  *
  */
+void collectContainValueInPositiveContext(
+		Z3_theory t,
+		std::map<StringOP, std::string> &rewriterStrMap){
+	Z3_context ctx = Z3_theory_get_context(t);
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
+
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
+			T_TheoryType type = getNodeType(t, argAst);
+			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				__debugPrint(logFile, "%d var: %s\n", __LINE__, astToString.c_str());
+				for (const auto& it : containPairBoolMap) {
+					if (it.second == argAst) {
+						rewriterStrMap[StringOP("Contains", exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = "true";
+						break;
+					}
+				}
+			}
+
+			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				T_TheoryType type = getNodeType(t, boolNode);
+				astToString = Z3_ast_to_string(ctx, boolNode);
+				__debugPrint(logFile, "%d var: not %s\n", __LINE__, astToString.c_str());
+				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+					for (const auto& it : containPairBoolMap) {
+						if (it.second == boolNode) {
+							rewriterStrMap[StringOP("Contains", exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = "false";
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	__debugPrint(logFile, "%d leave ** %s **\n", __LINE__, __FUNCTION__);
+}
+
+/*
+ *
+ */
 void collectSubstrValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& substrElement : subStrStrMap) {
 		rewriterStrMap[substrElement.first] = substrElement.second;
 	}
@@ -7183,11 +7231,18 @@ void collectSubstrValueInPositiveContext(
  */
 void collectIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap,
+		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+
+	/* update the rest */
+	for (const auto& it : indexOfStrMap) {
+		if (it.second.first.length() == 0){ /* evaluated */
+			rewriterStrMap[it.first] = it.second.second;
+		}
+	}
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
@@ -7197,9 +7252,9 @@ void collectIndexOfValueInPositiveContext(
 
 			T_TheoryType type = getNodeType(t, argAst);
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
-					if (astToString.compare(it->second.first) == 0){
-						rewriterStrMap[it->first] = it->second.second;
+				for (const auto& it : indexOfStrMap) {
+					if (astToString.compare(it.second.first) == 0){
+						rewriterStrMap[it.first] = it.second.second;
 						if (carryOn.find(argAst) != carryOn.end())
 							carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
 						break;
@@ -7211,21 +7266,14 @@ void collectIndexOfValueInPositiveContext(
 				T_TheoryType type = getNodeType(t, boolNode);
 				astToString = Z3_ast_to_string(ctx, boolNode);
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-					for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
-						if (astToString.compare(it->second.first) == 0){
-							rewriterStrMap[it->first] = "-1";
+					for (const auto& it : indexOfStrMap) {
+						if (astToString.compare(it.second.first) == 0){
+							rewriterStrMap[it.first] = "-1";
 							break;
 						}
 					}
 				}
 			}
-		}
-	}
-
-	/* update the rest */
-	for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = indexOfStrMap.begin(); it != indexOfStrMap.end(); ++it) {
-		if (it->second.first.length() == 0){ /* evaluated */
-			rewriterStrMap[it->first] = it->second.second;
 		}
 	}
 }
@@ -7235,11 +7283,17 @@ void collectIndexOfValueInPositiveContext(
  */
 void collectLastIndexOfValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap,
+		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+
+	for (const auto& s: lastIndexOfStrMap) {
+		if (s.second.first.length() == 0){ /* evaluated */
+			rewriterStrMap[s.first] = s.second.second;
+		}
+	}
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
@@ -7249,9 +7303,9 @@ void collectLastIndexOfValueInPositiveContext(
 
 			T_TheoryType type = getNodeType(t, argAst);
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-				for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
-					if (astToString.compare(it->second.first) == 0){
-						rewriterStrMap[it->first] = it->second.second;
+				for (const auto& it : lastIndexOfStrMap) {
+					if (astToString.compare(it.second.first) == 0){
+						rewriterStrMap[it.first] = it.second.second;
 						if (carryOn.find(argAst) != carryOn.end())
 							carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
 						break;
@@ -7263,21 +7317,14 @@ void collectLastIndexOfValueInPositiveContext(
 				T_TheoryType type = getNodeType(t, boolNode);
 				astToString = Z3_ast_to_string(ctx, boolNode);
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-					for (std::map<std::string, std::pair<std::string, std::string>>::iterator it = lastIndexOfStrMap.begin(); it != lastIndexOfStrMap.end(); ++it) {
-						if (astToString.compare(it->second.first) == 0){
-							rewriterStrMap[it->first] = "-1";
+					for (const auto& it : lastIndexOfStrMap) {
+						if (astToString.compare(it.second.first) == 0){
+							rewriterStrMap[it.first] = "-1";
 							break;
 						}
 					}
 				}
 			}
-		}
-	}
-
-	/* update the rest */
-	for (const auto& s: lastIndexOfStrMap) {
-		if (s.second.first.length() == 0){ /* evaluated */
-			rewriterStrMap[s.first] = s.second.second;
 		}
 	}
 }
@@ -7290,8 +7337,6 @@ void collectEndsWithValueInPositiveContext(
 		std::map<std::string, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-
-//	printZ3Node(t, ctxAssign);
 
 	/* update first */
 	for (const auto& s : endsWithStrMap) {
@@ -7393,13 +7438,13 @@ void collectEqualValueInPositiveContext(
  */
 void collectStartsWithValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<StringOP, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
 	/* update first */
-	for (std::map<std::string, std::string>::iterator it = startsWithStrMap.begin(); it != startsWithStrMap.end(); ++it) {
-		rewriterStrMap[it->first] = it->second;
+	for (const auto& it : startsWithStrMap) {
+		rewriterStrMap[it.first] = it.second;
 	}
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
@@ -7439,7 +7484,7 @@ void collectStartsWithValueInPositiveContext(
  */
 void collectReplaceValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap,
+		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
@@ -7489,7 +7534,7 @@ void collectReplaceValueInPositiveContext(
  */
 void collectReplaceAllValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap,
+		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
@@ -8780,7 +8825,7 @@ void overApproxController() {
 	printf("Running Over Approximation...\n");
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "***********************************************\n");
-	__debugPrint(logFile, "*              fat_theory                     *\n");
+	__debugPrint(logFile, "*              Trau_theory                     *\n");
 	__debugPrint(logFile, "-----------------------------------------------\n");
 #endif
 	if (inputFile_converted == "") {

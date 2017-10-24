@@ -233,6 +233,12 @@ typedef struct _AutomatonStringData
   */
  std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name);
 
+
+ /*
+  * convert a node to string
+  */
+ std::string exportNodeName(Z3_theory t,  Z3_ast node);
+
  /*
   * return str if it is const or automatadet
   */
@@ -755,21 +761,21 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  void collectContainValueInPositiveContext(
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap);
+		 std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
   */
  void collectSubstrValueInPositiveContext(
  		Z3_theory t,
- 		std::map<std::string, std::string> &rewriterStrMap);
+ 		std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
   */
  void collectIndexOfValueInPositiveContext(
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap,
+		 std::map<StringOP, std::string> &rewriterStrMap,
 		 std::set<std::string> &carryOnConstraints);
 
  /*
@@ -777,7 +783,7 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  void collectLastIndexOfValueInPositiveContext(
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap,
+		 std::map<StringOP, std::string> &rewriterStrMap,
 		 std::set<std::string> &carryOnConstraints);
 
  /*
@@ -785,27 +791,27 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  void collectEndsWithValueInPositiveContext (
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap);
+		 std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
   */
  void collectEqualValueInPositiveContext(
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap);
+		 std::map<StringOP, std::string> &rewriterStrMap);
  /*
   *
   */
  void collectStartsWithValueInPositiveContext (
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap);
+		 std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
   */
  void collectReplaceValueInPositiveContext(
 		 Z3_theory t,
-		 std::map<std::string, std::string> &rewriterStrMap,
+		 std::map<StringOP, std::string> &rewriterStrMap,
 		 std::set<std::string> &carryOnConstraints);
 
  /*
@@ -813,7 +819,7 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  void collectReplaceAllValueInPositiveContext(
  		Z3_theory t,
- 		std::map<std::string, std::string> &rewriterStrMap,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
  		std::set<std::string> &carryOnConstraints);
 
  /*

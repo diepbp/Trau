@@ -9,13 +9,6 @@
 #define FILECONVERTER_H_
 
 #include "utils.h"
-#include "antlr4-runtime.h"
-#include "antlrParser/SMTLIB2Lexer.h"
-#include "antlrParser/SMTLIB2Parser.h"
-#include "antlrParser/SMTLIB2ParserBaseVisitor.h"
-#include "antlrParser/SMTLIB2ParserBaseListener.h"
-#include "antlrParser/SMTLIB2TrauListener.h"
-
 
 #include <regex>
 

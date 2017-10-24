@@ -180,6 +180,23 @@ int findCorrespondRightParentheses(int leftParentheses, std::string str){
 }
 
 /*
+ *
+ */
+int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<std::string, int>> tokens){
+	assert (tokens[leftParentheses].second == 92);
+	int cnt = 1;
+	for (unsigned i = leftParentheses + 1 ; i < tokens.size(); ++i)
+		if (tokens[i].second == 92)
+			cnt++;
+		else if (tokens[i].second == 93) {
+			cnt--;
+			if (cnt == 0)
+				return i;
+		}
+	return -1;
+}
+
+/*
  * (a) | (b) --> {a, b}
  */
 std::vector<std::string> collectAlternativeComponents(std::string str){
@@ -276,4 +293,46 @@ std::string andConstraint(std::set<std::string> possibleCases){
 		result = *possibleCases.begin();
 	}
 	return result;
+}
+
+/*
+ *
+ */
+std::vector<std::pair<std::string, int>> parseTerm(std::string term){
+	ANTLRInputStream input("(not (= PCTEMP_LHS_7 (- 1)))");
+	SMTLIB2Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB2Parser parser(&tokens);
+	tree::ParseTree *tree = parser.term();
+	SMTLIB2TermListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	return listener.smtTokens[0];
+
+//	for (const auto &lineToken : listener.smtTokens[0]) {
+//		printf("%s - %d \t", lineToken.first.c_str(), lineToken.second);
+//	}
+}
+
+/*
+ *
+ */
+std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file){
+	ANTLRFileStream input(file);
+	SMTLIB2Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB2Parser parser(&tokens);
+	tree::ParseTree *tree = parser.script();
+	SMTLIB2ScriptListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	return listener.smtTokens;
+//	for (const auto& tokens : listener.smtTokens) {
+//		for (const auto &lineToken : tokens) {
+//			printf("%s - %d \t", lineToken.first.c_str(), lineToken.second);
+//		}
+//		printf("\n");
+//	}
 }

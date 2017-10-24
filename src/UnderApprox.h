@@ -358,7 +358,7 @@ void createConstMap();
  * They are variables that are used by more than one variables
  */
 
-void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap);
+void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  *
@@ -379,7 +379,7 @@ void refineEqualMap();
 /*
  *
  */
-void decodeRewriterMap(std::map<std::string, std::string> &rewriterStrMap);
+void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap);
 
 /*
  *
@@ -500,7 +500,7 @@ void reset();
  */
 std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnConstraints);
 
-void init(std::map<std::string, std::string> &rewriterStrMap);
+void init(std::map<StringOP, std::string> &rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 

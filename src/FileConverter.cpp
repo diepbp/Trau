@@ -115,6 +115,21 @@ std::string redefineOtherVar(std::string var, std::string type){
 }
 
 /*
+ *
+ */
+std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std::string, int>> tokens,
+		int start, int finish, std::string tokenName, int tokenType){
+	std::vector<std::pair<std::string, int>> tmp;
+	for (unsigned i = 0; i < start; ++i)
+		tmp.emplace_back(tokens[i]);
+	tmp.push_back(std::make_pair(tokenName, 15));
+	for (unsigned i = finish; i < tokens.size(); ++i)
+		tmp.emplace_back(tokens[i]);
+
+	return tmp;
+}
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::string &s){
@@ -152,6 +167,42 @@ void updateImplies(std::string &s){
 }
 
 /*
+ * (implies x) --> (implies false x)
+ */
+void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
+	int found = -1;
+	for (unsigned i = 0; i < tokens.size(); ++i)
+		if (tokens[i].second == 88 && tokens[i].first.compare("implies") == 0) {
+			found = (int)i;
+			break;
+		}
+	while (found != -1) {
+		int endPos = findCorrespondRightParentheses(found - 1, tokens);
+		int pos = found + 1;
+
+		if (tokens[pos].second == 92)
+			pos = findCorrespondRightParentheses(pos, tokens) + 1;
+		else
+			pos++;
+
+//		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
+
+		if (tokens[pos].second == 92)
+			pos = findCorrespondRightParentheses(pos, tokens) + 1;
+		else
+			pos++;
+
+		if (pos >= endPos) {
+			/* (implies x) --> (implies false x) */
+			tokens = replaceTokens(tokens, found - 1, endPos, "false", 7);
+//			__debugPrint(logFile, "%d ** %s **: %s\n", __LINE__, __FUNCTION__, s.c_str());
+			return;
+		}
+		return;
+	}
+}
+
+/*
  * (RegexIn ...) --> TRUE
  */
 void updateRegexIn(std::string &s){
@@ -168,12 +219,69 @@ void updateRegexIn(std::string &s){
 }
 
 /*
+ * (RegexIn ...) --> TRUE
+ */
+void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens){
+	int found = -1;
+	for (unsigned i = 0; i < tokens.size(); ++i)
+		if (tokens[i].second == 88 && tokens[i].first.compare("RegexIn") == 0) {
+			found = (int)i;
+			break;
+		}
+	while (found != -1) {
+		int pos = findCorrespondRightParentheses(found - 1, tokens);
+//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+
+		/* clone & replace */
+		tokens = replaceTokens(tokens, found - 1, pos, "true", 15);
+
+		found = -1;
+		for (unsigned i = found + 1; i < tokens.size(); ++i)
+			if (tokens[i].second == 88 && tokens[i].first.compare("RegexIn") == 0) {
+				found = (int)i;
+				break;
+			}
+	}
+}
+
+/*
+ * (Contains v1 v2) --> TRUE || FALSE
+ */
+void updateContain(std::vector<std::pair<std::string, int>> &tokens, std::map<std::string, std::string> rewriterStrMap){
+	int found = -1;
+	for (unsigned i = 0; i < tokens.size(); ++i)
+		if (tokens[i].second == 88 && tokens[i].first.compare("Contains") == 0) {
+			found = (int)i;
+			break;
+		}
+
+	while (found != -1) {
+		int pos = findCorrespondRightParentheses(found, tokens);
+//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+
+		std::string substr = s.substr(found, pos - found + 1);
+		if ()
+		tokens = replaceTokens(tokens, found - 1, pos, "true", 15);
+		tokens = replaceTokens(tokens, found - 1, pos, "false", 7);
+		s = s.replace(found, substr.length(), rewriterStrMap[removeSpace(substr)]);
+//		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+
+		found = -1;
+		for (unsigned i = 0; i < tokens.size(); ++i)
+			if (tokens[i].second == 88 && tokens[i].first.compare("Contains") == 0) {
+				found = (int)i;
+				break;
+			}
+	}
+}
+
+/*
  * (Contains v1 v2) --> TRUE || FALSE
  */
 void updateContain(std::string &s, std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Contains ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
+		int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -191,7 +299,7 @@ void updateIndexOf(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(Indexof ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
+		int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -209,7 +317,7 @@ void updateLastIndexOf(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(LastIndexof ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
+		int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -227,7 +335,7 @@ void updateEndsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(EndsWith ");
 	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
+		int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -245,7 +353,7 @@ void updateStartsWith(std::string &s,
 		std::map<std::string, std::string> rewriterStrMap){
 	std::size_t found = s.find("(StartsWith ");
 	while (found != std::string::npos) {
-		unsigned pos = findCorrespondRightParentheses(found, s);
+		int pos = findCorrespondRightParentheses(found, s);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		std::string substr = s.substr(found, pos - found + 1);
@@ -266,7 +374,7 @@ void updateReplace(std::string &s,
 	while (found != std::string::npos){
 		while (found >= 0) {
 			if (s[found] == '(' && s[found + 1] == '='){
-				unsigned int pos = findCorrespondRightParentheses(found, s);
+				int pos = findCorrespondRightParentheses(found, s);
 
 				std::string substr = s.substr(found, pos - found + 1);
 //				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
@@ -290,7 +398,7 @@ void updateReplaceAll(std::string &s,
 	while (found != std::string::npos){
 		while (found >= 0) {
 			if (s[found] == '(' && s[found + 1] == '='){
-				unsigned int pos = findCorrespondRightParentheses(found, s);
+				int pos = findCorrespondRightParentheses(found, s);
 
 				std::string substr = s.substr(found, pos - found + 1);
 //				__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
@@ -323,8 +431,8 @@ void updateSubstring(
 		}
 
 		/* reach "a" */
-		unsigned int endPos = findCorrespondRightParentheses(found, s);
-		unsigned int pos = found + 10;
+		int endPos = findCorrespondRightParentheses(found, s);
+		int pos = found + 10;
 		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
 		while (s[pos] == ' ')
 			pos++;
@@ -350,7 +458,7 @@ void updateSubstring(
 		__debugPrint(logFile, "%d after reach b: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
 
 		/* reach c */
-		unsigned int start = pos;
+		int start = pos;
 		if (s[pos] == '(')
 			pos = findCorrespondRightParentheses(pos, s) + 1;
 		else while (s[pos] != ')' && pos < s.length()) {
@@ -388,8 +496,8 @@ void updateToUpper(std::string &s) {
 
 	while (found != std::string::npos) {
 		/* reach "a" */
-		unsigned int endPos = findCorrespondRightParentheses(found, s);
-		unsigned int pos = found + 9;
+		int endPos = findCorrespondRightParentheses(found, s);
+		int pos = found + 9;
 		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
 		while (s[pos] == ' ')
 			pos++;
@@ -418,8 +526,8 @@ void updateToLower(std::string &s) {
 
 	while (found != std::string::npos) {
 		/* reach "a" */
-		unsigned int endPos = findCorrespondRightParentheses(found, s);
-		unsigned int pos = found + 8;
+		int endPos = findCorrespondRightParentheses(found, s);
+		int pos = found + 8;
 		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
 		while (s[pos] == ' ')
 			pos++;
@@ -497,6 +605,20 @@ void updateConst(std::string &s, std::set<std::string> constList) {
 }
 
 /*
+ * "abcdef" --> 6
+ */
+void updateConst(std::vector<std::pair<std::string, int>> tokens) {
+	/* replace const --> its length */
+
+	for (unsigned i = 0; i < tokens.size(); ++i){
+		if (tokens[i].second == 86){
+			tokens[i].first = tokens[i].first.length() - 2;
+			tokens[i].second = 82;
+		}
+	}
+}
+
+/*
  * (Str2Reg x)--> x
  */
 void updateStr2Regex(std::string &str){
@@ -524,7 +646,36 @@ void updateStr2Regex(std::string &str){
 		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, content);
 		found = str.find("Str2Reg ");
 	}
+}
 
+/*
+ * (Str2Reg x)--> x
+ */
+void updateStr2Regex(std::vector<std::pair<std::string, int>> tokens){
+	std::size_t found = str.find("Str2Reg ");
+	while (found != std::string::npos) {
+		/* go back to find ( */
+		unsigned int leftParentheses = found;
+		while (str[leftParentheses] != '(' && leftParentheses >= 0)
+			leftParentheses--;
+		assert(leftParentheses >= 0);
+
+		/* go forward to find ) */
+		unsigned int rightParentheses = found;
+		while (str[rightParentheses] != ')' && rightParentheses < str.length())
+			rightParentheses++;
+
+		assert(rightParentheses < str.length());
+
+		std::string content = "";
+		for (unsigned int i = found + 7; i < rightParentheses; ++i)
+			if (str[i] >= '0' && str[i] <= '9') {
+				content = content + str[i];
+			}
+
+		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, content);
+		found = str.find("Str2Reg ");
+	}
 }
 
 /*
@@ -1325,6 +1476,90 @@ void customizeLine_ToCreateLengthLine(
 		smtLenConstraints.emplace_back(str);
 }
 
+
+/*
+ * "abc123" 			--> 6
+ * Concat abc def --> + len_abc len_def
+ * Length abc 		--> len_abc
+ */
+void customizeLine_ToCreateLengthLine(
+		std::vector<std::pair<std::string, int>> tokens,
+		std::vector<std::string> &strVars,
+		bool handleNotOp,
+		std::map<std::string, std::string> rewriterStrMap,
+		int &regexCnt,
+		std::vector<std::string> &smtVarDefinition,
+		std::vector<std::string> &smtLenConstraints){
+
+	std::set<std::string> constList;
+	bool changeByNotOp = false;
+
+	bool declare = false;
+	for (const auto& token : tokens)
+		if (token.second == 64 || token.second == 65) {
+			declare = true;
+			break;
+		}
+
+	if (declare == true) {
+		bool stringVarDef = false;
+		std::string newStr = "";
+		for (const auto& token : tokens)
+			if (token.second == 88 && token.first.compare("String") == 0){
+				stringVarDef = true;
+				break;
+			}
+
+		if (stringVarDef == true) {
+			smtLenConstraints.emplace_back("(assert (>= len_" + tokens[1] + " 0))\n");
+			strVars.emplace_back(tokens[2].first); /* list of string variables */
+			if (tokens[2].first.find("const_") != 0)
+				newStr = redefineStringVar(tokens[2].first);
+			else
+				newStr = "";
+		}
+		else {
+			newStr = redefineOtherVar(tokens[2].first, tokens[tokens.size() - 1].first);
+		}
+
+		if (newStr.length() > 0)
+			smtVarDefinition.emplace_back(newStr);
+
+		return;
+	}
+
+	for (const auto& token : tokens) {
+		if (token.second == 86)
+			constList.insert(token.first);
+
+		updateImplies(newStr);
+		updateRegexIn(newStr);
+		updateContain(newStr, rewriterStrMap);
+		updateLastIndexOf(newStr, rewriterStrMap);
+		updateIndexOf(newStr, rewriterStrMap);
+		updateEndsWith(newStr, rewriterStrMap);
+		updateStartsWith(newStr, rewriterStrMap);
+		updateReplace(newStr, rewriterStrMap);
+		updateReplaceAll(newStr, rewriterStrMap);
+
+		updateToUpper(newStr);
+		updateToLower(newStr);
+
+		updateConst(newStr, constList); /* "abcdef" --> 6 */
+		updateStr2Regex(newStr);
+		updateRegexStar(newStr, regexCnt);
+		updateRegexPlus(newStr, regexCnt);
+		updateSubstring(newStr, rewriterStrMap);
+
+
+		updateConcat(newStr); /* Concat --> + */
+		updateLength(newStr); /* Length --> "" */
+		updateVariables(newStr, strVars); /* xyz --> len_xyz */
+
+		smtLenConstraints.emplace_back(newStr);
+	}
+}
+
 /*
  *
  */
@@ -1390,10 +1625,16 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
 
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;
+
 	for (const auto& tokens : listener.smtTokens) {
+		bool add = true;
 		std::vector<std::string> listTokens;
 		for (const auto &token : tokens) {
-			if (token.second == 86) /* string */{
+			if (token.second == 81) { /* get model */
+				add = false;
+				break;
+			}
+			else if (token.second == 86) /* string */{
 				std::string tmp = replaceSpecialChars(token.first);
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);
@@ -1402,7 +1643,8 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
 				listTokens.emplace_back(token.first);
 			}
 		}
-		newtokens.emplace_back(listTokens);
+		if (add == true)
+			newtokens.emplace_back(listTokens);
 	}
 
 	std::ofstream out;
@@ -1481,6 +1723,24 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 		std::vector<std::string> &smtLenConstraints){
 	smtVarDefinition.clear();
 	smtLenConstraints.clear();
+
+	ANTLRFileStream input(inputFile);
+	SMTLIB2Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB2Parser parser(&tokens);
+	tree::ParseTree *tree = parser.script();
+	SMTLIB2TrauListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	std::vector<std::vector<std::string>> newtokens;
+	std::vector<std::string> strVars;
+	std::set<std::string> constStr;
+	for (const auto& tokens : listener.smtTokens) {
+		customizeLine_ToCreateLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+	}
+
+
 	FILE* in = fopen(inputFile.c_str(), "r");
 	if (!in){
 		printf("%d %s", __LINE__, inputFile.c_str());

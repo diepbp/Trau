@@ -1982,7 +1982,7 @@ void createConstMap(){
  * They are variables that are used by more than one variables
  */
 
-void collectConnectedVariables(std::map<std::string, std::string> rewriterStrMap){
+void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::string, std::vector<std::string>> usedComponents;
 	std::set<std::string> connectedVarSet;
 
@@ -2184,18 +2184,12 @@ void refineEqualMap(){
 /*
  *
  */
-void decodeRewriterMap(std::map<std::string, std::string> &rewriterStrMap){
+void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap){
 
-	std::map<std::string, std::string> update;
+	std::map<StringOP, std::string> update;
 	for (const auto& element : rewriterStrMap){
 		if (element.first.find("\"") != std::string::npos){
 			std::string tmp = decodeStr(element.first);
-//			std::string ret = "";
-//			for (unsigned i = 0 ; i < tmp.size(); ++i)
-//				if (tmp[i] == '\t')
-//					ret = ret + "\\t";
-//				else
-//					ret = ret + tmp[i];
 			update[tmp] = element.second;
 		}
 		else
@@ -3173,7 +3167,7 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 /*
  *
  */
-void init(std::map<std::string, std::string> &rewriterStrMap){
+void init(std::map<StringOP, std::string> &rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
 	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
@@ -3205,7 +3199,7 @@ void additionalHandling(std::map<std::string, std::string> rewriterStrMap){
  */
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-		std::map<std::string, std::string> rewriterStrMap,
+		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
