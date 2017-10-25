@@ -122,7 +122,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens);
 /*
  * "abcdef" --> 6
  */
-void updateConst(std::vector<std::pair<std::string, int>> &tokens, std::set<std::string> constList);
+void updateConst(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * (Str2Regex x)--> = | x |
@@ -171,7 +171,7 @@ void prepareEncoderDecoderMap(std::string fileName);
  * Length abc 		--> len_abc
  */
 void customizeLine_ToCreateLengthLine(
-		std::string str,
+		std::vector<std::pair<std::string, int>> tokens,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
 		std::map<StringOP, std::string> rewriterStrMap,

@@ -32,8 +32,15 @@
 #include <time.h>
 
 #include "TimeLapse.h"
+#include "antlr4-runtime.h"
+#include "antlrParser/SMTLIB2Lexer.h"
+#include "antlrParser/SMTLIB2Parser.h"
+#include "antlrParser/SMTLIB2ParserBaseVisitor.h"
+#include "antlrParser/SMTLIB2ParserBaseListener.h"
+#include "antlrParser/SMTLIB2ScriptListener.h"
+#include "antlrParser/SMTLIB2TermListener.h"
 
-// #define DEBUGLOG 1
+#define DEBUGLOG 1
 #define REMOVINGLOG 1
 #define NUM_THREADS	1
 #define FLATMAX 100;
@@ -66,6 +73,122 @@ struct TokenElement{
     std::string type;
 };
 
+struct StringOP{
+	std::string name;
+	std::string arg01;
+	std::string arg02;
+	std::string arg03;
+
+	StringOP(){
+
+	};
+
+	StringOP(const StringOP& a){
+		name = a.name;
+		arg01 = a.arg01;
+		arg02 = a.arg02;
+		arg03 = a.arg03;
+	};
+
+	StringOP(std::string _name): name(_name){
+
+	};
+
+	StringOP(std::string _name, std::string _arg01): name(_name), arg01(_arg01) {
+
+	};
+
+	StringOP(std::string _name, std::string _arg01, std::string _arg02): name(_name), arg01(_arg01), arg02(_arg02){
+
+	};
+
+	StringOP(std::string _name, std::string _arg01, std::string _arg02, std::string _arg03): name(_name), arg01(_arg01), arg02(_arg02), arg03(_arg03){
+
+	};
+
+	void setName(std::string _name){
+		name = _name;
+	}
+
+	void setArg01(std::string _arg01){
+		arg01 = _arg01;
+	}
+
+	void setArg02(std::string _arg02){
+		arg02 = _arg02;
+	}
+
+	void setArg03(std::string _arg03){
+		arg03 = _arg03;
+	}
+
+	bool operator==(StringOP a) const{
+		if (name.length() > 0)
+			if (name.compare(a.name) != 0)
+				return false;
+		if (arg01.length() > 0)
+			if (arg01.compare(a.arg01) != 0)
+				return false;
+
+		if (arg02.length() > 0)
+			if (arg02.compare(a.arg02) != 0)
+				return false;
+
+		if (arg03.length() > 0)
+			if (arg03.compare(a.arg03) != 0)
+				return false;
+
+		return true;
+	}
+
+	bool operator <(const StringOP& x) const{
+	    if (x.name.compare(name) != 0)
+	    	return x.name.compare(name) > 0;
+
+	    if (x.arg01.compare(arg01) != 0)
+	    	return x.arg01.compare(arg01) > 0;
+
+	    if (x.arg02.compare(arg02) != 0)
+	    	return x.arg02.compare(arg02) > 0;
+
+	    if (x.arg03.compare(arg03) != 0)
+	    	return x.arg03.compare(arg03) > 0;
+
+	    return false;
+	}
+
+	/*
+	 *
+	 */
+	std::string toString(){
+		if (arg03.length() > 0)
+			return "(" + name + " " + arg01 + " " + arg02 + " " + arg03 + ")";
+		else if (arg02.length() > 0)
+			return "(" + name + " " + arg01 + " " + arg02 + ")";
+		else if (arg01.length() > 0)
+			return "(" + name + " " + arg01 + ")";
+		else
+			return "(" + name + ")";
+	}
+
+//	friend bool operator <(const StringOP& x, const StringOP& y);
+};
+
+//bool operator <(const StringOP& x, const StringOP& y) {
+//    if (x.name.compare(y.name) != 0)
+//    	return x.name.compare(y.name) > 0;
+//
+//    if (x.arg01.compare(y.arg01) != 0)
+//    	return x.arg01.compare(y.arg01) > 0;
+//
+//    if (x.arg02.compare(y.arg02) != 0)
+//    	return x.arg02.compare(y.arg02) > 0;
+//
+//    if (x.arg03.compare(y.arg03) != 0)
+//    	return x.arg03.compare(y.arg03) > 0;
+//
+//    return false;
+//}
 
 extern FILE * logFile;
 extern FILE * logAxiom;
@@ -106,6 +229,11 @@ void displayListNumber(std::vector<int> l, std::string msg);
 int findCorrespondRightParentheses(int leftParentheses, std::string str);
 
 /*
+ *
+ */
+int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<std::string, int>> tokens);
+
+/*
  * (a) | (b) --> {a, b}
  */
 std::vector<std::string> collectAlternativeComponents(std::string str);
@@ -131,4 +259,13 @@ std::string andConstraint(std::vector<std::string> possibleCases);
  */
 std::string andConstraint(std::set<std::string> possibleCases);
 
+/*
+ *
+ */
+std::vector<std::pair<std::string, int>> parseTerm(std::string term);
+
+/*
+ *
+ */
+std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file);
 #endif /* UTILS_H_ */

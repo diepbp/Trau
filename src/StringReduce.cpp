@@ -7,8 +7,8 @@ extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
 extern std::map<std::string, std::string> subStrStrMap;
 
-extern std::map<std::string, std::pair<std::string, std::string>> indexOfStrMap;
-extern std::map<std::string, std::pair<std::string, std::string>> lastIndexOfStrMap;
+extern std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
+extern std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
 extern std::map<StringOP, std::string> endsWithStrMap;
 extern std::map<StringOP, std::string> startsWithStrMap;
 
@@ -938,7 +938,6 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
  */
 Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert) {
 	Z3_context ctx = Z3_theory_get_context(t);
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	/* doing the real work */
 	if (getNodeType(t, args[0]) == my_Z3_ConstStr && getNodeType(t, args[1]) == my_Z3_ConstStr) {
@@ -949,7 +948,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 			lastIndexOfStrMap[StringOP("LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", std::to_string(index));
 			return mk_int(ctx, index);
 		} else {
-			lastIndexOfStrMap["LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
+			lastIndexOfStrMap[StringOP("LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -985,9 +984,9 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 
 
 		if (isDetAutomatonFunc(t, args[1]) || isConstStr(t, args[1]))
-			lastIndexOfStrMap["LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
+			lastIndexOfStrMap[StringOP("LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 		else
-			lastIndexOfStrMap["LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
+			lastIndexOfStrMap[StringOP("LastIndexOf", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 
 		if (!canSkipExt(t, args[1])) {
 			// args[0]  = x3 . x4 /\ |x3| = |x1| + 1 /\ ! contains(x4, args[1])

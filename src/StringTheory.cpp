@@ -4791,8 +4791,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 		if (combination.size() == 0)
 			return Z3_TRUE;
 
-		for (std::map<std::string, std::string>::iterator it = endsWithStrMap.begin(); it != endsWithStrMap.end(); ++it){
-			__debugPrint(logFile, "%d endsWithStrMap \t%s: %s\n", __LINE__, it->first.c_str(), it->second.c_str());
+		for (const auto it : endsWithStrMap){
+			StringOP op = it.first;
+			__debugPrint(logFile, "%d endsWithStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), it.second.c_str());
 		}
 
 		for (const auto& it : containPairBoolMap){
@@ -4817,7 +4818,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectReplaceAllValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
 		for (const auto& elem : rewriterStrMap){
-			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.c_str());
+			StringOP op = elem.first;
+			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), elem.second.c_str());
 		}
 
 		for (const auto& s : carryOnConstraints){
@@ -7334,7 +7336,7 @@ void collectLastIndexOfValueInPositiveContext(
  */
 void collectEndsWithValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<StringOP, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
@@ -7380,7 +7382,7 @@ void collectEndsWithValueInPositiveContext(
  */
 void collectEqualValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
+		std::map<StringOP, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {

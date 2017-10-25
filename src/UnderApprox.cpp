@@ -1111,8 +1111,7 @@ void handle_Replace(std::map<StringOP, std::string> rewriterStrMap){
  * handle replace constraints
  * TODO handle_ReplaceAll
  */
-void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap
-){
+void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	/* prepare */
 	std::map<std::string, std::vector<std::string>> eqToStr;
@@ -1129,6 +1128,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap
 
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare("ReplaceAll") == 0){
+			std::vector<std::string> args = {s.first.arg01, s.first.arg02, s.first.arg03};
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
 	}
@@ -1979,7 +1979,8 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				if (s.first.arg01.compare("\"\"") == 0 || s.first.arg02.compare("\"\"") == 0)
 					continue;
 
-			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
+			StringOP op = s.first;
+			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 			/* add all of variables to the connected var set*/
 			if (s.first.arg01[0] != '\"') {
 				connectedVarSet.emplace(s.first.arg01);
@@ -2135,8 +2136,10 @@ void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap){
 	rewriterStrMap.clear();
 	rewriterStrMap = update;
 
-	for (const auto& element : rewriterStrMap)
-		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, element.first.toString().c_str(), element.second.c_str());
+	for (const auto& element : rewriterStrMap){
+		StringOP op = element.first;
+		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, op.toString().c_str(), element.second.c_str());
+	}
 }
 /*
  *

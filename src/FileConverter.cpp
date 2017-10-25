@@ -84,7 +84,7 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 	for (int i = 0; i < start; ++i)
 		tmp.emplace_back(tokens[i]);
 	tmp.push_back(std::make_pair(tokenName, 15));
-	for (int i = finish; i < tokens.size(); ++i)
+	for (int i = finish; i < (int)tokens.size(); ++i)
 		tmp.emplace_back(tokens[i]);
 
 	return tmp;
@@ -98,8 +98,8 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 	std::vector<std::pair<std::string, int>> tmp;
 	for (int i = 0; i < start; ++i)
 		tmp.emplace_back(tokens[i]);
-	tmp.push_back(std::make_pair(tokenName, 15));
-	for (int i = finish; i < tokens.size(); ++i)
+	tmp.insert(tmp.end(), addTokens.begin(), addTokens.end());
+	for (int i = finish; i < (int)tokens.size(); ++i)
 		tmp.emplace_back(tokens[i]);
 
 	return tmp;
@@ -125,7 +125,7 @@ std::string sumTokens(std::vector<std::pair<std::string, int>> tokens,
  *
  */
 int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, std::string s, int type){
-	for (int i = startPos; i < tokens.size(); ++i)
+	for (int i = startPos; i < (int)tokens.size(); ++i)
 		if (tokens[i].second == type && tokens[i].first.compare(s) == 0)
 			return i;
 	return -1;
@@ -485,7 +485,7 @@ void updateSubstring(
 			tmp.emplace_back(tokens[i]);
 
 		tmp.push_back(std::make_pair(")", 93));
-		for (int i = endAssignment + 1; i < tokens.size(); ++i)
+		for (int i = endAssignment + 1; i < (int)tokens.size(); ++i)
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
@@ -553,7 +553,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 			tmp.emplace_back(tokens[i]);
 		tmp.push_back(std::make_pair("+", 88));
 		tmp.push_back(std::make_pair("0", 82));
-		for (int i = found + 1; i < tokens.size(); ++i)
+		for (int i = found + 1; i < (int)tokens.size(); ++i)
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
@@ -564,7 +564,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 /*
  * "abcdef" --> 6
  */
-void updateConst(std::vector<std::pair<std::string, int>> tokens) {
+void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
 	/* replace const --> its length */
 
 	for (unsigned i = 0; i < tokens.size(); ++i){
@@ -578,8 +578,7 @@ void updateConst(std::vector<std::pair<std::string, int>> tokens) {
 /*
  * (Str2Reg x)--> x
  */
-void updateStr2Regex(std::vector<std::pair<std::string, int>> tokens){
-
+void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 	int found = findTokens(tokens, 0, "Str2Reg", 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -602,31 +601,15 @@ void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &rege
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, "RegexStar", 1, found));
-		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
 
+		std::vector<std::pair<std::string, int>> addingTokens;
+		addingTokens.push_back(std::make_pair("*", 88));
+		for (int i = found + 1; i < pos; ++i)
+			addingTokens.emplace_back(tokens[i]);
+		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), 88));
+
+		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
 		found = findTokens(tokens, pos, "RegexStar", 88);
-	}
-
-	while (found != std::string::npos) {
-		/* go back to find ( */
-		unsigned int leftParentheses = found;
-		while (str[leftParentheses] != '(' && leftParentheses >= 0)
-			leftParentheses--;
-		assert(leftParentheses >= 0);
-
-		/* go forward to find ) */
-		unsigned int rightParentheses = found;
-		while (str[rightParentheses] != ')' && rightParentheses < str.length())
-			rightParentheses++;
-
-		assert(rightParentheses < str.length());
-		std::string content = "";
-		for (unsigned int i = found + 9; i < rightParentheses; ++i)
-			if (str[i] >= '0' && str[i] <= '9') {
-				content = content + str[i];
-			}
-		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, "(* " + content + " " + regexPrefix + std::to_string(regexCnt++) + ")");
-		found = str.find("RegexStar ");
 	}
 }
 
@@ -636,27 +619,22 @@ void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &rege
 void updateRegexPlus(
 		std::vector<std::pair<std::string, int>> &tokens,
 		int &regexCnt){
-	std::size_t found = str.find("RegexPlus ");
-	while (found != std::string::npos) {
-		/* go back to find ( */
-		unsigned int leftParentheses = found;
-		while (str[leftParentheses] != '(' && leftParentheses >= 0)
-			leftParentheses--;
-		assert(leftParentheses >= 0);
+	std::string regexPrefix = "__regex_";
 
-		/* go forward to find ) */
-		unsigned int rightParentheses = found;
-		while (str[rightParentheses] != ')' && rightParentheses < str.length())
-			rightParentheses++;
+	int found = findTokens(tokens, 0, "RegexPlus", 88);
+	while (found != -1) {
+		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		assert(rightParentheses < str.length());
-		std::string content = "";
-		for (unsigned int i = found + 9; i < rightParentheses; ++i)
-			if (str[i] >= '0' && str[i] <= '9') {
-				content = content + str[i];
-			}
-		str.replace(leftParentheses , rightParentheses - leftParentheses + 1, "(* " + content + " __regex_" + std::to_string(regexCnt++) + ")");
-		found = str.find("RegexPlus ");
+		StringOP op(findStringOP(tokens, "RegexPlus", 1, found));
+
+		std::vector<std::pair<std::string, int>> addingTokens;
+		addingTokens.push_back(std::make_pair("*", 88));
+		for (int i = found + 1; i < pos; ++i)
+			addingTokens.emplace_back(tokens[i]);
+		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), 88));
+
+		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
+		found = findTokens(tokens, pos, "RegexPlus", 88);
 	}
 }
 
@@ -1223,7 +1201,7 @@ void customizeLine_ToCreateLengthLine(
 		updateToUpper(tokens);
 		updateToLower(tokens);
 
-		updateConst(tokens, constList); /* "abcdef" --> 6 */
+		updateConst(tokens); /* "abcdef" --> 6 */
 		updateStr2Regex(tokens);
 		updateRegexStar(tokens, regexCnt);
 		updateRegexPlus(tokens, regexCnt);
@@ -1234,7 +1212,7 @@ void customizeLine_ToCreateLengthLine(
 		updateLength(tokens); /* Length --> "" */
 		updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-		smtLenConstraints.emplace_back(tokens);
+		smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1));
 	}
 }
 
@@ -1335,18 +1313,10 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
  */
 void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
 
-	ANTLRFileStream input(inputFile);
-	SMTLIB2Lexer lexer(&input);
-	CommonTokenStream tokens(&lexer);
-
-	SMTLIB2Parser parser(&tokens);
-	tree::ParseTree *tree = parser.script();
-	SMTLIB2TrauListener listener;
-	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;
-	for (const auto& tokens : listener.smtTokens) {
+	for (const auto& tokens : fileTokens) {
 		std::vector<std::string> listTokens;
 		for (const auto &token : tokens) {
 			if (token.second == 86) /* string */{
@@ -1385,7 +1355,8 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  * read SMT file
  * convert the file to length file & store it
  */
-void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+void convertSMTFileToLengthFile(
+		std::string inputFile, bool handleNotOp,
 		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
@@ -1394,37 +1365,15 @@ void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
 	smtLenConstraints.clear();
 
 	std::vector<std::vector<std::string>> newtokens;
-	std::vector<std::vector<std::string>> fileTokens = parseFile(inputFile);
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::string> strVars;
 	std::set<std::string> constStr;
 	for (const auto& tokens : fileTokens) {
 		customizeLine_ToCreateLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 	}
 
-
-	FILE* in = fopen(inputFile.c_str(), "r");
-	if (!in){
-		printf("%d %s", __LINE__, inputFile.c_str());
-		throw std::runtime_error("Cannot open input file!");
-	}
-
-	char buffer[5000];
-
-	while (!feof(in)){
-		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL){
-			/* convert that line to length constraints */
-			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				break;
-			}
-//			__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, buffer);
-			customizeLine_ToCreateLengthLine(buffer, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
-		}
-	}
-
 	__debugPrint(logFile, "Print smtLength: %d \n", __LINE__);
 	displayListString(smtLenConstraints, "");
-	pclose(in);
 }
 
 /*
