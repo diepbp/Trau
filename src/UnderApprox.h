@@ -127,15 +127,6 @@ std::vector<std::string> collectAllPossibleArrangements(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements,
 		std::map<std::string, int> &newVars);
-/*
- * (command arg0 arg1) --> <arg0 arg1>
- * */
-std::pair<std::string, std::string> extract_two_arguments(std::string s);
-
-/*
- * (command arg0 arg1 arg2) --> std::vector
- * */
-std::vector<std::string> extract_three_arguments(std::string s);
 
 /*
  * startswith a b
@@ -202,38 +193,38 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01);
  *
  */
 void handle_NOTContains(
-		std::map<std::string, std::string> rewriterStrMap);
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /**
  * handle startwith constraints
  */
-void handle_StartsWith(std::map<std::string, std::string> rewriterStrMap);
+void handle_StartsWith(std::map<StringOP, std::string> rewriterStrMap);
 
 /**
  * handle endswith constraints
  */
 void handle_EndsWith(
-		std::map<std::string, std::string> rewriterStrMap);
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * handle replace constraints
  */
-void handle_Replace(std::map<std::string, std::string> rewriterStrMap);
+void handle_Replace(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * handle replace constraints
  */
-void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap);
+void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  *
  */
-void handle_ToUpper(std::map<std::string, std::string> rewriterStrMap);
+void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  *
  */
-void handle_ToLower(std::map<std::string, std::string> rewriterStrMap);
+void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * define array for connected variable

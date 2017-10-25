@@ -4817,7 +4817,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectReplaceAllValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
 		for (const auto& elem : rewriterStrMap){
-			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.c_str(), elem.second.c_str());
+			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.c_str());
 		}
 
 		for (const auto& s : carryOnConstraints){
@@ -4828,28 +4828,28 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
-		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
-			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
-			/* create negation */
-			std::vector<Z3_ast> orConstraints;
-			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
-				std::string grm2str = Z3_ast_to_string(ctx, it->first);
-				assert (combination.find(grm2str) != combination.end());
-				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
-				displayListNode(t, eq_grm, " ccc ");
-				for (unsigned int i = 0; i < eq_grm.size(); ++i)
-					if (isAutomatonFunc(t, eq_grm[i]))
-						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
-			}
-
-			Z3_ast negation = negatePositiveContext(t);
-			orConstraints.emplace_back(negation);
-			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
-		}
-		else {
-			done = true;
-			__debugPrint(logFile, "%d >> DONE!!!\n", __LINE__);
-		}
+//		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
+//			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
+//			/* create negation */
+//			std::vector<Z3_ast> orConstraints;
+//			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
+//				std::string grm2str = Z3_ast_to_string(ctx, it->first);
+//				assert (combination.find(grm2str) != combination.end());
+//				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
+//				displayListNode(t, eq_grm, " ccc ");
+//				for (unsigned int i = 0; i < eq_grm.size(); ++i)
+//					if (isAutomatonFunc(t, eq_grm[i]))
+//						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
+//			}
+//
+//			Z3_ast negation = negatePositiveContext(t);
+//			orConstraints.emplace_back(negation);
+//			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
+//		}
+//		else {
+//			done = true;
+//			__debugPrint(logFile, "%d >> DONE!!!\n", __LINE__);
+//		}
 
 #if 0
 		/* find concreate values */

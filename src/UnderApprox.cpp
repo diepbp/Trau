@@ -569,60 +569,6 @@ std::string generateVarLength(std::string a){
 }
 
 /*
- * (command arg0 arg1) --> <arg0 arg1>
- * TODO extract_two_arguments
- * what if string has space characters
- * */
-std::pair<std::string, std::string> extract_two_arguments(std::string s){
-	unsigned int pos = s.find(" ");
-
-	assert(pos > 0);
-	pos++;
-	std::string arg0 = "";
-	while (pos < s.length()){
-		if (s[pos] == ' ')
-			break;
-		arg0 = arg0 + s[pos++];
-	}
-	pos++;
-	assert(s[pos] != ' ');
-
-	std::string arg1 = s.substr(pos, s.length() - pos - 1);
-	return std::make_pair(arg0, arg1);
-}
-
-/*
- * (command arg0 arg1 arg2) --> std::vector
- * TODO extract_three_arguments
- * what if string has space characters
- * */
-std::vector<std::string> extract_three_arguments(std::string s){
-	unsigned int pos = s.find(" ");
-
-	assert(pos > 0);
-	pos++;
-	std::string arg0 = "", arg1 = "";
-	while (pos < s.length()){
-		if (s[pos] == ' ')
-			break;
-		arg0 = arg0 + s[pos++];
-	}
-	pos++;
-	assert(s[pos] != ' ');
-
-	while (pos < s.length()){
-		if (s[pos] == ' ')
-			break;
-		arg1 = arg1 + s[pos++];
-	}
-	pos++;
-	assert(s[pos] != ' ');
-
-	std::string arg2 = s.substr(pos, s.length() - pos - 1);
-	return {arg0, arg1, arg2};
-}
-
-/*
  * startswith a b
  * startwith "a" b
  * startwith a "b"
@@ -1074,28 +1020,28 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
  *
  */
 void handle_NOTContains(
-		std::map<std::string, std::string> rewriterStrMap){
+		std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::pair<std::string, std::string>, bool> done;
 	for (const auto& element : rewriterStrMap){
-		if (element.first.find("(Contains ") != std::string::npos){
+		if (element.first.name.compare("Contains") == 0){
 			if (element.second.compare("false") == 0){
-				std::pair<std::string, std::string> args = extract_two_arguments(element.first);
-				if (args.first.find("(Concat ") != std::string::npos ||
-						args.second.find("(Concat ") != std::string::npos ||
-						args.second.find("(Automata") != std::string::npos)
+				if (element.first.arg01.find("Concat ") != std::string::npos ||
+						element.first.arg02.find("Concat ") != std::string::npos ||
+						element.first.arg02.find("Automata ") != std::string::npos)
 					continue;
-				std::string value02 = getPossibleValue(args.second);
-				std::string value01 = getPossibleValue(args.first);
+
+				std::string value02 = getPossibleValue(element.first.arg02);
+				std::string value01 = getPossibleValue(element.first.arg01);
 				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
 				if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") == 0 &&
-						done.find(std::make_pair(args.first, value02)) == done.end()) {
+						done.find(std::make_pair(element.first.arg01, value02)) == done.end()) {
 
-					global_smtStatements.push_back({create_constraints_NOTContain(args.first, value02)});
+					global_smtStatements.push_back({create_constraints_NOTContain(element.first.arg01, value02)});
 
-					done[std::make_pair(args.first, value02)] = true;
+					done[std::make_pair(element.first.arg01, value02)] = true;
 				}
 				else if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
-						done.find(std::make_pair(value01, args.second)) == done.end()) {
+						done.find(std::make_pair(value01, element.first.arg02)) == done.end()) {
 					// TODO handle_NOTContains
 				}
 				else if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") != 0) {
@@ -1117,11 +1063,10 @@ void handle_NOTContains(
  *
  */
 void handle_NOTEqual(
-		std::map<std::string, std::string> rewriterStrMap){
+		std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0){
-			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_NOTEqual(tmpPair.first, tmpPair.second)});
+		if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0){
+			global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
 		}
 	}
 }
@@ -1129,12 +1074,11 @@ void handle_NOTEqual(
  * handle startswith constraints
  */
 void handle_StartsWith(
-		std::map<std::string, std::string> rewriterStrMap){
+		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(StartsWith ") != std::string::npos){
-			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_StartsWith(tmpPair.first, tmpPair.second, s.second)});
+		if (s.first.name.compare("StartsWith") == 0){
+			global_smtStatements.push_back({create_constraints_StartsWith(s.first.arg01, s.first.arg02, s.second)});
 		}
 	}
 }
@@ -1143,12 +1087,11 @@ void handle_StartsWith(
  * handle endswith constraints
  */
 void handle_EndsWith(
-		std::map<std::string, std::string> rewriterStrMap){
+		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(EndsWith ") != std::string::npos){
-			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_EndsWith(tmpPair.first, tmpPair.second, s.second)});
+		if (s.first.name.compare("EndsWith") == 0){
+			global_smtStatements.push_back({create_constraints_EndsWith(s.first.arg01, s.first.arg02, s.second)});
 		}
 	}
 }
@@ -1157,11 +1100,9 @@ void handle_EndsWith(
  * handle replace constraints
  * TODO handle_Replace
  */
-void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
+void handle_Replace(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(Replace ") != std::string::npos){
-			std::vector<std::string> args = extract_three_arguments(s.first);
-			//			global_smtStatements.emplace_back({create_constraints_Replace("xxxxx", args, s.second)});
+		if (s.first.name.compare("Replace") == 0){
 		}
 	}
 }
@@ -1170,7 +1111,7 @@ void handle_Replace(std::map<std::string, std::string> rewriterStrMap){
  * handle replace constraints
  * TODO handle_ReplaceAll
  */
-void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
+void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap
 ){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	/* prepare */
@@ -1186,17 +1127,8 @@ void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
 		}
 	}
 
-//	for (const auto& l : eqToStr) {
-//		__debugPrint(logFile, "%d %s: ", __LINE__, l.first.c_str());
-//		for (const auto& s : l.second)
-//			__debugPrint(logFile, "%d \t %s\n", __LINE__, s.c_str());
-//		__debugPrint(logFile, "\n");
-//	}
-
-
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(ReplaceAll ") != std::string::npos){
-			std::vector<std::string> args = extract_three_arguments(s.first);
+		if (s.first.name.compare("ReplaceAll") == 0){
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
 	}
@@ -1204,11 +1136,10 @@ void handle_ReplaceAll(std::map<std::string, std::string> rewriterStrMap
 /*
  *
  */
-void handle_ToUpper(std::map<std::string, std::string> rewriterStrMap){
+void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.second.compare("upper") == 0){
-			std::pair<std::string, std::string> args = extract_two_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_ToUpper(args.first, args.second)});
+			global_smtStatements.push_back({create_constraints_ToUpper(s.first.arg01, s.first.arg02)});
 		}
 	}
 }
@@ -1216,11 +1147,10 @@ void handle_ToUpper(std::map<std::string, std::string> rewriterStrMap){
 /*
  *
  */
-void handle_ToLower(std::map<std::string, std::string> rewriterStrMap){
+void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.second.compare("lower") == 0){
-			std::pair<std::string, std::string> args = extract_two_arguments(s.first);
-			global_smtStatements.push_back({create_constraints_ToLower(args.first, args.second)});
+			global_smtStatements.push_back({create_constraints_ToLower(s.first.arg01, s.first.arg02)});
 		}
 	}
 }
@@ -2034,31 +1964,30 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* from rewriterMap */
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.find("(StartsWith ") != std::string::npos ||
-				s.first.find("(EndsWith ") != std::string::npos ||
-				s.first.find("(Replace ") != std::string::npos ||
-				s.first.find("(ReplaceAll ") != std::string::npos ||
-				(s.first.find("(Contains ") != std::string::npos && s.second.compare("false") == 0) ||
-				(s.first.find("(= ") != std::string::npos && (s.second.compare("false") == 0 || s.second.compare("upper") == 0 || s.second.compare("lower") == 0))){
-			std::pair<std::string, std::string> tmpPair = extract_two_arguments(s.first);
-			if (tmpPair.first.find("(Concat ") != std::string::npos ||
-					tmpPair.second.find("(Concat ") != std::string::npos ||
-					tmpPair.second.find("(Automata") != std::string::npos)
+		if (s.first.name.compare("StartsWith") == 0 ||
+				s.first.name.compare("EndsWith") == 0 ||
+				s.first.name.compare("Replace") == 0 ||
+				s.first.name.compare("ReplaceAll") == 0 ||
+				(s.first.name.compare("Contains") == 0 && s.second.compare("false") == 0) ||
+				(s.first.name.compare("=") == 0 && (s.second.compare("false") == 0 || s.second.compare("upper") == 0 || s.second.compare("lower") == 0))){
+			if (s.first.arg01.find("Concat ") != std::string::npos ||
+					s.first.arg02.find("Concat ") != std::string::npos ||
+					s.first.arg02.find("Automata ") != std::string::npos)
 				continue;
 
-			if (s.first.find("(= ") != std::string::npos && s.second.compare("false") == 0)
-				if (tmpPair.first.compare("\"\"") == 0 || tmpPair.second.compare("\"\"") == 0)
+			if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0)
+				if (s.first.arg01.compare("\"\"") == 0 || s.first.arg02.compare("\"\"") == 0)
 					continue;
 
-			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.c_str(), tmpPair.first.c_str(), tmpPair.second.c_str());
+			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, s.first.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 			/* add all of variables to the connected var set*/
-			if (tmpPair.first[0] != '\"') {
-				connectedVarSet.emplace(tmpPair.first);
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, tmpPair.first.c_str());
+			if (s.first.arg01[0] != '\"') {
+				connectedVarSet.emplace(s.first.arg01);
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
 			}
-			if (tmpPair.second[0] != '\"') {
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, tmpPair.second.c_str());
-				connectedVarSet.emplace(tmpPair.second);
+			if (s.first.arg02[0] != '\"') {
+				connectedVarSet.emplace(s.first.arg02);
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg02.c_str());
 			}
 		}
 	}
@@ -2185,22 +2114,29 @@ void refineEqualMap(){
  *
  */
 void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap){
-
 	std::map<StringOP, std::string> update;
 	for (const auto& element : rewriterStrMap){
-		if (element.first.find("\"") != std::string::npos){
-			std::string tmp = decodeStr(element.first);
-			update[tmp] = element.second;
+		StringOP op(element.first.name);
+		if (element.first.arg01.length() > 0 && element.first.arg01[0] == '"'){
+			op.arg01 = decodeStr(element.first.arg01);
 		}
-		else
-			update[element.first] = element.second;
+
+		if (element.first.arg02.length() > 0 && element.first.arg02[0] == '"'){
+			op.arg02 = decodeStr(element.first.arg02);
+		}
+
+		if (element.first.arg03.length() > 0 && element.first.arg03[0] == '"'){
+			op.arg03 = decodeStr(element.first.arg03);
+		}
+
+		update[op] = element.second;
 	}
 
 	rewriterStrMap.clear();
 	rewriterStrMap = update;
 
 	for (const auto& element : rewriterStrMap)
-		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, element.first.c_str(), element.second.c_str());
+		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, element.first.toString().c_str(), element.second.c_str());
 }
 /*
  *
@@ -3183,7 +3119,7 @@ void init(std::map<StringOP, std::string> &rewriterStrMap){
 /*
  *
  */
-void additionalHandling(std::map<std::string, std::string> rewriterStrMap){
+void additionalHandling(std::map<StringOP, std::string> rewriterStrMap){
 	handle_NOTEqual(rewriterStrMap);
 	handle_NOTContains(rewriterStrMap);
 	handle_StartsWith(rewriterStrMap);

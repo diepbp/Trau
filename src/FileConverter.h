@@ -21,11 +21,6 @@ template< typename T >
 std::string int_to_hex( T i );
 
 /*
- * Create a new string from tokens
- */
-std::string concatTokens(std::vector<std::string> tokens);
-
-/*
  * For all string variables
  * Change var name: xyz --> len_xyz
  * and change var type: string -> int
@@ -37,114 +32,128 @@ std::string redefineOtherVar(std::string var, std::string type);
 /*
  * (Indexof v1 v2) --> ....
  */
-void updateIndexOf(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateIndexOf(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * (LastIndexof v1 v2) --> ....
  */
-void updateLastIndexOf(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateLastIndexOf(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * (EndsWith v1 v2) --> ....
  */
-void updateEndsWith(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateEndsWith(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * (StartsWith v1 v2) --> ....
  */
-void updateStartsWith(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateStartsWith(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * = x (Replace ...) --> true
  */
-void updateReplace(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateReplace(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * = x (ReplaceAll ...) --> true
  */
-void updateReplaceAll(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateReplaceAll(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * (implies x) --> (implies false x)
  */
-void updateImplies(std::string &s);
+void updateImplies(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * (RegexIn ...) --> TRUE
  */
-void updateRegexIn(std::string &s);
+void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
+
+/*
+ * (RegexIn ...) --> TRUE
+ */
+void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * (Contain v1 v2) --> TRUE || FALSE
  */
-void updateContain(std::string &s, std::map<std::string, bool> containStrMap);
+void updateContain(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<std::string, bool> containStrMap);
 
 /*
  * (Substring a b c) --> c
  */
-void updateSubstring(std::string &s,
-		std::map<std::string, std::string> rewriterStrMap);
+void updateSubstring(std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  * ToUpper --> len = len
  */
-void updateToUpper(std::string &s);
+void updateToUpper(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * ToLower --> len = len
  */
-void updateToLower(std::string &s);
+void updateToLower(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * Concat --> +
  */
-void updateConcat(std::string &s);
+void updateConcat(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * Length --> ""
  */
-void updateLength(std::string &s);
+void updateLength(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  * "abcdef" --> 6
  */
-void updateConst(std::string &s, std::set<std::string> constList);
+void updateConst(std::vector<std::pair<std::string, int>> &tokens, std::set<std::string> constList);
 
 /*
  * (Str2Regex x)--> = | x |
  */
-void updateStr2Regex(std::string &str);
+void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens);
 
 /*
  *
  */
-void updateRegexStar(std::string &str, int &regexCnt);
+void updateRegexStar(
+		std::vector<std::pair<std::string, int>> &tokens,
+		int &regexCnt);
 
 /*
  *
  */
-void updateRegexPlus(std::string &str, int &regexCnt);
+void updateRegexPlus(
+		std::vector<std::pair<std::string, int>> &tokens,
+		int &regexCnt);
 
 /*
  * xyz --> len_xyz
  */
-void updateVariables(std::string &s, std::vector<std::string> strVars);
+void updateVariables(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::vector<std::string> strVars);
 
 /*
  * contain a string variable
  */
 bool strContaintStringVar(std::string notStr, std::vector<std::string> strVars);
-
-/*
- *
- */
-void checkAssignWellForm(std::string &s);
 
 /*
  * Get all chars in consts
@@ -165,7 +174,7 @@ void customizeLine_ToCreateLengthLine(
 		std::string str,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
-		std::map<std::string, std::string> rewriterStrMap,
+		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints);
@@ -212,7 +221,7 @@ void rewriteGRM_toNewFile(
  * convert the file to length file & store it
  */
 void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
-		std::map<std::string, std::string> rewriterStrMap,
+		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints);
