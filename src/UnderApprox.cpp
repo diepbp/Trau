@@ -2117,7 +2117,7 @@ void refineEqualMap(){
 void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap){
 	std::map<StringOP, std::string> update;
 	for (const auto& element : rewriterStrMap){
-		StringOP op(element.first.name);
+		StringOP op(element.first);
 		if (element.first.arg01.length() > 0 && element.first.arg01[0] == '"'){
 			op.arg01 = decodeStr(element.first.arg01);
 		}

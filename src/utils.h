@@ -74,14 +74,10 @@ struct TokenElement{
 };
 
 struct StringOP{
-	std::string name;
-	std::string arg01;
-	std::string arg02;
-	std::string arg03;
-
-	StringOP(){
-
-	};
+	std::string name = "";
+	std::string arg01 = "";
+	std::string arg02 = "";
+	std::string arg03 = "";
 
 	StringOP(const StringOP& a){
 		name = a.name;
@@ -122,10 +118,11 @@ struct StringOP{
 		arg03 = _arg03;
 	}
 
-	bool operator==(StringOP a) const{
+	bool operator()(const StringOP& a) const{
 		if (name.length() > 0)
 			if (name.compare(a.name) != 0)
 				return false;
+
 		if (arg01.length() > 0)
 			if (arg01.compare(a.arg01) != 0)
 				return false;
@@ -141,21 +138,49 @@ struct StringOP{
 		return true;
 	}
 
-	bool operator <(const StringOP& x) const{
-	    if (x.name.compare(name) != 0)
-	    	return x.name.compare(name) > 0;
+	bool operator ==(const StringOP& a) const{
+		if (name.length() > 0)
+			if (name.compare(a.name) != 0)
+				return false;
 
-	    if (x.arg01.compare(arg01) != 0)
-	    	return x.arg01.compare(arg01) > 0;
+		if (arg01.length() > 0)
+			if (arg01.compare(a.arg01) != 0)
+				return false;
 
-	    if (x.arg02.compare(arg02) != 0)
-	    	return x.arg02.compare(arg02) > 0;
+		if (arg02.length() > 0)
+			if (arg02.compare(a.arg02) != 0)
+				return false;
 
-	    if (x.arg03.compare(arg03) != 0)
-	    	return x.arg03.compare(arg03) > 0;
+		if (arg03.length() > 0)
+			if (arg03.compare(a.arg03) != 0)
+				return false;
 
-	    return false;
+		return true;
 	}
+
+//	bool operator <(StringOP const& x) const{
+//		int b0 = x.name.compare(name);
+//
+//		if (b0 != 0)
+//			return b0 < 0;
+//
+//		int b1 = x.arg01.compare(arg01);
+//
+//		if (b1 != 0)
+//			return b1 < 0;
+//
+//		int b2 = x.arg02.compare(arg02);
+//
+//		if (b2 != 0)
+//			return b2 < 0;
+//
+//		int b3 = x.arg03.compare(arg03);
+//
+//		if (b3 != 0)
+//			return b3 < 0;
+//
+//	    return false;
+//	}
 
 	/*
 	 *
@@ -174,21 +199,29 @@ struct StringOP{
 //	friend bool operator <(const StringOP& x, const StringOP& y);
 };
 
-//bool operator <(const StringOP& x, const StringOP& y) {
-//    if (x.name.compare(y.name) != 0)
-//    	return x.name.compare(y.name) > 0;
-//
-//    if (x.arg01.compare(y.arg01) != 0)
-//    	return x.arg01.compare(y.arg01) > 0;
-//
-//    if (x.arg02.compare(y.arg02) != 0)
-//    	return x.arg02.compare(y.arg02) > 0;
-//
-//    if (x.arg03.compare(y.arg03) != 0)
-//    	return x.arg03.compare(y.arg03) > 0;
-//
-//    return false;
-//}
+inline bool operator <(StringOP const& x, StringOP const& y) {
+	int b0 = x.name.compare(y.name);
+
+	if (b0 != 0)
+		return b0 < 0;
+
+	int b1 = x.arg01.compare(y.arg01);
+
+	if (b1 != 0)
+		return b1 < 0;
+
+	int b2 = x.arg02.compare(y.arg02);
+
+	if (b2 != 0)
+		return b2 < 0;
+
+	int b3 = x.arg03.compare(y.arg03);
+
+	if (b3 != 0)
+		return b3 < 0;
+
+    return false;
+}
 
 extern FILE * logFile;
 extern FILE * logAxiom;

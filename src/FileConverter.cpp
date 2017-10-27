@@ -330,11 +330,25 @@ void updateIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 	int found = findTokens(tokens, 0, "Indexof", 88);
+	int cnt = 0;
 	while (found != -1) {
+		__debugPrint(logFile, "Continue looop: %d\n", cnt++);
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, "Indexof", 2, found));
+		for (const auto& r : rewriterStrMap) {
+			StringOP tmp = r.first;
+			if (tmp < op) {
+				__debugPrint(logFile, "%s < %s\n", tmp.toString().c_str(), op.toString().c_str());
+			}
+			else if (op < tmp) {
+				__debugPrint(logFile, "%s > %s\n", tmp.toString().c_str(), op.toString().c_str());
+			}
+			else
+				__debugPrint(logFile, "%s == %s\n", tmp.toString().c_str(), op.toString().c_str());
+
+		}
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
@@ -464,6 +478,7 @@ void updateSubstring(
 		}
 
 		StringOP op(findStringOP(tokens, "Substring", 3, found));
+		__debugPrint(logFile, "%d op = %s\n", __LINE__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		assert(op.arg03.length() > 0);

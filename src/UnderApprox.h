@@ -497,7 +497,7 @@ void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
-		std::map<std::string, std::string> rewriterStrMap,
+		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir);

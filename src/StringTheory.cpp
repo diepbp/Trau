@@ -31,7 +31,7 @@ bool havingGrmConstraints = false;
 std::map<Z3_ast, Z3_ast> toUpperMap;
 std::map<Z3_ast, Z3_ast> toLowerMap;
 
-std::map<std::string, std::string> subStrStrMap;
+std::map<StringOP, std::string> subStrStrMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
@@ -4830,28 +4830,28 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
-//		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
-//			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
-//			/* create negation */
-//			std::vector<Z3_ast> orConstraints;
-//			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
-//				std::string grm2str = Z3_ast_to_string(ctx, it->first);
-//				assert (combination.find(grm2str) != combination.end());
-//				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
-//				displayListNode(t, eq_grm, " ccc ");
-//				for (unsigned int i = 0; i < eq_grm.size(); ++i)
-//					if (isAutomatonFunc(t, eq_grm[i]))
-//						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
-//			}
-//
-//			Z3_ast negation = negatePositiveContext(t);
-//			orConstraints.emplace_back(negation);
-//			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
-//		}
-//		else {
-//			done = true;
-//			__debugPrint(logFile, "%d >> DONE!!!\n", __LINE__);
-//		}
+		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
+			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
+			/* create negation */
+			std::vector<Z3_ast> orConstraints;
+			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
+				std::string grm2str = Z3_ast_to_string(ctx, it->first);
+				assert (combination.find(grm2str) != combination.end());
+				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
+				displayListNode(t, eq_grm, " ccc ");
+				for (unsigned int i = 0; i < eq_grm.size(); ++i)
+					if (isAutomatonFunc(t, eq_grm[i]))
+						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
+			}
+
+			Z3_ast negation = negatePositiveContext(t);
+			orConstraints.emplace_back(negation);
+			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
+		}
+		else {
+			done = true;
+			__debugPrint(logFile, "%d >> DONE!!!\n", __LINE__);
+		}
 
 #if 0
 		/* find concreate values */
@@ -7179,8 +7179,6 @@ void collectContainValueInPositiveContext(
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
 
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
 		for (int i = 0; i < argCount; i++) {
@@ -7401,13 +7399,13 @@ void collectEqualValueInPositiveContext(
 					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 0);
 					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 1);
 					if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-						rewriterStrMap[node_to_string(t, boolNode)] = "false";
+						rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "false";
 				}
 				else {
 					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 					if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-						rewriterStrMap[node_to_string(t, argAst)] = "true";
+						rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "false";
 				}
 			}
 			else if (astToString.find("(= ") != std::string::npos &&
@@ -7416,20 +7414,16 @@ void collectEqualValueInPositiveContext(
 				Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 				Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 				if (toUpperMap.find(arg0) != toUpperMap.end()) {
-					Z3_ast tmp = Z3_mk_eq(ctx, toUpperMap[arg0], arg1);
-					rewriterStrMap[node_to_string(t, tmp)] = "upper";
+					rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg0]), exportNodeName(t, arg1))] = "upper";
 				}
 				else if (toUpperMap.find(arg1) != toUpperMap.end()){
-					Z3_ast tmp = Z3_mk_eq(ctx, toUpperMap[arg1], arg0);
-					rewriterStrMap[node_to_string(t, tmp)] = "upper";
+					rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg1]), exportNodeName(t, arg0))] = "upper";
 				}
 				else if (toLowerMap.find(arg1) != toLowerMap.end()){
-					Z3_ast tmp = Z3_mk_eq(ctx, toLowerMap[arg1], arg0);
-					rewriterStrMap[node_to_string(t, tmp)] = "lower";
+					rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg1]), exportNodeName(t, arg0))] = "lower";
 				}
 				else if (toLowerMap.find(arg0) != toLowerMap.end()) {
-					Z3_ast tmp = Z3_mk_eq(ctx, toLowerMap[arg0], arg1);
-					rewriterStrMap[node_to_string(t, tmp)] = "lower";
+					rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg0]), exportNodeName(t, arg1))] = "lower";
 				}
 			}
 		}
