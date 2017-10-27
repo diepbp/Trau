@@ -7405,7 +7405,7 @@ void collectEqualValueInPositiveContext(
 					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 					if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-						rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "false";
+						rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "true";
 				}
 			}
 			else if (astToString.find("(= ") != std::string::npos &&

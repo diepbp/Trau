@@ -1458,7 +1458,6 @@ void writeOutput02(std::string outFile){
 		out.flush();
 	}
 
-	out << "(check-sat)\n(get-model)\n";
 	out.flush();
 	out.close();
 }

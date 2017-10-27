@@ -138,7 +138,7 @@ StringOP findStringOP(
 		int argsNum,
 		int startPos){
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP op(name);
 
 	if (argsNum > 0) {
@@ -240,89 +240,20 @@ StringOP findStringOP(
 /*
  * (implies x) --> (implies false x)
  */
-void updateImplies(std::string &s){
-	std::size_t found = s.find("(implies ");
-	while (found != std::string::npos) {
-		unsigned int endPos = findCorrespondRightParentheses(found, s);
-		unsigned int pos = found + 9;
-		__debugPrint(logFile, "%d init 0: \"%s\"\n", __LINE__, s.substr(found, endPos - found + 1).c_str());
-		while (s[pos] == ' ')
-			pos++;
-
-		if (s[pos] == '(')
-			pos = findCorrespondRightParentheses(pos, s) + 1;
-		else while (s[pos] != ' ')
-			pos++;
-
-		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
-
-		while (s[pos] == ' ')
-			pos++;
-
-		if (s[pos] == '(')
-			pos = findCorrespondRightParentheses(pos, s) + 1;
-		else while (s[pos] != ' ' && pos < endPos);
-			pos++;
-
-		if (pos >= endPos) {
-			/* (implies x) --> (implies false x) */
-			s = s.substr(0, found) + "(implies false " + s.substr(found + 9);
-			__debugPrint(logFile, "%d ** %s **: %s\n", __LINE__, __FUNCTION__, s.c_str());
-			return;
-		}
-		return;
-	}
-}
-
-/*
- * (implies x) --> (implies false x)
- */
 void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
-	int found = -1;
-	for (unsigned i = 0; i < tokens.size(); ++i)
-		if (tokens[i].second == 88 && tokens[i].first.compare("implies") == 0) {
-			found = (int)i;
-			break;
-		}
+	int found = findTokens(tokens, 0, "implies", 88);
 	while (found != -1) {
-		int endPos = findCorrespondRightParentheses(found - 1, tokens);
-		int pos = found + 1;
-
-		if (tokens[pos].second == 92)
-			pos = findCorrespondRightParentheses(pos, tokens) + 1;
-		else
-			pos++;
-
-//		__debugPrint(logFile, "%d after reach a0: \"%s\"\n", __LINE__, s.substr(0, pos).c_str());
-
-		if (tokens[pos].second == 92)
-			pos = findCorrespondRightParentheses(pos, tokens) + 1;
-		else
-			pos++;
-
-		if (pos >= endPos) {
-			/* (implies x) --> (implies false x) */
-			tokens = replaceTokens(tokens, found - 1, endPos, "false", 7);
-//			__debugPrint(logFile, "%d ** %s **: %s\n", __LINE__, __FUNCTION__, s.c_str());
-			return;
+		int endCond = -1;
+		if (tokens[found + 1].second == 92) {
+			endCond = findCorrespondRightParentheses(found + 1, tokens);
 		}
-		return;
-	}
-}
+		else {
+			endCond = found + 1;
+		}
 
-/*
- * (RegexIn ...) --> TRUE
- */
-void updateRegexIn(std::string &s){
-	std::size_t found = s.find("(RegexIn ");
-	while (found != std::string::npos) {
-		unsigned int pos = findCorrespondRightParentheses(found, s);
-		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+		tokens = replaceTokens(tokens, found + 1, endCond, "false", 7);
 
-		std::string substr = s.substr(found, pos - found + 1);
-		s = s.replace(found, substr.length(), "true");
-		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
-		found = s.find("(RegexIn ");
+		found = findTokens(tokens, endCond, "implies", 88);
 	}
 }
 
@@ -614,11 +545,6 @@ void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
 void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace Length --> ""
 	int found = findTokens(tokens, 0, "Length", 88);
-	for (int i = 0; i < (int)tokens.size(); ++i) {
-		__debugPrint(logFile, "%d %d %s\n", __LINE__, tokens[i].second, tokens[i].first.c_str());
-		if (tokens[i].first.compare("Length") == 0)
-			__debugPrint(logFile, "%d *** updateLength  ***: %d s = %s\n", __LINE__, found, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	}
 	while (found != -1) {
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < found; ++i)
@@ -629,7 +555,6 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
-		__debugPrint(logFile, "%d *** updateLength  ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 		found = findTokens(tokens, found, "Length", 88);
 	}
 }
@@ -1257,7 +1182,21 @@ void customizeLine_ToCreateLengthLine(
 		return;
 	}
 
+	for (unsigned i = 0; i < tokens.size(); ++i)
+		if (tokens[i].second == 86){
+			std::string s = "";
+			for (unsigned j = 0; j < tokens[i].first.length(); ++j)
+				if (j + 2 < tokens[i].first.length() && tokens[i].first[j] == '\\' && tokens[i].first[j + 1] == 't'){
+					s += '\t';
+					++j;
+				}
+				else
+					s += tokens[i].first[j];
+			tokens[i].first = s;
+		}
+
 	updateImplies(tokens);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
@@ -1270,27 +1209,21 @@ void customizeLine_ToCreateLengthLine(
 	updateToUpper(tokens);
 	updateToLower(tokens);
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateSubstring(tokens, rewriterStrMap);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 	updateConst(tokens); /* "abcdef" --> 6 */
 	updateStr2Regex(tokens);
 	updateRegexStar(tokens, regexCnt);
 	updateRegexPlus(tokens, regexCnt);
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateConcat(tokens); /* Concat --> + */
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateLength(tokens); /* Length --> "" */
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1));
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1) + "\n");
 }
 
 /*
