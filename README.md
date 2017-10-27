@@ -6,6 +6,7 @@ Before attempting to build Trau, you must have the following installed:
 - Ubuntu 64 bits 
 - python (must be on your PATH)
 - openfst (must be on your PATH). You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
+- ANTLR 4.0
 
 Getting & Building Trau
 ---------------------------------
