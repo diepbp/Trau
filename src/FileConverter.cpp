@@ -72,7 +72,7 @@ std::string redefineStringVar(std::string var){
 }
 
 std::string redefineOtherVar(std::string var, std::string type){
-	return "(declare-const " + var + " " + type;
+	return "(declare-const " + var + " " + type + ")";
 }
 
 /*
@@ -84,7 +84,7 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 	for (int i = 0; i < start; ++i)
 		tmp.emplace_back(tokens[i]);
 	tmp.push_back(std::make_pair(tokenName, 15));
-	for (int i = finish; i < (int)tokens.size(); ++i)
+	for (int i = finish + 1; i < (int)tokens.size(); ++i)
 		tmp.emplace_back(tokens[i]);
 
 	return tmp;
@@ -114,8 +114,9 @@ std::string sumTokens(std::vector<std::pair<std::string, int>> tokens,
 	std::string ret = tokens[start].first;
 
 	for (int i = start + 1; i <= finish; ++i){
+		if (tokens[i].first.compare(")") != 0 && tokens[i - 1].first.compare("(") != 0)
+			ret += " ";
 		ret += tokens[i].first;
-		ret += " ";
 	}
 
 	return ret;
@@ -137,6 +138,7 @@ StringOP findStringOP(
 		int argsNum,
 		int startPos){
 
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP op(name);
 
 	if (argsNum > 0) {
@@ -145,6 +147,7 @@ StringOP findStringOP(
 		if (tokens[startPos].second == 92) {
 			int tmp = findCorrespondRightParentheses(startPos, tokens);
 			op.setArg01(sumTokens(tokens, startPos, tmp));
+			startPos = tmp;
 		}
 		else {
 			op.setArg01(tokens[startPos].first);
@@ -158,7 +161,32 @@ StringOP findStringOP(
 		startPos++;
 		if (tokens[startPos].second == 92) {
 			int tmp = findCorrespondRightParentheses(startPos, tokens);
-			op.setArg02(sumTokens(tokens, startPos, tmp));
+
+			/* convert - --> + */
+			if  (tokens[startPos + 1].first.compare("-") == 0){
+				StringOP opx = findStringOP(tokens, "-", 2, startPos + 1);
+				opx.name = "+";
+				std::string tmp = "(* (- 1) " + opx.arg02 + ")";
+				opx.arg02 = opx.arg01;
+				opx.arg01 = tmp;
+
+				op.setArg02(opx.toString());
+			}
+			else if  (tokens[startPos + 1].first.compare("+") == 0){
+				StringOP opx = findStringOP(tokens, "+", 2, startPos + 1);
+
+				/* swap 1 vs 2 */
+				if (opx.arg02[0] >= '0' && opx.arg02[0] <= '9' && (!(opx.arg01[0] >= '0' && opx.arg01[0] <= '9'))) {
+					std::string tmp = opx.arg02;
+					opx.arg02 = opx.arg01;
+					opx.arg01 = tmp;
+				}
+
+				op.setArg02(opx.toString());
+			}
+			else
+				op.setArg02(sumTokens(tokens, startPos, tmp));
+			startPos = tmp;
 		}
 		else {
 			op.setArg02(tokens[startPos].first);
@@ -172,7 +200,32 @@ StringOP findStringOP(
 		startPos++;
 		if (tokens[startPos].second == 92) {
 			int tmp = findCorrespondRightParentheses(startPos, tokens);
-			op.setArg03(sumTokens(tokens, startPos, tmp));
+			/* convert - --> + */
+			if  (tokens[startPos + 1].first.compare("-") == 0){
+				StringOP opx = findStringOP(tokens, "-", 2, startPos + 1);
+				opx.name = "+";
+				std::string tmp = "(* (- 1) " + opx.arg02 + ")";
+				opx.arg02 = opx.arg01;
+				opx.arg01 = tmp;
+
+				op.setArg03(opx.toString());
+			}
+			else if  (tokens[startPos + 1].first.compare("+") == 0){
+				StringOP opx = findStringOP(tokens, "+", 2, startPos + 1);
+
+				/* swap 1 vs 2 */
+				if (opx.arg02[0] >= '0' && opx.arg02[0] <= '9' && (!(opx.arg01[0] >= '0' && opx.arg01[0] <= '9'))) {
+					std::string tmp = opx.arg02;
+					opx.arg02 = opx.arg01;
+					opx.arg01 = tmp;
+				}
+
+				op.setArg03(opx.toString());
+			}
+			else
+				op.setArg03(sumTokens(tokens, startPos, tmp));
+
+			startPos = tmp;
 		}
 		else {
 			op.setArg03(tokens[startPos].first);
@@ -330,24 +383,10 @@ void updateIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 	int found = findTokens(tokens, 0, "Indexof", 88);
-	int cnt = 0;
 	while (found != -1) {
-		__debugPrint(logFile, "Continue looop: %d\n", cnt++);
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, "Indexof", 2, found));
-		for (const auto& r : rewriterStrMap) {
-			StringOP tmp = r.first;
-			if (tmp < op) {
-				__debugPrint(logFile, "%s < %s\n", tmp.toString().c_str(), op.toString().c_str());
-			}
-			else if (op < tmp) {
-				__debugPrint(logFile, "%s > %s\n", tmp.toString().c_str(), op.toString().c_str());
-			}
-			else
-				__debugPrint(logFile, "%s == %s\n", tmp.toString().c_str(), op.toString().c_str());
-
-		}
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
@@ -465,12 +504,11 @@ void updateSubstring(
 	int found = findTokens(tokens, 0, "Substring", 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-		//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		int startAssignment = found - 2, endAssignment = -1;
+		int startAssignment = found - 2;
 		while (startAssignment >= 0) {
 			if (tokens[startAssignment].first.compare("(") == 0 && tokens[startAssignment + 1].first.compare("=") == 0){
-				endAssignment = findCorrespondRightParentheses(startAssignment, tokens);
 				break;
 			}
 			else
@@ -485,9 +523,11 @@ void updateSubstring(
 		if (op.arg03[0] >= '0' && op.arg03[0] >= '9') {
 			tokens = replaceTokens(tokens, found - 1, pos, op.arg03, 82);
 		}
-		else
+		else {
 			tokens = replaceTokens(tokens, found - 1, pos, op.arg03, 88);
+		}
 
+		__debugPrint(logFile, "%d *** after replace ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < startAssignment; ++i)
 			tmp.emplace_back(tokens[i]);
@@ -496,12 +536,24 @@ void updateSubstring(
 		tmp.push_back(std::make_pair("and", 88));
 		tmp.push_back(std::make_pair(rewriterStrMap[op], 88));
 
-		for (int i = startAssignment; i <= endAssignment; ++i)
-			tmp.emplace_back(tokens[i]);
+		for (int i = startAssignment; i <= startAssignment + 4; ++i) {
+			if (i == found - 1){
+				std::vector<std::pair<std::string, int>> tmpx = parseTerm(tokens[i].first);
+				tmp.insert(tmp.end(), tmpx.begin(), tmpx.end());
+			}
+			else
+				tmp.emplace_back(tokens[i]);
+		}
 
 		tmp.push_back(std::make_pair(")", 93));
-		for (int i = endAssignment + 1; i < (int)tokens.size(); ++i)
+
+		__debugPrint(logFile, "%d *** added rewrite ***: s = %s\n", __LINE__, sumTokens(tmp, 0, tmp.size() - 1).c_str());
+
+
+		for (int i = startAssignment + 5; i < (int)tokens.size(); ++i)
 			tmp.emplace_back(tokens[i]);
+
+		__debugPrint(logFile, "%d *** FINAL ***: s = %s\n", __LINE__, sumTokens(tmp, 0, tmp.size() - 1).c_str());
 		tokens.clear();
 		tokens = tmp;
 
@@ -562,6 +614,11 @@ void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
 void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace Length --> ""
 	int found = findTokens(tokens, 0, "Length", 88);
+	for (int i = 0; i < (int)tokens.size(); ++i) {
+		__debugPrint(logFile, "%d %d %s\n", __LINE__, tokens[i].second, tokens[i].first.c_str());
+		if (tokens[i].first.compare("Length") == 0)
+			__debugPrint(logFile, "%d *** updateLength  ***: %d s = %s\n", __LINE__, found, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	}
 	while (found != -1) {
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < found; ++i)
@@ -572,6 +629,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
+		__debugPrint(logFile, "%d *** updateLength  ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 		found = findTokens(tokens, found, "Length", 88);
 	}
 }
@@ -584,7 +642,7 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
 
 	for (unsigned i = 0; i < tokens.size(); ++i){
 		if (tokens[i].second == 86){
-			tokens[i].first = tokens[i].first.length() - 2;
+			tokens[i].first = std::to_string(tokens[i].first.length() - 2);
 			tokens[i].second = 82;
 		}
 	}
@@ -1182,7 +1240,7 @@ void customizeLine_ToCreateLengthLine(
 			}
 
 		if (stringVarDef == true) {
-			smtLenConstraints.emplace_back("(assert (>= len_" + tokens[1].first + " 0))\n");
+			smtLenConstraints.emplace_back("(assert (>= len_" + tokens[2].first + " 0))\n");
 			strVars.emplace_back(tokens[2].first); /* list of string variables */
 			if (tokens[2].first.find("const_") != 0)
 				newStr = redefineStringVar(tokens[2].first);
@@ -1190,7 +1248,7 @@ void customizeLine_ToCreateLengthLine(
 				newStr = "";
 		}
 		else {
-			newStr = redefineOtherVar(tokens[2].first, tokens[tokens.size() - 1].first);
+			newStr = redefineOtherVar(tokens[2].first, tokens[tokens.size() - 2].first);
 		}
 
 		if (newStr.length() > 0)
@@ -1199,36 +1257,40 @@ void customizeLine_ToCreateLengthLine(
 		return;
 	}
 
-	for (const auto& token : tokens) {
-		if (token.second == 86)
-			constList.insert(token.first);
+	updateImplies(tokens);
+	updateRegexIn(tokens);
+	updateContain(tokens, rewriterStrMap);
+	updateLastIndexOf(tokens, rewriterStrMap);
+	updateIndexOf(tokens, rewriterStrMap);
+	updateEndsWith(tokens, rewriterStrMap);
+	updateStartsWith(tokens, rewriterStrMap);
+	updateReplace(tokens, rewriterStrMap);
+	updateReplaceAll(tokens, rewriterStrMap);
 
-		updateImplies(tokens);
-		updateRegexIn(tokens);
-		updateContain(tokens, rewriterStrMap);
-		updateLastIndexOf(tokens, rewriterStrMap);
-		updateIndexOf(tokens, rewriterStrMap);
-		updateEndsWith(tokens, rewriterStrMap);
-		updateStartsWith(tokens, rewriterStrMap);
-		updateReplace(tokens, rewriterStrMap);
-		updateReplaceAll(tokens, rewriterStrMap);
+	updateToUpper(tokens);
+	updateToLower(tokens);
 
-		updateToUpper(tokens);
-		updateToLower(tokens);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	updateSubstring(tokens, rewriterStrMap);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		updateConst(tokens); /* "abcdef" --> 6 */
-		updateStr2Regex(tokens);
-		updateRegexStar(tokens, regexCnt);
-		updateRegexPlus(tokens, regexCnt);
-		updateSubstring(tokens, rewriterStrMap);
+	updateConst(tokens); /* "abcdef" --> 6 */
+	updateStr2Regex(tokens);
+	updateRegexStar(tokens, regexCnt);
+	updateRegexPlus(tokens, regexCnt);
+
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 
-		updateConcat(tokens); /* Concat --> + */
-		updateLength(tokens); /* Length --> "" */
-		updateVariables(tokens, strVars); /* xyz --> len_xyz */
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	updateConcat(tokens); /* Concat --> + */
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	updateLength(tokens); /* Length --> "" */
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-		smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1));
-	}
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1));
 }
 
 /*

@@ -299,7 +299,7 @@ std::string andConstraint(std::set<std::string> possibleCases){
  *
  */
 std::vector<std::pair<std::string, int>> parseTerm(std::string term){
-	ANTLRInputStream input("(not (= PCTEMP_LHS_7 (- 1)))");
+	ANTLRInputStream input(term);
 	SMTLIB2Lexer lexer(&input);
 	CommonTokenStream tokens(&lexer);
 
@@ -308,11 +308,11 @@ std::vector<std::pair<std::string, int>> parseTerm(std::string term){
 	SMTLIB2TermListener listener;
 	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
-	return listener.smtTokens[0];
-
+//	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, term.c_str());
 //	for (const auto &lineToken : listener.smtTokens[0]) {
 //		printf("%s - %d \t", lineToken.first.c_str(), lineToken.second);
 //	}
+	return listener.smtTokens[0];
 }
 
 /*

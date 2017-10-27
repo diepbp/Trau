@@ -131,9 +131,9 @@ struct StringOP{
 			if (arg02.compare(a.arg02) != 0)
 				return false;
 
-		if (arg03.length() > 0)
-			if (arg03.compare(a.arg03) != 0)
-				return false;
+//		if (arg03.length() > 0)
+//			if (arg03.compare(a.arg03) != 0)
+//				return false;
 
 		return true;
 	}
@@ -151,36 +151,12 @@ struct StringOP{
 			if (arg02.compare(a.arg02) != 0)
 				return false;
 
-		if (arg03.length() > 0)
-			if (arg03.compare(a.arg03) != 0)
-				return false;
+//		if (arg03.length() > 0)
+//			if (arg03.compare(a.arg03) != 0)
+//				return false;
 
 		return true;
 	}
-
-//	bool operator <(StringOP const& x) const{
-//		int b0 = x.name.compare(name);
-//
-//		if (b0 != 0)
-//			return b0 < 0;
-//
-//		int b1 = x.arg01.compare(arg01);
-//
-//		if (b1 != 0)
-//			return b1 < 0;
-//
-//		int b2 = x.arg02.compare(arg02);
-//
-//		if (b2 != 0)
-//			return b2 < 0;
-//
-//		int b3 = x.arg03.compare(arg03);
-//
-//		if (b3 != 0)
-//			return b3 < 0;
-//
-//	    return false;
-//	}
 
 	/*
 	 *
@@ -215,10 +191,10 @@ inline bool operator <(StringOP const& x, StringOP const& y) {
 	if (b2 != 0)
 		return b2 < 0;
 
-	int b3 = x.arg03.compare(y.arg03);
-
-	if (b3 != 0)
-		return b3 < 0;
+//	int b3 = x.arg03.compare(y.arg03);
+//
+//	if (b3 != 0)
+//		return b3 < 0;
 
     return false;
 }
