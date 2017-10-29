@@ -1,10 +1,10 @@
-(declare-const s String)
-(declare-const filename_0 String)
-(declare-const filename_1 String)
-(declare-const filename_2 String)
-(declare-const i1 Int)
-(declare-const i2 Int)
-(declare-const i3 Int)
+(declare-fun s () String)
+(declare-fun filename_0 () String)
+(declare-fun filename_1 () String)
+(declare-fun filename_2 () String)
+(declare-fun i1 () Int)
+(declare-fun i2 () Int)
+(declare-fun i3 () Int)
 
 
 

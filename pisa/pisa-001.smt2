@@ -1,7 +1,7 @@
-(declare-const v1 String)
-(declare-const v2 String)
-(declare-const v3 Int)
-(declare-const ret String)
+(declare-fun v1 () String)
+(declare-fun v2 () String)
+(declare-fun v3 () Int)
+(declare-fun ret () String)
 
 
 
@@ -12,8 +12,6 @@
              (= ret v1)
         )
 )
-
-
 
 (check-sat)
 (get-model)

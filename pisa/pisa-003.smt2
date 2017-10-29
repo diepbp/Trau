@@ -1,6 +1,6 @@
-(declare-const s String)
-(declare-const var String)
-(declare-const ret String)
+(declare-fun s () String)
+(declare-fun var () String)
+(declare-fun ret () String)
 
 
 (assert (ite  (or (Contains s "<") (Contains s ">") ) 
