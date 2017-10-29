@@ -293,7 +293,7 @@ void updateContain(
 	int found = findTokens(tokens, 0, "Contains", 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
+		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		StringOP op(findStringOP(tokens, "Contains", 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
@@ -301,9 +301,9 @@ void updateContain(
 			tokens = replaceTokens(tokens, found - 1, pos, "true", 15);
 		else
 			tokens = replaceTokens(tokens, found - 1, pos, "false", 7);
-//		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
+		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		found = findTokens(tokens, pos, "Contains", 88);
+		found = findTokens(tokens, 0, "Contains", 88);
 	}
 }
 
@@ -322,7 +322,7 @@ void updateIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, pos, "Indexof", 88);
+		found = findTokens(tokens, 0, "Indexof", 88);
 	}
 }
 
@@ -341,7 +341,7 @@ void updateLastIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, pos, "LastIndexof", 88);
+		found = findTokens(tokens, 0, "LastIndexof", 88);
 	}
 }
 
@@ -360,7 +360,7 @@ void updateEndsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, pos, "EndsWith", 88);
+		found = findTokens(tokens, 0, "EndsWith", 88);
 	}
 }
 
@@ -379,7 +379,7 @@ void updateStartsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, pos, "StartsWith", 88);
+		found = findTokens(tokens, 0, "StartsWith", 88);
 	}
 }
 
@@ -1186,9 +1186,15 @@ void customizeLine_ToCreateLengthLine(
 		if (tokens[i].second == 86){
 			std::string s = "";
 			for (unsigned j = 0; j < tokens[i].first.length(); ++j)
-				if (j + 2 < tokens[i].first.length() && tokens[i].first[j] == '\\' && tokens[i].first[j + 1] == 't'){
-					s += '\t';
-					++j;
+				if (tokens[i].first[j] == '\\'){
+					if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't') {
+						s += '\t';
+						++j;
+					}
+					else if (j + 2 < tokens[i].first.length()){
+						s += tokens[i].first[j + 1];
+						++j;
+					}
 				}
 				else
 					s += tokens[i].first[j];

@@ -4395,6 +4395,73 @@ std::map<Z3_ast, std::set<char>> calculate_minimumParikh(
 /*
  *
  */
+bool check_substr_basic(
+		Z3_theory t,
+		Z3_ast node,
+		std::vector<std::vector<Z3_ast>> list){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+
+	if (isConstStr(t, node) || isDetAutomatonFunc(t, node))
+		list.push_back({node});
+
+	if (list.size() <= 1)
+		return true;
+
+	for (unsigned i = 1; i < list.size(); ++i) {
+		/* cut common prefix and suffix */
+		std::vector<Z3_ast> l00;
+		std::vector<Z3_ast> l01;
+		unsigned start = 0, finish = list[0].size() - 1;
+		while (start < list[0].size())
+			if (list[0][start] == list[i][start])
+				++start;
+			else
+				break;
+		while (finish >= 0)
+			if (list[0][finish] == list[i][list[i].size() - (list[0].size() - finish)])
+				--finish;
+			else
+				break;
+
+		/* --> cut */
+		for (unsigned j = start; j <= finish; ++j)
+			l00.emplace_back(list[0][j]);
+		for (unsigned j = start; j <= list[i].size() - (list[0].size() - finish); ++j)
+			l01.emplace_back(list[i][j]);
+
+		if (l00.size() == 1) {
+			if (isConstStr(t, l00[0]) || isDetAutomatonFunc(t, l00[0])){
+				std::string s0 = getConstString(t, l00[0]);
+				for (unsigned j = 0; j < l01.size(); ++j)
+					if (isConstStr(t, l01[j]) || isDetAutomatonFunc(t, l01[j])){
+						std::string s1 = getConstString(t, l01[j]);
+						if (s0.find(s1) == std::string::npos)
+							return false;
+					}
+			}
+		}
+		else {
+			if (l01.size() == 1) {
+				if (isConstStr(t, l01[0]) || isDetAutomatonFunc(t, l01[0])){
+					std::string s0 = getConstString(t, l01[0]);
+					for (unsigned j = 0; j < l00.size(); ++j)
+						if (isConstStr(t, l00[j]) || isDetAutomatonFunc(t, l00[j])){
+							std::string s1 = getConstString(t, l00[j]);
+							if (s0.find(s1) == std::string::npos)
+								return false;
+						}
+				}
+			}
+		}
+	}
+
+	return true;
+
+}
+
+/*
+ *
+ */
 bool parikh_check_contain(
 		Z3_theory t,
 		Z3_ast node,
@@ -4453,7 +4520,10 @@ bool parikh_check_contain(
 /*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool parikh_check_replaceall(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues){
+bool parikh_check_replaceall(
+		Z3_theory t,
+		std::vector<std::vector<Z3_ast>> list,
+		std::map<Z3_ast, bool> boolValues){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 	if (list.size() <= 1)
@@ -4631,8 +4701,9 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
 		bool fine_replace = parikh_check_replaceall(t, itor->second, boolMapValues);
+		bool substr_basic = check_substr_basic(t, itor->first, itor->second);
 
-		if (!fine_replace) {
+		if (!fine_replace || !substr_basic) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveContext(t), __LINE__, true);
 			return {};

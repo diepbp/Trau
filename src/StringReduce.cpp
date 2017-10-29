@@ -1094,7 +1094,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		Z3_ast and_item[2];
 		and_item[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
 		and_item[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
-
+		subStrStrMap[StringOP("Substring", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
 		breakdownAssert = Z3_mk_and(ctx, 2, and_item);
 	}
 	return ts1;
