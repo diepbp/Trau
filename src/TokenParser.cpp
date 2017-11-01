@@ -37,26 +37,37 @@ bool TokenParser::readAutomata(std::string fileName){
         putbackStates[i] = 0;
     }
 
-    fgets(buf, sizeof (buf), fp); // <start-state>
-    fgets(buf, sizeof (buf), fp); // 0
-    fgets(buf, sizeof (buf), fp); // <final-states>
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <start-state>
+    	assert(false);
 
-    fgets(buf, sizeof (buf), fp);
+    if (fgets(buf, sizeof (buf), fp) == NULL) // 0
+    	assert(false);
+
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <final-states>
+    	assert(false);
+
+    if (fgets(buf, sizeof (buf), fp) == NULL)
+    	assert(false);
+
     tmp = stringTokens(buf);
     for (std::vector<char*>::iterator i = tmp.begin(); i != tmp.end(); ++i) {
         finalStates[atoi((char*)*i)] = true;
         countFinalStates++;
     }
 
-    fgets(buf, sizeof (buf), fp); // <row-labels>
-    fgets(buf, sizeof (buf), fp);
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <row-labels>
+    	assert(false);
+    if (fgets(buf, sizeof (buf), fp) == NULL)
+    	assert(false);
     tmp = stringTokens(buf);
     for (std::vector<char*>::iterator i = tmp.begin(); i != tmp.end(); ++i) {
         rowLabels.insert(std::pair<int, int>(atoi((char*)*i), rowLabels.size()));
     }
 
-    fgets(buf, sizeof (buf), fp); // <column-labels>
-    fgets(buf, sizeof (buf), fp);
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <column-labels>
+    	assert(false);
+    if (fgets(buf, sizeof (buf), fp) == NULL)
+    	assert(false);
     tmp = stringTokens(buf);
 
     for (std::vector<char*>::iterator i = tmp.begin(); i != tmp.end(); ++i) {
@@ -64,25 +75,31 @@ bool TokenParser::readAutomata(std::string fileName){
         colLabels.insert(std::pair<std::string, int>(ss, colLabels.size()));
     }
 
-    fgets(buf, sizeof (buf), fp);
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <column-labels>
+    	assert(false);
     for (unsigned int i = 0; i < rowLabels.size(); ++i) {
         for (unsigned int j = 0; j < colLabels.size(); ++j) {
             fscanf(fp, "%i", &transitionTable[i][j]);
         }
     }
 
-    fgets(buf, sizeof (buf), fp);
-    fgets(buf, sizeof (buf), fp); // <finalstate-token-map>
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <column-labels>
+    	assert(false);
+    if (fgets(buf, sizeof (buf), fp) == NULL)
+    	assert(false); // <finalstate-token-map>
 
     for (int i = 0; i < countFinalStates; ++i) {
-        fgets(buf, sizeof (buf), fp);
+    	if (fgets(buf, sizeof (buf), fp) == NULL) // <column-labels>
+    		assert(false);
         tmp = stringTokens(buf);
         std::string s(tmp[1]);
         tokenMap[atoi(tmp[0])] = s;
     }
 
-    fgets(buf, sizeof (buf), fp);
-    fgets(buf, sizeof (buf), fp); // <put-back-state>
+    if (fgets(buf, sizeof (buf), fp) == NULL) // <column-labels>
+    	assert(false);
+    if (fgets(buf, sizeof (buf), fp) == NULL)
+    	assert(false); // <put-back-state>
     tmp = stringTokens(buf);
 
     for (std::vector<char*>::iterator i = tmp.begin(); i != tmp.end(); ++i) {

@@ -121,7 +121,7 @@ void buildDependenceGraph(std::string line, int &cnt, std::map<std::string, int>
 void initGraph(std::string inputFile){
 #ifdef DEBUGLOG
   __debugPrint(logFile, "***********************************************\n");
-  __debugPrint(logFile, "*              initGraph             *\n");
+  __debugPrint(logFile, "*              initGraph             			*\n");
   __debugPrint(logFile, "-----------------------------------------------\n");
 #endif
 	FILE* pipe = fopen(inputFile.c_str(), "r");

@@ -210,7 +210,6 @@ extern int nondeterministicCounter;
  * check if leng = 1 --> skip generate new constraints in indexof, lastindexof...
  */
 bool canSkipExt(Z3_theory t, Z3_ast node){
-	bool canSkip = false;
 	if (getNodeType(t, node) == my_Z3_ConstStr) {
 		std::string nodeStr = getConstStrValue(t, node);
 		if (nodeStr.length() == 1) {

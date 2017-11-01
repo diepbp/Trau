@@ -371,7 +371,7 @@ typedef struct _AutomatonStringData
 
  Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s_1, Z3_ast s_2, Z3_ast * r);
 
- Z3_bool Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], Z3_ast * result);
+ Z3_bool Th_reduce_app( Z3_theory, Z3_func_decl, unsigned, Z3_ast const [], Z3_ast *);
 
  /**
    \brief Callback: invoked when \c n is finally added to the logical context.

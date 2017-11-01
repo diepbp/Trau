@@ -277,4 +277,9 @@ std::vector<std::pair<std::string, int>> parseTerm(std::string term);
  *
  */
 std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file);
+
+/*
+ *
+ */
+std::vector<unsigned> sort_indexes(const std::vector<std::pair<std::string, int>> &v);
 #endif /* UTILS_H_ */

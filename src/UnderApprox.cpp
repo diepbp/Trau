@@ -755,7 +755,15 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
 	}
 
 	/* */
+	if (isConst_00) {
+
+	}
+
 	if (isConst_01) {
+
+	}
+
+	if (isConst_02) {
 
 	}
 	return "true";
@@ -2763,72 +2771,304 @@ std::string getValueFromRegex(std::string s, int length){
 }
 
 /*
- * create str values after running Z3
+ *
  */
-std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue){
-	std::map<std::string, std::string> result;
-//	for (const auto& s : len){
-//		if (s.first.find("len_") == 0){
-//			std::string name = "arr_" + s.first.substr(4);
-//			int lenValue = std::atoi(s.second.c_str());
-//			if (strValue.find(name) != strValue.end()){
-//				if (lenValue <= (int)strValue[name].length())
-//					result[s.first.substr(4)] = strValue[name].substr(0, lenValue);
-//				else {
-//					// TODO : find the final value
-//					continue;
-//					std::string tmp = "";
-//					for (int i = strValue[name].length(); i < lenValue; ++i)
-//						tmp = tmp + 'z';
-//					result[s.first.substr(4)] = strValue[name] + tmp;
-//				}
-//
-//			}
-//		}
-//	}
-
-	for (const auto& eq : equalitiesMap){
-		if (result.find(eq.first) != result.end() || eq.first[0] == '\"')
-			continue;
-
-		std::string value = "";
-		for (const auto& v : eq.second){
-			bool gotValue = true;
-			for (const auto& s : v){
-				if (s[0] == '\"') {
-					if (!isRegexStr(s))
-						value = value + s.substr(1, s.length() - 2);
+void syncConst(
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue){
+	for (const auto& var : equalitiesMap){
+		for (const auto& eq : var.second){
+			int pos = 0;
+			for (const auto& s : eq){
+				if (s[0] == '"') {
+					/* TODO: regex or const */
+					for (unsigned i = 1; i < s.length() - 1; ++i)
+						if (strValue[var.first][pos + i - 1] == 0)
+							strValue[var.first][pos + i - 1] = s[i];
+						else
+							assert(strValue[var.first][pos + i - 1] == s[i]);
+					pos += s.length() - 2;
+				}
+				else
+					pos += len[s];
+			}
+		}
+	}
+}
+/*
+ *
+ */
+void propagateResult(
+		std::string newlyUpdate,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue){
+	std::vector<int> sValue = strValue[newlyUpdate];
+	for (const auto& var : equalitiesMap){
+		std::vector<int> value = strValue[var.first];
+		/* update parents */
+		bool foundInParents = false;
+		for (const auto& eq : var.second)
+			if (std::find(eq.begin(), eq.end(), newlyUpdate) != eq.end()) {
+				int pos = 0;
+				for (const auto& s : eq)
+					if (s[0] == '"') {
+						/* TODO const or regex*/
+						pos += s.length() - 2;
+					}
+					else if (s.compare(newlyUpdate) == 0){
+						assert(len.find(s) != len.end());
+						for (int i = 0; i < len[s]; ++i)
+							if (value[pos + i] == 0 && sValue[i] != 0) {
+								value[pos + i] = sValue[i];
+								foundInParents = true;
+							}
+					}
 					else {
-						// TODO : find the final regex value
-						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
-						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
-						if (tmp.compare("!fOuNd") != 0)
-							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
-						else {
-							value = "";
-							gotValue = false;
-							break;
+						assert(len.find(s) != len.end());
+						pos += len[s];
+					}
+			}
+
+
+		if (foundInParents) {
+			strValue[var.first] = value;
+			/* update it parents */
+			propagateResult(var.first, len, strValue);
+
+			/* udpate peers */
+			for (const auto& eq : var.second){
+				int pos = 0;
+				for (const auto& s : eq){
+					if (s[0] == '"') {
+						/* TODO const or regex*/
+						pos += s.length() - 2;
+					}
+					else {
+						assert(len.find(s) != len.end());
+						bool updated = false;
+						std::vector<int> tmpValue = strValue[s];
+						for (int i = 0; i < len[s]; ++i) {
+							if (tmpValue[i] != value[pos + i]) {
+								updated = true;
+								tmpValue[i] = value[pos + i];
+							}
 						}
+						if (updated == true) {
+							strValue[s] = tmpValue;
+							propagateResult(s, len, strValue);
+						}
+						pos += len[s];
 					}
 				}
-				else if (result.find(s) != result.end())
-					value = value + result[s];
-				else {
-					value = "";
-					gotValue = false;
-					break;
-				}
 			}
-			if (gotValue == true){
-				result[eq.first] = value;
-				value = "";
-				break;
+		}
+	}
+}
+
+/*
+ *
+ */
+std::string createString(
+		std::string name,
+		std::string value,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue){
+	int val[5000];
+	memset(val, 0, sizeof val);
+
+	/* update based on previous values */
+	for (const auto& eq : equalitiesMap[name]){
+		int pos = 0;
+		for (const auto& var : eq) {
+			if (var[0] == '"') {
+				/* add a const */
+				for (unsigned i = 1; i < var.length() - 1; ++i)
+					if (val[pos + i - 1] == 0)
+						val[pos + i - 1] = var[i];
+					else
+						assert(val[pos + i - 1] == var[i]);
+				pos += var.length() - 2;
+			}
+			else if(strValue.find(var) != strValue.end()){
+				/* add an evaluated value */
+				assert(len[var] == (int) strValue[var].length());
+				for (unsigned i = 0; i < strValue[var].length(); ++i)
+					if (val[pos + i] == 0)
+						val[pos + i] = strValue[var][i];
+					else
+						assert(val[pos] == strValue[var][i]);
+				pos += len[var];
+			}
+			else
+				/* unknown */
+				pos += len[var];
+		}
+		assert(pos == len[name]);
+	}
+
+	/* update values found by the solver */
+	for (int i = 0; i < (int)value.length(); ++i)
+		if (val[i] == 0)
+			val[i] = value[i];
+
+	std::string ret = "";
+	/* update the rest chars */
+	for (int i = 0; i < len[name]; ++i)
+		if (val[i] == 0)
+			ret += 'a';
+		else
+			ret += val[i];
+	return ret;
+}
+
+/*
+ *
+ */
+void backwardPropagarate(
+		std::string name,
+		std::string value,
+		std::map<std::string, int> len,
+		std::map<std::string, std::string> &strValue){
+	for (const auto& eq : equalitiesMap[name]){
+		int pos = 0;
+		for (const auto& var : eq) {
+			if (var[0] == '"') {
+				/* verify a const */
+				std::string tmp01 = var.substr(1, var.length() - 2);
+				std::string tmp02 = value.substr(pos, var.length() - 2);
+				assert(tmp01.compare(tmp02) == 0);
+				pos += var.length() - 2;
+			}
+			else if(strValue.find(var) != strValue.end()){
+				/* verify a determined value */
+				std::string tmp02 = value.substr(pos, len[var]);
+				assert(tmp02.compare(strValue[var]) == 0);
+				pos += len[var];
+			}
+			else {
+				/* update a new value */
+				strValue[var] = value.substr(pos, len[var]);
+				pos += len[var];
+				propagateResult(var, strValue);
+			}
+		}
+		assert(pos == len[name]);
+	}
+}
+
+/*
+ * create str values after running Z3
+ */
+std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> _strValue){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	std::vector<std::pair<std::string, int>> lenVector;
+	std::map<std::string, int> lenInt;
+	std::map<std::string, std::string> strValue;
+	for (const auto& s : len)
+		if (s.first.find("len_") == 0){
+			std::string name = s.first.substr(4);
+			lenVector.push_back(std::make_pair(name, atoi(s.second.c_str())));
+			lenInt[name] = atoi(s.second.c_str());
+			__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.c_str(), s.second.c_str(), atoi(s.second.c_str()));
+		}
+
+	for (const auto& s : _strValue)
+		if (s.first.find("arr_") == 0){
+			std::string name = s.first.substr(4);
+			strValue[name] = s.second;
+		}
+		else
+			strValue[s.first] = s.second;
+	for (const auto& s : strValue)
+		__debugPrint(logFile, "%d %s : %s\n", __LINE__, s.first.c_str(), s.second.c_str());
+
+	std::vector<unsigned> indexes = sort_indexes(lenVector);
+	std::map<std::string, std::vector<int>> finalStrValue;
+
+	for (const auto& var : lenVector)
+		finalStrValue[var.first] = std::vector<int>(5000, 0);
+
+	for (const auto& var : equalitiesMap)
+		if (var.first[0] == '"') {
+			std::vector<int> tmp;
+			for (unsigned i = 1; i < var.first.length() - 1; ++i)
+				tmp[i - 1] = var.first[i];
+			finalStrValue[var.first] = tmp;
+		}
+
+	/* 1st: handling connected vars */
+	for (const auto& s : indexes) {
+		if (lenVector[s].second == 0) {
+			finalStrValue[lenVector[s].first] = "";
+			__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
+			propagateResult(lenVector[s].first, finalStrValue);
+		}
+		else {
+			if (connectedVariables.find(lenVector[s].first) != connectedVariables.end()) {
+				assert(strValue.find(lenVector[s].first) != strValue.end());
+
+				if (finalStrValue.find(lenVector[s].first) != finalStrValue.end())
+					continue;
+				finalStrValue[lenVector[s].first] = createString(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
+				__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
+				backwardPropagarate(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
+				propagateResult(lenVector[s].first, finalStrValue);
 			}
 		}
 	}
 
+	/* 2nd: handling other vars */
+	for (const auto& s : indexes) {
+		if (finalStrValue.find(lenVector[s].first) == finalStrValue.end()) {
+			finalStrValue[lenVector[s].first] = createString(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
+			__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
+			backwardPropagarate(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
+			propagateResult(lenVector[s].first, finalStrValue);
+		}
+	}
+
+//	for (const auto& eq : equalitiesMap){
+//		if (result.find(eq.first) != result.end() || eq.first[0] == '\"')
+//			continue;
+//
+//		std::string value = "";
+//		for (const auto& v : eq.second){
+//			bool gotValue = true;
+//			for (const auto& s : v){
+//				if (s[0] == '\"') {
+//					if (!isRegexStr(s))
+//						value = value + s.substr(1, s.length() - 2);
+//					else {
+//						// TODO : find the final regex value
+//						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
+//						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+//						if (tmp.compare("!fOuNd") != 0)
+//							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
+//						else {
+//							value = "";
+//							gotValue = false;
+//							break;
+//						}
+//					}
+//				}
+//				else if (result.find(s) != result.end())
+//					value = value + result[s];
+//				else {
+//					value = "";
+//					gotValue = false;
+//					break;
+//				}
+//			}
+//			if (gotValue == true){
+//				result[eq.first] = value;
+//				value = "";
+//				break;
+//			}
+//		}
+//	}
+
 	std::map<std::string, std::string> finalResult;
-	for (const auto& var : result){
+	for (const auto& var : finalStrValue){
 		std::string tmp = "";
 		for (unsigned int i = 0; i < var.second.length(); ++i)
 			if (var.second[i] == '\"')
@@ -2870,7 +3110,8 @@ bool Z3_run(
 	bool sat = false;
 	try {
 		/* the first line */
-		fgets(buffer, 4000, in);
+		if (fgets(buffer, 4000, in) == NULL)
+			assert(false);
 		std::string getSat = buffer;
 		getSat = getSat.substr(0, 3);
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, buffer);
@@ -2901,7 +3142,8 @@ bool Z3_run(
 						std::map<int, int> valueMap;
 						while (true){
 							/* read the value in the next line */
-							fgets(buffer, 4000, in);
+							if (fgets(buffer, 4000, in) == NULL)
+								assert(false);
 							tokens = parse_string_language(buffer, " (),.=");
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
@@ -2924,7 +3166,8 @@ bool Z3_run(
 					}
 					else if (name.find("arr_") != std::string::npos){
 						/* array map */
-						fgets(buffer, 4000, in);
+						if (fgets(buffer, 4000, in) == NULL)
+							assert(false);
 						tokens = parse_string_language(buffer, " (),.\n\t\r");
 						assert(tokens.size() == 3);
 						array_map[tokens[2]] = name;
@@ -2932,10 +3175,11 @@ bool Z3_run(
 					else {
 						/* len value */
 						/* read the value in the next line */
-						fgets(buffer, 4000, in);
+						if (fgets(buffer, 4000, in) == NULL)
+							assert(false);
 						tokens = parse_string_language(buffer, " (),.");
 						if (tokens[0][0] == '-')
-							len_results[name] = "(" + tokens[0] + " " + tokens[1] + ")";
+							len_results[name] = tokens[0] + " " + tokens[1];
 						else
 							len_results[name] = tokens[0];
 

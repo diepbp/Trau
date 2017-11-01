@@ -44,6 +44,7 @@
 
 RegEx::RegEx() {
 }
+
 RegEx::~RegEx(){
 	CleanUp();
 }
