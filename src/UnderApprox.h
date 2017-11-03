@@ -460,6 +460,36 @@ void createStringFromSet(std::set<std::string> list, int length, std::string &re
  */
 std::string getValueFromRegex(std::string s, int length);
 
+/*
+ *
+ */
+void syncConst(
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue);
+
+/*
+ *
+ */
+std::vector<int> createString(
+		std::string name,
+		std::string value,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue,
+		bool &assigned);
+/*
+ *
+ */
+void backwardPropagarate(
+		std::string name,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue);
+/*
+ *
+ */
+void propagateResult(
+		std::string newlyUpdate,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue);
 
 /*
  * create str values after running Z3

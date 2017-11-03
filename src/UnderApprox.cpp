@@ -1546,7 +1546,9 @@ void verifyOutput(std::string outFile,
 
 	for (const auto& value : strValue)
 		if (value.first.find("$$") == std::string::npos &&
-				value.first.find("__flat_") == std::string::npos){
+				value.first.find("__flat_") == std::string::npos &&
+				value.first.find("const") != 0 &&
+				value.first[0] != '"'){
 			additionalAssertions.emplace_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
 		}
 
@@ -2002,7 +2004,16 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	connectedVariables.insert(connectedVarSet.begin(), connectedVarSet.end());
 
-#ifdef PRINTTEST_UNDERAPPROX
+	/* a = b, a is a connected var --> b is connected var */
+		for (const auto& eq : equalitiesMap)
+			if (connectedVariables.find(eq.first) != connectedVariables.end()){
+				for (const auto& v : eq.second)
+					if (v.size() == 1){
+						if (v[0][0] != '"')
+							connectedVariables.emplace(v[0]);
+					}
+		}
+
 	/* print test connected var */
 	if (connectedVariables.size() > 0) {
 		__debugPrint(logFile, "%d *** %s ***:\n", __LINE__, __FUNCTION__);
@@ -2012,7 +2023,6 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		}
 		__debugPrint(logFile, "\n");
 	}
-#endif
 }
 
 /*
@@ -2773,27 +2783,57 @@ std::string getValueFromRegex(std::string s, int length){
 /*
  *
  */
+bool isInternalVar(std::string varName){
+	if (varName[varName.length() - 2] == '_' && varName[varName.length() - 1] >= '0' && varName[varName.length() - 1] <= '9')
+				return true;
+	return false;
+}
+/*
+ *
+ */
 void syncConst(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (const auto& var : equalitiesMap){
+		if (strValue.find(var.first) == strValue.end())
+			strValue[var.first] = std::vector<int>(5000, 0);
+
+		if (var.first[0] == '"') {
+			std::vector<int> tmp(5000, 0);
+			for (unsigned i = 1; i < var.first.length() - 1; ++i)
+				tmp[i - 1] = var.first[i];
+			strValue[var.first] = tmp;
+			propagateResult(var.first, len, strValue);
+			continue;
+		}
+
+		bool update = false;
 		for (const auto& eq : var.second){
 			int pos = 0;
 			for (const auto& s : eq){
 				if (s[0] == '"') {
 					/* TODO: regex or const */
 					for (unsigned i = 1; i < s.length() - 1; ++i)
-						if (strValue[var.first][pos + i - 1] == 0)
+						if (strValue[var.first][pos + i - 1] == 0) {
 							strValue[var.first][pos + i - 1] = s[i];
+							update = true;
+						}
 						else
 							assert(strValue[var.first][pos + i - 1] == s[i]);
 					pos += s.length() - 2;
+
 				}
 				else
 					pos += len[s];
 			}
 		}
+		if (update == true) {
+			propagateResult(var.first, len, strValue);
+			backwardPropagarate(var.first, len, strValue);
+		}
 	}
+	__debugPrint(logFile, "%d >> done %s \n", __LINE__, __FUNCTION__);
 }
 /*
  *
@@ -2802,13 +2842,20 @@ void propagateResult(
 		std::string newlyUpdate,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 	std::vector<int> sValue = strValue[newlyUpdate];
 	for (const auto& var : equalitiesMap){
-		std::vector<int> value = strValue[var.first];
+		std::vector<int> value;
+		if (strValue.find(var.first) == strValue.end())
+			value = std::vector<int>(5000, 0);
+		else
+			value = strValue[var.first];
+
 		/* update parents */
 		bool foundInParents = false;
 		for (const auto& eq : var.second)
 			if (std::find(eq.begin(), eq.end(), newlyUpdate) != eq.end()) {
+				__debugPrint(logFile, "%d found %s in %s\n", __LINE__, newlyUpdate.c_str(), var.first.c_str());
 				int pos = 0;
 				for (const auto& s : eq)
 					if (s[0] == '"') {
@@ -2817,11 +2864,17 @@ void propagateResult(
 					}
 					else if (s.compare(newlyUpdate) == 0){
 						assert(len.find(s) != len.end());
+						__debugPrint(logFile, "%d found %s in %s at pos = %d/%d\n", __LINE__, newlyUpdate.c_str(), var.first.c_str(), len[s], len[var.first]);
 						for (int i = 0; i < len[s]; ++i)
 							if (value[pos + i] == 0 && sValue[i] != 0) {
 								value[pos + i] = sValue[i];
 								foundInParents = true;
 							}
+							else if (value[pos + i] != 0 && sValue[i] != 0) {
+								__debugPrint(logFile, "%d %c vs %c\n", __LINE__, value[pos + i], sValue[i]);
+								assert(value[pos + i] == sValue[i]);
+							}
+						pos += len[s];
 					}
 					else {
 						assert(len.find(s) != len.end());
@@ -2834,8 +2887,9 @@ void propagateResult(
 			strValue[var.first] = value;
 			/* update it parents */
 			propagateResult(var.first, len, strValue);
+			backwardPropagarate(var.first, len, strValue);
 
-			/* udpate peers */
+			/* update peers */
 			for (const auto& eq : var.second){
 				int pos = 0;
 				for (const auto& s : eq){
@@ -2856,6 +2910,7 @@ void propagateResult(
 						if (updated == true) {
 							strValue[s] = tmpValue;
 							propagateResult(s, len, strValue);
+							backwardPropagarate(s, len, strValue);
 						}
 						pos += len[s];
 					}
@@ -2868,13 +2923,16 @@ void propagateResult(
 /*
  *
  */
-std::string createString(
+std::vector<int> createString(
 		std::string name,
 		std::string value,
 		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> strValue){
-	int val[5000];
-	memset(val, 0, sizeof val);
+		std::map<std::string, std::vector<int>> strValue,
+		bool &assigned){
+	__debugPrint(logFile, "%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, name.c_str(), value.c_str());
+	std::vector<int> val(5000, 0);
+	if (strValue.find(name) != strValue.end())
+		val = strValue[name];
 
 	/* update based on previous values */
 	for (const auto& eq : equalitiesMap[name]){
@@ -2891,12 +2949,11 @@ std::string createString(
 			}
 			else if(strValue.find(var) != strValue.end()){
 				/* add an evaluated value */
-				assert(len[var] == (int) strValue[var].length());
-				for (unsigned i = 0; i < strValue[var].length(); ++i)
+				for (int i = 0; i < len[var]; ++i)
 					if (val[pos + i] == 0)
 						val[pos + i] = strValue[var][i];
 					else
-						assert(val[pos] == strValue[var][i]);
+						assert(val[pos + i] == strValue[var][i]);
 				pos += len[var];
 			}
 			else
@@ -2906,19 +2963,38 @@ std::string createString(
 		assert(pos == len[name]);
 	}
 
-	/* update values found by the solver */
-	for (int i = 0; i < (int)value.length(); ++i)
-		if (val[i] == 0)
-			val[i] = value[i];
+	/* update values found by the solver & previous iterations */
 
-	std::string ret = "";
-	/* update the rest chars */
 	for (int i = 0; i < len[name]; ++i)
 		if (val[i] == 0)
-			ret += 'a';
-		else
-			ret += val[i];
-	return ret;
+			if (i < (int)value.length())
+				val[i] = value[i];
+
+	bool canAssign = false;
+	for (int i = 0; i < len[name]; ++i)
+		if (val[i] != 0) {
+			canAssign = true;
+			break;
+		}
+
+	if (canAssign) {
+		for (int i = 0; i < len[name]; ++i)
+			if (val[i] == 0)
+				val[i] = '0';
+	}
+	else {
+		/* cannot assign because we do not know anything */
+		assigned = false;
+		return val;
+	}
+
+	__debugPrint(logFile, ">> %d: ", __LINE__);
+	for (int i = 0; i < len[name]; ++i)
+		__debugPrint(logFile, "%c", val[i]);
+	__debugPrint(logFile, "\n");
+
+	assigned = true;
+	return val;
 }
 
 /*
@@ -2926,30 +3002,45 @@ std::string createString(
  */
 void backwardPropagarate(
 		std::string name,
-		std::string value,
 		std::map<std::string, int> len,
-		std::map<std::string, std::string> &strValue){
+		std::map<std::string, std::vector<int>> &strValue){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, name.c_str());
+	std::vector<int> value = strValue[name];
 	for (const auto& eq : equalitiesMap[name]){
 		int pos = 0;
 		for (const auto& var : eq) {
 			if (var[0] == '"') {
-				/* verify a const */
-				std::string tmp01 = var.substr(1, var.length() - 2);
-				std::string tmp02 = value.substr(pos, var.length() - 2);
-				assert(tmp01.compare(tmp02) == 0);
 				pos += var.length() - 2;
 			}
 			else if(strValue.find(var) != strValue.end()){
 				/* verify a determined value */
-				std::string tmp02 = value.substr(pos, len[var]);
-				assert(tmp02.compare(strValue[var]) == 0);
+				std::vector<int> sValue = strValue[var];
+				bool update = false;
+				for (int i = 0; i < len[var]; ++i)
+					if (value[pos + i] != 0 && sValue[i] != 0) {
+						assert(value[pos + i] == sValue[i]);
+					}
+					else if (value[pos + i] != 0 && sValue[i] == 0){
+						sValue[i] = value[pos + i];
+						update = true;
+					}
+					else if (value[pos + i] == 0 && sValue[i] != 0){
+						assert(false);
+					}
 				pos += len[var];
+				if (update == true) {
+					strValue[var] = sValue;
+					propagateResult(var, len, strValue);
+				}
 			}
 			else {
 				/* update a new value */
-				strValue[var] = value.substr(pos, len[var]);
+				std::vector<int> sValue;
+				for (int i = 0; i < len[var]; ++i)
+					sValue[i] = value[pos + i];
+				strValue[var] = sValue;
 				pos += len[var];
-				propagateResult(var, strValue);
+				propagateResult(var, len, strValue);
 			}
 		}
 		assert(pos == len[name]);
@@ -2979,51 +3070,65 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 		}
 		else
 			strValue[s.first] = s.second;
+
 	for (const auto& s : strValue)
 		__debugPrint(logFile, "%d %s : %s\n", __LINE__, s.first.c_str(), s.second.c_str());
 
 	std::vector<unsigned> indexes = sort_indexes(lenVector);
 	std::map<std::string, std::vector<int>> finalStrValue;
-
-	for (const auto& var : lenVector)
+	for (const auto& var : lenVector) {
+		std::string varName = var.first;
+		if (isInternalVar(varName))
+			continue;
 		finalStrValue[var.first] = std::vector<int>(5000, 0);
-
-	for (const auto& var : equalitiesMap)
-		if (var.first[0] == '"') {
-			std::vector<int> tmp;
-			for (unsigned i = 1; i < var.first.length() - 1; ++i)
-				tmp[i - 1] = var.first[i];
-			finalStrValue[var.first] = tmp;
-		}
+	}
+	syncConst(lenInt, finalStrValue);
 
 	/* 1st: handling connected vars */
 	for (const auto& s : indexes) {
+		std::string varName = lenVector[s].first;
+		if (isInternalVar(varName))
+			continue;
 		if (lenVector[s].second == 0) {
-			finalStrValue[lenVector[s].first] = "";
-			__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
-			propagateResult(lenVector[s].first, finalStrValue);
+			finalStrValue[varName] = {};
 		}
 		else {
-			if (connectedVariables.find(lenVector[s].first) != connectedVariables.end()) {
-				assert(strValue.find(lenVector[s].first) != strValue.end());
+			if (connectedVariables.find(varName) != connectedVariables.end()) {
+				__debugPrint(logFile, "%d varname = %s\n", __LINE__, varName.c_str());
+				bool assigned = true;
+				std::vector<int> tmp = createString(varName, strValue[varName], lenInt, finalStrValue, assigned);
 
-				if (finalStrValue.find(lenVector[s].first) != finalStrValue.end())
-					continue;
-				finalStrValue[lenVector[s].first] = createString(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
-				__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
-				backwardPropagarate(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
-				propagateResult(lenVector[s].first, finalStrValue);
+				if (assigned) {
+					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
+					finalStrValue[varName] = tmp;
+					backwardPropagarate(varName, lenInt, finalStrValue);
+					propagateResult(varName, lenInt, finalStrValue);
+				}
+				else
+					__debugPrint(logFile, "%d cannot assign: %s\n", __LINE__, varName.c_str());
 			}
 		}
 	}
 
 	/* 2nd: handling other vars */
 	for (const auto& s : indexes) {
-		if (finalStrValue.find(lenVector[s].first) == finalStrValue.end()) {
-			finalStrValue[lenVector[s].first] = createString(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
-			__debugPrint(logFile, "%d %s (%d)--> %s\n", __LINE__, lenVector[s].first.c_str(), lenInt[lenVector[s].first], finalStrValue[lenVector[s].first].c_str());
-			backwardPropagarate(lenVector[s].first, strValue[lenVector[s].first], lenInt, finalStrValue);
-			propagateResult(lenVector[s].first, finalStrValue);
+		std::string varName = lenVector[s].first;
+		if (isInternalVar(varName))
+			continue;
+		if (lenVector[s].second == 0) {
+		}
+		else {
+			bool assigned = true;
+			std::vector<int> tmp = createString(varName, strValue[varName], lenInt, finalStrValue, assigned);
+
+			if (assigned) {
+				__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
+				finalStrValue[varName] = tmp;
+				backwardPropagarate(varName, lenInt, finalStrValue);
+				propagateResult(varName, lenInt, finalStrValue);
+			}
+			else
+				__debugPrint(logFile, "%d cannot assign: %s\n", __LINE__, varName.c_str());
 		}
 	}
 
@@ -3069,18 +3174,36 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
+		if (isInternalVar(var.first))
+			continue;
+
+		bool foundClue = false;
+		for (int i = 0; i < lenInt[var.first]; ++i)
+			if (var.second[i] != 0) {
+				foundClue = true;
+				break;
+			}
+		if (foundClue == false)
+			continue;
+
+		std::string value = "";
+		for (int i = 0; i < lenInt[var.first]; ++i) {
+			if (var.second[i] != 0) {
+				value += var.second[i];
+			}
+		}
 		std::string tmp = "";
-		for (unsigned int i = 0; i < var.second.length(); ++i)
-			if (var.second[i] == '\"')
+		for (unsigned int i = 0; i < value.length(); ++i)
+			if (value[i] == '\"')
 				tmp = tmp + "\\\"";
-			else if (var.second[i] == '\\')
+			else if (value[i] == '\\')
 				tmp = tmp + "\\\\";
-			else if (var.second[i] == 9) // tab
+			else if (value[i] == 9) // tab
 				tmp = tmp + "\\t";
-			else if (var.second[i] < 32 || var.second[i] > 126)
-				tmp = tmp + 'z';
+			else if (value[i] < 32 || value[i] > 126)
+				tmp = tmp + 'a';
 			else
-				tmp = tmp + var.second[i];
+				tmp = tmp + value[i];
 		finalResult[var.first] = tmp;
 	}
 
