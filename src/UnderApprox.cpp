@@ -62,6 +62,16 @@ bool isRegexStr(std::string str){
 }
 
 /*
+ *
+ */
+bool isConstStr(std::string str){
+	if (str[0] == '"' && str.find(")*") == std::string::npos && str.find(")+") == std::string::npos)
+		return true;
+	else
+		return false;
+}
+
+/*
  * First base case
  */
 void handleCase_0_0(
@@ -2789,15 +2799,32 @@ bool isInternalVar(std::string varName){
 	return false;
 }
 
+/*
+ *
+ */
 int getConstLength(
 		std::string var,
 		std::map<std::string, int> len){
 	std::string actualName = var.substr(1, var.length() - 2);
 	int length = len[constMap[actualName]];
 	if (isRegexStr(actualName)) {
-		length = len[constMap[actualName] + "_100"];// * len[constMap[actualName] + "__p0"];
+		length = len[constMap[actualName] + "_100"];
 	}
 	return length;
+}
+
+/*
+ *
+ */
+std::vector<int> getDataStr(
+		std::string var,
+		std::map<std::string, std::vector<int>> strValue){
+	std::string actualName = var.substr(1, var.length() - 2);
+	assert (isRegexStr(actualName));
+	if (strValue.find(constMap[actualName]) != strValue.end())
+		return strValue[constMap[actualName]];
+	else
+		return std::vector<int>(5000, 0);
 }
 /*
  *
@@ -2824,7 +2851,6 @@ void syncConst(
 			int pos = 0;
 			for (const auto& s : eq){
 				if (s[0] == '"') {
-					/* TODO: regex or const */
 					if (!isRegexStr(s)) {
 						for (unsigned i = 1; i < s.length() - 1; ++i)
 							if (strValue[var.first][pos + i - 1] == 0) {
@@ -2848,8 +2874,9 @@ void syncConst(
 	}
 	__debugPrint(logFile, "%d >> done %s \n", __LINE__, __FUNCTION__);
 }
+
 /*
- *
+ * a = b . c .We know b, need to update a
  */
 void propagateResult(
 		std::string newlyUpdate,
@@ -2858,14 +2885,16 @@ void propagateResult(
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 	std::vector<int> sValue;
 	if (isRegexStr(newlyUpdate))
-		sValue = strValue[constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)]];
+		sValue = getDataStr(newlyUpdate, strValue);
 	else
 		sValue = strValue[newlyUpdate];
 
 
 	for (const auto& var : equalitiesMap){
 		std::vector<int> value;
-		if (strValue.find(var.first) == strValue.end())
+		if (isRegexStr(var.first))
+			value = getDataStr(var.first, strValue);
+		else if (strValue.find(var.first) == strValue.end())
 			value = std::vector<int>(5000, 0);
 		else
 			value = strValue[var.first];
@@ -2876,26 +2905,18 @@ void propagateResult(
 			if (std::find(eq.begin(), eq.end(), newlyUpdate) != eq.end()) {
 				int pos = 0;
 				for (const auto& s : eq)
-					if (s[0] == '"') {
-						int length = getConstLength(s, len);
-						if (isRegexStr(s)) {
-							if (s.compare(newlyUpdate) == 0){
-								for (int i = 0; i < length; ++i)
-									if (value[pos + i] == 0 && sValue[i] != 0) {
-										value[pos + i] = sValue[i];
-										foundInParents = true;
-									}
-									else if (value[pos + i] != 0 && sValue[i] != 0) {
-										assert(value[pos + i] == sValue[i]);
-									}
-							}
+					if (s.compare(newlyUpdate) == 0 && !isConstStr(s)){
+						int length = 0;
+						if (s[0] == '"') {
+							assert(isRegexStr(s));
+							length = getConstLength(s, len);
 						}
-						pos += length;
-					}
+						else {
+							assert(len.find(s) != len.end());
+							length = len[s];
+						}
 
-					else if (s.compare(newlyUpdate) == 0){
-						assert(len.find(s) != len.end());
-						for (int i = 0; i < len[s]; ++i)
+						for (int i = 0; i < length; ++i)
 							if (value[pos + i] == 0 && sValue[i] != 0) {
 								value[pos + i] = sValue[i];
 								foundInParents = true;
@@ -2906,8 +2927,14 @@ void propagateResult(
 						pos += len[s];
 					}
 					else {
-						assert(len.find(s) != len.end());
-						pos += len[s];
+						if (isRegexStr(s))
+							pos += getConstLength(s, len);
+						else if (s[0] == '"')
+							pos += s.length() - 2;
+						else {
+							assert(len.find(s) != len.end());
+							pos += len[s];
+						}
 					}
 			}
 
@@ -2922,51 +2949,43 @@ void propagateResult(
 			for (const auto& eq : var.second){
 				int pos = 0;
 				for (const auto& s : eq){
-					if (s[0] == '"') {
-						int length = getConstLength(s, len);
-						if (isRegexStr(s)) {
-							bool update = false;
-							std::vector<int> sValue;
-							if (strValue.find(constMap[s.substr(1, s.length() - 2)]) == strValue.end())
-								sValue = std::vector<int>(5000, 0);
-							else
-								sValue = strValue[constMap[s.substr(1, s.length() - 2)]];
-
-							for (int i = 0; i < length; ++i)
-								if (value[pos + i] != 0 && sValue[i] != 0) {
-									assert(value[pos + i] == sValue[i]);
-								}
-								else if (value[pos + i] != 0 && sValue[i] == 0){
-									sValue[i] = value[pos + i];
-									update = true;
-								}
-								else if (value[pos + i] == 0 && sValue[i] != 0){
-									assert(false);
-								}
-
-							if (update == true) {
-								strValue[constMap[s.substr(1, s.length() - 2)]] = sValue;
-								propagateResult(s, len, strValue);
-							}
-						}
-						pos += length;
+					if (isConstStr(s)) {
+						pos += s.length() - 2;
 					}
 					else {
-						assert(len.find(s) != len.end());
+						int length = 0;
+						std::vector<int> sValue;
+						if (isRegexStr(s)) {
+							/* regex */
+							length = getConstLength(s, len);
+							sValue = getDataStr(s, strValue);
+						}
+						else {
+							/* var */
+							assert(len.find(s) != len.end());
+							length = len[s];
+							if (strValue.find(s) == strValue.end())
+								sValue = std::vector<int>(5000, 0);
+							else
+								sValue = strValue[s];
+						}
+
 						bool updated = false;
-						std::vector<int> tmpValue = strValue[s];
 						for (int i = 0; i < len[s]; ++i) {
-							if (tmpValue[i] != value[pos + i]) {
+							if (sValue[i] != value[pos + i]) {
 								updated = true;
-								tmpValue[i] = value[pos + i];
+								sValue[i] = value[pos + i];
 							}
 						}
 						if (updated == true) {
-							strValue[s] = tmpValue;
+							if (isRegexStr(s))
+								strValue[constMap[s.substr(1, s.length() - 2)]] = sValue;
+							else
+								strValue[s] = sValue;
 							propagateResult(s, len, strValue);
 							backwardPropagarate(s, len, strValue);
 						}
-						pos += len[s];
+						pos += length;
 					}
 				}
 			}
@@ -3046,7 +3065,7 @@ std::vector<int> createString(
 }
 
 /*
- *
+ * a = b . c. We know a, need to update b and c
  */
 void backwardPropagarate(
 		std::string name,
@@ -3061,6 +3080,7 @@ void backwardPropagarate(
 				int length = getConstLength(var, len);
 				if (isRegexStr(var)) {
 					bool update = false;
+
 					std::vector<int> sValue;
 					if (strValue.find(constMap[var.substr(1, var.length() - 2)]) == strValue.end())
 						sValue = std::vector<int>(5000, 0);
@@ -3082,8 +3102,6 @@ void backwardPropagarate(
 					if (update == true) {
 						strValue[constMap[var.substr(1, var.length() - 2)]] = sValue;
 						__debugPrint(logFile, "%d var: %s = %s --> len = %d\n", __LINE__, var.substr(1, var.length() - 2).c_str(), constMap[var.substr(1, var.length() - 2)].c_str(), getConstLength(var, len));
-						for (int i = 0; i < length; ++i)
-							__debugPrint(logFile, "%c\n", sValue[i]);
 						propagateResult(var, len, strValue);
 					}
 				}

@@ -65,6 +65,11 @@ void updatePossibleArrangements(
 bool isRegexStr(std::string str);
 
 /*
+ *
+ */
+bool isConstStr(std::string str);
+
+/*
  * First base case
  */
 void handleCase_0_0(
