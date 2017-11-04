@@ -747,7 +747,7 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  std::string createStringWithLength(Z3_theory t, Z3_ast node, int len, std::map<std::string, std::set<char>> charSet);
  std::string createChar(std::set<char> charSet);
  Z3_ast findEqualVariable(Z3_theory t, Z3_ast node);
- std::string createGenericLanguage(Z3_theory t, Z3_ast node, std::map<std::string, std::set<char>> charSet);
+ std::string createGenericLanguage(Z3_theory t, Z3_ast node);
 
  /*
   * Mark variable appeared in map "varAppearMap"

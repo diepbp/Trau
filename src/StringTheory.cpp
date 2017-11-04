@@ -1247,7 +1247,7 @@ void findVariableDomain(){
 			std::set<char> componentChars = collectChars(constStrs);
 
 			// pair variables with charSet
-			for (unsigned int i = 0; i < vars.size(); ++i)
+			for (unsigned i = 0; i < vars.size(); ++i)
 				ret[vars[i]] = componentChars;
 
 #ifdef DEBUGLOG
@@ -1259,14 +1259,16 @@ void findVariableDomain(){
 				__debugPrint(logFile, "%s ", vars[i].c_str());
 			__debugPrint(logFile, "\n");
 #endif
-
 			cnt ++;
 		}
 	}
 
 	__debugPrint(logFile, "Number of connected components: %d\n", cnt);
 
+	__debugPrint(logFile, "%d charset size: %ld\n", __LINE__, charSet.size());
 	charSet = ret;
+	__debugPrint(logFile, "%d ret size: %ld\n", __LINE__, ret.size());
+	__debugPrint(logFile, "%d charset size: %ld\n", __LINE__, charSet.size());
 }
 
 /*
@@ -3540,13 +3542,13 @@ bool crossCheck_Update(Z3_theory t, std::vector<Z3_ast> v1, std::vector<Z3_ast> 
 	bool genericNode = false;
 	std::string genericString;
 	if (isStrVariable(t, nn1))
-		genericString = createGenericLanguage(t, nn1, charSet);
+		genericString = createGenericLanguage(t, nn1);
 	else if (isStrVariable(t, nn2))
-		genericString = createGenericLanguage(t, nn2, charSet);
+		genericString = createGenericLanguage(t, nn2);
 	else if (isConcatFunc(t, nn1))
-		genericString = createGenericLanguage(t, nn1, charSet);
+		genericString = createGenericLanguage(t, nn1);
 	else
-		genericString =  createGenericLanguage(t, nn2, charSet);
+		genericString =  createGenericLanguage(t, nn2);
 
 	std::string tmpStr = std::string(Z3_ast_to_string(ctx, nn1)) + std::string(Z3_ast_to_string(ctx, nn2));
 	if (tmpStr.find(genericString) != std::string::npos)
@@ -4840,6 +4842,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 //		}
 	}
 
+	__debugPrint(logFile, "%d charset size: %ld\n", __LINE__, charSet.size());
 	__debugPrint(logFile, " Pass level 1\n");
 
 	//**************************************************************
@@ -5215,6 +5218,7 @@ void assignLanguage(Z3_theory t, bool &hasLanguage){
 	__debugPrint(logFile, "\n------------------------------------\n");
 	__debugPrint(logFile, "\n assignLanguage @ Level [%d]: ", sLevel);
 	__debugPrint(logFile, "\n------------------------------------\n");
+	__debugPrint(logFile, "%d charset size: %ld\n", __LINE__, charSet.size());
 #endif
 
 	std::vector<Z3_ast> tmpVector;
@@ -5251,7 +5255,7 @@ void assignLanguage(Z3_theory t, bool &hasLanguage){
 			hasLanguage = false;
 			std::string varName = std::string(Z3_ast_to_string(ctx, node));
 
-			std::string language = createGenericLanguage(t, node, charSet);
+			std::string language = createGenericLanguage(t, node);
 			Z3_ast langAxiom = createLanguageAxiom(t, node, language);
 			addAxiom(t, langAxiom, __LINE__,true);
 
@@ -7019,7 +7023,7 @@ Z3_ast findEqualVariable(Z3_theory t, Z3_ast node) {
 /*
  *
  */
-std::string createGenericLanguage(Z3_theory t, Z3_ast node, std::map<std::string, std::set<char>> charSet) {
+std::string createGenericLanguage(Z3_theory t, Z3_ast node) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	Z3_ast tmpVariableNode = findEqualVariable(t, node);
 	assert(tmpVariableNode != NULL);

@@ -27,35 +27,15 @@ std::map<std::string, std::vector<std::string>> ourGrm;
 /*
  *
  */
-void buildDependenceGraph(std::string line, int &cnt, std::map<std::string, int> &variables, std::vector<std::vector<int>> &graph) {
-	std::string declare_fun = "declare-fun";
-	std::string declare_const = "declare-const";
-	std::string declare = "declare";
-	std::vector<std::string> tokens = parse_string_language(line, " ()*+*/=><");
-
-	int state = 2; // 1 -> "; 2 -> ""; 3 -> \;
+void buildDependenceGraph(
+		std::vector<std::pair<std::string, int>> cmdTokens,
+		int &cnt,
+		std::map<std::string, int> &variables,
+		std::vector<std::vector<int>> &graph) {
 	std::string constStr = "";
-	for (unsigned int i = 0; i < line.length(); ++i)
-		if (line[i] == '"') {
-			if (state == 1){
-				state = 2;
-			}
-			else if (state == 3) {
-					state = 1;
-					constStr = constStr + line[i];
-			}
-			else {
-				state = 1;
-			}
-		}
-		else if (line[i] == '\\' && state == 1) {
-			if (state != 3)
-				state = 3;
-			constStr = constStr + line[i];
-		}
-		else if (state == 1 || state == 3)
-			constStr = constStr + line[i];
-
+	for (const auto&  token : cmdTokens)
+		if (token.first[0] == '"')
+			constStr += token.first.substr(1, token.first.length() - 2);
 
 	if (constStr.length() > 0) {
 		constStr = "\"" + constStr + "\"";
@@ -66,31 +46,27 @@ void buildDependenceGraph(std::string line, int &cnt, std::map<std::string, int>
 	}
 
 
-	if (tokens.size() > 0) {
+	if (cmdTokens.size() > 0) {
+		if (cmdTokens[1].second >= 64 &&
+				cmdTokens[1].second <= 67 &&
+				variables.find(cmdTokens[2].first) == variables.end()) {
 
-		if ((tokens[0].compare(declare) == 0 || tokens[0].compare(declare_fun) == 0 || tokens[0].compare(declare_const) == 0) &&
-				variables.find(tokens[1]) == variables.end()) {
-
-			variables[tokens[1]] = cnt;
+			variables[cmdTokens[2].first] = cnt;
 
 			std::vector<int> newVector;
 			graph.push_back(newVector);
 			cnt ++;
 		}
-		else if (tokens[0].compare(declare_const) == 0) {
-
-		}
 		else {
 			// collect all variables in a line
 			std::vector<int> lineVars;
-			for (unsigned int i = 0; i < tokens.size(); ++i) {
-				if (variables.find(tokens[i]) != variables.end() &&
-						tokens[i][0] != '"') {
-					lineVars.push_back(variables[tokens[i]]);
-					__debugPrint(logFile, " %s,", tokens[i].c_str());
+			for (const auto& token : cmdTokens) {
+				if (variables.find(token.first) != variables.end() &&
+						token.second == 88) {
+					lineVars.push_back(variables[token.first]);
+					__debugPrint(logFile, " %s \n", token.first.c_str());
 				}
 			}
-			__debugPrint(logFile, "\n%s\n", line.c_str());
 
 			// create graph
 			if (lineVars.size() > 0) {
@@ -99,9 +75,7 @@ void buildDependenceGraph(std::string line, int &cnt, std::map<std::string, int>
 						graph[lineVars[i]].push_back(lineVars[j]);
 						graph[lineVars[j]].push_back(lineVars[i]);
 					}
-//					__debugPrint(logFile, " %d,", lineVars[i]);
 				}
-//				__debugPrint(logFile, "\n");
 
 			}
 
@@ -124,33 +98,11 @@ void initGraph(std::string inputFile){
   __debugPrint(logFile, "*              initGraph             			*\n");
   __debugPrint(logFile, "-----------------------------------------------\n");
 #endif
-	FILE* pipe = fopen(inputFile.c_str(), "r");
-	char buffer[1000];
 
-	std::string cmdLine = "";
-	while (!feof(pipe))
-	{
-		if (fgets(buffer, 1000, pipe) != NULL)
-		{
-			std::string tmp = std::string(buffer);
-			if (tmp.find("(assert ") != std::string::npos) {
-				buildDependenceGraph(cmdLine, cnt, variables, graph);
-				cmdLine = tmp;
-			}
-			else if (tmp.find("(declare") != std::string::npos) {
-				buildDependenceGraph(cmdLine, cnt, variables, graph);
-				cmdLine = tmp;
-			}
-			else {
-				cmdLine = cmdLine + tmp;
-			}
-
-		}
-	}
-	if (cmdLine.length() > 0) {
-		buildDependenceGraph(cmdLine, cnt, variables, graph);
-	}
-	pclose(pipe);
+  std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
+  for (const auto& tokens : fileTokens) {
+	  buildDependenceGraph(tokens, cnt, variables, graph);
+  }
 }
 
 void loadGrammar(std::string grammarFile) {
@@ -172,35 +124,6 @@ void loadGrammar(std::string grammarFile) {
 		  __debugPrint(logFile, "%d\t%s\n", __LINE__, it->second[i].c_str());
   }
 #endif
-}
-
-
-/*
- *
- */
-void *exec(void *args) {
-	char* cmd = *((char* *) args);
-	FILE* pipe = popen(cmd, "r");
-	if (!pipe)
-		throw std::runtime_error("popen() failed!");
-	char buffer[1000];
-	std::string result = "";
-
-	std::string cmdLine = "";
-	try {
-
-		while (!feof(pipe)) {
-			if (fgets(buffer, 1000, pipe) != NULL) {
-				result += buffer;
-			}
-		}
-
-	} catch (...) {
-		pclose(pipe);
-		throw;
-	}
-	pclose(pipe);
-	pthread_exit(0);
 }
 
 /**

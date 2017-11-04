@@ -1235,6 +1235,7 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it)
 		if (!isRegexStr(it->first)){
 
+			defines.emplace_back("(declare-const len_" + it->second + " Int)");
 			/* len_x = sum(len_x_i)*/
 			std::string lenX = "";
 			std::string varName = "len_" + it->second + "_";
@@ -1255,9 +1256,8 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 
 			std::string lenName = std::to_string(it->first.length());
 			/*(assert (= const (+ sum(len_x_i)))) */
-			lenX = "(assert (= " + lenName + " " + lenX  + "))";
-
-			constraints.emplace_back(lenX);
+			constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
+			constraints.emplace_back("(assert (= " + lenName + " len_" + it->second  + "))");
 		}
 		else {
 			defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
@@ -2788,6 +2788,17 @@ bool isInternalVar(std::string varName){
 				return true;
 	return false;
 }
+
+int getConstLength(
+		std::string var,
+		std::map<std::string, int> len){
+	std::string actualName = var.substr(1, var.length() - 2);
+	int length = len[constMap[actualName]];
+	if (isRegexStr(actualName)) {
+		length = len[constMap[actualName] + "_100"];// * len[constMap[actualName] + "__p0"];
+	}
+	return length;
+}
 /*
  *
  */
@@ -2799,7 +2810,7 @@ void syncConst(
 		if (strValue.find(var.first) == strValue.end())
 			strValue[var.first] = std::vector<int>(5000, 0);
 
-		if (var.first[0] == '"') {
+		if (var.first[0] == '"' && !isRegexStr(var.first)) {
 			std::vector<int> tmp(5000, 0);
 			for (unsigned i = 1; i < var.first.length() - 1; ++i)
 				tmp[i - 1] = var.first[i];
@@ -2814,14 +2825,16 @@ void syncConst(
 			for (const auto& s : eq){
 				if (s[0] == '"') {
 					/* TODO: regex or const */
-					for (unsigned i = 1; i < s.length() - 1; ++i)
-						if (strValue[var.first][pos + i - 1] == 0) {
-							strValue[var.first][pos + i - 1] = s[i];
-							update = true;
-						}
-						else
-							assert(strValue[var.first][pos + i - 1] == s[i]);
-					pos += s.length() - 2;
+					if (!isRegexStr(s)) {
+						for (unsigned i = 1; i < s.length() - 1; ++i)
+							if (strValue[var.first][pos + i - 1] == 0) {
+								strValue[var.first][pos + i - 1] = s[i];
+								update = true;
+							}
+							else
+								assert(strValue[var.first][pos + i - 1] == s[i]);
+					}
+					pos += getConstLength(s, len);
 
 				}
 				else
@@ -2843,7 +2856,13 @@ void propagateResult(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue){
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
-	std::vector<int> sValue = strValue[newlyUpdate];
+	std::vector<int> sValue;
+	if (isRegexStr(newlyUpdate))
+		sValue = strValue[constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)]];
+	else
+		sValue = strValue[newlyUpdate];
+
+
 	for (const auto& var : equalitiesMap){
 		std::vector<int> value;
 		if (strValue.find(var.first) == strValue.end())
@@ -2855,23 +2874,33 @@ void propagateResult(
 		bool foundInParents = false;
 		for (const auto& eq : var.second)
 			if (std::find(eq.begin(), eq.end(), newlyUpdate) != eq.end()) {
-				__debugPrint(logFile, "%d found %s in %s\n", __LINE__, newlyUpdate.c_str(), var.first.c_str());
 				int pos = 0;
 				for (const auto& s : eq)
 					if (s[0] == '"') {
-						/* TODO const or regex*/
-						pos += s.length() - 2;
+						int length = getConstLength(s, len);
+						if (isRegexStr(s)) {
+							if (s.compare(newlyUpdate) == 0){
+								for (int i = 0; i < length; ++i)
+									if (value[pos + i] == 0 && sValue[i] != 0) {
+										value[pos + i] = sValue[i];
+										foundInParents = true;
+									}
+									else if (value[pos + i] != 0 && sValue[i] != 0) {
+										assert(value[pos + i] == sValue[i]);
+									}
+							}
+						}
+						pos += length;
 					}
+
 					else if (s.compare(newlyUpdate) == 0){
 						assert(len.find(s) != len.end());
-						__debugPrint(logFile, "%d found %s in %s at pos = %d/%d\n", __LINE__, newlyUpdate.c_str(), var.first.c_str(), len[s], len[var.first]);
 						for (int i = 0; i < len[s]; ++i)
 							if (value[pos + i] == 0 && sValue[i] != 0) {
 								value[pos + i] = sValue[i];
 								foundInParents = true;
 							}
 							else if (value[pos + i] != 0 && sValue[i] != 0) {
-								__debugPrint(logFile, "%d %c vs %c\n", __LINE__, value[pos + i], sValue[i]);
 								assert(value[pos + i] == sValue[i]);
 							}
 						pos += len[s];
@@ -2894,8 +2923,33 @@ void propagateResult(
 				int pos = 0;
 				for (const auto& s : eq){
 					if (s[0] == '"') {
-						/* TODO const or regex*/
-						pos += s.length() - 2;
+						int length = getConstLength(s, len);
+						if (isRegexStr(s)) {
+							bool update = false;
+							std::vector<int> sValue;
+							if (strValue.find(constMap[s.substr(1, s.length() - 2)]) == strValue.end())
+								sValue = std::vector<int>(5000, 0);
+							else
+								sValue = strValue[constMap[s.substr(1, s.length() - 2)]];
+
+							for (int i = 0; i < length; ++i)
+								if (value[pos + i] != 0 && sValue[i] != 0) {
+									assert(value[pos + i] == sValue[i]);
+								}
+								else if (value[pos + i] != 0 && sValue[i] == 0){
+									sValue[i] = value[pos + i];
+									update = true;
+								}
+								else if (value[pos + i] == 0 && sValue[i] != 0){
+									assert(false);
+								}
+
+							if (update == true) {
+								strValue[constMap[s.substr(1, s.length() - 2)]] = sValue;
+								propagateResult(s, len, strValue);
+							}
+						}
+						pos += length;
 					}
 					else {
 						assert(len.find(s) != len.end());
@@ -2939,13 +2993,7 @@ std::vector<int> createString(
 		int pos = 0;
 		for (const auto& var : eq) {
 			if (var[0] == '"') {
-				/* add a const */
-				for (unsigned i = 1; i < var.length() - 1; ++i)
-					if (val[pos + i - 1] == 0)
-						val[pos + i - 1] = var[i];
-					else
-						assert(val[pos + i - 1] == var[i]);
-				pos += var.length() - 2;
+				pos += getConstLength(var, len);
 			}
 			else if(strValue.find(var) != strValue.end()){
 				/* add an evaluated value */
@@ -2980,7 +3028,7 @@ std::vector<int> createString(
 	if (canAssign) {
 		for (int i = 0; i < len[name]; ++i)
 			if (val[i] == 0)
-				val[i] = '0';
+				val[i] = 'a';
 	}
 	else {
 		/* cannot assign because we do not know anything */
@@ -3010,7 +3058,37 @@ void backwardPropagarate(
 		int pos = 0;
 		for (const auto& var : eq) {
 			if (var[0] == '"') {
-				pos += var.length() - 2;
+				int length = getConstLength(var, len);
+				if (isRegexStr(var)) {
+					bool update = false;
+					std::vector<int> sValue;
+					if (strValue.find(constMap[var.substr(1, var.length() - 2)]) == strValue.end())
+						sValue = std::vector<int>(5000, 0);
+					else
+						sValue = strValue[constMap[var.substr(1, var.length() - 2)]];
+
+					for (int i = 0; i < length; ++i)
+						if (value[pos + i] != 0 && sValue[i] != 0) {
+							assert(value[pos + i] == sValue[i]);
+						}
+						else if (value[pos + i] != 0 && sValue[i] == 0){
+							sValue[i] = value[pos + i];
+							update = true;
+						}
+						else if (value[pos + i] == 0 && sValue[i] != 0){
+							assert(false);
+						}
+
+					if (update == true) {
+						strValue[constMap[var.substr(1, var.length() - 2)]] = sValue;
+						__debugPrint(logFile, "%d var: %s = %s --> len = %d\n", __LINE__, var.substr(1, var.length() - 2).c_str(), constMap[var.substr(1, var.length() - 2)].c_str(), getConstLength(var, len));
+						for (int i = 0; i < length; ++i)
+							__debugPrint(logFile, "%c\n", sValue[i]);
+						propagateResult(var, len, strValue);
+					}
+				}
+
+				pos += length;
 			}
 			else if(strValue.find(var) != strValue.end()){
 				/* verify a determined value */
@@ -3062,6 +3140,10 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 			lenInt[name] = atoi(s.second.c_str());
 			__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.c_str(), s.second.c_str(), atoi(s.second.c_str()));
 		}
+		else {
+			lenVector.push_back(std::make_pair(s.first, atoi(s.second.c_str())));
+			lenInt[s.first] = atoi(s.second.c_str());
+		}
 
 	for (const auto& s : _strValue)
 		if (s.first.find("arr_") == 0){
@@ -3087,6 +3169,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 	/* 1st: handling connected vars */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
+		if (len.find("len_" + varName) == len.end())
+			continue;
 		if (isInternalVar(varName))
 			continue;
 		if (lenVector[s].second == 0) {
@@ -3113,6 +3197,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 	/* 2nd: handling other vars */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
+		if (len.find("len_" + varName) == len.end())
+			continue;
 		if (isInternalVar(varName))
 			continue;
 		if (lenVector[s].second == 0) {
@@ -3174,6 +3260,9 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
+		if (len.find("len_" + var.first) == len.end())
+			continue;
+
 		if (isInternalVar(var.first))
 			continue;
 
