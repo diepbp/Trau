@@ -1389,35 +1389,6 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 	return lenX;
 }
 
-
-/*
- * print to screen
- */
-void printSMT(){
-	std::vector<std::string> varDefines;//  = define_Size_It_Variables(global_smtVars);
-
-	//	for (int i = 0 ; i < varDefines.size(); ++i)
-	//		printf("%s\n", varDefines[i].c_str());
-
-
-	for (unsigned int i = 0 ; i < global_smtStatements.size(); ++i){
-		if (global_smtStatements[i].size() == 1) {
-			printf("(assert ( %s )\n", global_smtStatements[i][0].c_str());
-		}
-		else {
-			printf("(assert (or \n");
-			for (unsigned int j = 0; j < global_smtStatements[i].size(); ++j)
-				printf("%s\n", global_smtStatements[i][j].c_str());
-			printf("))\n");
-		}
-	}
-
-
-	printf("(check-sat)\n");
-	printf("(get-model)\n");
-}
-
-
 /*
  * write to file output
  */
@@ -1519,6 +1490,37 @@ void writeOutput_basic(std::string outFile){
 	out << "(check-sat)\n(get-model)\n";
 	out.flush();
 	out.close();
+}
+
+void printSatisfyingAssignments(
+		std::map<std::string, std::string> strValue,
+		std::map<std::string, std::string> intResultMap
+		){
+	printf("================================================\n");
+
+	for (const auto& def : smtVarDefinition){
+		std::vector<std::string> tokens = parse_string_language(def, " ");
+
+		std::string value = intResultMap[tokens[1]];
+		if (value.length() > 0 &&
+				tokens[1].find("$$") == std::string::npos &&
+				tokens[1].find("__flat_") == std::string::npos) {
+			if (tokens[1].substr(0, 4).compare("len_") == 0) {
+			}
+			else {
+				printf("%s : %s\n", tokens[1].c_str(), value.c_str());
+			}
+		}
+	}
+
+	for (const auto& value : strValue)
+		if (value.first.find("$$") == std::string::npos &&
+				value.first.find("__flat_") == std::string::npos &&
+				value.first.find("const") != 0 &&
+				value.first[0] != '"'){
+			printf("%s : %s\n", value.first.c_str(), value.second.c_str());
+		}
+	printf("------------------------------------------------\n");
 }
 
 /*
@@ -3432,16 +3434,23 @@ bool Z3_run(
 	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 
-	verifyOutput(lengthFile, _equalMap, len_results, formatResult(len_results, str_results));
-	if (sat && getModel)
-		sat = S3_assist(lengthFile);
+	if (sat && getModel) {
+		if (beReviewed) {
+			verifyOutput(lengthFile, _equalMap, len_results, formatResult(len_results, str_results));
+			sat = S3_reviews(lengthFile);
+		}
+		else {
+			printSatisfyingAssignments(formatResult(len_results, str_results), len_results);
+			sat = true;
+		}
+	}
 	return sat;
 }
 
 /*
  *
  */
-bool S3_assist(std::string fileName){
+bool S3_reviews(std::string fileName){
 	std::string cmd = std::string(VERIFIER) + " -f " + fileName;
 	printf("Collecting concrete values...\n");
 
@@ -3458,12 +3467,11 @@ bool S3_assist(std::string fileName){
 		while (!feof(in)) {
 			std::string line = "";
 			if (fgets(buffer, 5000, in) != NULL) {
-//				printf("%s\n", buffer);
 				line = buffer;
-				if (line.length() > 0 && line[0] == '*')
-					printf("================================================\n");
-				else if (line.length() > 0 && line[0] == '-')
-					printf("------------------------------------------------\n");
+				if (line.length() > 0 && line[0] == '*') {
+				}
+				else if (line.length() > 0 && line[0] == '-') {
+				}
 				else {
 					if (line.substr(0, 6).compare(">> SAT") == 0)
 						sat = true;
@@ -3484,7 +3492,6 @@ bool S3_assist(std::string fileName){
 	pclose(in);
 
 	return true;
-	return sat;
 }
 
 /*

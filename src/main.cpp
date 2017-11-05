@@ -18,6 +18,7 @@ std::string orgInput;
 std::string inputFile;
 std::string inputFile_converted;
 bool getModel = false;
+bool beReviewed = false;
 bool cleanLog = true;
 int cnt = 0;
 std::map<std::string, int> variables;
@@ -207,6 +208,10 @@ void parseUserInput(int argc, char* argv[]){
 			i++;
 			grammarFile = argv[i];
 			foundGrm = true;
+		}
+		else if (tmp.compare("-review") == 0){
+			i++;
+			beReviewed = true;
 		}
 		else if (tmp.compare("-model") == 0){
 			getModel = true;

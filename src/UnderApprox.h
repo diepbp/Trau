@@ -19,6 +19,7 @@
 
 extern std::string orgInput;
 extern bool getModel;
+extern bool beReviewed;
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, int> global_smtVars;
 static std::vector<std::vector<std::string>> global_smtStatements;
@@ -282,12 +283,6 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
  */
 std::string createLengthConstraintForAssignment(std::string x, std::vector<std::string> components);
 
-
-/*
- * print to screen
- */
-void printSMT();
-
 /*
  * write to file output
  */
@@ -509,7 +504,7 @@ bool Z3_run(std::map<std::string, std::vector<std::vector<std::string>>> _equalM
 /*
  *
  */
-bool S3_assist(std::string fileName);
+bool S3_reviews(std::string fileName);
 
 /*
  * Pthread Caller

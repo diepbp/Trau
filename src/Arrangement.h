@@ -670,7 +670,7 @@ public:
 		if (lhs.second == -2) /* tail */ {
 			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
-				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
+//				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
 			}
 		}
@@ -688,7 +688,6 @@ public:
 		}
 		else if (lhs.second == REGEX_CODE) /* regex */ {
 			std::vector<int> curr;
-//			printf("%d handle regex case\n", __LINE__);
 			std::string regexContent = parse_regex_content(lhs.first);
 			collectAllPossibleSplits_regex(0, regexContent, 10, alias, curr, allPossibleSplits);
 		}
