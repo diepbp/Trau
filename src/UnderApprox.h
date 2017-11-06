@@ -486,7 +486,7 @@ void backwardPropagarate(
 /*
  *
  */
-void propagateResult(
+void forwardPropagate(
 		std::string newlyUpdate,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue);

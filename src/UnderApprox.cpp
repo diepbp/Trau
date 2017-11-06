@@ -2774,7 +2774,7 @@ void createStringFromSet(std::set<std::string> list, int length, std::string &re
 std::string getValueFromRegex(std::string s, int length){
 	size_t openPar = s.find('(');
 	assert (openPar != std::string::npos);
-	unsigned int closePar = findCorrespondRightParentheses(openPar, s);
+	unsigned closePar = findCorrespondRightParentheses(openPar, s);
 	std::set<std::string> components = extendComponent(s.substr(openPar + 1, closePar - openPar - 1));
 
 	if(components.size() == 1) {
@@ -2840,13 +2840,29 @@ void syncConst(
 		if (strValue.find(var.first) == strValue.end())
 			strValue[var.first] = std::vector<int>(5000, 0);
 
-		if (var.first[0] == '"' && !isRegexStr(var.first)) {
-			std::vector<int> tmp(5000, 0);
-			for (unsigned i = 1; i < var.first.length() - 1; ++i)
-				tmp[i - 1] = var.first[i];
-			strValue[var.first] = tmp;
-			propagateResult(var.first, len, strValue);
-			continue;
+		if (var.first[0] == '"') {
+			if (!isRegexStr(var.first)){
+				std::vector<int> tmp(5000, 0);
+				for (unsigned i = 1; i < var.first.length() - 1; ++i)
+					tmp[i - 1] = var.first[i];
+				strValue[var.first] = tmp;
+				forwardPropagate(var.first, len, strValue);
+				backwardPropagarate(var.first, len, strValue);
+				continue;
+			}
+			else {
+				assert(constMap.find(var.first.substr(1, var.first.length() - 2)) != constMap.end());
+				std::string tmp = getValueFromRegex(var.first, getConstLength(var.first, len));
+				if (tmp.compare("!fOuNd") != 0) {
+					std::vector<int> tmpVector(5000, 0);
+					for (unsigned i = 0; i < tmp.length(); ++i)
+						tmpVector.emplace_back(tmp[i]);
+					strValue[var.first] = tmpVector;
+					forwardPropagate(var.first, len, strValue);
+					backwardPropagarate(var.first, len, strValue);
+					continue;
+				}
+			}
 		}
 
 		bool update = false;
@@ -2855,6 +2871,7 @@ void syncConst(
 			for (const auto& s : eq){
 				if (s[0] == '"') {
 					if (!isRegexStr(s)) {
+						/* assign value directly */
 						for (unsigned i = 1; i < s.length() - 1; ++i)
 							if (strValue[var.first][pos + i - 1] == 0) {
 								strValue[var.first][pos + i - 1] = s[i];
@@ -2862,6 +2879,27 @@ void syncConst(
 							}
 							else
 								assert(strValue[var.first][pos + i - 1] == s[i]);
+					}
+					else {
+						/* find value */
+						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
+						std::string tmp = getValueFromRegex(s, getConstLength(s, len));
+						if (tmp.compare("!fOuNd") != 0) {
+							std::vector<int> tmpVector(5000, 0);
+							for (unsigned i = 0; i < tmp.length(); ++i)
+								tmpVector.emplace_back(tmp[i]);
+							strValue[s] = tmpVector;
+							forwardPropagate(s, len, strValue);
+							backwardPropagarate(s, len, strValue);
+
+							for (unsigned i = 0; i < tmp.length(); ++i)
+								if (strValue[var.first][pos + i] == 0) {
+									strValue[var.first][pos + i] = tmp[i];
+									update = true;
+								}
+								else
+									assert(strValue[var.first][pos + i] == tmp[i]);
+						}
 					}
 					pos += getConstLength(s, len);
 
@@ -2871,7 +2909,7 @@ void syncConst(
 			}
 		}
 		if (update == true) {
-			propagateResult(var.first, len, strValue);
+			forwardPropagate(var.first, len, strValue);
 			backwardPropagarate(var.first, len, strValue);
 		}
 	}
@@ -2881,7 +2919,7 @@ void syncConst(
 /*
  * a = b . c .We know b, need to update a
  */
-void propagateResult(
+void forwardPropagate(
 		std::string newlyUpdate,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue){
@@ -2945,7 +2983,7 @@ void propagateResult(
 		if (foundInParents) {
 			strValue[var.first] = value;
 			/* update it parents */
-			propagateResult(var.first, len, strValue);
+			forwardPropagate(var.first, len, strValue);
 			backwardPropagarate(var.first, len, strValue);
 
 			/* update peers */
@@ -2985,7 +3023,7 @@ void propagateResult(
 								strValue[constMap[s.substr(1, s.length() - 2)]] = sValue;
 							else
 								strValue[s] = sValue;
-							propagateResult(s, len, strValue);
+							forwardPropagate(s, len, strValue);
 							backwardPropagarate(s, len, strValue);
 						}
 						pos += length;
@@ -3071,12 +3109,20 @@ std::vector<int> createString(
  * a = b . c. We know a, need to update b and c
  */
 void backwardPropagarate(
-		std::string name,
+		std::string newlyUpdate,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, name.c_str());
-	std::vector<int> value = strValue[name];
-	for (const auto& eq : equalitiesMap[name]){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
+	std::vector<int> value = strValue[newlyUpdate];
+	std::string name = newlyUpdate;
+	if (isRegexStr(newlyUpdate)) {
+		name = constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)];
+		value = getDataStr(newlyUpdate, strValue);
+	}
+	else if (newlyUpdate[0] == '"')
+		name = constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)];
+
+	for (const auto& eq : equalitiesMap[newlyUpdate]){
 		int pos = 0;
 		for (const auto& var : eq) {
 			if (var[0] == '"') {
@@ -3105,7 +3151,7 @@ void backwardPropagarate(
 					if (update == true) {
 						strValue[constMap[var.substr(1, var.length() - 2)]] = sValue;
 						__debugPrint(logFile, "%d var: %s = %s --> len = %d\n", __LINE__, var.substr(1, var.length() - 2).c_str(), constMap[var.substr(1, var.length() - 2)].c_str(), getConstLength(var, len));
-						propagateResult(var, len, strValue);
+						forwardPropagate(var, len, strValue);
 					}
 				}
 
@@ -3129,7 +3175,7 @@ void backwardPropagarate(
 				pos += len[var];
 				if (update == true) {
 					strValue[var] = sValue;
-					propagateResult(var, len, strValue);
+					forwardPropagate(var, len, strValue);
 				}
 			}
 			else {
@@ -3139,9 +3185,10 @@ void backwardPropagarate(
 					sValue[i] = value[pos + i];
 				strValue[var] = sValue;
 				pos += len[var];
-				propagateResult(var, len, strValue);
+				forwardPropagate(var, len, strValue);
 			}
 		}
+		__debugPrint(logFile, "%d %s: %d == %d\n", __LINE__, name.c_str(), pos, len[name]);
 		assert(pos == len[name]);
 	}
 }
@@ -3207,7 +3254,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
 					finalStrValue[varName] = tmp;
 					backwardPropagarate(varName, lenInt, finalStrValue);
-					propagateResult(varName, lenInt, finalStrValue);
+					forwardPropagate(varName, lenInt, finalStrValue);
 				}
 				else
 					__debugPrint(logFile, "%d cannot assign: %s\n", __LINE__, varName.c_str());
@@ -3232,7 +3279,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 				__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
 				finalStrValue[varName] = tmp;
 				backwardPropagarate(varName, lenInt, finalStrValue);
-				propagateResult(varName, lenInt, finalStrValue);
+				forwardPropagate(varName, lenInt, finalStrValue);
 			}
 			else
 				__debugPrint(logFile, "%d cannot assign: %s\n", __LINE__, varName.c_str());
