@@ -38,6 +38,7 @@ Command-line Usage
 ```	
 The folllowing options are avaiable:
 - -model: print the concrete model if it is SAT
+- -doublecheck: use S3P to double-check satisfying assignments produced by Trau
 - -grm grammarFile: specify a grammar file
 
 Running Example(s)

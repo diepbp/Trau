@@ -209,7 +209,7 @@ void parseUserInput(int argc, char* argv[]){
 			grammarFile = argv[i];
 			foundGrm = true;
 		}
-		else if (tmp.compare("-review") == 0){
+		else if (tmp.compare("-doublecheck") == 0){
 			i++;
 			beReviewed = true;
 		}

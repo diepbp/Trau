@@ -1496,6 +1496,7 @@ void printSatisfyingAssignments(
 		std::map<std::string, std::string> strValue,
 		std::map<std::string, std::string> intResultMap
 		){
+	printf("Collecting concrete values...\n");
 	printf("================================================\n");
 
 	for (const auto& def : smtVarDefinition){
@@ -3435,12 +3436,15 @@ bool Z3_run(
 #endif
 
 	if (sat && getModel) {
+		printSatisfyingAssignments(formatResult(len_results, str_results), len_results);
 		if (beReviewed) {
 			verifyOutput(lengthFile, _equalMap, len_results, formatResult(len_results, str_results));
 			sat = S3_reviews(lengthFile);
+			if (sat == true) {
+				printf("\nDouble-checked by S3P: successful.\n");
+			}
 		}
 		else {
-			printSatisfyingAssignments(formatResult(len_results, str_results), len_results);
 			sat = true;
 		}
 	}
@@ -3452,7 +3456,6 @@ bool Z3_run(
  */
 bool S3_reviews(std::string fileName){
 	std::string cmd = std::string(VERIFIER) + " -f " + fileName;
-	printf("Collecting concrete values...\n");
 
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
@@ -3461,26 +3464,13 @@ bool S3_reviews(std::string fileName){
 	std::map<std::string, std::string> results;
 	char buffer[5000];
 	std::string result = "";
-	bool sat = false;
 	try {
-		/* the concrete values */
 		while (!feof(in)) {
 			std::string line = "";
 			if (fgets(buffer, 5000, in) != NULL) {
 				line = buffer;
-				if (line.length() > 0 && line[0] == '*') {
-				}
-				else if (line.length() > 0 && line[0] == '-') {
-				}
-				else {
-					if (line.substr(0, 6).compare(">> SAT") == 0)
-						sat = true;
-					else if (line.substr(0, 8).compare(">> UNSAT") == 0)
-						assert(false);
-
-					if (line.find("String!val!") == std::string::npos)
-						printf("%s", buffer);
-				}
+				if (line.substr(0, 8).compare(">> UNSAT") == 0)
+					assert(false);
 			}
 
 		}
