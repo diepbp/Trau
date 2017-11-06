@@ -83,7 +83,7 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 	std::vector<std::pair<std::string, int>> tmp;
 	for (int i = 0; i < start; ++i)
 		tmp.emplace_back(tokens[i]);
-	tmp.push_back(std::make_pair(tokenName, 15));
+	tmp.push_back(std::make_pair(tokenName, tokenType));
 	for (int i = finish + 1; i < (int)tokens.size(); ++i)
 		tmp.emplace_back(tokens[i]);
 
@@ -499,12 +499,10 @@ void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
 	int found = findTokens(tokens, 0, "ToUpper", 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, "ToUpper", 1, found));
-		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
-//		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 
+		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
 		found = findTokens(tokens, pos, "ToUpper", 88);
 	}
 }
@@ -516,11 +514,9 @@ void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
 	int found = findTokens(tokens, 0, "ToLower", 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, "ToLower", 1, found));
 		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
-//		__debugPrint(logFile, "--> s = %s (substr = %s) \n", s.c_str(), substr.c_str());
 
 		found = findTokens(tokens, pos, "ToLower", 88);
 	}
@@ -933,7 +929,7 @@ void prepareEncoderDecoderMap(std::string fileName){
 		throw std::runtime_error("Cannot open input file!");
 	}
 
-	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\'', '+', '%', '#'};
+	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\'', '+', '%', '#', '*'};
 	std::set<char> encoded;
 	char buffer[5000];
 	bool used[255];
@@ -946,10 +942,6 @@ void prepareEncoderDecoderMap(std::string fileName){
 				used[(int)ch] = true;
 				if (tobeEncoded.find(ch) != tobeEncoded.end())
 					encoded.emplace(ch);
-//				if (ch >= 'a' && ch <= 'z')
-//					used[int(ch) - 32] = true;
-//				else if (ch >= 'A' && ch <= 'Z')
-//					used[int(ch) + 32] = true;
 			}
 		}
 	}
@@ -1214,7 +1206,6 @@ void customizeLine_ToCreateLengthLine(
 
 	updateToUpper(tokens);
 	updateToLower(tokens);
-
 	updateSubstring(tokens, rewriterStrMap);
 
 	updateConst(tokens); /* "abcdef" --> 6 */
@@ -1228,7 +1219,7 @@ void customizeLine_ToCreateLengthLine(
 	updateLength(tokens); /* Length --> "" */
 	updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1) + "\n");
 }
 

@@ -28,6 +28,8 @@ int nondeterministicCounter = 0;
 
 bool havingGrmConstraints = false;
 
+clock_t timer;
+
 std::map<Z3_ast, Z3_ast> toUpperMap;
 std::map<Z3_ast, Z3_ast> toLowerMap;
 
@@ -1561,7 +1563,7 @@ void cb_arith_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
  */
 void Th_init_search(Z3_theory t) {
 	Z3_context ctx = Z3_theory_get_context(t);
-
+	timer = clock();
 #ifdef DEBUGLOG
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n\n");
@@ -4804,7 +4806,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 	__debugPrint(logFile, "                cb_final_check @ Level [%d] \n", sLevel);
 	__debugPrint(logFile, "=============================================================\n");
 #endif
-
+	timer = clock() - timer;
+	printf("%d begining of %s: %.3f seconds.\n\n", __LINE__, __FUNCTION__, ((float)timer)/CLOCKS_PER_SEC);
+	timer = clock();
 	calculateConcatLength(t);
 
 //	if (havingGrmConstraints == false){
@@ -4935,6 +4939,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 #else
 #endif
 	}
+	timer = clock() - timer;
+	printf("%d end of %s: %.3f seconds.\n\n", __LINE__, __FUNCTION__, ((float)timer)/CLOCKS_PER_SEC);
+	timer = clock();
 
 	__debugPrint(logFile, "%d Finish\n", __LINE__);
 

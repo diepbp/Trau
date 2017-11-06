@@ -37,7 +37,7 @@ Command-line Usage
 	./Trau [option] fileName
 ```	
 The folllowing options are avaiable:
-- -model: print the concrete model if it is SAT
+- -model: print satisfying assignments if the result is SAT
 - -doublecheck: use the S3P string solver to double-check satisfying assignments produced by Trau
 - -grm grammarFile: specify a grammar file
 

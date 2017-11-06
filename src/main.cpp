@@ -184,8 +184,9 @@ void printHelp(){
 	printf("Usage ./Trau [option] file.smt2\n\n");
 
 	printf("Input format:\n");
-	printf("\t -model 	\t print the concrete model if it is SAT.\n");
-	printf("\t -grm 	\t\t specify the grammar file.\n");
+	printf("\t -model 	\t\t print satisfying assignments if the result is SAT.\n");
+	printf("\t -grm [..]\t\t\t specify the grammar file.\n");
+	printf("\t -doublecheck 	\t\t use the S3P string solver to double-check satisfying assignments.\n");
 
 	printf("\n");
 }
@@ -210,7 +211,6 @@ void parseUserInput(int argc, char* argv[]){
 			foundGrm = true;
 		}
 		else if (tmp.compare("-doublecheck") == 0){
-			i++;
 			beReviewed = true;
 		}
 		else if (tmp.compare("-model") == 0){
@@ -221,6 +221,13 @@ void parseUserInput(int argc, char* argv[]){
 		}
 		else if (tmp.compare("-help") == 0){
 			printHelp();
+			return;
+		}
+		else if (tmp[0] == '-') {
+			printf("Arguments Errors.\n");
+			printHelp();
+			inputFile = "";
+			orgInput = "";
 			return;
 		}
 		else {

@@ -3518,6 +3518,14 @@ bool S3_reviews(std::string fileName){
 				line = buffer;
 				if (line.substr(0, 8).compare(">> UNSAT") == 0)
 					assert(false);
+				else if (line.find("unknown function/constant") != std::string::npos){
+					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
+					std::string funcName = "";
+					while (line[pos] != ' ' && line[pos] != '"' && pos < line.length())
+						funcName += line[pos++];
+					printf("Warning: S3P does not support some functions: %s\n", funcName.c_str());
+					break;
+				}
 			}
 
 		}
@@ -3660,6 +3668,8 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	printf("Running Under Approximation...\n");
+	clock_t t;
+	t = clock();
 	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
 	//	for (unsigned int i = 0; i < test.size(); ++i)
 	//		displayListString(test[i], " parse regex ");
@@ -3686,9 +3696,8 @@ bool underapproxController(
 	if (constMap.size() > 0) {
 		/* print test const map */
 		__debugPrint(logFile, "%d Const map:\n", __LINE__);
-		for (const auto& element : constMap) {
+		for (const auto& element : constMap)
 			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
-		}
 		__debugPrint(logFile, "\n");
 	}
 
@@ -3739,7 +3748,8 @@ bool underapproxController(
 	if (result == false) {
 		/* skip */
 	}
-
+	t = clock() - t;
+	printf("%d Underapprox: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, result == true ? "true" : "false");
 	return result;
 }
