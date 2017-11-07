@@ -4918,8 +4918,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 		std::map<StringOP, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
+		std::vector<Z3_ast> boolVars;
 		printf("%d step 01: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
-		collectDataInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
 		printf("%d step 02: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 
 		for (const auto& elem : rewriterStrMap){
@@ -4935,10 +4936,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
-		printf("%d before going to underapprox: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
-
 		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
-			printf("%d after underapprox: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -4952,7 +4950,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
 			}
 
-			Z3_ast negation = negatePositiveContext(t);
+			Z3_ast negation = negatePositiveContext(t, boolVars);
 			orConstraints.emplace_back(negation);
 			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
 		}
@@ -6643,6 +6641,21 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 }
 
 /*
+ *
+ */
+Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars) {
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
+	__debugPrint(logFile, "\n");
+#endif
+	Z3_context ctx = Z3_theory_get_context(t);
+	if (boolVars.size() == 0)
+		return Z3_mk_false(ctx);
+	else
+		return Z3_mk_not(ctx, mk_and_fromVector(t, boolVars));
+}
+
+/*
  * a = b -> not c
  */
 Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
@@ -7568,6 +7581,7 @@ bool collectReplaceAllValueInPositiveContext(
  *
  */
 std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
+	__debugPrint(logFile, "@%d *** %s *** \n", __LINE__, __FUNCTION__);
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 
@@ -7591,8 +7605,30 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 	return ret;
 }
 
+/*
+ *
+ */
+void collectBoolValueInPositiveContext(
+		Z3_theory t,
+		Z3_ast boolNode,
+		std::vector<Z3_ast> &boolVars
+		) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::string astToString = Z3_ast_to_string(ctx, boolNode);
+	if (astToString.find("$$_bool") != std::string::npos &&
+			astToString.find("(ite") == std::string::npos &&
+			astToString.find("(let (") == std::string::npos &&
+			astToString.find("(or (") == std::string::npos ) {
+		boolVars.emplace_back(boolNode);
+	}
+}
+
+/*
+ *
+ */
 void collectDataInPositiveContext(
 		Z3_theory t,
+		std::vector<Z3_ast> &boolVars,
 		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
@@ -7610,7 +7646,6 @@ void collectDataInPositiveContext(
 	for (const auto& s : endsWithStrMap)
 		rewriterStrMap[s.first] = s.second;
 
-
 	for (const auto& it : startsWithStrMap)
 		rewriterStrMap[it.first] = it.second;
 
@@ -7627,8 +7662,10 @@ void collectDataInPositiveContext(
 			std::string astToString = Z3_ast_to_string(ctx, argAst);
 
 			T_TheoryType type = getNodeType(t, argAst);
+
 			bool found = false;
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				collectBoolValueInPositiveContext(t, argAst, boolVars);
 				found = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
 				found = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 				if (!found)
@@ -7644,6 +7681,7 @@ void collectDataInPositiveContext(
 			}
 
 			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				collectBoolValueInPositiveContext(t, argAst, boolVars);
 				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 				T_TheoryType type = getNodeType(t, boolNode);
 				astToString = Z3_ast_to_string(ctx, boolNode);

@@ -724,6 +724,11 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   Z3_ast negatePositiveContext(Z3_theory t);
 
   /*
+   *
+   */
+  Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
+
+  /*
    * a = b -> not c
    */
   Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode);
@@ -867,8 +872,18 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  /*
   *
   */
+ void collectBoolValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		std::vector<Z3_ast> &boolVars
+ 		);
+
+ /*
+  *
+  */
  void collectDataInPositiveContext(
  		Z3_theory t,
+ 		std::vector<Z3_ast> &boolVars,
  		std::map<StringOP, std::string> &rewriterStrMap,
  		std::set<std::string> &carryOnConstraints);
 
