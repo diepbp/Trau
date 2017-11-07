@@ -3668,8 +3668,8 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	printf("Running Under Approximation...\n");
-	clock_t t;
-	t = clock();
+	clock_t tx;
+	tx = clock();
 	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
 	//	for (unsigned int i = 0; i < test.size(); ++i)
 	//		displayListString(test[i], " parse regex ");
@@ -3748,8 +3748,8 @@ bool underapproxController(
 	if (result == false) {
 		/* skip */
 	}
-	t = clock() - t;
-	printf("%d Underapprox: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
+	tx = clock() - tx;
+	printf("%d Underapprox: %.3f seconds.\n\n", __LINE__, ((float)tx)/CLOCKS_PER_SEC);
 	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, result == true ? "true" : "false");
 	return result;
 }

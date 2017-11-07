@@ -4471,16 +4471,23 @@ bool parikh_check_contain(
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list,
 		std::map<Z3_ast, bool> boolValues,
-		std::map<Z3_ast, std::set<char>> parikhMap){
+		std::map<Z3_ast, std::set<char>> parikhMap,
+		Z3_ast& conflict){
 
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 
+	for (const auto& l : list)
+		displayListNode(t, l, "Quick check list: ");
+
+	std::vector<std::string> constList;
+
 	/* check the node */
 	std::set<char> data;
 	if (isConstStr(t, node) || isDetAutomatonFunc(t, node)){
 		std::string s = getConstString(t, node);
+		constList.emplace_back(s);
 		for (unsigned i = 0; i < s.size(); ++i)
 			data.emplace(s[i]);
 	}
@@ -4489,8 +4496,13 @@ bool parikh_check_contain(
 			for (const auto& n : v)
 				if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
 					std::string s = getConstString(t, n);
+					constList.emplace_back(s);
 					for (unsigned i = 0; i < s.size(); ++i)
 						data.emplace(s[i]);
+				}
+				else if (isRegexPlusFunc(t, n)){
+					std::string s = parse_regex_content(getConstString(t, n));
+					constList.emplace_back(s);
 				}
 		}
 	}
@@ -4512,10 +4524,19 @@ bool parikh_check_contain(
 					(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) &&
 					boolValues[contain.second] == false){
 				std::string str = getConstString(t, contain.first.second);
-				__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
-				for (unsigned j = 0; j < str.length(); ++j)
-					if (data.find(str[j]) != data.end())
+				if (str.length() == 1) {
+					__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
+					for (unsigned j = 0; j < str.length(); ++j)
+						if (data.find(str[j]) != data.end()) {
+							conflict = contain.second;
+							return false;
+						}
+				}
+				for (const auto& s : constList)
+					if (s.find(str) != std::string::npos){
+						conflict = contain.second;
 						return false;
+					}
 			}
 	}
 	return true;
@@ -4695,10 +4716,13 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	std::map<Z3_ast, bool> boolMapValues;
 	for (const auto& b : boolValues){
 		std::string tmp = Z3_ast_to_string(ctx, b);
-		if (tmp.find("(not ") != std::string::npos)
-			boolMapValues[b] = false;
-		else
+		if (isVariable(t, b))
 			boolMapValues[b] = true;
+		else {
+			Z3_ast v =  Z3_get_app_arg(ctx, Z3_to_app(ctx, b), 0);
+			assert(isVariable(t, v));
+			boolMapValues[v] = false;
+		}
 	}
 
 	/* collect all equal possibilities of root variables */
@@ -4709,7 +4733,13 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 
 		if (!fine_replace || !substr_basic) {
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
-			addAxiom(t, negatePositiveContext(t), __LINE__, true);
+			Z3_ast assertion = negatePositiveEquality(t, itor->first, itor->second, boolMapValues);
+			if (assertion != NULL)
+				addAxiom(t, assertion, __LINE__, true);
+			else {
+				assert(false);
+				addAxiom(t, negatePositiveContext(t), __LINE__, true);
+			}
 			return {};
 		}
 
@@ -4757,10 +4787,12 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* check parikh satisfiability based on relation between replaceall */
 	std::map<Z3_ast, std::set<char>> parikhMap = calculate_minimumParikh(t, allEqPossibilities);
 	for (const auto& n : allEqPossibilities) {
-		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, parikhMap);
+		Z3_ast conflict = NULL;
+		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, parikhMap, conflict);
 		if (!fine_contain) {
+			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
-			addAxiom(t, negatePositiveContext(t), __LINE__, true);
+			addAxiom(t, negatePositiveEquality(t, n.first, conflict), __LINE__, true);
 			return {};
 		}
 	}
@@ -4864,6 +4896,16 @@ Z3_bool Th_final_check(Z3_theory t) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	if (hasLanguage == true) {
 		/* doing under approximation */
+		for (const auto& it : containPairBoolMap){
+			__debugPrint(logFile, "\n %d containPairBoolMap: ", __LINE__);
+			printZ3Node(t, it.second);
+			__debugPrint(logFile, ": ");
+			printZ3Node(t, it.first.first);
+			__debugPrint(logFile, " contains ");
+			printZ3Node(t, it.first.second);
+			__debugPrint(logFile, "\n");
+		}
+
 		std::map<std::string, std::vector<std::vector<std::string>>> combination = collectCombinationOverVariables(t);
 
 		if (combination.size() == 0)
@@ -4874,26 +4916,30 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d endsWithStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), it.second.c_str());
 		}
 
-		for (const auto& it : containPairBoolMap){
-			__debugPrint(logFile, "\n %d containPairBoolMap: ", __LINE__);
-			printZ3Node(t, it.second);
-		}
-
-
 		std::map<StringOP, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
+		printf("%d step 01: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectContainValueInPositiveContext(t, rewriterStrMap);
-
+		printf("%d step 02: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectSubstrValueInPositiveContext(t, rewriterStrMap);
+		printf("%d step 03: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectIndexOfValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		printf("%d step 04: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectSubstrValueInPositiveContext(t, rewriterStrMap);
+		printf("%d step 05: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectLastIndexOfValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		printf("%d step 06: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectEndsWithValueInPositiveContext(t, rewriterStrMap);
+		printf("%d step 07: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectStartsWithValueInPositiveContext(t, rewriterStrMap);
+		printf("%d step 08: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectEqualValueInPositiveContext(t, rewriterStrMap);
+		printf("%d step 09: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 
 		collectReplaceValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		printf("%d step 10: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 		collectReplaceAllValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
+		printf("%d step 11: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
@@ -4908,7 +4954,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
+		printf("%d before going to underapprox: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
+
 		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
+			printf("%d after underapprox: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -6613,6 +6662,116 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 }
 
 /*
+ * a = b -> not c
+ */
+Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
+	__debugPrint(logFile, "\n");
+#endif
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::vector<Z3_ast> eq = collect_eqc(t, node);
+
+	/* find the minimum conflict set */
+	std::string containtStr = "";
+	Z3_ast assertion01 = NULL;
+	for (const auto& contain : containPairBoolMap)
+		if (contain.second == boolNode) {
+			if (isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) {
+				containtStr = getConstString(t, contain.first.second);
+			}
+			break;
+		}
+
+	if (containtStr.length() > 0) {
+		std::vector<Z3_ast> minimumSet;
+		for (const auto& n : eq) {
+			std::vector<Z3_ast> subNodes;
+			getAllNodesInConcat(t, n, subNodes);
+			for (const auto& subNode : subNodes) {
+				std::string source = "";
+				if (isConstStr(t, subNode) || isDetAutomatonFunc(t, subNode)) {
+					source = getConstString(t, subNode);
+				}
+				else if (isRegexPlusFunc(t, subNode))
+					source = parse_regex_content(getConstString(t, subNode));
+
+				if (source.find(containtStr) != std::string::npos) {
+					minimumSet.emplace_back(n);
+					break;
+				}
+			}
+		}
+
+		if (minimumSet.size() > 0) {
+			std::vector<Z3_ast> tmp00;
+			for (const auto& n : minimumSet) {
+				tmp00.push_back(Z3_mk_eq(ctx, node, n));
+			}
+			assertion01 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp00), boolNode);
+			__debugPrint(logFile, "%d >> %s: ", __LINE__, __FUNCTION__);
+			printZ3Node(t, assertion01);
+			__debugPrint(logFile, "\n");
+		}
+	}
+
+
+	/* the maximum conflict set */
+	std::vector<Z3_ast> tmp01;
+	for (const auto& n : eq) {
+		tmp01.push_back(Z3_mk_eq(ctx, node, n));
+	}
+	Z3_ast assertion02 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp01), boolNode);
+
+	if (assertion01 != NULL) {
+		Z3_ast ret[2] = {assertion01, assertion02};
+		return Z3_mk_and(ctx, 2, ret);
+	}
+	else
+		return assertion02;
+}
+
+/*
+ * not(a = b = c = d)
+ */
+Z3_ast negatePositiveEquality(
+		Z3_theory t,
+		Z3_ast node,
+		std::vector<std::vector<Z3_ast>> list,
+		std::map<Z3_ast, bool> boolValues) {
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "@%d *** %s ***: boolValues size = %ld", __LINE__, __FUNCTION__, boolValues.size());
+	__debugPrint(logFile, "\n");
+#endif
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::vector<Z3_ast> eq = collect_eqc(t, node);
+
+	std::vector<Z3_ast> tmp01;
+	for (const auto& eq : list) {
+		for (const auto& n : eq)
+			if (isStrVariable(t, n))
+				tmp01.emplace_back(n);
+	}
+
+	displayListNode(t, tmp01, " negatePositiveEquality ");
+	std::vector<Z3_ast> collector;
+	for (const auto& p : containPairBoolMap)
+		if (std::find(tmp01.begin(), tmp01.end(), p.first.first) != tmp01.end()){
+			if (boolValues.find(p.second) != boolValues.end()){
+				if (boolValues[p.second] == false)
+					collector.emplace_back(Z3_mk_eq(ctx, p.second, Z3_mk_false(ctx)));
+				else
+					collector.emplace_back(Z3_mk_eq(ctx, p.second, Z3_mk_true(ctx)));
+			}
+		}
+
+	if (collector.size() > 0)
+		return Z3_mk_not(ctx, mk_and_fromVector(t, collector));
+	else
+		return NULL;
+}
+
+/*
  *
  */
 std::vector<Z3_ast> collectLanguageValue(Z3_theory t){
@@ -7202,60 +7361,6 @@ void classifyAstByTypeInPositiveContext(Z3_theory t, Z3_ast node, std::map<Z3_as
  */
 void collectContainValueInPositiveContext(
 		Z3_theory t,
-		std::map<std::string, std::string> &rewriterStrMap){
-	Z3_context ctx = Z3_theory_get_context(t);
-	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
-//	printZ3Node(t, ctxAssign);
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-
-	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
-		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
-		for (int i = 0; i < argCount; i++) {
-			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
-			std::string astToString = Z3_ast_to_string(ctx, argAst);
-
-			T_TheoryType type = getNodeType(t, argAst);
-			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-				__debugPrint(logFile, "%d var: %s\n", __LINE__, astToString.c_str());
-				for (const auto& it : containPairBoolMap) {
-					if (it.second == argAst) {
-						Z3_ast args[2];
-						args[0] =  it.first.first;
-						args[1] =  it.first.second;
-						rewriterStrMap[exportNodeName(t, args, td->Contains)] = "true";
-						break;
-					}
-				}
-			}
-
-			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
-				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-				T_TheoryType type = getNodeType(t, boolNode);
-				astToString = Z3_ast_to_string(ctx, boolNode);
-				__debugPrint(logFile, "%d var: not %s\n", __LINE__, astToString.c_str());
-				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-					for (const auto& it : containPairBoolMap) {
-						if (it.second == boolNode) {
-							Z3_ast args[2];
-							args[0] =  it.first.first;
-							args[1] =  it.first.second;
-							rewriterStrMap[exportNodeName(t, args, td->Contains)] = "false";
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-	__debugPrint(logFile, "%d leave ** %s **\n", __LINE__, __FUNCTION__);
-}
-
-/*
- *
- */
-void collectContainValueInPositiveContext(
-		Z3_theory t,
 		std::map<StringOP, std::string> &rewriterStrMap){
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
@@ -7682,6 +7787,81 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 	}
 	__debugPrint(logFile, "@%d >>  %s ***: finish\n", __LINE__, __FUNCTION__);
 	return ret;
+}
+
+void collectDataInPositiveContext(
+		Z3_theory t,
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
+	Z3_context ctx = Z3_theory_get_context(t);
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
+			T_TheoryType type = getNodeType(t, argAst);
+			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				bool found = false;
+				for (const auto& it : containPairBoolMap) {
+					if (it.second == argAst) {
+						rewriterStrMap[StringOP("Contains", exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = "true";
+						found = true;
+						break;
+					}
+				}
+			}
+
+			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				T_TheoryType type = getNodeType(t, boolNode);
+				astToString = Z3_ast_to_string(ctx, boolNode);
+				__debugPrint(logFile, "%d var: not %s\n", __LINE__, astToString.c_str());
+				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+					for (const auto& it : containPairBoolMap) {
+						if (it.second == boolNode) {
+							rewriterStrMap[StringOP("Contains", exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = "false";
+							break;
+						}
+					}
+				}
+			}
+
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
+			T_TheoryType type = getNodeType(t, argAst);
+			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+				for (const auto& it : indexOfStrMap) {
+					if (astToString.compare(it.second.first) == 0){
+						rewriterStrMap[it.first] = it.second.second;
+						if (carryOn.find(argAst) != carryOn.end())
+							carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[argAst]));
+						break;
+					}
+				}
+			}
+			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
+				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				T_TheoryType type = getNodeType(t, boolNode);
+				astToString = Z3_ast_to_string(ctx, boolNode);
+				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
+					for (const auto& it : indexOfStrMap) {
+						if (astToString.compare(it.second.first) == 0){
+							rewriterStrMap[it.first] = "-1";
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+		assert(false);
 }
 /*
  * Decide whether two n1 and n2 are ALREADY in a same eq class

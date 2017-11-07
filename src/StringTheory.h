@@ -624,7 +624,8 @@ typedef struct _AutomatonStringData
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues,
- 		std::map<Z3_ast, std::set<char>> parikhMap);
+ 		std::map<Z3_ast, std::set<char>> parikhMap,
+		Z3_ast& conflict);
 
  /*
   * x = a . b . c = d . e . f --> possible or not
@@ -721,6 +722,20 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   *
   */
   Z3_ast negatePositiveContext(Z3_theory t);
+
+  /*
+   * a = b -> not c
+   */
+  Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode);
+
+  /*
+   * not(a = b = c = d)
+   */
+  Z3_ast negatePositiveEquality(
+  		Z3_theory t,
+  		Z3_ast node,
+  		std::vector<std::vector<Z3_ast>> list,
+  		std::map<Z3_ast, bool> boolValues);
 
  std::vector<Z3_ast> collectLanguageValue(Z3_theory t);
  Z3_ast collectSingleLanguageValue(Z3_theory t, Z3_ast node);
