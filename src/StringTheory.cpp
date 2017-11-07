@@ -4215,8 +4215,10 @@ std::set<char> get_notContain_set(Z3_theory t, std::vector<Z3_ast> list, std::ma
 						(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) &&
 						boolValues[contain.second] == false){
 					std::string str = getConstString(t, contain.first.second);
-					for (unsigned j = 0; j < str.length(); ++j)
-						tmp.emplace(str[j]);
+					if (str.size() == 1) {
+						for (unsigned j = 0; j < str.length(); ++j)
+							tmp.emplace(str[j]);
+					}
 				}
 
 			/* intersection*/
@@ -4288,10 +4290,88 @@ std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list
 /*
  *
  */
-void compute_parikh(Z3_theory t,
+void addToParikhMap(
+		char ch,
+		std::map<char, int> &m){
+	if (m.find(ch) == m.end())
+		m[ch] = 1;
+	else
+		m[ch] = m[ch] + 1;
+}
+
+/*
+ *
+ */
+std::map<char, int> computeParikhFromConst(
+		Z3_theory t,
+		Z3_ast node){
+	std::map<char, int> data;
+	std::string s = getConstString(t, node);
+	for (unsigned i = 1; i < s.size(); ++i)
+		if (s[i] != s[i - 1])
+			addToParikhMap(s[i - 1], data);
+
+	/* last char */
+	addToParikhMap(s[s.length() - 1], data);
+	return data;
+}
+
+/*
+ *
+ */
+std::map<char, int> computeParikhFromVector(
+		Z3_theory t,
+		std::vector<Z3_ast> list){
+	std::map<char, int> tmp;
+	for (const auto& n : list)
+		if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
+			std::string s = getConstString(t, n);
+			/* compare to the first char */
+			unsigned i = 1;
+			for (; i < s.size(); ++i)
+				if (s[i] != s[0]){
+					if (tmp.find(s[0]) == tmp.end())
+						tmp[s[0]] = 1;
+					break;
+				}
+			i++;
+			/* continue */
+			for (;i < s.size(); ++i)
+				if (s[i] != s[i - 1])
+					addToParikhMap(s[i - 1], tmp);
+
+			/* last char */
+			addToParikhMap(s[s.length() - 1], tmp);
+		}
+	return tmp;
+}
+
+/*
+ *
+ */
+std::map<char, int> computeParikhFromVectorOfVector(
+		Z3_theory t,
+		std::vector<std::vector<Z3_ast>> list){
+	std::map<char, int> data;
+	for (const auto& v : list){
+		std::map<char, int> tmp = computeParikhFromVector(t, v);
+
+		/* get max of two maps */
+		for (const auto& ch : tmp)
+			if (data.find(ch.first) == data.end() || data[ch.first] < ch.second)
+				data[ch.first] = ch.second;
+	}
+	return data;
+}
+
+/*
+ *
+ */
+void compute_parikh(
+		Z3_theory t,
 		Z3_ast node,
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
-		std::map<Z3_ast, std::set<char>> &parikhImg){
+		std::map<Z3_ast, std::map<char, int>> &parikhImg){
 
 	if (parikhImg.find(node) != parikhImg.end())
 		return;
@@ -4300,14 +4380,14 @@ void compute_parikh(Z3_theory t,
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 
-	std::set<char> data;
+	std::map<char, int> data;
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
 	displayListNode(t, eq, "eq....");
+	/* check itself and its friends */
 	for (const auto& n : eq) {
 		if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
-			std::string s = getConstString(t, n);
-			for (unsigned i = 0; i < s.size(); ++i)
-				data.emplace(s[i]);
+			data = computeParikhFromConst(t, n);
+			break;
 		}
 	}
 
@@ -4319,14 +4399,8 @@ void compute_parikh(Z3_theory t,
 	}
 
 	/* check sub-elements */
-	for (const auto& v : combinationOverVariables[node]){
-		for (const auto& n : v)
-			if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
-				std::string s = getConstString(t, n);
-				for (unsigned i = 0; i < s.size(); ++i)
-					data.emplace(s[i]);
-			}
-	}
+	data = computeParikhFromVectorOfVector(t, combinationOverVariables[node]);
+
 	__debugPrint(logFile, "%d replaceAllNodeMap size = %ld\n", __LINE__, replaceAllNodeMap.size());
 
 	/* check = replace */
@@ -4336,16 +4410,19 @@ void compute_parikh(Z3_theory t,
 				__debugPrint(logFile, "%d going to check: ", __LINE__);
 				printZ3Node(t, repAll.first.first);
 				__debugPrint(logFile, "\n");
+
 				compute_parikh(t, repAll.first.first, combinationOverVariables, parikhImg);
-				std::set<char> tmp = parikhImg[repAll.first.first];
+
+				std::map<char, int> tmp = parikhImg[repAll.first.first];
 				__debugPrint(logFile, "%d tmp result\n", __LINE__);
 				for (const auto& ch : tmp)
-					__debugPrint(logFile, "%c ", ch);
+					__debugPrint(logFile, "%c:%d\t", ch.first, ch.second);
 				__debugPrint(logFile, "\n");
 
 				Z3_ast tobeReplaced = repAll.first.second.first;
 				if (isConstStr(t, tobeReplaced) || isDetAutomatonFunc(t, tobeReplaced)){
 					std::string s0 = getConstString(t, tobeReplaced);
+
 					if (s0.length() == 1){
 						Z3_ast replacing = repAll.first.second.second;
 						if (isConstStr(t, replacing) || isDetAutomatonFunc(t, replacing)){
@@ -4354,12 +4431,16 @@ void compute_parikh(Z3_theory t,
 
 							if (s1.find(s0) == std::string::npos){
 								for (const auto& ch : tmp)
-									if (ch != s0[0]) {
+									if (ch.first != s0[0]) {
 										data.emplace(ch);
 									}
 							}
-							else
-								data.insert(tmp.begin(), tmp.end());
+							else {
+								/* get max of two sets */
+								for (const auto& ch : tmp)
+									if (data.find(ch.first) == data.end() || data[ch.first] < ch.second)
+										data[ch.first] = ch.second;
+							}
 						}
 					}
 				}
@@ -4374,11 +4455,11 @@ void compute_parikh(Z3_theory t,
 /*
  * x = replace y a b --> parikh image of x is almost the same as parikh image of y
  */
-std::map<Z3_ast, std::set<char>> calculate_minimumParikh(
+std::map<Z3_ast, std::map<char, int>> calculate_minimumParikh(
 		Z3_theory t,
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	std::map<Z3_ast, std::set<char>> parikhMap;
+	std::map<Z3_ast, std::map<char, int>> parikhMap;
 
 	for (const auto& node : replaceAllNodeMap)
 		compute_parikh(t, node.second, combinationOverVariables, parikhMap);
@@ -4389,7 +4470,7 @@ std::map<Z3_ast, std::set<char>> calculate_minimumParikh(
 		printZ3Node(t, node.first);
 		__debugPrint(logFile, ": \n");
 		for (const auto& ch : node.second)
-			__debugPrint(logFile, "%c ", ch);
+			__debugPrint(logFile, "%c:%d", ch.first, ch.second);
 		__debugPrint(logFile, "\n");
 	}
 
@@ -4471,7 +4552,7 @@ bool parikh_check_contain(
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list,
 		std::map<Z3_ast, bool> boolValues,
-		std::map<Z3_ast, std::set<char>> parikhMap,
+		std::map<Z3_ast, std::map<char, int>> parikhMap,
 		Z3_ast& conflict){
 
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
@@ -4484,36 +4565,31 @@ bool parikh_check_contain(
 	std::vector<std::string> constList;
 
 	/* check the node */
-	std::set<char> data;
+	std::map<char, int> data;
 	if (isConstStr(t, node) || isDetAutomatonFunc(t, node)){
-		std::string s = getConstString(t, node);
-		constList.emplace_back(s);
-		for (unsigned i = 0; i < s.size(); ++i)
-			data.emplace(s[i]);
+		data = computeParikhFromConst(t, node);
+		constList.emplace_back(getConstString(t, node));
+		for (const auto& ch : data)
+			__debugPrint(logFile, " --- %c %d\t", ch.first, ch.second);
 	}
 	else {
-		for (const auto& v : list){
-			for (const auto& n : v)
-				if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
-					std::string s = getConstString(t, n);
-					constList.emplace_back(s);
-					for (unsigned i = 0; i < s.size(); ++i)
-						data.emplace(s[i]);
-				}
-				else if (isRegexPlusFunc(t, n)){
-					std::string s = parse_regex_content(getConstString(t, n));
-					constList.emplace_back(s);
-				}
-		}
+		data = computeParikhFromVectorOfVector(t, list);
+		for (const auto& ch : data)
+					__debugPrint(logFile, " ### %c %d\t", ch.first, ch.second);
+		for (const auto& v : list)
+			for (const auto n : v)
+				if (isConstStr(t, n) || isDetAutomatonFunc(t, n))
+					constList.emplace_back(getConstString(t, n));
 	}
 
-	if (parikhMap.find(node) != parikhMap.end()) {
-		/* combine two images */
-		data.insert(parikhMap[node].begin(), parikhMap[node].end());
-	}
-
+	/* get max of two sets */
 	for (const auto& ch : data)
-		__debugPrint(logFile, " %c ", ch);
+		if (parikhMap[node].find(ch.first) == data.end() || parikhMap[node][ch.first] < ch.second)
+			parikhMap[node][ch.first] = ch.second;
+
+	data = parikhMap[node];
+	for (const auto& ch : data)
+		__debugPrint(logFile, " +++ %c %d\t", ch.first, ch.second);
 	__debugPrint(logFile, "\n");
 
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
@@ -4524,20 +4600,80 @@ bool parikh_check_contain(
 					(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) &&
 					boolValues[contain.second] == false){
 				std::string str = getConstString(t, contain.first.second);
+
 				if (str.length() == 1) {
 					__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
 					for (unsigned j = 0; j < str.length(); ++j)
-						if (data.find(str[j]) != data.end()) {
+						if (data[str[j]] > 0) {
 							conflict = contain.second;
 							return false;
 						}
 				}
+
 				for (const auto& s : constList)
 					if (s.find(str) != std::string::npos){
 						conflict = contain.second;
 						return false;
 					}
 			}
+	}
+	return true;
+}
+
+/*
+ *
+ */
+bool parikh_check_regex(
+		Z3_theory t,
+		Z3_ast node,
+		std::vector<std::vector<Z3_ast>> list,
+		std::map<Z3_ast, bool> boolValues,
+		std::map<Z3_ast, std::map<char, int>> parikhMap){
+
+	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
+	printZ3Node(t, node);
+	__debugPrint(logFile, "\n");
+
+	for (const auto& v : list)
+		displayListNode(t, v, "Quick check list: ");
+
+	std::map<char, int> data = parikhMap[node];
+	for (const auto& ch : data)
+		__debugPrint(logFile, " --- %c %d\t", ch.first, ch.second);
+
+	std::vector<Z3_ast> eq = collect_eqc(t, node);
+	if (data.size() > 0) {
+		for (const auto& v : list){
+			std::set<char> notContain00 = get_notContain_set(t, v, boolValues);
+			/* check two replace all funcs */
+			for (const auto& ch : notContain00) {
+				__debugPrint(logFile, "\n%d considering char: %c \n", __LINE__, ch);
+				int cnt00 = 0;
+				/* count list 0 */
+				for (const auto& p : v)
+					if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
+						cnt00 = -1;
+						break;
+					}
+					else if (isRegexPlusFunc(t, p)) {
+						std::string s = parse_regex_content(getConstString(t, p));
+						if (s.length() > 1) {
+							cnt00 = -1;
+							break;
+						}
+
+						if (s.find(ch) != std::string::npos)
+							++cnt00;
+					}
+				if (cnt00 == -1)
+					continue;
+
+				if (cnt00 < data[ch]) {
+					__debugPrint(logFile, "%d cnt00 = %d, data = %d\n", __LINE__, cnt00, data[ch]);
+					return false;
+				}
+			}
+		}
 	}
 	return true;
 }
@@ -4732,7 +4868,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		bool substr_basic = check_substr_basic(t, itor->first, itor->second);
 
 		if (!fine_replace || !substr_basic) {
-			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
+			__debugPrint(logFile, "%d * %s * replaceall does not work\n", __LINE__, __FUNCTION__);
 			Z3_ast assertion = negatePositiveEquality(t, itor->first, itor->second, boolMapValues);
 			if (assertion != NULL)
 				addAxiom(t, assertion, __LINE__, true);
@@ -4785,14 +4921,23 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	}
 
 	/* check parikh satisfiability based on relation between replaceall */
-	std::map<Z3_ast, std::set<char>> parikhMap = calculate_minimumParikh(t, allEqPossibilities);
+	std::map<Z3_ast, std::map<char, int>> parikhMap = calculate_minimumParikh(t, allEqPossibilities);
 	for (const auto& n : allEqPossibilities) {
 		Z3_ast conflict = NULL;
 		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, parikhMap, conflict);
 		if (!fine_contain) {
 			assert(conflict != NULL);
-			__debugPrint(logFile, "%d * %s * does not work\n", __LINE__, __FUNCTION__);
+			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveEquality(t, n.first, conflict), __LINE__, true);
+			return {};
+		}
+	}
+
+	for (const auto& n : allEqPossibilities) {
+		bool fine_regex = parikh_check_regex(t, n.first, n.second, boolMapValues, parikhMap);
+		if (!fine_regex) {
+			__debugPrint(logFile, "%d * %s * regex does not work\n", __LINE__, __FUNCTION__);
+			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
 			return {};
 		}
 	}

@@ -599,15 +599,24 @@ typedef struct _AutomatonStringData
  /*
   *
   */
- void compute_parikh(Z3_theory t,
+ void addToParikhMap(
+ 		char ch,
+ 		std::map<char, int> &m);
+ /*
+  *
+  */
+ void compute_parikh(
+		 Z3_theory t,
  		Z3_ast node,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
- 		std::map<Z3_ast, std::set<char>> &parikhImg);
+ 		std::map<Z3_ast, std::map<char, int>> &parikhImg);
 
  /*
   * x = replace y a b --> parikh image of x is almost the same as parikh image of y
   */
- std::map<Z3_ast, std::set<char>> calculate_minimumParikh(Z3_theory t, std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables);
+ std::map<Z3_ast, std::map<char, int>> calculate_minimumParikh(
+		 Z3_theory t,
+		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables);
 
  /*
   *
@@ -624,7 +633,7 @@ typedef struct _AutomatonStringData
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues,
- 		std::map<Z3_ast, std::set<char>> parikhMap,
+		std::map<Z3_ast, std::map<char, int>> parikhMap,
 		Z3_ast& conflict);
 
  /*
