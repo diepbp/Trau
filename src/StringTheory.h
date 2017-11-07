@@ -781,9 +781,11 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  /*
   *
   */
- void collectContainValueInPositiveContext(
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap);
+ bool collectContainValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		std::string value,
+ 		std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
@@ -795,52 +797,65 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  /*
   *
   */
- void collectIndexOfValueInPositiveContext(
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap,
-		 std::set<std::string> &carryOnConstraints);
+ bool collectIndexOfValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
 
  /*
   *
   */
- void collectLastIndexOfValueInPositiveContext(
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap,
-		 std::set<std::string> &carryOnConstraints);
+ bool collectLastIndexOfValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
 
  /*
   *
   */
- void collectEndsWithValueInPositiveContext (
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap);
+ bool collectEndsWithValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		std::string boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
   *
   */
  void collectEqualValueInPositiveContext(
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap);
- /*
-  *
-  */
- void collectStartsWithValueInPositiveContext (
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap);
-
- /*
-  *
-  */
- void collectReplaceValueInPositiveContext(
-		 Z3_theory t,
-		 std::map<StringOP, std::string> &rewriterStrMap,
-		 std::set<std::string> &carryOnConstraints);
-
- /*
-  *
-  */
- void collectReplaceAllValueInPositiveContext(
  		Z3_theory t,
+ 		Z3_ast argAst,
+ 		std::map<StringOP, std::string> &rewriterStrMap);
+ /*
+  *
+  */
+ bool collectStartsWithValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		std::string boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap);
+
+ /*
+  *
+  */
+ bool collectReplaceValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
+
+ /*
+  *
+  */
+ bool collectReplaceAllValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		bool boolValue,
  		std::map<StringOP, std::string> &rewriterStrMap,
  		std::set<std::string> &carryOnConstraints);
 
@@ -848,6 +863,15 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   *
   */
  std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t);
+
+ /*
+  *
+  */
+ void collectDataInPositiveContext(
+ 		Z3_theory t,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
+
  /*
   * Decide whether two n1 and n2 are ALREADY in a same eq class
   * Or n1 and n2 are ALREADY treated equal by the core
