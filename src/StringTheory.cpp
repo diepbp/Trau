@@ -4849,6 +4849,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	displayListString(non_root, " --variableBelongToOthers-- ");
 
 	std::vector<Z3_ast> boolValues = collectBoolValueInPositiveContext(t);
+	displayListNode(t, boolValues, " boolValues xx ");
 	std::map<Z3_ast, bool> boolMapValues;
 	for (const auto& b : boolValues){
 		std::string tmp = Z3_ast_to_string(ctx, b);
@@ -6883,9 +6884,8 @@ Z3_ast negatePositiveEquality(
 	__debugPrint(logFile, "\n");
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
-	std::vector<Z3_ast> eq = collect_eqc(t, node);
+	std::vector<Z3_ast> tmp01 = collect_eqc(t, node);
 
-	std::vector<Z3_ast> tmp01;
 	for (const auto& eq : list) {
 		for (const auto& n : eq)
 			if (isStrVariable(t, n))
@@ -6903,6 +6903,11 @@ Z3_ast negatePositiveEquality(
 					collector.emplace_back(Z3_mk_eq(ctx, p.second, Z3_mk_true(ctx)));
 			}
 		}
+
+	std::vector<Z3_ast> tmp02 = collect_eqc(t, node);
+	for (const auto& n : tmp02) {
+		collector.push_back(Z3_mk_eq(ctx, node, n));
+	}
 
 	if (collector.size() > 0)
 		return Z3_mk_not(ctx, mk_and_fromVector(t, collector));
@@ -7740,8 +7745,8 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 			std::string astToString = Z3_ast_to_string(ctx, argAst);
 			if (astToString.find("$$_bool") != std::string::npos &&
 					astToString.find("(ite") == std::string::npos &&
-					astToString.find("(let (") == std::string::npos &&
-					astToString.find("(or (") == std::string::npos ) {
+					astToString.find("(let ") == std::string::npos &&
+					astToString.find("(or ") == std::string::npos ) {
 				ret.emplace_back(argAst);
 			}
 		}
@@ -7799,6 +7804,8 @@ void collectDataInPositiveContext(
 
 	for (const auto& s : replaceAllStrMap)
 		rewriterStrMap[s.first] = s.second;
+
+	collectSubstrValueInPositiveContext(t, rewriterStrMap);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
