@@ -313,7 +313,7 @@ public:
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
 		assert(pos <= (int) str.length());
-//		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
+		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
 		/* reach end */
 		if (currentSplit.size() == elementNames.size()){
 			if (pos == (int)str.length() &&
@@ -333,6 +333,7 @@ public:
 
 		/* special case for const: leng = leng */
 		if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
+			__debugPrint(logFile, "\tcase 1\n");
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 
@@ -346,6 +347,7 @@ public:
 
 		/* const head */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 2) {
+			__debugPrint(logFile, "\tcase 2\n");
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
@@ -360,7 +362,7 @@ public:
 
 		/* special case for const tail, when we know the length of const head */
 		else if (currentSplit.size() > 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-
+			__debugPrint(logFile, "\tcase 3\n");
 			assert (elementNames[currentSplit.size() - 1].second == -1);
 			unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
@@ -374,7 +376,7 @@ public:
 
 		/* head is const part 2*/
 		else if (currentSplit.size() == 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-
+			__debugPrint(logFile, "\tcase 4\n");
 			for (unsigned int i = 0; i < std::min(elementNames[currentSplit.size()].first.length(), str.length()); ++i) {
 
 				std::string tmp00 = elementNames[0].first.substr(i);
@@ -388,10 +390,12 @@ public:
 		}
 
 		else {
+			__debugPrint(logFile, "\tcase 5\n");
 			std::string regexContent = "";
 			RegEx re;
 			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
+				regexContent = encodeConst(regexContent);
 				re.Compile(regexContent);
 			}
 
@@ -399,6 +403,7 @@ public:
 				unsigned int length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
+					regexValue = encodeConst(regexValue);
 					if (re.MatchAll(regexValue) == true) {
 						currentSplit.emplace_back(length);
 						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
@@ -670,8 +675,9 @@ public:
 		if (lhs.second == -2) /* tail */ {
 			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
-//				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
+				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
+				__debugPrint(logFile, "%d >> finished \n", __LINE__);
 			}
 		}
 		else if (lhs.second == -1) /* head */ {
@@ -2147,20 +2153,22 @@ public:
 			else {
 				/* handle connected var */
 				// result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
-
+				__debugPrint(logFile, "%d >> %s: step 01\n", __LINE__, __FUNCTION__);
 				/* handle const */
 				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
+				__debugPrint(logFile, "%d >> %s: step 02: %ld\n", __LINE__, __FUNCTION__, allPossibleSplits.size());
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
 					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar_andConst(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
 				}
-
+				__debugPrint(logFile, "%d >> %s: step done\n", __LINE__, __FUNCTION__);
 				if (strSplits.size() > 0)
 					result = result + " " + orConstraint(strSplits);
 				else
 					return "";
 			}
+			__debugPrint(logFile, "%d >> %s: finished\n", __LINE__, __FUNCTION__);
 		}
 
 		else {

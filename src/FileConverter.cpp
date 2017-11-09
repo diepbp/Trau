@@ -1243,7 +1243,12 @@ std::string replaceSpecialChars(std::string constStr){
 					strTmp += ENCODEMAP['"'];
 					i++;
 				}
+				else if (constStr[i + 1] == '\'') {
+					strTmp += ENCODEMAP['\''];
+					i++;
+				}
 				else {
+					strTmp += constStr[i];
 					strTmp += constStr[i];
 				}
 			}
@@ -1268,6 +1273,8 @@ std::string encodeConst(std::string constStr){
 	std::string newStr = "__cOnStStR_";
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
 		newStr = newStr + int_to_hex((int)constStr[i]);
+		if (constStr[i] == '\\' && constStr[i + 1] == '\\')
+			++i;
 	}
 	return newStr;
 }
@@ -1446,8 +1453,16 @@ void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
  *
  */
 std::string decodeStr(std::string s){
-//	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
 	std::string tmp = "";
+	for (unsigned i = 0 ; i < s.size(); ++i) {
+		tmp += s[i];
+		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\')
+			++i;
+	}
+	s = tmp;
+	tmp = "";
+
 	int cnt = 0;
 	for (unsigned int i = 0; i < s.length(); ++i){
 		if (s[i] == '"' && (i == 0 || (i > 0 && s[i - 1] != '\\'))) {
@@ -1464,6 +1479,6 @@ std::string decodeStr(std::string s){
 			tmp = tmp + s[i];
 
 	}
-//	__debugPrint(logFile, " %s\n", tmp.c_str());
+	__debugPrint(logFile, " %s\n", tmp.c_str());
 	return tmp;
 }

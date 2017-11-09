@@ -217,10 +217,14 @@ Z3_ast mk_str_value(Z3_theory t, char const * str) {
 	}
 
 	std::string keyStr = std::string(str);
+
 	// if the str is not created, create one
 	if (constStr_astNode_map.find(keyStr) == constStr_astNode_map.end()) {
 		Z3_symbol str_sym = Z3_mk_string_symbol(ctx, str);
 		Z3_ast strNode = Z3_theory_mk_value(ctx, t, str_sym, td->String);
+		__debugPrint(logFile, "\n %d ", __LINE__);
+		printZ3Node(t, strNode);
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, str);
 		constStr_astNode_map[keyStr] = strNode;
 	}
 	return constStr_astNode_map[keyStr];
@@ -576,8 +580,16 @@ std::string convertInputTrickyConstStr(std::string inputStr) {
 std::string getConstString(Z3_theory t, Z3_ast node){
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	if (isConstStr(t, node))
-		return getConstStrValue(t, node);
+	if (isConstStr(t, node)) {
+		std::string tmp = getConstStrValue(t, node);
+		std::string s = "";
+		for (unsigned i = 0 ; i < tmp.size(); ++i) {
+			s+= tmp[i];
+			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+				++i;
+		}
+		return s;
+	}
 	else
 		return customizeString(Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0)));
 	return NULL;
@@ -591,7 +603,7 @@ Z3_ast convertToAutomtaNodeIfPossible(Z3_theory t, Z3_ast node){
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
 	if (isConstStr(t, node)) {
-		std::string s = customizeString(getConstStrValue(t, node));
+		std::string s = getConstString(t, node);
 		return mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, s.c_str()));
 	}
 	else
