@@ -313,7 +313,7 @@ public:
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
 		assert(pos <= (int) str.length());
-		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
+//		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
 		/* reach end */
 		if (currentSplit.size() == elementNames.size()){
 			if (pos == (int)str.length() &&
@@ -333,7 +333,7 @@ public:
 
 		/* special case for const: leng = leng */
 		if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
-			__debugPrint(logFile, "\tcase 1\n");
+//			__debugPrint(logFile, "\tcase 1\n");
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 
@@ -347,7 +347,7 @@ public:
 
 		/* const head */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 2) {
-			__debugPrint(logFile, "\tcase 2\n");
+//			__debugPrint(logFile, "\tcase 2\n");
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
@@ -362,7 +362,7 @@ public:
 
 		/* special case for const tail, when we know the length of const head */
 		else if (currentSplit.size() > 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-			__debugPrint(logFile, "\tcase 3\n");
+//			__debugPrint(logFile, "\tcase 3\n");
 			assert (elementNames[currentSplit.size() - 1].second == -1);
 			unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
@@ -376,7 +376,7 @@ public:
 
 		/* head is const part 2*/
 		else if (currentSplit.size() == 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-			__debugPrint(logFile, "\tcase 4\n");
+//			__debugPrint(logFile, "\tcase 4\n");
 			for (unsigned int i = 0; i < std::min(elementNames[currentSplit.size()].first.length(), str.length()); ++i) {
 
 				std::string tmp00 = elementNames[0].first.substr(i);
@@ -390,24 +390,46 @@ public:
 		}
 
 		else {
-			__debugPrint(logFile, "\tcase 5\n");
+//			__debugPrint(logFile, "\tcase 5\n");
 			std::string regexContent = "";
 			RegEx re;
+			bool canCompile = false;
 			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
-				regexContent = encodeConst(regexContent);
-				re.Compile(regexContent);
+				if (regexContent.find('|') != std::string::npos) {
+					assert(regexContent.find('&') == std::string::npos);
+					re.Compile(regexContent);
+					canCompile = true;
+				}
+				else
+					regexContent = parse_regex_content(elementNames[currentSplit.size()].first);
 			}
 
 			for (unsigned int i = 0; i <= textLeft; ++i) {
 				unsigned int length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
-					regexValue = encodeConst(regexValue);
-					if (re.MatchAll(regexValue) == true) {
+					if (canCompile == true && re.MatchAll(regexValue) == true) {
 						currentSplit.emplace_back(length);
 						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
+					}
+					else {
+						/* manully doing matching regex */
+						std::string tmp = "";
+						if (elementNames[currentSplit.size()].first.find('+') != std::string::npos)
+							tmp = regexContent;
+						else
+							assert(elementNames[currentSplit.size()].first.find('+') != std::string::npos);
+						while(tmp.length() < regexValue.length())
+							tmp += regexContent;
+
+						__debugPrint(logFile, "%d matching %s -- %s\n", __LINE__, tmp.c_str(), regexValue.c_str());
+						if (tmp.compare(regexValue) == 0) {
+							currentSplit.emplace_back(length);
+							collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+							currentSplit.pop_back();
+						}
 					}
 				}
 				else {

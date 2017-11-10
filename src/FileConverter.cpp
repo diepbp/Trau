@@ -1228,9 +1228,6 @@ void customizeLine_ToCreateLengthLine(
  */
 std::string replaceSpecialChars(std::string constStr){
 	std::string strTmp = "";
-	int tabNum[1000];
-	memset(tabNum, 0, sizeof tabNum);
-
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
 		if (constStr[i] == '\\') {
@@ -1260,7 +1257,6 @@ std::string replaceSpecialChars(std::string constStr){
 				strTmp += ENCODEMAP[constStr[i]];
 		else
 			strTmp += constStr[i];
-
 	}
 
 	return '"' + strTmp + '"';
