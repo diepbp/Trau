@@ -405,8 +405,8 @@ public:
 					regexContent = parse_regex_content(elementNames[currentSplit.size()].first);
 			}
 
-			for (unsigned int i = 0; i <= textLeft; ++i) {
-				unsigned int length = i;
+			for (unsigned i = 0; i <= textLeft; ++i) {
+				unsigned length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
 					if (canCompile == true && re.MatchAll(regexValue) == true) {
@@ -430,6 +430,8 @@ public:
 							collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 							currentSplit.pop_back();
 						}
+						else if (i > 0)
+							break;
 					}
 				}
 				else {

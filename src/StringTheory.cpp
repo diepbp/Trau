@@ -590,8 +590,16 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		}
 		return s;
 	}
-	else
-		return customizeString(Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0)));
+	else {
+		std::string tmp = Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0));
+		std::string s = "";
+		for (unsigned i = 0 ; i < tmp.size(); ++i) {
+			s+= tmp[i];
+			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+				++i;
+		}
+		return customizeString(s);
+	}
 	return NULL;
 }
 
@@ -604,6 +612,7 @@ Z3_ast convertToAutomtaNodeIfPossible(Z3_theory t, Z3_ast node){
 
 	if (isConstStr(t, node)) {
 		std::string s = getConstString(t, node);
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, s.c_str());
 		return mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, s.c_str()));
 	}
 	else
@@ -1059,21 +1068,19 @@ void getAllNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeLis
  * collect subnodes of a node, and subnodes of nodes that are equal to it.
  */
 void getNodesInConcat_extended(Z3_theory t, Z3_ast node, std::set<Z3_ast> & nodeList){
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::vector<Z3_ast> tmpEq = collect_eqc(t, node);
 	for (const auto& n : tmpEq) {
 		if (getNodeType(t, n) != my_Z3_Func ||
-				(getNodeType(t, n) == my_Z3_Func && Z3_get_app_decl(ctx, Z3_to_app(ctx, n)) != td->Concat)) {
-			if (std::find(nodeList.begin(), nodeList.end(), n) != nodeList.end())
-				nodeList.insert(n);
+				(getNodeType(t, n) == my_Z3_Func && !isConcatFunc(t, n))) {
+			nodeList.emplace(n);
 			continue;
 		} else {
 			Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 0);
 			Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 1);
-			if (std::find(nodeList.begin(), nodeList.end(), leftArg) != nodeList.end())
+			if (nodeList.find(leftArg) == nodeList.end())
 				getNodesInConcat_extended(t, leftArg, nodeList);
-			if (std::find(nodeList.begin(), nodeList.end(), rightArg) != nodeList.end())
+			if (nodeList.find(rightArg) == nodeList.end())
 				getNodesInConcat_extended(t, rightArg, nodeList);
 		}
 	}
@@ -4159,12 +4166,9 @@ std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_a
 	Z3_context ctx = Z3_theory_get_context(t);
 	for (unsigned int j = 0; j < eqPossibility.size(); ++j) {
 		if (isAutomatonFunc(t, eqPossibility[j])) {
-			Z3_app func_app = Z3_to_app(ctx, eqPossibility[j]);
-			Z3_ast arg = Z3_get_app_arg(ctx, func_app, 0);
-			std::string regex = std::string(Z3_ast_to_string(ctx, arg));
-			regex = customizeString(regex);
+			std::string regex = getConstString(t, eqPossibility[j]);
 			if (isNonDetAutomatonFunc(t, eqPossibility[j])) {
-				Z3_ast arg01 = Z3_get_app_arg(ctx, func_app, 1);
+				Z3_ast arg01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, eqPossibility[j]), 1);
 				std::string index = std::string(Z3_ast_to_string(ctx, arg01));
 				regex = "\"" + regex + "\"_" + index;
 			}
@@ -4893,9 +4897,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		}
 
 		if (isAutomatonFunc(t, itor->first)) {
-			Z3_ast arg = Z3_get_app_arg(ctx,  Z3_to_app(ctx, itor->first), 0);
-			std::string regex = std::string(Z3_ast_to_string(ctx, arg));
-			varName = customizeString(regex);
+			varName = getConstString(t, itor->first);
 			varName = "\"" + varName + "\"";
 		}
 		else if (isConcatFunc(t, itor->first))
@@ -6896,18 +6898,13 @@ Z3_ast negatePositiveEquality(
 	__debugPrint(logFile, "\n");
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
-	std::vector<Z3_ast> tmp01 = collect_eqc(t, node);
+	std::set<Z3_ast> tmp01;
+	getNodesInConcat_extended(t, node, tmp01);
 
-	for (const auto& eq : list) {
-		for (const auto& n : eq)
-			if (isStrVariable(t, n))
-				tmp01.emplace_back(n);
-	}
-
-	displayListNode(t, tmp01, " negatePositiveEquality ");
+	displayListNode(t, tmp01, " negatePositiveEqualityxxx ");
 	std::vector<Z3_ast> collector;
 	for (const auto& p : containPairBoolMap)
-		if (std::find(tmp01.begin(), tmp01.end(), p.first.first) != tmp01.end()){
+		if (tmp01.find(p.first.first) != tmp01.end()){
 			if (boolValues.find(p.second) != boolValues.end()){
 				if (boolValues[p.second] == false)
 					collector.emplace_back(Z3_mk_eq(ctx, p.second, Z3_mk_false(ctx)));
@@ -8251,8 +8248,8 @@ void collectAllFurtherParents(Z3_theory t, Z3_ast node, std::set<Z3_ast> &list) 
 void displayListNode(Z3_theory t, std::vector<Z3_ast> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::vector<Z3_ast>::iterator it = l.begin(); it != l.end(); ++it) {
-		printZ3Node(t, (Z3_ast)*it);
+	for (const auto& n : l) {
+		printZ3Node(t, n);
 		__debugPrint(logFile, "\n");
 	}
 	__debugPrint(logFile, "\n");
@@ -8261,8 +8258,8 @@ void displayListNode(Z3_theory t, std::vector<Z3_ast> l, std::string msg) {
 void displayListNode(Z3_theory t, std::set<Z3_ast> l, std::string msg) {
 	if (msg.length() > 0)
 		__debugPrint(logFile, "%s\n", msg.c_str());
-	for (std::set<Z3_ast>::iterator it = l.begin(); it != l.end(); ++it) {
-		printZ3Node(t, (Z3_ast)*it);
+	for (const auto& n : l) {
+		printZ3Node(t, n);
 		__debugPrint(logFile, "\n");
 	}
 	__debugPrint(logFile, "\n");

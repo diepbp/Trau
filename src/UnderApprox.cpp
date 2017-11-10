@@ -36,6 +36,42 @@ std::string getPossibleValue(std::string s){
 	return "!FoUnD";
 }
 
+bool isEqualVector(std::vector<std::string> a, std::vector<std::string> b) {
+
+	if (a.size() != b.size())
+		return false;
+	for (unsigned int i = 0; i < a.size(); ++i)
+		if (a[i].compare(b[i]) != 0)
+			return false;
+
+	return true;
+}
+
+std::vector<std::string> find_eq_class(std::string var){
+	std::vector<std::string> ret;
+	for (const auto& v : equalitiesMap) {
+		if (v.first.compare(var) == 0)
+			ret.emplace_back(v.first);
+		else {
+			for (const auto& l00 : v.second) {
+				bool found = false;
+				for (const auto& l01 :equalitiesMap[var]){
+					/* compare two vectors */
+					if (isEqualVector(l00, l01)) {
+						found = true;
+						break;
+					}
+				}
+				if (found) {
+					ret.emplace_back(v.first);
+					break;
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 void updatePossibleArrangements(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements,
@@ -811,59 +847,67 @@ std::string create_constraints_ReplaceAll(
 	if (isConst_00 && isConst_01 && isConst_02)
 		return "true";
 	else if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
+		std::string result = "";
+		/* find all eq variable */
+		std::vector<std::string> eqArg0 = find_eq_class(args[0]);
 		assert (equalitiesMap.find(args[0]) != equalitiesMap.end());
-		for (const auto& list : equalitiesMap[args[0]]) {
-			/* if all internal vars */
-			std::string tmp = "";
-			std::vector<std::string> listRegexPlus00;
-			for (const auto& s : list)
-				if (s[0] == '$')
-					tmp = tmp + s;
-				else if (s[0] != '"') {
-					tmp = "";
-					break;
-				}
-				else if (s.find(s0) == std::string::npos) {
-					tmp = "";
-					break;
-				}
-				else
-					listRegexPlus00.emplace_back(s.substr(1, s.length() - 2));
+		for (const auto& var : eqArg0) {
+			__debugPrint(logFile, "%d %s == %s\n", __LINE__, args[0].c_str(), var.c_str());
+			for (const auto& list : equalitiesMap[var]) {
+				/* if all internal vars */
+				std::string tmp = "";
+				std::vector<std::string> listRegexPlus00;
+				for (const auto& s : list)
+					if (s[0] == '$')
+						tmp = tmp + s;
+					else if (s[0] != '"') {
+						tmp = "";
+						break;
+					}
+					else if (s.find(s0) == std::string::npos) {
+						tmp = "";
+						break;
+					}
+					else
+						listRegexPlus00.emplace_back(s.substr(1, s.length() - 2));
 
-			__debugPrint(logFile, "%d %s: tmp = %s\n", __LINE__, __FUNCTION__, tmp.c_str());
+				__debugPrint(logFile, "%d %s: tmp = %s\n", __LINE__, __FUNCTION__, tmp.c_str());
 
-			if (tmp.length() == 0)
-				continue;
+				if (tmp.length() == 0)
+					continue;
 
-			__debugPrint(logFile, "%d reach half: %s\n", __LINE__, tmp.c_str());
-			/* */
-			for (const auto& var : eqToStr) {
+				__debugPrint(logFile, "%d reach half: %s\n", __LINE__, tmp.c_str());
+				/* */
+				for (const auto& var : eqToStr) {
 
-				if (var.first.compare(args[0]) != 0)
-					for (unsigned i = 0; i < var.second.size(); ++i)
-						if (var.second[i].compare(tmp) == 0) {
-							/* check matching one more time */
-							assert (equalitiesMap[var.first].size() > i);
-							std::vector<std::string> listRegexPlus01;
-							for (const auto& s : equalitiesMap[var.first][i])
-								if (s[0] == '"') {
-									if (s.find(s1) != std::string::npos)
-										listRegexPlus01.emplace_back(s.substr(1, s.length() - 2));
+					if (var.first.compare(args[0]) != 0)
+						for (unsigned i = 0; i < var.second.size(); ++i)
+							if (var.second[i].compare(tmp) == 0) {
+								/* check matching one more time */
+								assert (equalitiesMap[var.first].size() > i);
+								std::vector<std::string> listRegexPlus01;
+								for (const auto& s : equalitiesMap[var.first][i])
+									if (s[0] == '"') {
+										if (s.find(s1) != std::string::npos)
+											listRegexPlus01.emplace_back(s.substr(1, s.length() - 2));
+									}
+								if (listRegexPlus00.size() == listRegexPlus01.size()) {
+									for (unsigned i = 0; i < listRegexPlus00.size(); ++i) {
+										assert(constMap.find(listRegexPlus00[i]) != constMap.end());
+										result += "(= " + constMap[listRegexPlus00[i]] + "__p0 " + constMap[listRegexPlus01[i]] +"__p0) ";
+										__debugPrint(logFile, "%d %s vs %s\n", __LINE__, listRegexPlus00[i].c_str(), listRegexPlus01[i].c_str());
+									}
+									__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, result.c_str());
+
 								}
-							if (listRegexPlus00.size() == listRegexPlus01.size()) {
-								std::string result = "";
-								for (unsigned i = 0; i < listRegexPlus00.size(); ++i) {
-									assert(constMap.find(listRegexPlus00[i]) != constMap.end());
-									result = result + "(= " + constMap[listRegexPlus00[i]] + "__p0 " + constMap[listRegexPlus01[i]] +"__p0) ";
-									__debugPrint(logFile, "%d %s vs %s\n", __LINE__, listRegexPlus00[i].c_str(), listRegexPlus01[i].c_str());
-								}
-								__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, result.c_str());
-								return "(and " + result + ")";
+								else
+									assert (listRegexPlus01.size() == 0);
 							}
-							else
-								assert (listRegexPlus01.size() == 0);
-						}
+				}
 			}
+		}
+		if (result.length() > 0) {
+			return "(and " + result + ")";
 		}
 	}
 	return "true";
@@ -3633,10 +3677,10 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
  */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
 	// extractNotConstraints(); //it will do nothing
-	decodeRewriterMap(rewriterStrMap);
+//	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
-	decodeEqualMap();
+//	decodeEqualMap();
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
@@ -3701,8 +3745,8 @@ bool underapproxController(
 		__debugPrint(logFile, "\n");
 	}
 
-	//	printf("%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
-	rewriteGRM_toNewFile(orgInput, NONGRM, equalitiesMap, constMap);
+	__debugPrint(logFile, "%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
+	rewriteGRM_toNewFile(fileDir, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */
 	regexCnt = 0;
