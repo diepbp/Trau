@@ -2430,24 +2430,6 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 
 	std::set<Z3_ast> children01; getNodesInConcat_extended(t, nn1, children01);
 	std::set<Z3_ast> children02; getNodesInConcat_extended(t, nn2, children02);
-//	displayListNode(t, eq01, "eq nn1");
-//	displayListNode(t, eq02, "eq nn2");
-
-//	printZ3Node(t, nn1);
-//	__debugPrint(logFile, " == ");
-//	printZ3Node(t, nn2);
-//	__debugPrint(logFile, "\n");
-//	displayListNode(t, children01, "extend contain nn1");
-//	displayListNode(t, children02, "extend contain nn2");
-//	__debugPrint(logFile, "** %d *** %s *** 2: \n", __LINE__, __FUNCTION__);
-//	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = containPairBoolMap.begin(); it != containPairBoolMap.end(); ++it) {
-//		printZ3Node(t, it->first.first);
-//		__debugPrint(logFile, " -- ");
-//		printZ3Node(t, it->first.second);
-//		__debugPrint(logFile, " --> ");
-//		printZ3Node(t, it->second);
-//		__debugPrint(logFile, "\n");
-//	}
 
 	/* a contains c && a = b --> b contains c */
 	for (const auto& it : children01) {
@@ -2491,7 +2473,7 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 		}
 	}
 
-	add_impliable_contains(t, nn1, nn2);
+//	add_impliable_contains(t, nn1, nn2);
 	add_transitive_contains(t, nn1, nn2);
 	__debugPrint(logFile, "%d %s: back\n", __LINE__, __FUNCTION__);
 	return true;
@@ -4217,14 +4199,17 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 /*
  * all vars do not contain some chars
  */
-std::set<char> get_notContain_set(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
+std::set<char> get_notContain_set(
+		Z3_theory t,
+		std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues){
 	/* init map */
 	std::set<char> initSet;
-	for (unsigned i = 0; i < 255; ++i)
+	for (unsigned i = 32; i < 128; ++i)
 		initSet.emplace(i);
 
 	for (const auto& node : list) {
 		if (isStrVariable(t, node)) {
+			printZ3Node(t, node);
 			std::set<char> tmp;
 			for (const auto& contain : containPairBoolMap)
 				if (contain.first.first == node &&
@@ -4232,6 +4217,8 @@ std::set<char> get_notContain_set(Z3_theory t, std::vector<Z3_ast> list, std::ma
 						boolValues[contain.second] == false){
 					std::string str = getConstString(t, contain.first.second);
 					if (str.size() == 1) {
+						printZ3Node(t, contain.second);
+						__debugPrint(logFile, "\n");
 						for (unsigned j = 0; j < str.length(); ++j)
 							tmp.emplace(str[j]);
 					}
@@ -4335,6 +4322,21 @@ std::map<char, int> computeParikhFromConst(
 /*
  *
  */
+std::vector<char> computeParikhFromConst_complement(
+		Z3_theory t,
+		Z3_ast node){
+	std::vector<char> data;
+	std::string s = getConstString(t, node);
+	for (unsigned i = 32; i < 128; ++i)
+		if (s.find((char)i) == std::string::npos)
+			data.emplace_back(i);
+
+	return data;
+}
+
+/*
+ *
+ */
 std::map<char, int> computeParikhFromVector(
 		Z3_theory t,
 		std::vector<Z3_ast> list){
@@ -4387,35 +4389,44 @@ void compute_parikh(
 		Z3_theory t,
 		Z3_ast node,
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
-		std::map<Z3_ast, std::map<char, int>> &parikhImg){
+		std::map<Z3_ast, std::map<char, int>> &minimum_parikhImg,
+		std::map<Z3_ast, std::map<char, int>> &fixed_parikhImg){
 
-	if (parikhImg.find(node) != parikhImg.end())
+	if (minimum_parikhImg.find(node) != minimum_parikhImg.end())
 		return;
 
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 
-	std::map<char, int> data;
+	std::map<char, int> data_fix;
+	std::vector<char> data_complement;
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
 	displayListNode(t, eq, "eq....");
 	/* check itself and its friends */
 	for (const auto& n : eq) {
 		if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
-			data = computeParikhFromConst(t, n);
+			data_fix = computeParikhFromConst(t, n);
+			data_complement = computeParikhFromConst_complement(t, n);
 			break;
 		}
 	}
 
-	if (data.size() > 0){
-		for (const auto& n : eq){
-			parikhImg[n] = data;
-		}
+	if (data_fix.size() > 0){
+		for (const auto& n : eq)
+			minimum_parikhImg[n] = data_fix;
+
+		for (const auto& ch : data_complement)
+			data_fix[ch] = 0;
+
+		for (const auto& n : eq)
+			fixed_parikhImg[n] = data_fix;
 		return;
 	}
 
 	/* check sub-elements */
-	data = computeParikhFromVectorOfVector(t, combinationOverVariables[node]);
+	std::map<char, int> data_min = computeParikhFromVectorOfVector(t, combinationOverVariables[node]);
+	data_fix = fixed_parikhImg[node];
 
 	__debugPrint(logFile, "%d replaceAllNodeMap size = %ld\n", __LINE__, replaceAllNodeMap.size());
 
@@ -4427,11 +4438,12 @@ void compute_parikh(
 				printZ3Node(t, repAll.first.first);
 				__debugPrint(logFile, "\n");
 
-				compute_parikh(t, repAll.first.first, combinationOverVariables, parikhImg);
+				compute_parikh(t, repAll.first.first, combinationOverVariables, minimum_parikhImg, fixed_parikhImg);
 
-				std::map<char, int> tmp = parikhImg[repAll.first.first];
+				std::map<char, int> tmp_min = minimum_parikhImg[repAll.first.first];
+				std::map<char, int> tmp_fix = fixed_parikhImg[repAll.first.first];
 				__debugPrint(logFile, "%d tmp result\n", __LINE__);
-				for (const auto& ch : tmp)
+				for (const auto& ch : tmp_min)
 					__debugPrint(logFile, "%c:%d\t", ch.first, ch.second);
 				__debugPrint(logFile, "\n");
 
@@ -4446,17 +4458,21 @@ void compute_parikh(
 							__debugPrint(logFile, "%d %s %s\n", __LINE__, s0.c_str(), s1.c_str());
 
 							if (s1.find(s0) == std::string::npos){
-								for (const auto& ch : tmp)
+								for (const auto& ch : tmp_min)
 									if (ch.first != s0[0]) {
-										data.emplace(ch);
+										data_min.emplace(ch);
 									}
 							}
 							else {
 								/* get max of two sets */
-								for (const auto& ch : tmp)
-									if (data.find(ch.first) == data.end() || data[ch.first] < ch.second)
-										data[ch.first] = ch.second;
+								for (const auto& ch : tmp_min)
+									if (data_min.find(ch.first) == data_min.end() || data_min[ch.first] < ch.second)
+										data_min[ch.first] = ch.second;
 							}
+
+							for (const auto& ch : tmp_fix)
+								if (s0[0] != ch.first && s1.find(ch.first) == std::string::npos)
+									data_fix.emplace(ch);
 						}
 					}
 				}
@@ -4464,25 +4480,27 @@ void compute_parikh(
 	}
 
 	for (const auto& n : eq) {
-		parikhImg[n] = data;
+		minimum_parikhImg[n] = data_min;
+		fixed_parikhImg[n] = data_fix;
 	}
 }
 
 /*
  * x = replace y a b --> parikh image of x is almost the same as parikh image of y
  */
-std::map<Z3_ast, std::map<char, int>> calculate_minimumParikh(
+void compute_min_and_fix_Parikh(
 		Z3_theory t,
-		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables){
+		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
+		std::map<Z3_ast, std::map<char, int>> &min_parikhMap,
+		std::map<Z3_ast, std::map<char, int>> &fix_parikhMap){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	std::map<Z3_ast, std::map<char, int>> parikhMap;
 
 	for (const auto& node : replaceAllNodeMap)
-		compute_parikh(t, node.second, combinationOverVariables, parikhMap);
+		compute_parikh(t, node.second, combinationOverVariables, min_parikhMap, fix_parikhMap);
 
 	/* test */
-	for (const auto& node : parikhMap) {
-		__debugPrint(logFile, "%d * %s *: image of ", __LINE__, __FUNCTION__);
+	for (const auto& node : min_parikhMap) {
+		__debugPrint(logFile, "%d * %s *: min image of ", __LINE__, __FUNCTION__);
 		printZ3Node(t, node.first);
 		__debugPrint(logFile, ": \n");
 		for (const auto& ch : node.second)
@@ -4490,7 +4508,14 @@ std::map<Z3_ast, std::map<char, int>> calculate_minimumParikh(
 		__debugPrint(logFile, "\n");
 	}
 
-	return parikhMap;
+	for (const auto& node : fix_parikhMap) {
+		__debugPrint(logFile, "%d * %s *: fixed image of ", __LINE__, __FUNCTION__);
+		printZ3Node(t, node.first);
+		__debugPrint(logFile, ": \n");
+		for (const auto& ch : node.second)
+			__debugPrint(logFile, "%c:%d\t", ch.first, ch.second);
+		__debugPrint(logFile, "\n");
+	}
 }
 
 /*
@@ -4536,8 +4561,9 @@ bool check_substr_basic(
 				for (unsigned j = 0; j < l01.size(); ++j)
 					if (isConstStr(t, l01[j]) || isDetAutomatonFunc(t, l01[j])){
 						std::string s1 = getConstString(t, l01[j]);
-						if (s0.find(s1) == std::string::npos)
+						if (s0.find(s1) == std::string::npos) {
 							return false;
+						}
 					}
 			}
 		}
@@ -4548,8 +4574,9 @@ bool check_substr_basic(
 					for (unsigned j = 0; j < l00.size(); ++j)
 						if (isConstStr(t, l00[j]) || isDetAutomatonFunc(t, l00[j])){
 							std::string s1 = getConstString(t, l00[j]);
-							if (s0.find(s1) == std::string::npos)
+							if (s0.find(s1) == std::string::npos) {
 								return false;
+							}
 						}
 				}
 			}
@@ -4568,7 +4595,8 @@ bool parikh_check_contain(
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list,
 		std::map<Z3_ast, bool> boolValues,
-		std::map<Z3_ast, std::map<char, int>> parikhMap,
+		std::map<Z3_ast, std::map<char, int>> min_parikhMap,
+		std::map<Z3_ast, std::map<char, int>> fix_parikhMap,
 		Z3_ast& conflict){
 
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
@@ -4581,17 +4609,17 @@ bool parikh_check_contain(
 	std::vector<std::string> constList;
 
 	/* check the node */
-	std::map<char, int> data;
+	std::map<char, int> data_min;
 	if (isConstStr(t, node) || isDetAutomatonFunc(t, node)){
-		data = computeParikhFromConst(t, node);
+		data_min = computeParikhFromConst(t, node);
 		constList.emplace_back(getConstString(t, node));
-		for (const auto& ch : data)
+		for (const auto& ch : data_min)
 			__debugPrint(logFile, " --- %c %d\t", ch.first, ch.second);
 	}
 	else {
-		data = computeParikhFromVectorOfVector(t, list);
-		for (const auto& ch : data)
-					__debugPrint(logFile, " ### %c %d\t", ch.first, ch.second);
+		data_min = computeParikhFromVectorOfVector(t, list);
+		for (const auto& ch : data_min)
+			__debugPrint(logFile, " ### %c %d\t", ch.first, ch.second);
 		for (const auto& v : list)
 			for (const auto n : v)
 				if (isConstStr(t, n) || isDetAutomatonFunc(t, n))
@@ -4599,28 +4627,30 @@ bool parikh_check_contain(
 	}
 
 	/* get max of two sets */
-	for (const auto& ch : data)
-		if (parikhMap[node].find(ch.first) == data.end() || parikhMap[node][ch.first] < ch.second)
-			parikhMap[node][ch.first] = ch.second;
+	for (const auto& ch : data_min)
+		if (min_parikhMap[node].find(ch.first) == data_min.end() || min_parikhMap[node][ch.first] < ch.second)
+			min_parikhMap[node][ch.first] = ch.second;
 
-	data = parikhMap[node];
-	for (const auto& ch : data)
+	data_min = min_parikhMap[node];
+	std::map<char, int> data_fix = fix_parikhMap[node];
+	for (const auto& ch : data_min)
 		__debugPrint(logFile, " +++ %c %d\t", ch.first, ch.second);
 	__debugPrint(logFile, "\n");
 
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
 
-	if (data.size() > 0) {
-		for (const auto& contain : containPairBoolMap)
-			if (std::find(eq.begin(), eq.end(), contain.first.first) != eq.end() &&
-					(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) &&
-					boolValues[contain.second] == false){
-				std::string str = getConstString(t, contain.first.second);
 
+	for (const auto& contain : containPairBoolMap)
+		if (std::find(eq.begin(), eq.end(), contain.first.first) != eq.end() &&
+				(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second))){
+			std::string str = getConstString(t, contain.first.second);
+			assert(boolValues.find(contain.second) != boolValues.end());
+
+			if (boolValues[contain.second] == false) {
 				if (str.length() == 1) {
 					__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
 					for (unsigned j = 0; j < str.length(); ++j)
-						if (data[str[j]] > 0) {
+						if (data_min[str[j]] > 0) {
 							conflict = contain.second;
 							return false;
 						}
@@ -4632,7 +4662,16 @@ bool parikh_check_contain(
 						return false;
 					}
 			}
-	}
+			else {
+				for (unsigned i = 0 ; i < str.length(); ++i)
+					if (data_fix.find(str[i]) != data_fix.end() && data_fix[str[i]] == 0) {
+						conflict = contain.second;
+						__debugPrint(logFile, "%d does not work because of fix_parikhImg: %s, at %c\n", __LINE__, str.c_str(), str[i]);
+						return false;
+					}
+			}
+		}
+
 	return true;
 }
 
@@ -4748,12 +4787,12 @@ bool parikh_check_replaceall(
 		__debugPrint(logFile, "\n%d lower00 bound\n", __LINE__);
 		for (const auto& p : lower00)
 			if (p.second > 0)
-				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+				__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
 
 		__debugPrint(logFile, "\n%d lower01 bound\n", __LINE__);
 		for (const auto& p : lower01)
 			if (p.second > 0)
-				__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+				__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
 
 		for (const auto& ch : fixed00)
 			if (lower01[ch.first] > ch.second)
@@ -4767,43 +4806,49 @@ bool parikh_check_replaceall(
 		__debugPrint(logFile, "%d checking regex plus\n", __LINE__);
 		std::set<char> notContain00 = get_notContain_set(t, list[0], boolValues);
 		std::set<char> notContain01 = get_notContain_set(t, list[i], boolValues);
-
+		std::set<char> intersection;
+		for (const auto& ch : notContain00) {
+			__debugPrint(logFile, "%d letter: %c\n", __LINE__, ch);
+			if (notContain01.find(ch) != notContain01.end())
+				intersection.emplace(ch);
+		}
 		/* check two replace all funcs */
-		for (const auto& ch : notContain00)
-			if (notContain01.find(ch) != notContain01.end()) {
-				int cnt00 = 0, cnt01 = 0;
-				/* count list 0 */
-				for (const auto& p : list[0])
-					if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
-						cnt00 = -1;
-						break;
-					}
-					else if (isRegexPlusFunc(t, p)) {
-						std::string s = parse_regex_content(getConstString(t, p));
-						if (s.find(ch) != std::string::npos)
-							++cnt00;
-					}
-				if (cnt00 == -1)
-					continue;
+		for (const auto& ch : intersection){
+			__debugPrint(logFile, "%d not include letter: %c\n", __LINE__, ch);
+			int cnt00 = 0, cnt01 = 0;
+			/* count list 0 */
+			for (const auto& p : list[0])
+				if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
+					cnt00 = -1;
+					break;
+				}
+				else if (isRegexPlusFunc(t, p)) {
+					std::string s = parse_regex_content(getConstString(t, p));
+					if (s.find(ch) != std::string::npos)
+						++cnt00;
+				}
+			if (cnt00 == -1)
+				continue;
 
-				/* count list i */
-				for (const auto& p : list[i])
-					if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
-						cnt01 = -1;
-						break;
-					}
-					else if (isRegexPlusFunc(t, p)) {
-						std::string s = parse_regex_content(getConstString(t, p));
-						if (s.find(ch) != std::string::npos)
-							++cnt01;
-					}
-				if (cnt01 == -1)
-					continue;
+			/* count list i */
+			for (const auto& p : list[i])
+				if (isConstStr(t, p) || isDetAutomatonFunc(t, p)) {
+					cnt01 = -1;
+					break;
+				}
+				else if (isRegexPlusFunc(t, p)) {
+					std::string s = parse_regex_content(getConstString(t, p));
+					if (s.find(ch) != std::string::npos)
+						++cnt01;
+				}
+			if (cnt01 == -1)
+				continue;
 
+			if (cnt00 != cnt01) {
 				__debugPrint(logFile, "%d compare regex plus: char = %c: %d %d\n", __LINE__, ch, cnt00, cnt01);
-				if (cnt00 != cnt01)
-					return false;
+				return false;
 			}
+		}
 	}
 	return true;
 }
@@ -4881,6 +4926,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	/* collect all equal possibilities of root variables */
 	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
+		__debugPrint(logFile, "%d before parikh_check_replaceall: var = %s\n", __LINE__, varName.c_str());
 		bool fine_replace = parikh_check_replaceall(t, itor->second, boolMapValues);
 		bool substr_basic = check_substr_basic(t, itor->first, itor->second);
 
@@ -4936,20 +4982,22 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	}
 
 	/* check parikh satisfiability based on relation between replaceall */
-	std::map<Z3_ast, std::map<char, int>> parikhMap = calculate_minimumParikh(t, allEqPossibilities);
+	std::map<Z3_ast, std::map<char, int>> min_parikhMap;
+	std::map<Z3_ast, std::map<char, int>> fix_parikhMap;
+	compute_min_and_fix_Parikh(t, allEqPossibilities, min_parikhMap, fix_parikhMap);
 	for (const auto& n : allEqPossibilities) {
 		Z3_ast conflict = NULL;
-		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, parikhMap, conflict);
+		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, min_parikhMap, fix_parikhMap, conflict);
 		if (!fine_contain) {
 			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
-			addAxiom(t, negatePositiveEquality(t, n.first, conflict), __LINE__, true);
+			addAxiom(t, negatePositiveEquality(t, n.first, conflict, boolMapValues), __LINE__, true);
 			return {};
 		}
 	}
 
 	for (const auto& n : allEqPossibilities) {
-		bool fine_regex = parikh_check_regex(t, n.first, n.second, boolMapValues, parikhMap);
+		bool fine_regex = parikh_check_regex(t, n.first, n.second, boolMapValues, min_parikhMap);
 		if (!fine_regex) {
 			__debugPrint(logFile, "%d * %s * regex does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
@@ -6818,7 +6866,11 @@ Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars) {
 /*
  * a = b -> not c
  */
-Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
+Z3_ast negatePositiveEquality(
+		Z3_theory t,
+		Z3_ast node,
+		Z3_ast boolNode,
+		std::map<Z3_ast, bool> boolValues) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
 	__debugPrint(logFile, "\n");
@@ -6836,6 +6888,8 @@ Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
 			}
 			break;
 		}
+
+	Z3_ast negateBool = Z3_mk_not(ctx, boolNode);
 
 	if (containtStr.length() > 0) {
 		std::vector<Z3_ast> minimumSet;
@@ -6862,7 +6916,9 @@ Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
 			for (const auto& n : minimumSet) {
 				tmp00.push_back(Z3_mk_eq(ctx, node, n));
 			}
-			assertion01 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp00), boolNode);
+			if (boolValues[boolNode] == false)
+				assertion01 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp00), boolNode);
+
 			__debugPrint(logFile, "%d >> %s: ", __LINE__, __FUNCTION__);
 			printZ3Node(t, assertion01);
 			__debugPrint(logFile, "\n");
@@ -6875,7 +6931,13 @@ Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode) {
 	for (const auto& n : eq) {
 		tmp01.push_back(Z3_mk_eq(ctx, node, n));
 	}
-	Z3_ast assertion02 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp01), boolNode);
+	Z3_ast assertion02;
+	if (boolValues[boolNode] == false)
+//		assertion02 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp01), boolNode);
+		assertion02 = Z3_mk_true(ctx);
+	else {
+		assertion02 = Z3_mk_not(ctx, boolNode);
+	}
 
 	if (assertion01 != NULL) {
 		Z3_ast ret[2] = {assertion01, assertion02};

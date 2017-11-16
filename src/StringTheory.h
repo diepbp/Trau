@@ -609,14 +609,17 @@ typedef struct _AutomatonStringData
 		 Z3_theory t,
  		Z3_ast node,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
- 		std::map<Z3_ast, std::map<char, int>> &parikhImg);
+ 		std::map<Z3_ast, std::map<char, int>> &min_parikhImg,
+		std::map<Z3_ast, std::map<char, int>> &fix_parikhImg);
 
  /*
   * x = replace y a b --> parikh image of x is almost the same as parikh image of y
   */
- std::map<Z3_ast, std::map<char, int>> calculate_minimumParikh(
-		 Z3_theory t,
-		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables);
+ void compute_min_and_fix_Parikh(
+ 		Z3_theory t,
+ 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
+ 		std::map<Z3_ast, std::map<char, int>> &min_parikhMap,
+ 		std::map<Z3_ast, std::map<char, int>> &fix_parikhMap);
 
  /*
   *
@@ -633,7 +636,8 @@ typedef struct _AutomatonStringData
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues,
-		std::map<Z3_ast, std::map<char, int>> parikhMap,
+		std::map<Z3_ast, std::map<char, int>> min_parikhMap,
+		std::map<Z3_ast, std::map<char, int>> fix_parikhMap,
 		Z3_ast& conflict);
 
  /*
@@ -740,7 +744,11 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   /*
    * a = b -> not c
    */
-  Z3_ast negatePositiveEquality(Z3_theory t, Z3_ast node, Z3_ast boolNode);
+  Z3_ast negatePositiveEquality(
+		  Z3_theory t,
+		  Z3_ast node,
+		  Z3_ast boolNode,
+		  std::map<Z3_ast, bool> boolValues);
 
   /*
    * not(a = b = c = d)
