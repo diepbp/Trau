@@ -1752,15 +1752,15 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		return;
 	}
 
-	if (!checkContainConsistency(t, nn1, nn2)){
-		Z3_ast toAssert = negatedConstraint(t);
-
-		__debugPrint(logFile, "@%d >> Negate of:", __LINE__);
-		printZ3Node(t, toAssert);
-		if (toAssert == NULL)
-			addAxiom(t, negateEquality(t, nn1, nn2), __LINE__, true);
-		return;
-	}
+//	if (!checkContainConsistency(t, nn1, nn2)){
+//		Z3_ast toAssert = negatedConstraint(t);
+//
+//		__debugPrint(logFile, "@%d >> Negate of:", __LINE__);
+//		printZ3Node(t, toAssert);
+//		if (toAssert == NULL)
+//			addAxiom(t, negateEquality(t, nn1, nn2), __LINE__, true);
+//		return;
+//	}
 
 //	add_prefix_relation(t, nn1, nn2);
 //	add_posfix_relation(t, nn1, nn2);
@@ -4991,7 +4991,8 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		if (!fine_contain) {
 			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
-			addAxiom(t, negatePositiveEquality(t, n.first, conflict, boolMapValues), __LINE__, true);
+//			addAxiom(t, negatePositiveEquality(t, n.first, conflict, boolMapValues), __LINE__, true);
+			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
 			return {};
 		}
 	}
@@ -6849,7 +6850,7 @@ Z3_ast negatePositiveContext(Z3_theory t) {
 }
 
 /*
- *
+ * negate all boolean variables
  */
 Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars) {
 #ifdef DEBUGLOG
@@ -6864,91 +6865,7 @@ Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars) {
 }
 
 /*
- * a = b -> not c
- */
-Z3_ast negatePositiveEquality(
-		Z3_theory t,
-		Z3_ast node,
-		Z3_ast boolNode,
-		std::map<Z3_ast, bool> boolValues) {
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
-	__debugPrint(logFile, "\n");
-#endif
-	Z3_context ctx = Z3_theory_get_context(t);
-	std::vector<Z3_ast> eq = collect_eqc(t, node);
-
-	/* find the minimum conflict set */
-	std::string containtStr = "";
-	Z3_ast assertion01 = NULL;
-	for (const auto& contain : containPairBoolMap)
-		if (contain.second == boolNode) {
-			if (isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second)) {
-				containtStr = getConstString(t, contain.first.second);
-			}
-			break;
-		}
-
-	Z3_ast negateBool = Z3_mk_not(ctx, boolNode);
-
-	if (containtStr.length() > 0) {
-		std::vector<Z3_ast> minimumSet;
-		for (const auto& n : eq) {
-			std::vector<Z3_ast> subNodes;
-			getAllNodesInConcat(t, n, subNodes);
-			for (const auto& subNode : subNodes) {
-				std::string source = "";
-				if (isConstStr(t, subNode) || isDetAutomatonFunc(t, subNode)) {
-					source = getConstString(t, subNode);
-				}
-				else if (isRegexPlusFunc(t, subNode))
-					source = parse_regex_content(getConstString(t, subNode));
-
-				if (source.find(containtStr) != std::string::npos) {
-					minimumSet.emplace_back(n);
-					break;
-				}
-			}
-		}
-
-		if (minimumSet.size() > 0) {
-			std::vector<Z3_ast> tmp00;
-			for (const auto& n : minimumSet) {
-				tmp00.push_back(Z3_mk_eq(ctx, node, n));
-			}
-			if (boolValues[boolNode] == false)
-				assertion01 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp00), boolNode);
-
-			__debugPrint(logFile, "%d >> %s: ", __LINE__, __FUNCTION__);
-			printZ3Node(t, assertion01);
-			__debugPrint(logFile, "\n");
-		}
-	}
-
-
-	/* the maximum conflict set */
-	std::vector<Z3_ast> tmp01;
-	for (const auto& n : eq) {
-		tmp01.push_back(Z3_mk_eq(ctx, node, n));
-	}
-	Z3_ast assertion02;
-	if (boolValues[boolNode] == false)
-//		assertion02 = Z3_mk_implies(ctx, mk_and_fromVector(t, tmp01), boolNode);
-		assertion02 = Z3_mk_true(ctx);
-	else {
-		assertion02 = Z3_mk_not(ctx, boolNode);
-	}
-
-	if (assertion01 != NULL) {
-		Z3_ast ret[2] = {assertion01, assertion02};
-		return Z3_mk_and(ctx, 2, ret);
-	}
-	else
-		return assertion02;
-}
-
-/*
- * not(a = b = c = d)
+ * not(all information related to NODE)
  */
 Z3_ast negatePositiveEquality(
 		Z3_theory t,

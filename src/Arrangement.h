@@ -420,7 +420,7 @@ public:
 						if (elementNames[currentSplit.size()].first.find('+') != std::string::npos)
 							tmp = regexContent;
 						else
-							assert(elementNames[currentSplit.size()].first.find('+') != std::string::npos);
+							assert(elementNames[currentSplit.size()].first.find('*') != std::string::npos);
 						while(tmp.length() < regexValue.length())
 							tmp += regexContent;
 

@@ -742,15 +742,6 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
 
   /*
-   * a = b -> not c
-   */
-  Z3_ast negatePositiveEquality(
-		  Z3_theory t,
-		  Z3_ast node,
-		  Z3_ast boolNode,
-		  std::map<Z3_ast, bool> boolValues);
-
-  /*
    * not(a = b = c = d)
    */
   Z3_ast negatePositiveEquality(
