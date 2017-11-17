@@ -352,16 +352,6 @@ void createConstMap();
 void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
- *
- */
-std::string decodeStr(std::string s);
-
-/*
- *
- */
-void decodeEqualMap();
-
-/*
  * Remove all equalities without connected variables and consts
  */
 
@@ -370,7 +360,7 @@ void refineEqualMap();
 /*
  *
  */
-void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap);
+std::map<std::string, std::string> decodeResultMap(std::map<std::string, std::string> resultMap);
 
 /*
  *

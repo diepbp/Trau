@@ -2083,41 +2083,6 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 }
 
 /*
- *
- */
-void decodeEqualMap(){
-	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
-	for (const auto& eq : equalitiesMap) {
-		/* only itself */
-		if (eq.second.size() == 1 && eq.second[0].size() == 1 && eq.second[0][0].compare(eq.first) == 0)
-			continue;
-
-		std::vector<std::vector<std::string>> tmp_vector;
-		for (unsigned int j = 0; j < eq.second.size(); ++j){
-
-			/* push to map */
-			std::vector<std::string> tmp;
-			for (const auto& s : eq.second[j]) {
-				if (s[0] != '\"') /* const */ {
-					tmp.emplace_back(s);
-				}
-				else
-					tmp.emplace_back(decodeStr(s));
-			}
-			tmp_vector.emplace_back(tmp);
-		}
-
-		if (eq.first[0] != '\"')
-			new_eqMap[eq.first] = tmp_vector;
-		else
-			new_eqMap[decodeStr(eq.first)] = tmp_vector;
-	}
-
-	equalitiesMap.clear();
-	equalitiesMap = new_eqMap;
-}
-
-/*
  * Remove all equalities without connected variables and consts
  */
 void refineEqualMap(){
@@ -2188,32 +2153,13 @@ void refineEqualMap(){
 /*
  *
  */
-void decodeRewriterMap(std::map<StringOP, std::string> &rewriterStrMap){
-	std::map<StringOP, std::string> update;
-	for (const auto& element : rewriterStrMap){
-		StringOP op(element.first);
-		if (element.first.arg01.length() > 0 && element.first.arg01[0] == '"'){
-			op.arg01 = decodeStr(element.first.arg01);
-		}
-
-		if (element.first.arg02.length() > 0 && element.first.arg02[0] == '"'){
-			op.arg02 = decodeStr(element.first.arg02);
-		}
-
-		if (element.first.arg03.length() > 0 && element.first.arg03[0] == '"'){
-			op.arg03 = decodeStr(element.first.arg03);
-		}
-
-		update[op] = element.second;
+std::map<std::string, std::string> decodeResultMap(std::map<std::string, std::string> resultMap){
+	std::map<std::string, std::string> update;
+	for (const auto& element : resultMap){
+		update[element.first] = decodeStr(element.second);
 	}
 
-	rewriterStrMap.clear();
-	rewriterStrMap = update;
-
-	for (const auto& element : rewriterStrMap){
-		StringOP op = element.first;
-		__debugPrint(logFile, "%d rewriterMap: %s --> %s\n", __LINE__, op.toString().c_str(), element.second.c_str());
-	}
+	return update;
 }
 /*
  *
@@ -3330,46 +3276,6 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 		}
 	}
 
-//	for (const auto& eq : equalitiesMap){
-//		if (result.find(eq.first) != result.end() || eq.first[0] == '\"')
-//			continue;
-//
-//		std::string value = "";
-//		for (const auto& v : eq.second){
-//			bool gotValue = true;
-//			for (const auto& s : v){
-//				if (s[0] == '\"') {
-//					if (!isRegexStr(s))
-//						value = value + s.substr(1, s.length() - 2);
-//					else {
-//						// TODO : find the final regex value
-//						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
-//						std::string tmp = getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
-//						if (tmp.compare("!fOuNd") != 0)
-//							value = value + getValueFromRegex(s, std::atoi(len[generateVarLength(constMap[s.substr(1, s.length() - 2)]) + "_100"].c_str()));
-//						else {
-//							value = "";
-//							gotValue = false;
-//							break;
-//						}
-//					}
-//				}
-//				else if (result.find(s) != result.end())
-//					value = value + result[s];
-//				else {
-//					value = "";
-//					gotValue = false;
-//					break;
-//				}
-//			}
-//			if (gotValue == true){
-//				result[eq.first] = value;
-//				value = "";
-//				break;
-//			}
-//		}
-//	}
-
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
 		if (len.find("len_" + var.first) == len.end())
@@ -3527,13 +3433,16 @@ bool Z3_run(
 #endif
 
 	if (sat && getModel) {
-		printSatisfyingAssignments(formatResult(len_results, str_results), len_results);
+		std::map<std::string, std::string> results = formatResult(len_results, str_results);
+		printSatisfyingAssignments(decodeResultMap(results), len_results);
 		if (beReviewed) {
-			verifyOutput(lengthFile, _equalMap, len_results, formatResult(len_results, str_results));
+			verifyOutput(lengthFile, _equalMap, len_results, results);
 			sat = S3_reviews(lengthFile);
 			if (sat == true) {
 				printf("\nDouble-checked by S3P: successful.\n");
 			}
+			else
+				assert(false);
 		}
 		else {
 			sat = true;
@@ -3676,7 +3585,6 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
  *
  */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
-	// extractNotConstraints(); //it will do nothing
 //	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
@@ -3746,7 +3654,7 @@ bool underapproxController(
 	}
 
 	__debugPrint(logFile, "%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
-	rewriteGRM_toNewFile(fileDir, NONGRM, equalitiesMap, constMap);
+	toNonGRMFile(fileDir, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */
 	regexCnt = 0;
@@ -3754,7 +3662,7 @@ bool underapproxController(
 	bool result = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		convertSMTFileToLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
 			return false;
@@ -3765,7 +3673,7 @@ bool underapproxController(
 		bool val = Z3_run(_equalMap, false);
 		if (val == false){
 			regexCnt = 0;
-			convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+			toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
 				printf(">> UNSAT\n");
 				return false;
@@ -3775,7 +3683,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		convertSMTFileToLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");

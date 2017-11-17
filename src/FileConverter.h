@@ -170,7 +170,7 @@ void prepareEncoderDecoderMap(std::string fileName);
  * Concat abc def --> + len_abc len_def
  * Length abc 		--> len_abc
  */
-void customizeLine_ToCreateLengthLine(
+void toLengthLine(
 		std::vector<std::pair<std::string, int>> tokens,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
@@ -182,22 +182,24 @@ void customizeLine_ToCreateLengthLine(
 /*
  * Replace special const in constraints
  */
-std::string replaceSpecialChars(std::string str);
+std::string encodeSpecialChars(std::string str);
+
+
+/*
+ * read SMT file
+ */
+void encodeSpecialChars(std::string inputFile, std::string outFile);
 
 /*
  *
  */
-std::string encodeConst(std::string constStr);
+std::string encodeHex(std::string constStr);
+
 
 /*
  * read SMT file
  */
-void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFile);
-
-/*
- * read SMT file
- */
-void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile);
+void encodeHex(std::string inputFile, std::string outFile);
 
 /*
  * "GrammarIn" --> some new vars, some new constraints
@@ -210,7 +212,7 @@ void rewriteGRM(std::string s,
 /*
  * replace the CFG constraint by the regex constraints
  */
-void rewriteGRM_toNewFile(
+void toNonGRMFile(
 		std::string inputFile,
 		std::string outFile,
 		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
@@ -220,11 +222,17 @@ void rewriteGRM_toNewFile(
  * read SMT file
  * convert the file to length file & store it
  */
-void convertSMTFileToLengthFile(std::string inputFile, bool handleNotOp,
+void toLengthFile(std::string inputFile, bool handleNotOp,
 		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints);
+
+
+/*
+ *
+ */
+std::string decodeStr(std::string s);
 
 /*
  * read SMT file
@@ -236,8 +244,4 @@ void addConstraintsToSMTFile(
 		std::vector<std::string> lengthConstraints,
 		std::string outFile);
 
-/*
- *
- */
-std::string decodeStr(std::string s);
 #endif /* FILECONVERTER_H_ */

@@ -1070,7 +1070,7 @@ void rewriteGRM(std::string s,
  * replace the CFG constraint by the regex constraints
  * it is the rewriteGRM caller
  */
-void rewriteGRM_toNewFile(
+void toNonGRMFile(
 		std::string inputFile,
 		std::string outFile,
 		std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap,
@@ -1129,7 +1129,7 @@ void rewriteGRM_toNewFile(
  * Concat abc def --> + len_abc len_def
  * Length abc 		--> len_abc
  */
-void customizeLine_ToCreateLengthLine(
+void toLengthLine(
 		std::vector<std::pair<std::string, int>> tokens,
 		std::vector<std::string> &strVars,
 		bool handleNotOp,
@@ -1226,7 +1226,7 @@ void customizeLine_ToCreateLengthLine(
 /*
  *
  */
-std::string replaceSpecialChars(std::string constStr){
+std::string encodeSpecialChars(std::string constStr){
 	std::string strTmp = "";
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
@@ -1263,22 +1263,9 @@ std::string replaceSpecialChars(std::string constStr){
 }
 
 /*
- *
- */
-std::string encodeConst(std::string constStr){
-	std::string newStr = "__cOnStStR_";
-	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
-		newStr = newStr + int_to_hex((int)constStr[i]);
-		if (constStr[i] == '\\' && constStr[i + 1] == '\\')
-			++i;
-	}
-	return newStr;
-}
-
-/*
  * read SMT file
  */
-void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFile){
+void encodeSpecialChars(std::string inputFile, std::string outFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;
@@ -1292,7 +1279,7 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
 				break;
 			}
 			else if (token.second == 86) /* string */{
-				std::string tmp = replaceSpecialChars(token.first);
+				std::string tmp = encodeSpecialChars(token.first);
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);
 			}
@@ -1318,10 +1305,25 @@ void rewriteFileSMTToRemoveSpecialChar(std::string inputFile, std::string outFil
 	out.close();
 }
 
+
+
+/*
+ *
+ */
+std::string encodeHex(std::string constStr){
+	std::string newStr = "__cOnStStR_";
+	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
+		newStr = newStr + int_to_hex((int)constStr[i]);
+		if (constStr[i] == '\\' && constStr[i + 1] == '\\')
+			++i;
+	}
+	return newStr;
+}
+
 /*
  * read SMT file
  */
-void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
+void encodeHex(std::string inputFile, std::string outFile){
 
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::vector<std::string>> newtokens;
@@ -1330,7 +1332,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
 		std::vector<std::string> listTokens;
 		for (const auto &token : tokens) {
 			if (token.second == 86) /* string */{
-				std::string tmp = encodeConst(token.first);
+				std::string tmp = encodeHex(token.first);
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);
 			}
@@ -1365,7 +1367,7 @@ void rewriteFileSMTToReplaceConst(std::string inputFile, std::string outFile){
  * read SMT file
  * convert the file to length file & store it
  */
-void convertSMTFileToLengthFile(
+void toLengthFile(
 		std::string inputFile, bool handleNotOp,
 		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
@@ -1379,7 +1381,7 @@ void convertSMTFileToLengthFile(
 	std::vector<std::string> strVars;
 	std::set<std::string> constStr;
 	for (const auto& tokens : fileTokens) {
-		customizeLine_ToCreateLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 	}
 
 	__debugPrint(logFile, "Print smtLength: %d \n", __LINE__);
@@ -1387,11 +1389,42 @@ void convertSMTFileToLengthFile(
 }
 
 /*
+ *
+ */
+std::string decodeStr(std::string s){
+	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
+	std::string tmp = "";
+	for (unsigned i = 0 ; i < s.size(); ++i) {
+		tmp += s[i];
+		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\')
+			++i;
+	}
+	s = tmp;
+	tmp = "";
+
+	for (unsigned int i = 0; i < s.length(); ++i){
+		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
+			if ((char)DECODEMAP[s[i]] != '\t')
+				tmp += (char)DECODEMAP[s[i]];
+			else
+				tmp += "\\t";
+		}
+		else
+			tmp += s[i];
+
+	}
+	__debugPrint(logFile, " %s\n", tmp.c_str());
+	return tmp;
+}
+
+
+/*
  * read SMT file
  * add length constraints and write it
  * rewrite CFG
  */
-void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
+void addConstraintsToSMTFile(
+		std::string inputFile, /* nongrm file */
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::vector<std::string> lengthConstraints,
 		std::string outFile){
@@ -1443,38 +1476,4 @@ void addConstraintsToSMTFile(std::string inputFile, /* nongrm file */
 
 	out.flush();
 	out.close();
-}
-
-/*
- *
- */
-std::string decodeStr(std::string s){
-	__debugPrint(logFile, "%d *** %s ***: %s: ", __LINE__, __FUNCTION__, s.c_str());
-	std::string tmp = "";
-	for (unsigned i = 0 ; i < s.size(); ++i) {
-		tmp += s[i];
-		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\')
-			++i;
-	}
-	s = tmp;
-	tmp = "";
-
-	int cnt = 0;
-	for (unsigned int i = 0; i < s.length(); ++i){
-		if (s[i] == '"' && (i == 0 || (i > 0 && s[i - 1] != '\\'))) {
-			cnt++;
-			tmp = tmp + s[i];
-			continue;
-		}
-		if (DECODEMAP.find(s[i]) != DECODEMAP.end() && cnt == 1){
-			if (s[i] == '"' && i > 0 && s[i - 1] != '\\')
-				tmp = tmp.substr(0, tmp.length() - 1);
-			tmp = tmp + (char)DECODEMAP[s[i]];
-		}
-		else
-			tmp = tmp + s[i];
-
-	}
-	__debugPrint(logFile, " %s\n", tmp.c_str());
-	return tmp;
 }

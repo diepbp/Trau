@@ -7553,8 +7553,15 @@ bool collectLastIndexOfValueInPositiveContext(
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
+	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
+		printZ3Node(t, boolNode);
+		__debugPrint(logFile, "\n");
+	__debugPrint(logFile, "%d size of last indexof: %ld\n", __LINE__, lastIndexOfStrMap.size());
+
 	for (const auto& it : lastIndexOfStrMap) {
+
 		if (boolStr.compare(it.second.first) == 0){
+			__debugPrint(logFile, "%d %s: %s %s\n", __LINE__, it.first.arg01.c_str(), it.second.first.c_str(), it.second.second.c_str());
 			if (boolValue) {
 				rewriterStrMap[it.first] = it.second.second;
 				if (carryOn.find(boolNode) != carryOn.end())
@@ -7772,6 +7779,8 @@ void collectDataInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
+	printZ3Node(t, ctxAssign);
+	__debugPrint(logFile, "\n");
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
@@ -7803,21 +7812,16 @@ void collectDataInPositiveContext(
 
 			T_TheoryType type = getNodeType(t, argAst);
 
-			bool found = false;
+			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false;
 			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
 				collectBoolValueInPositiveContext(t, argAst, boolVars);
-				found = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				found = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				if (!found)
-					found = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				if (!found)
-					found = collectEndsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				if (!found)
-					found = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				if (!found)
-					found = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				if (!found)
-					found = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+				found01 = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+				found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+				found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+				found04 = collectEndsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+				found05 = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+				found06 = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+				found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 			}
 
 			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
@@ -7826,22 +7830,17 @@ void collectDataInPositiveContext(
 				T_TheoryType type = getNodeType(t, boolNode);
 				astToString = Z3_ast_to_string(ctx, boolNode);
 				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-					found = collectContainValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					found = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					if (!found)
-						found = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					if (!found)
-						found = collectEndsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					if (!found)
-						found = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					if (!found)
-						found = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					if (!found)
-						found = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+					found01 = collectContainValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+					found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+					found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+					found04 = collectEndsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+					found05 = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+					found06 = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+					found07 = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 				}
 			}
 
-			if (found == false){
+			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07)){
 				collectEqualValueInPositiveContext(t, argAst, rewriterStrMap);
 			}
 		}

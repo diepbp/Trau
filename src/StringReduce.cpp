@@ -976,11 +976,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 		Z3_ast condAst_x2 = registerContain(t, x2, args[1]);
 		thenItems.push_back(Z3_mk_not(ctx, condAst_x2));
 
-
-		if (isDetAutomatonFunc(t, args[1]) || isConstStr(t, args[1]))
-			lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
-		else
-			lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
+		lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
 
 		if (!canSkipExt(t, args[1])) {
 			// args[0]  = x3 . x4 /\ |x3| = |x1| + 1 /\ ! contains(x4, args[1])

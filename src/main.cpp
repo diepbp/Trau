@@ -152,7 +152,7 @@ std::string convertFileToReplaceConst(std::string fileDir) {
 
 	/* create file */
 	std::string outFile = std::string(TMPDIR) + "converted_" + fileName ;
-	rewriteFileSMTToReplaceConst(fileDir, outFile);
+	encodeHex(fileDir, outFile);
 	return outFile;
 }
 
@@ -172,7 +172,7 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	outFile = outFile + fileName;
 
 	prepareEncoderDecoderMap(fileDir);
-	rewriteFileSMTToRemoveSpecialChar(fileDir, outFile);
+	encodeSpecialChars(fileDir, outFile);
 
 	return outFile;
 }
