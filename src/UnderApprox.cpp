@@ -2099,10 +2099,17 @@ void refineEqualMap(){
 		for (const auto& _eq : varEq.second){
 			/* x = x: remove if "x" is not a connected var */
 			if (_eq.size() == 1 &&
-					_eq[0].compare(varEq.first) == 0 &&
-					connectedVariables.find(_eq[0]) == connectedVariables.end()) {
-				__debugPrint(logFile, "%d *** %s ***: remove %s\n", __LINE__, __FUNCTION__, _eq[0].c_str());
-				continue;
+					_eq[0].compare(varEq.first) == 0) {
+				if (connectedVariables.find(_eq[0]) == connectedVariables.end()) {
+					__debugPrint(logFile, "%d *** %s ***: remove %s\n", __LINE__, __FUNCTION__, _eq[0].c_str());
+					continue;
+				}
+				else {
+					if (varEq.second.size() == 1) {
+						__debugPrint(logFile, "%d *** %s ***: remove %s\n", __LINE__, __FUNCTION__, _eq[0].c_str());
+						continue;
+					}
+				}
 			}
 
 			/* push to map */
@@ -2141,7 +2148,8 @@ void refineEqualMap(){
 				tmp_vector01.emplace_back(tmp_vector[i]);
 		}
 
-		new_eqMap[varEq.first] = tmp_vector01;
+		if (tmp_vector01.size() > 0)
+			new_eqMap[varEq.first] = tmp_vector01;
 	}
 
 	equalitiesMap.clear();
@@ -3585,10 +3593,8 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
  *
  */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
-//	decodeRewriterMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
-//	decodeEqualMap();
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
@@ -3608,6 +3614,55 @@ void additionalHandling(std::map<StringOP, std::string> rewriterStrMap){
 	handle_ToUpper(rewriterStrMap);
 	handle_ToLower(rewriterStrMap);
 	handle_ReplaceAll(rewriterStrMap);
+}
+
+/*
+ *
+ */
+std::set<std::string> collectAllVars(){
+	std::set<std::string> results;
+	for (const auto& varEq: equalitiesMap) {
+		if (varEq.first[0] != '"')
+			results.emplace(varEq.first);
+
+		for (const auto& _eq : varEq.second){
+			for (const auto& v : _eq)
+				if (v[0] != '"')
+					results.emplace(v);
+		}
+	}
+	return results;
+}
+
+/*
+ *
+ */
+void updateRewriter(
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> allVars){
+	std::map<StringOP, std::string> newRewriterStrMap;
+	for (const auto& op : rewriterStrMap){
+		if (op.first.name.compare("=") == 0) {
+			if (op.second.compare("false") == 0) {
+				if (equalitiesMap.find(op.first.arg01) != equalitiesMap.end() &&
+						equalitiesMap.find(op.first.arg02) != equalitiesMap.end()) {
+					StringOP tmp = op.first;
+					__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
+					continue;
+				}
+			}
+		}
+		else if (allVars.find(op.first.arg01) != allVars.end() ||
+				allVars.find(op.first.arg02) != allVars.end() ||
+				allVars.find(op.first.arg03) != allVars.end())
+			newRewriterStrMap[op.first] = op.second;
+		else {
+			StringOP tmp = op.first;
+			__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
+		}
+	}
+	rewriterStrMap.clear();
+	rewriterStrMap = newRewriterStrMap;
 }
 
 /*
@@ -3636,6 +3691,9 @@ bool underapproxController(
 	reset();
 
 	init(rewriterStrMap);
+
+	std::set<std::string> allVars = collectAllVars();
+	updateRewriter(rewriterStrMap, allVars);
 
 	additionalHandling(rewriterStrMap);
 

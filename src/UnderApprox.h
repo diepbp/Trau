@@ -515,6 +515,18 @@ void init(std::map<StringOP, std::string> &rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 
+/*
+ *
+ */
+std::set<std::string> collectAllVars();
+
+/*
+ *
+ */
+void updateRewriter(
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> allVars);
+
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<StringOP, std::string> rewriterStrMap,

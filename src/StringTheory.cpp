@@ -4878,8 +4878,6 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		}
 	}
 
-//	displayListString(non_root, "*** non_root ***");
-
 	__debugPrint(logFile, "%d *** %s ***: replaceNodeMap\n", __LINE__, __FUNCTION__);
 	for (const auto& var: replaceNodeMap) {
 
@@ -5119,11 +5117,6 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 		if (combination.size() == 0)
 			return Z3_TRUE;
-
-		for (const auto it : endsWithStrMap){
-			StringOP op = it.first;
-			__debugPrint(logFile, "%d endsWithStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), it.second.c_str());
-		}
 
 		std::map<StringOP, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
