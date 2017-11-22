@@ -16,6 +16,8 @@
 #define NONGRM "/tmp/fat_str_convert/_nogrm.smt2"
 
 #define ALLVAR 0
+#define MAXP 6
+#define MAXQ 7
 
 extern std::string orgInput;
 extern bool getModel;
@@ -133,6 +135,11 @@ std::vector<std::string> collectAllPossibleArrangements(
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements,
 		std::map<std::string, int> &newVars);
+
+/*
+ *
+ */
+int findVariableSize(std::string v);
 
 /*
  * startswith a b

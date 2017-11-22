@@ -615,6 +615,46 @@ std::string generateVarLength(std::string a){
 }
 
 /*
+ *
+ */
+int findVariableSize(std::string v){
+	int minSize = MAXP;
+	for (const auto& var : equalitiesMap)
+		for (const auto& _eq : var.second) {
+			int localMin = MAXP;
+			if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
+				/* count regex */
+				for (const auto& s : _eq) {
+					if (s[0] == '"')
+						if (isRegexStr(s) && s.find("+") != std::string::npos)
+							localMin--;
+				}
+				minSize = minSize < localMin ? minSize : localMin;
+			}
+		}
+	return minSize;
+}
+
+/*
+ *
+ */
+bool canSkipNotContain(
+		std::string v,
+		std::string arg,
+		std::map<StringOP, std::string> rewriterStrMap){
+	for (const auto& var : equalitiesMap)
+			for (const auto& _eq : var.second) {
+				if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
+					StringOP opTmp("Contains", var.first, arg);
+					if (rewriterStrMap[opTmp].compare("false") == 0) {
+						__debugPrint(logFile, "%d *** %s ***: Contains - %s - %s\n", __LINE__, __FUNCTION__, v.c_str(), arg.c_str());
+						return true;
+					}
+				}
+			}
+	return false;
+}
+/*
  * startswith a b
  * startwith "a" b
  * startwith a "b"
@@ -930,7 +970,8 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	 * 		..
 	 * )
 	 * */
-	for (unsigned i = value.length() - 2; i < (unsigned)std::min(CONNECTSIZE, 50); ++i){
+	int maxSize = findVariableSize(var) * MAXQ;
+	for (unsigned i = value.length() - 2; i <= (unsigned)std::min(CONNECTSIZE, maxSize); ++i){
 		std::vector<std::string> tmp;
 		tmp.emplace_back("(< " + lenName + " " + std::to_string(i) + " )");
 
@@ -941,7 +982,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 		andConstraints.emplace_back(orConstraint(tmp));
 	}
 
-	andConstraints.emplace_back("(< " + lenName + " " + std::to_string(std::min(CONNECTSIZE, 50)) + " )");
+	andConstraints.emplace_back("(< " + lenName + " " + std::to_string(std::min(CONNECTSIZE, maxSize)) + " )");
 	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
@@ -1091,7 +1132,9 @@ void handle_NOTContains(
 						element.first.arg02.find("Concat ") != std::string::npos ||
 						element.first.arg02.find("Automata ") != std::string::npos)
 					continue;
-
+				if (canSkipNotContain(element.first.arg01, element.first.arg02, rewriterStrMap)){
+					continue;
+				}
 				std::string value02 = getPossibleValue(element.first.arg02);
 				std::string value01 = getPossibleValue(element.first.arg01);
 				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
@@ -1315,7 +1358,13 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 		}
 		else {
 			defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
-			constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+
+			if (it->first.find("+") != std::string::npos)
+				constraints.emplace_back("(assert (> len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+			else {
+				assert(it->first.find("*") != std::string::npos);
+				constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+			}
 
 			create_constraints_regex(defines, constraints, it->first, it->second);
 		}
@@ -1531,7 +1580,7 @@ void writeOutput_basic(std::string outFile){
 		out.flush();
 	}
 
-	out << "(check-sat)\n(get-model)\n";
+	out << "(get-model)\n";
 	out.flush();
 	out.close();
 }

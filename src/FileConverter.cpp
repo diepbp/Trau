@@ -1096,18 +1096,15 @@ void toNonGRMFile(
 		/* read a line */
 		if (fgets(buffer, 5000, in) != NULL){
 
-			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				break;
+			std::string tmp = buffer;
+			if (tmp.find("GrammarIn") != std::string::npos) {
+				rewriteGRM(tmp, equalitiesMap, constMap, definitions, constraints);
 			}
-			else {
-				std::string tmp = buffer;
-				if (tmp.find("GrammarIn") != std::string::npos) {
-					rewriteGRM(tmp, equalitiesMap, constMap, definitions, constraints);
-				}
-				else
-					constraints.emplace_back(tmp);
-			}
+			else
+				constraints.emplace_back(tmp);
 		}
+		else
+			break;
 	}
 
 	/* write everything to the file */
@@ -1119,7 +1116,10 @@ void toNonGRMFile(
 		out << constraints[i];
 	}
 
-	out << "(check-sat)\n(get-model)\n";
+	if (constraints[constraints.size() - 1].find("get-model") == std::string::npos){
+		out << "\n(get-model)";
+	}
+
 	out.close();
 	pclose(in);
 }
@@ -1443,21 +1443,18 @@ void addConstraintsToSMTFile(
 	while (!feof(in)) {
 		/* read a line */
 		if (fgets(buffer, 5000, in) != NULL){
-			if (strcmp("(check-sat)", buffer) == 0 || strcmp("(check-sat)\n", buffer) == 0) {
-				break;
+			std::string tmp = buffer;
+			/* rewrite CFG */
+			if (tmp.find("GrammarIn") != std::string::npos) {
+				assert(false);
+				// rewriteGRM(tmp, _equalMap, newVars, definitions, constraints);
 			}
 			else {
-				std::string tmp = buffer;
-				/* rewrite CFG */
-				if (tmp.find("GrammarIn") != std::string::npos) {
-					assert(false);
-					// rewriteGRM(tmp, _equalMap, newVars, definitions, constraints);
-				}
-				else {
-					constraints.emplace_back(tmp);
-				}
+				constraints.emplace_back(tmp);
 			}
 		}
+		else
+			break;
 	}
 
 	/* write everything to the file */
@@ -1469,8 +1466,6 @@ void addConstraintsToSMTFile(
 		out << lengthConstraints[i];
 		out.flush();
 	}
-
-	out << "(check-sat)\n(get-model)\n";
 
 	pclose(in);
 

@@ -4342,8 +4342,10 @@ std::map<char, int> computeParikhFromVector(
 		std::vector<Z3_ast> list){
 	std::map<char, int> tmp;
 	for (const auto& n : list)
-		if (isConstStr(t, n) || isDetAutomatonFunc(t, n)){
+		if (isConstStr(t, n) || isDetAutomatonFunc(t, n) || isRegexPlusFunc(t, n)){
 			std::string s = getConstString(t, n);
+			if (isRegexPlusFunc(t, n))
+				s = parse_regex_content(s);
 			/* compare to the first char */
 			unsigned i = 1;
 			for (; i < s.size(); ++i)
@@ -4647,8 +4649,8 @@ bool parikh_check_contain(
 			assert(boolValues.find(contain.second) != boolValues.end());
 
 			if (boolValues[contain.second] == false) {
+				__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
 				if (str.length() == 1) {
-					__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
 					for (unsigned j = 0; j < str.length(); ++j)
 						if (data_min[str[j]] > 0) {
 							conflict = contain.second;
