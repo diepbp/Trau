@@ -589,19 +589,68 @@ typedef struct _AutomatonStringData
  /*
   * how many letters in a combination
   * */
- std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
+ std::map<char, int> eval_parikh_lowerbound(
+		 Z3_theory t,
+		 std::vector<Z3_ast> list,
+		 std::map<Z3_ast, bool> boolValues);
 
  /*
   * how many letters in a combination
   * */
- std::map<char, int> eval_parikh_fixedbound(Z3_theory t, std::vector<Z3_ast> list, std::map<Z3_ast, bool> boolValues);
+ std::map<char, int> eval_parikh_fixedbound(
+ 		Z3_theory t,
+ 		std::vector<Z3_ast> list,
+ 		std::map<Z3_ast, bool> boolValues);
+
+ /*
+  *
+  */
+ std::map<std::string, int> getMaxParikhMap(
+ 		std::map<std::string, int> data,
+ 		std::map<std::string, int> tmp);
 
  /*
   *
   */
  void addToParikhMap(
- 		char ch,
- 		std::map<char, int> &m);
+ 		std::string ch,
+ 		std::map<std::string, int> &m);
+
+ /*
+  *
+  */
+ std::map<std::string, int> computeParikhFromConst(
+ 		Z3_theory t,
+ 		Z3_ast node);
+
+ /*
+  *
+  */
+ std::vector<std::string> computeParikhFromConst_complement(
+ 		Z3_theory t,
+ 		Z3_ast node);
+
+ /*
+  *
+  */
+ std::map<std::string, int> computeParikhFromVector(
+ 		Z3_theory t,
+ 		std::vector<Z3_ast> list);
+
+ /*
+  *
+  */
+ std::map<std::string, int> computeParikhFromVectorOfVector(
+ 		Z3_theory t,
+ 		std::vector<std::vector<Z3_ast>> list);
+
+ /*
+  *
+  */
+ std::map<std::string, int> computeMinParikh(
+ 		Z3_theory t,
+ 		Z3_ast node,
+ 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables);
  /*
   *
   */
@@ -609,8 +658,8 @@ typedef struct _AutomatonStringData
 		 Z3_theory t,
  		Z3_ast node,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
- 		std::map<Z3_ast, std::map<char, int>> &min_parikhImg,
-		std::map<Z3_ast, std::map<char, int>> &fix_parikhImg);
+ 		std::map<Z3_ast, std::map<std::string, int>> &min_parikhImg,
+		std::map<Z3_ast, std::map<std::string, int>> &fix_parikhImg);
 
  /*
   * x = replace y a b --> parikh image of x is almost the same as parikh image of y
@@ -618,8 +667,8 @@ typedef struct _AutomatonStringData
  void compute_min_and_fix_Parikh(
  		Z3_theory t,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
- 		std::map<Z3_ast, std::map<char, int>> &min_parikhMap,
- 		std::map<Z3_ast, std::map<char, int>> &fix_parikhMap);
+ 		std::map<Z3_ast, std::map<std::string, int>> &min_parikhMap,
+ 		std::map<Z3_ast, std::map<std::string, int>> &fix_parikhMap);
 
  /*
   *
@@ -636,9 +685,19 @@ typedef struct _AutomatonStringData
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues,
-		std::map<Z3_ast, std::map<char, int>> min_parikhMap,
-		std::map<Z3_ast, std::map<char, int>> fix_parikhMap,
+		std::map<Z3_ast, std::map<std::string, int>> min_parikhMap,
+		std::map<Z3_ast, std::map<std::string, int>> fix_parikhMap,
 		Z3_ast& conflict);
+
+ /*
+  *
+  */
+ bool parikh_check_regex(
+ 		Z3_theory t,
+ 		Z3_ast node,
+ 		std::vector<std::vector<Z3_ast>> list,
+ 		std::map<Z3_ast, bool> boolValues,
+ 		std::map<Z3_ast, std::map<std::string, int>> parikhMap);
 
  /*
   * x = a . b . c = d . e . f --> possible or not
