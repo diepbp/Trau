@@ -4293,6 +4293,17 @@ std::map<char, int> eval_parikh_lowerbound(Z3_theory t, std::vector<Z3_ast> list
 /*
  *
  */
+std::map<char, int> getMaxParikhMap(std::map<char, int> data, std::map<char, int> tmp){
+	/* get max of two maps */
+	for (const auto& ch : tmp)
+		if (data.find(ch.first) == data.end() || data[ch.first] < ch.second)
+			data[ch.first] = ch.second;
+	return data;
+}
+
+/*
+ *
+ */
 void addToParikhMap(
 		char ch,
 		std::map<char, int> &m){
@@ -4377,9 +4388,22 @@ std::map<char, int> computeParikhFromVectorOfVector(
 		std::map<char, int> tmp = computeParikhFromVector(t, v);
 
 		/* get max of two maps */
-		for (const auto& ch : tmp)
-			if (data.find(ch.first) == data.end() || data[ch.first] < ch.second)
-				data[ch.first] = ch.second;
+		data = getMaxParikhMap(data, tmp);
+	}
+	return data;
+}
+
+/*
+ *
+ */
+std::map<char, int> computeMinParikh(
+		Z3_theory t,
+		Z3_ast node,
+		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables){
+	std::map<char, int> data;
+	std::vector<Z3_ast> eq = collect_eqc(t, node);
+	for (const auto& n : eq) {
+		data = getMaxParikhMap(data, computeParikhFromVectorOfVector(t, combinationOverVariables[n]));
 	}
 	return data;
 }
@@ -4427,7 +4451,7 @@ void compute_parikh(
 	}
 
 	/* check sub-elements */
-	std::map<char, int> data_min = computeParikhFromVectorOfVector(t, combinationOverVariables[node]);
+	std::map<char, int> data_min = computeMinParikh(t, node, combinationOverVariables);
 	data_fix = fixed_parikhImg[node];
 
 	__debugPrint(logFile, "%d replaceAllNodeMap size = %ld\n", __LINE__, replaceAllNodeMap.size());
@@ -4460,6 +4484,7 @@ void compute_parikh(
 							__debugPrint(logFile, "%d %s %s\n", __LINE__, s0.c_str(), s1.c_str());
 
 							if (s1.find(s0) == std::string::npos){
+								/* remove that letter */
 								for (const auto& ch : tmp_min)
 									if (ch.first != s0[0]) {
 										data_min.emplace(ch);
