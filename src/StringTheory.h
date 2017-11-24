@@ -582,6 +582,21 @@ typedef struct _AutomatonStringData
 		 int level);
 
  /*
+  * all vars do not contain some letters
+  */
+ std::set<char> getNotContainLetters(
+ 		Z3_theory t,
+ 		std::vector<Z3_ast> list,
+		std::map<Z3_ast, bool> boolValues);
+
+ /*
+   * all vars do not contain some letters
+   */
+  std::set<char> getNotContainLetters(
+  		Z3_theory t,
+  		std::vector<std::vector<Z3_ast>> list,
+ 		std::map<Z3_ast, bool> boolValues);
+ /*
   *
   */
  std::set<Z3_ast> collectConnectedVars(Z3_theory t);
@@ -658,15 +673,17 @@ typedef struct _AutomatonStringData
 		 Z3_theory t,
  		Z3_ast node,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
+		std::map<Z3_ast, bool> boolMapValues,
  		std::map<Z3_ast, std::map<std::string, int>> &min_parikhImg,
 		std::map<Z3_ast, std::map<std::string, int>> &fix_parikhImg);
 
  /*
   * x = replace y a b --> parikh image of x is almost the same as parikh image of y
   */
- void compute_min_and_fix_Parikh(
+ void compute_parikh(
  		Z3_theory t,
  		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> combinationOverVariables,
+		std::map<Z3_ast, bool> boolMapValues,
  		std::map<Z3_ast, std::map<std::string, int>> &min_parikhMap,
  		std::map<Z3_ast, std::map<std::string, int>> &fix_parikhMap);
 
