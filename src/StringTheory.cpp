@@ -4485,6 +4485,19 @@ void compute_parikh(
 	std::map<std::string, int> data_min = computeMinParikh(t, node, combinationOverVariables);
 	data_fix = fixed_parikhImg[node];
 
+	for (const auto& n : eq) {
+		/* check if they do not contain some letters */
+		for (const auto c : containPairBoolMap) {
+			if (boolMapValues[c.second] == false) {
+				if (c.first.first == n && (isConstStr(t, c.first.second) || isDetAutomatonFunc(t, c.first.second))) {
+					std::string s = getConstString(t, c.first.second);
+					if (s.length() == 1)
+						data_fix[s] = 0;
+				}
+			}
+		}
+	}
+
 	/* check = replace */
 	for (const auto& n : eq) {
 		for (const auto& repAll : replaceAllNodeMap)
@@ -4508,12 +4521,12 @@ void compute_parikh(
 				if (isConstStr(t, tobeReplaced) || isDetAutomatonFunc(t, tobeReplaced)){
 					std::string s0 = getConstString(t, tobeReplaced);
 
-					if (s0.length() == 1){
-						Z3_ast replacing = repAll.first.second.second;
-						if (isConstStr(t, replacing) || isDetAutomatonFunc(t, replacing)){
-							std::string s1 = getConstString(t, replacing);
-							__debugPrint(logFile, "%d %s %s\n", __LINE__, s0.c_str(), s1.c_str());
+					Z3_ast replacing = repAll.first.second.second;
+					if (isConstStr(t, replacing) || isDetAutomatonFunc(t, replacing)){
+						std::string s1 = getConstString(t, replacing);
+						__debugPrint(logFile, "%d %s %s\n", __LINE__, s0.c_str(), s1.c_str());
 
+						if (s0.length() == 1) {
 							if (s1.find(s0) == std::string::npos){
 								/* other letters, if they are not in s0, will stay the same */
 								for (const auto& ch : tmp_min)
@@ -4531,12 +4544,12 @@ void compute_parikh(
 								__debugPrint(logFile, "%d fix parikh cannot have %s\n", __LINE__, s0.c_str());
 								data_fix[std::string(1, s0[0])] = 0;
 							}
-
-							/* other letters, if they are not in s0 and s1, will stay the same */
-							for (const auto& ch : tmp_fix)
-								if (ch.first.find(s0) == std::string::npos && s1.find(ch.first) == std::string::npos)
-									data_fix.emplace(ch);
 						}
+
+						/* other letters, if they are not in s0 and s1, will stay the same */
+						for (const auto& ch : tmp_fix)
+							if (ch.first.find(s0) == std::string::npos && s1.find(ch.first) == std::string::npos)
+								data_fix.emplace(ch);
 					}
 				}
 			}

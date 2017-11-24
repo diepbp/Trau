@@ -1244,6 +1244,10 @@ std::string encodeSpecialChars(std::string constStr){
 					strTmp += ENCODEMAP['\''];
 					i++;
 				}
+				else if (constStr[i + 1] == '\\') {
+					strTmp += ENCODEMAP['\\'];
+					i++;
+				}
 				else {
 					strTmp += constStr[i];
 					strTmp += constStr[i];
