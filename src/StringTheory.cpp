@@ -6936,7 +6936,13 @@ Z3_ast negatePositiveEquality(
 
 	std::vector<Z3_ast> tmp02 = collect_eqc(t, node);
 	for (const auto& n : tmp02) {
-		collector.push_back(Z3_mk_eq(ctx, node, n));
+		if (isNonDetAutomatonFunc(t, n)){
+			std::string astStr = Z3_ast_to_string(ctx, n);
+			if (astStr.find("$$") == std::string::npos || astStr.find("!!") == std::string::npos)
+				collector.push_back(Z3_mk_eq(ctx, node, n));
+		}
+		else
+			collector.push_back(Z3_mk_eq(ctx, node, n));
 	}
 
 	if (collector.size() > 0)

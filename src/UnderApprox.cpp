@@ -1589,7 +1589,7 @@ void printSatisfyingAssignments(
 		std::map<std::string, std::string> strValue,
 		std::map<std::string, std::string> intResultMap
 		){
-	printf("Collecting concrete values...\n");
+	printf("Collecting concrete values\n");
 	printf("================================================\n");
 
 	for (const auto& def : smtVarDefinition){
@@ -3384,7 +3384,7 @@ bool Z3_run(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		bool finalCall = true) {
 	std::string cmd = std::string(Z3_PATH) + "-smt2 " + OUTPUT;
-	printf(">> Running Z3...\n");
+	printf(">> Running Z3\n");
 
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
@@ -3723,7 +3723,7 @@ bool underapproxController(
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
-	printf("\nRunning Under Approximation...\n");
+	printf("\nRunning Under Approximation\n");
 	clock_t tx;
 	tx = clock();
 	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
@@ -3797,7 +3797,7 @@ bool underapproxController(
 			return false;
 		}
 		else {
-			std::cout << ">> Generated SMT\n\n";
+			printf(">> Generated SMT\n\n");
 			writeOutput02(OUTPUT);
 
 			result =  Z3_run(_equalMap);
