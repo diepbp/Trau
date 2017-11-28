@@ -4953,19 +4953,6 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		}
 	}
 
-	__debugPrint(logFile, "%d *** %s ***: replaceNodeMap\n", __LINE__, __FUNCTION__);
-	for (const auto& var: replaceNodeMap) {
-
-		printZ3Node(t, var.first.first);
-		__debugPrint(logFile, ", <")
-		printZ3Node(t, var.first.second.first);
-		__debugPrint(logFile, ", ")
-		printZ3Node(t, var.first.second.second);
-		__debugPrint(logFile, ">: ")
-		printZ3Node(t, var.second);
-		__debugPrint(logFile, "\n")
-	}
-
 	for (const auto& var: replaceNodeMap) {
 		std::string currentVarName = Z3_ast_to_string(ctx, var.second);
 		if (non_root.find(currentVarName) == non_root.end()){
@@ -5120,9 +5107,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 	__debugPrint(logFile, "                cb_final_check @ Level [%d] \n", sLevel);
 	__debugPrint(logFile, "=============================================================\n");
 #endif
-	timer = clock() - timer;
-	printf("%d begining of %s: %.3f seconds.\n\n", __LINE__, __FUNCTION__, ((float)timer)/CLOCKS_PER_SEC);
-	timer = clock();
+	printf(".");
 	calculateConcatLength(t);
 
 //	if (havingGrmConstraints == false){
@@ -5143,24 +5128,18 @@ Z3_bool Th_final_check(Z3_theory t) {
 	std::map<Z3_ast, std::set<Z3_ast> > membership;
 	//  ctxDepAnalysis(t, varAppearInAssign, freeVar_map, membership);
 
-	//**************************************************************
+	//*******************************5182*******************************
 	// Assign node length
 	//**************************************************************
 //	bool assignSomethingNew = false, satified = true;
 	if (lengthDefined == false) {
-//		// determine domain of variables
+		// determine domain of variables
 //		reduceVariableDomain(t);
 		findVariableDomain();
 //
 //		updateLength(t);
-//		assignLanguageByLength(t, assignSomethingNew, satified);
-//		if (assignSomethingNew) {
-//			__debugPrint(logFile, " should Pass level 1\n");
 		lengthDefined = true;
-//		}
 	}
-
-	__debugPrint(logFile, "%d charset size: %ld\n", __LINE__, charSet.size());
 	__debugPrint(logFile, " Pass level 1\n");
 
 	//**************************************************************
@@ -5196,9 +5175,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 		std::map<StringOP, std::string> rewriterStrMap;
 		std::set<std::string> carryOnConstraints;
 		std::vector<Z3_ast> boolVars;
-		printf("%d step 01: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
+
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
-		printf("%d step 02: %.3f seconds.\n\n", __LINE__, ((float)(clock() - timer))/CLOCKS_PER_SEC);
 
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
@@ -5241,12 +5219,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 		if (!assignConcreteValue(t)) {
 			addAxiom(t, Z3_mk_eq(ctx, mk_int(ctx, 0), mk_int(ctx, 1)), __LINE__, true);
 		}
-#else
 #endif
 	}
-	timer = clock() - timer;
-	printf("%d end of %s: %.3f seconds.\n\n", __LINE__, __FUNCTION__, ((float)timer)/CLOCKS_PER_SEC);
-	timer = clock();
 
 	__debugPrint(logFile, "%d Finish\n", __LINE__);
 
@@ -7795,9 +7769,9 @@ bool collectReplaceAllValueInPositiveContext(
  */
 std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 	__debugPrint(logFile, "@%d *** %s *** \n", __LINE__, __FUNCTION__);
+
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-
 	std::vector<Z3_ast> ret;
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
@@ -7805,16 +7779,26 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 
 		for (int i = 0; i < argCount; i++) {
 			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
-			std::string astToString = Z3_ast_to_string(ctx, argAst);
-			if (astToString.find("$$_bool") != std::string::npos &&
-					astToString.find("(ite") == std::string::npos &&
-					astToString.find("(let ") == std::string::npos &&
-					astToString.find("(or ") == std::string::npos ) {
-				ret.emplace_back(argAst);
+			if (isVariable(t, argAst)) {
+				std::string astToString = Z3_ast_to_string(ctx, argAst);
+				if (astToString.find("$$_bool") != std::string::npos)
+					ret.emplace_back(argAst);
+			}
+			else if (Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 1){
+				Z3_ast argAst_01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+				if (isVariable(t, argAst_01)) {
+					std::string astToString = Z3_ast_to_string(ctx, argAst_01);
+					if (astToString.find("$$_bool") != std::string::npos)
+						ret.emplace_back(argAst);
+				}
 			}
 		}
 	}
-	__debugPrint(logFile, "@%d >>  %s ***: finish\n", __LINE__, __FUNCTION__);
+
+#ifdef DEBUGLOG
+		displayListNode(t, ret, "");
+		__debugPrint(logFile, "@%d >>  %s ***: finish\n", __LINE__, __FUNCTION__);
+#endif
 	return ret;
 }
 
@@ -7847,6 +7831,7 @@ void collectDataInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
+	printZ3Node(t, ctxAssign);
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
@@ -7872,37 +7857,42 @@ void collectDataInPositiveContext(
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+		__debugPrint(logFile, "%d * %s * arg count = : %d\n", __LINE__, __FUNCTION__, argCount);
 		for (int i = 0; i < argCount; i++) {
 			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
-			std::string astToString = Z3_ast_to_string(ctx, argAst);
+
 
 			T_TheoryType type = getNodeType(t, argAst);
 
 			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false;
-			if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-				collectBoolValueInPositiveContext(t, argAst, boolVars);
-				found01 = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				found04 = collectEndsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				found05 = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-				found06 = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-				found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+			if (type == my_Z3_Var) {
+				std::string astToString = Z3_ast_to_string(ctx, argAst);
+				if (astToString.find("$$_bool") != std::string::npos) {
+					collectBoolValueInPositiveContext(t, argAst, boolVars);
+					found01 = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+					found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+					found04 = collectEndsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+					found05 = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+					found06 = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+					found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+				}
 			}
 
-			else if (type == my_Z3_Func && astToString.find("(not $$_bool") == 0) {
-				collectBoolValueInPositiveContext(t, argAst, boolVars);
+			else if (type == my_Z3_Func && Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 1) {
 				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-				T_TheoryType type = getNodeType(t, boolNode);
-				astToString = Z3_ast_to_string(ctx, boolNode);
-				if (type == my_Z3_Var && astToString.find("$$_bool") != std::string::npos) {
-					found01 = collectContainValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					found04 = collectEndsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					found05 = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-					found06 = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-					found07 = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+				if (isVariable(t, boolNode)){
+					collectBoolValueInPositiveContext(t, argAst, boolVars);
+					std::string astToString = Z3_ast_to_string(ctx, boolNode);
+					if (astToString.find("$$_bool") != std::string::npos) {
+						found01 = collectContainValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+						found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+						found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+						found04 = collectEndsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+						found05 = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+						found06 = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+						found07 = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+					}
 				}
 			}
 
@@ -9131,7 +9121,7 @@ void check(Z3_theory t)
 }
 
 void overApproxController() {
-	printf("Running Over Approximation...\n");
+	printf("Running Over Approximation\n");
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "***********************************************\n");
 	__debugPrint(logFile, "*              Trau_theory                     *\n");

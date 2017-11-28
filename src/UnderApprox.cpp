@@ -3723,7 +3723,7 @@ bool underapproxController(
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
-	printf("Running Under Approximation...\n");
+	printf("\nRunning Under Approximation...\n");
 	clock_t tx;
 	tx = clock();
 	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
