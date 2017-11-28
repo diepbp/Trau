@@ -4343,7 +4343,8 @@ std::map<std::string, int> computeParikhFromConst(
 	std::map<std::string, int> data;
 	std::string s = getConstString(t, node);
 
-	addToParikhMap(s, data);
+	if (s.length() > 1)
+		addToParikhMap(s, data);
 
 	for (unsigned i = 1; i < s.size(); ++i)
 		if (s[i] != s[i - 1])
@@ -4776,7 +4777,6 @@ bool parikh_check_regex(
 			std::set<char> notContain00 = getNotContainLetters(t, v, boolValues);
 			/* check two replace all funcs */
 			for (const auto& ch : notContain00) {
-				__debugPrint(logFile, "\n%d considering char: %c \n", __LINE__, ch);
 				int cnt00 = 0;
 				/* count list 0 */
 				for (const auto& p : v)
@@ -4798,7 +4798,7 @@ bool parikh_check_regex(
 					continue;
 
 				if (cnt00 < data[std::string(1, ch)]) {
-					__debugPrint(logFile, "%d cnt00 = %d, data = %d\n", __LINE__, cnt00, data[std::string(1, ch)]);
+					__debugPrint(logFile, "%d char: %c --> cnt00 = %d, data = %d\n", __LINE__, ch, cnt00, data[std::string(1, ch)]);
 					return false;
 				}
 			}
@@ -7837,7 +7837,6 @@ void collectDataInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
-	printZ3Node(t, ctxAssign);
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
