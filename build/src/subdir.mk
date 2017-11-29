@@ -62,7 +62,7 @@ CPP_DEPS += \
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross G++ Compiler'
-	g++ -std=c++11 -D__GXX_EXPERIMENTAL_CXX0X__ -I/home/osboxes/Downloads/z3-z3-4.4.1.0/src/api -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	g++ -std=c++11 -D__GXX_EXPERIMENTAL_CXX0X__ -I/home/osboxes/Downloads/z3-z3-4.4.1.0/src/api -I/usr/local/include/antlr4-runtime -O2 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
