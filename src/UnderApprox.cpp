@@ -2895,6 +2895,7 @@ void syncConst(
 				strValue[var.first] = tmp;
 				forwardPropagate(var.first, len, strValue);
 				backwardPropagarate(var.first, len, strValue);
+				__debugPrint(logFile, ">> %d done synConst\n", __LINE__);
 				continue;
 			}
 			else {
@@ -2907,6 +2908,7 @@ void syncConst(
 					strValue[var.first] = tmpVector;
 					forwardPropagate(var.first, len, strValue);
 					backwardPropagarate(var.first, len, strValue);
+					__debugPrint(logFile, ">> %d done synConst\n", __LINE__);
 					continue;
 				}
 			}
@@ -2938,6 +2940,7 @@ void syncConst(
 							strValue[s] = tmpVector;
 							forwardPropagate(s, len, strValue);
 							backwardPropagarate(s, len, strValue);
+							__debugPrint(logFile, ">> %d done synConst\n", __LINE__);
 
 							for (unsigned i = 0; i < tmp.length(); ++i)
 								if (strValue[var.first][pos + i] == 0) {
@@ -2958,6 +2961,7 @@ void syncConst(
 		if (update == true) {
 			forwardPropagate(var.first, len, strValue);
 			backwardPropagarate(var.first, len, strValue);
+			__debugPrint(logFile, ">> %d done synConst\n", __LINE__);
 		}
 	}
 	__debugPrint(logFile, "%d >> done %s \n", __LINE__, __FUNCTION__);
@@ -3032,7 +3036,7 @@ void forwardPropagate(
 			/* update it parents */
 			forwardPropagate(var.first, len, strValue);
 			backwardPropagarate(var.first, len, strValue);
-
+			__debugPrint(logFile, ">> %d done update parents\n", __LINE__);
 			/* update peers */
 			for (const auto& eq : var.second){
 				int pos = 0;
@@ -3072,6 +3076,7 @@ void forwardPropagate(
 								strValue[s] = sValue;
 							forwardPropagate(s, len, strValue);
 							backwardPropagarate(s, len, strValue);
+							__debugPrint(logFile, ">> %d done update child\n", __LINE__);
 						}
 						pos += length;
 					}
@@ -3171,7 +3176,9 @@ void backwardPropagarate(
 
 	for (const auto& eq : equalitiesMap[newlyUpdate]){
 		int pos = 0;
+		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
 		for (const auto& var : eq) {
+			__debugPrint(logFile, "%d step 0.1: var = %s\n", __LINE__, var.c_str());
 			if (var[0] == '"') {
 				int length = getConstLength(var, len);
 				if (isRegexStr(var)) {
@@ -3229,7 +3236,7 @@ void backwardPropagarate(
 				/* update a new value */
 				std::vector<int> sValue;
 				for (int i = 0; i < len[var]; ++i)
-					sValue[i] = value[pos + i];
+					sValue.emplace_back(value[pos + i]);
 				strValue[var] = sValue;
 				pos += len[var];
 				forwardPropagate(var, len, strValue);
@@ -3302,6 +3309,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 					finalStrValue[varName] = tmp;
 					backwardPropagarate(varName, lenInt, finalStrValue);
 					forwardPropagate(varName, lenInt, finalStrValue);
+
+					__debugPrint(logFile, ">> %d done formating %s\n", __LINE__, varName.c_str());
 				}
 				else
 					__debugPrint(logFile, "%d cannot assign: %s\n", __LINE__, varName.c_str());
