@@ -8,6 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/antlrParser/subdir.mk
 -include src/subdir.mk
 -include subdir.mk
 -include objects.mk
@@ -44,7 +45,7 @@ all: Trau
 Trau: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross G++ Linker'
-	g++ -fopenmp -L/home/osboxes/Downloads/z3-z3-4.4.1.0/build -o "Trau" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -fopenmp -L/home/osboxes/Downloads/z3-z3-4.4.1.0/build -L/usr/local/lib -o "Trau" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
