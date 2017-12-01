@@ -37,7 +37,7 @@ static std::vector<std::string> smtVarDefinition;
 static std::vector<std::string> smtLenConstraints;
 
 static std::vector<std::string> repeatedVariableConstraints;
-static std::set<std::string> connectedVariables;
+static std::map<std::string, int> connectedVariables;
 
 //static std::map<std::pair<std::string, std::string>, std::string> constMap;
 static std::map<std::string, std::string> constMap;

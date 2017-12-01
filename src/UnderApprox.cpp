@@ -2029,17 +2029,17 @@ void createConstMap(){
 
 void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::string, std::vector<std::string>> usedComponents;
-	std::set<std::string> connectedVarSet;
+	std::map<std::string, int> connectedVarSet;
 
 	/* collect from equality map */
 	for (const auto& eq : equalitiesMap) {
 		if (eq.second.size() <= 1)
 			continue;
 
-		if (eq.second.size() > 4) {
-			connectedVarSet.insert(eq.first);
-			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
-		}
+//		if (eq.second.size() > 4) {
+//			connectedVarSet.insert(eq.first);
+//			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
+//		}
 
 		std::map<std::string, std::vector<std::string>> tmpUsedComponents;
 		for (const auto& v : eq.second)
@@ -2051,7 +2051,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						/* check if component is already in the map*/
 						if (usedComponents.find(var) != usedComponents.end()) {
 							if (!equalVector(v, usedComponents[var])){
-								connectedVarSet.insert(var);
+								connectedVarSet[var] = CONNECTSIZE;
 								__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 							}
 						}
@@ -2063,7 +2063,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 								optimizeEquality(v1, v, lhs, rhs);
 								if (std::find(rhs.begin(), rhs.end(), var) != rhs.end() &&
 										std::find(lhs.begin(), lhs.end(), var) != lhs.end()){
-									connectedVarSet.insert(var);
+									connectedVarSet[var] = CONNECTSIZE;
 									__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 									break;
 								}
@@ -2098,11 +2098,21 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 			/* add all of variables to the connected var set*/
 			if (s.first.arg01[0] != '\"') {
-				connectedVarSet.emplace(s.first.arg01);
+				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
+					if (s.first.arg02[0] == '"')
+						connectedVarSet[s.first.arg01] = s.first.arg02.length() - 2;
+				}
+				else
+					connectedVarSet[s.first.arg01] = CONNECTSIZE;
 				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
 			}
-			if (s.first.arg02[0] != '\"') {
-				connectedVarSet.emplace(s.first.arg02);
+			if (s.first.arg02[0] != '"') {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
+					if (s.first.arg01[0] == '"')
+						connectedVarSet[s.first.arg02] = s.first.arg01.length() - 2;
+				}
+				else
+					connectedVarSet[s.first.arg02] = CONNECTSIZE;
 				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg02.c_str());
 			}
 		}
@@ -2111,13 +2121,13 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	connectedVariables.insert(connectedVarSet.begin(), connectedVarSet.end());
 
 	/* a = b, a is a connected var --> b is connected var */
-		for (const auto& eq : equalitiesMap)
-			if (connectedVariables.find(eq.first) != connectedVariables.end()){
-				for (const auto& v : eq.second)
-					if (v.size() == 1){
-						if (v[0][0] != '"')
-							connectedVariables.emplace(v[0]);
-					}
+	for (const auto& eq : equalitiesMap)
+		if (connectedVariables.find(eq.first) != connectedVariables.end()){
+			for (const auto& v : eq.second)
+				if (v.size() == 1){
+					if (v[0][0] != '"')
+						connectedVariables[v[0]] = connectedVariables[eq.first];
+				}
 		}
 
 	/* print test connected var */
@@ -2125,7 +2135,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		__debugPrint(logFile, "%d *** %s ***:\n", __LINE__, __FUNCTION__);
 
 		for (const auto& s : connectedVariables){
-			__debugPrint(logFile, "%s\n", s.c_str());
+			__debugPrint(logFile, "%s - up to %d\n", s.first.c_str(), s.second);
 		}
 		__debugPrint(logFile, "\n");
 	}
@@ -2522,7 +2532,7 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 	for (int i = 0 ; i < flatP; ++i) {
 		std::string varName = "__flat_" + std::to_string(noFlatVariables + i);
 		result.emplace_back(varName);
-		connectedVariables.insert(varName);
+		connectedVariables[varName] = CONNECTSIZE;
 		allVariables.insert(varName);
 	}
 	noFlatVariables += flatP;

@@ -842,7 +842,7 @@ public:
 	 */
 	int checkTheBestSplitType(
 			std::vector<std::pair<std::string, int>> elementNames,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 
 		bool havingConst = false;
 		bool havingConnectedVar = false;
@@ -882,7 +882,7 @@ public:
 			int currentPos,
 			int subLength,
 			std::string lhs, std::string rhs,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 
 		/*TODO: only hande 1 connected var here. Need to extend. Or re-write the alias step*/
 		int connectedVarPos = -1;
@@ -915,7 +915,7 @@ public:
 			std::vector<std::pair<std::string, int> > elementNames, /* const + connected var */
 			std::vector<int> split,
 			std::string lhs, std::string rhs,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 //		__debugPrint(logFile, "%d const|regex = const + connected var\n", __LINE__);
 		int totalLength = 0;
 		for (unsigned int j = 0; j < split.size(); ++j)
@@ -1008,7 +1008,7 @@ public:
 		}
 
 		if (addElements.size() > 0) {
-			std::string constraintForConnectedVar = lengthConstraint_toConnectedVarConstraint(
+			std::string constraintForConnectedVar = 6(
 					a, /* const or regex */
 					elementNames, /* have connected var */
 					addElements,
@@ -1207,7 +1207,7 @@ public:
 			std::pair<std::string, int> a, /* const or regex */
 			std::vector<std::pair<std::string, int>> elementNames, /* have connected var, do not have const */
 			std::string lhs, std::string rhs,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 		__debugPrint(logFile, "%d const|regex = connected var + ...\n", __LINE__);
 		std::string arrayLhs = generateFlatArray(a, lhs);
 		std::vector<std::string> resultParts;
@@ -1378,7 +1378,7 @@ public:
 			int connectedVarPos,
 			int connectedVarLength,
 			std::string lhs, std::string rhs,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 
 
 		std::vector<std::string> resultParts;
@@ -1775,7 +1775,7 @@ public:
 			}
 		}
 
-		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE, 70)) + ")");
+//		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE, 70)) + ")");
 
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;
@@ -1836,7 +1836,7 @@ public:
 			std::pair<std::string, int> a, /* connected variable */
 			std::vector<std::pair<std::string, int> > elementNames, /* contain const */
 			std::string lhs_str, std::string rhs_str,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 //		__debugPrint(logFile, "%d connected var = const | regex: lhs = %s; rhs = %s \n", __LINE__, lhs_str.c_str(), rhs_str.c_str());
 
 		assert(connectedVariables.find(a.first) != connectedVariables.end());
@@ -1897,7 +1897,7 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			std::pair<std::string, int> a, std::pair<std::string, int> b,
 			int pMax,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 		bool isConstA = a.second < 0;
 		bool isConstB = b.second < 0;
 
@@ -2092,7 +2092,7 @@ public:
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string lhs_str, std::string rhs_str,
 			int pMax,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 		std::string result = "";
 		/* constraint for not equal */
 		for (unsigned int i = 0; i < elementNames.size(); ++i)
@@ -2237,7 +2237,7 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements,
-			std::set<std::string> connectedVariables){
+			std::map<std::string, int> connectedVariables){
 
 		std::vector<std::string> result_element;
 
