@@ -1265,7 +1265,7 @@ void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	for (const auto& s : connectedVariables){
-		defines.emplace_back("(declare-const arr_" + s + " (Array Int Int))");
+		defines.emplace_back("(declare-const arr_" + s.first + " (Array Int Int))");
 //		constraints.emplace_back("(assert (< " + generateVarLength(s) + " " + std::to_string(100) +"))");
 	}
 }

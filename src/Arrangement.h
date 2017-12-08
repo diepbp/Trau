@@ -1008,7 +1008,7 @@ public:
 		}
 
 		if (addElements.size() > 0) {
-			std::string constraintForConnectedVar = 6(
+			std::string constraintForConnectedVar = lengthConstraint_toConnectedVarConstraint(
 					a, /* const or regex */
 					elementNames, /* have connected var */
 					addElements,
@@ -1405,7 +1405,11 @@ public:
 		if (connectedVarLength >= 0 && connectedVarLength != MINUSZERO) {
 			/* sublen = connectedVarLength */
 			/* at_0 = x && at_1 == y && ..*/
-			for (int k = 0; k < connectedVarLength; ++k){
+			int considerLength = connectedVarLength;
+			if (connectedVariables[elementNames[connectedVarPos].first] >= 0)
+				considerLength = std::min(connectedVariables[elementNames[connectedVarPos].first], considerLength);
+
+			for (int k = 0; k < considerLength; ++k){
 				resultParts.emplace_back("(= (select " + arrayLhs + " (+ " + std::to_string(k) + " " + prefix_lhs + ")) " +
 						"(select " + arrayRhs + " (+ " + std::to_string(k) + " " + prefix_rhs + ")))");
 			}
@@ -1718,7 +1722,8 @@ public:
 			std::pair<std::string, int> a,
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string lhs_str, std::string rhs_str,
-			int pos){
+			int pos,
+			int bound){
 		/* find the start position --> */
 		std::string startLhs = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, pos);
 		std::string startRhs = leng_prefix_rhs(elementNames[pos], rhs_str);
@@ -1739,16 +1744,19 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		if (startLhs.compare("0") != 0 && startRhs.compare("0") != 0)
-			for (int i = 1; i <= std::min(CONNECTSIZE, 99); ++i){
+		int consideredSize = std::min(bound + 1, 99);
+
+		if (startLhs.compare("0") != 0 && startRhs.compare("0") != 0) {
+			for (int i = 1; i <= consideredSize; ++i){
 				std::vector<std::string> orConstraints;
 				orConstraints.emplace_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
 						"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
 				orConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(i) + ")");
 				andConstraints.emplace_back(orConstraint(orConstraints));
 			}
+		}
 		else if (startLhs.compare("0") == 0 && startRhs.compare("0") == 0){
-			for (int i = 1; i <= std::min(CONNECTSIZE, 99); ++i){
+			for (int i = 1; i <= consideredSize; ++i){
 				std::vector<std::string> orConstraints;
 				orConstraints.emplace_back("(= (select " + arrLhs + " " + std::to_string(i - 1) + ") " +
 						"(select " + arrRhs + " " + std::to_string(i - 1) + "))");
@@ -1757,7 +1765,7 @@ public:
 			}
 		}
 		else if (startLhs.compare("0") == 0){
-			for (int i = 1; i <= std::min(CONNECTSIZE, 99); ++i){
+			for (int i = 1; i <= consideredSize; ++i){
 				std::vector<std::string> orConstraints;
 				orConstraints.emplace_back("(= (select " + arrLhs + " " + std::to_string(i - 1) + ") " +
 						"(select " + arrRhs + " (+ " + std::to_string(i - 1) + " " + startRhs + ")))");
@@ -1766,7 +1774,7 @@ public:
 			}
 		}
 		else if (startRhs.compare("0") == 0){
-			for (int i = 1; i <= std::min(CONNECTSIZE, 99); ++i){
+			for (int i = 1; i <= consideredSize; ++i){
 				std::vector<std::string> orConstraints;
 				orConstraints.emplace_back("(= (select " + arrLhs + " (+ " + std::to_string(i - 1) + " " + startLhs + ")) " +
 						"(select " + arrRhs + " " + std::to_string(i - 1) + "))");
@@ -1775,7 +1783,7 @@ public:
 			}
 		}
 
-//		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE, 70)) + ")");
+		 andConstraints.emplace_back("(< " + lenRhs + " " + std::to_string(std::min(CONNECTSIZE, 99)) + ")");
 
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;
@@ -1869,7 +1877,7 @@ public:
 				if (elementNames[i].second == 1 && i > 0)
 					continue;
 
-				possibleCases.emplace_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i));
+				possibleCases.emplace_back(handle_connected_connected_array(a, elementNames, lhs_str, rhs_str, i, connectedVariables[elementNames[i].first]));
 
 			}
 		}
