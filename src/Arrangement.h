@@ -409,10 +409,12 @@ public:
 				unsigned length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
-					if (canCompile == true && re.MatchAll(regexValue) == true) {
-						currentSplit.emplace_back(length);
-						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
-						currentSplit.pop_back();
+					if (canCompile == true) {
+						if (re.MatchAll(regexValue) == true) {
+							currentSplit.emplace_back(length);
+							collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+							currentSplit.pop_back();
+						}
 					}
 					else {
 						/* manully doing matching regex */
@@ -430,8 +432,6 @@ public:
 							collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
 							currentSplit.pop_back();
 						}
-						else if (i > 0)
-							break;
 					}
 				}
 				else {
