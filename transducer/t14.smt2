@@ -1,0 +1,22 @@
+(declare-fun x  () String)
+(declare-fun x0  () String)
+(declare-fun x1  () String)
+(declare-fun x2  () String)
+(declare-fun x3  () String)
+(declare-fun x4  () String)
+(declare-fun x5  () String)
+(declare-fun cat () String) 
+(declare-fun y () String) 
+ 
+(assert (= y (ReplaceAll x "'" "\\'")))
+(assert (= x0 (ReplaceAll y "&" "&amp;")))
+(assert (= x1 (ReplaceAll x0 "'" "&quot;")))
+(assert (= x2 (ReplaceAll x1 ">" "&gt;")))
+(assert (= x3 (ReplaceAll x2 "<" "&lt;")))
+(assert (= x5 (ReplaceAll x3 "&quot;" "'")))
+
+(assert (Contains x "'"))
+(assert (Contains x5 "\\'"))
+
+(check-sat)
+(get-model)
