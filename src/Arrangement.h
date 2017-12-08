@@ -1969,53 +1969,52 @@ public:
 			else if (a.second == REGEX_CODE && b.second == -1){
 				std::string content = parse_regex_content(a.first);
 				std::string data = "";
-				printf("%d content 0: %s\n", __LINE__, content.c_str());
 				while (data.length() <= b.first.length()) {
 					if (data.compare(b.first.substr(0, data.length())) == 0)
 						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
-					printf("%d accept: %s\n", __LINE__, data.c_str());
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
 					data = data + content;
 				}
 			}
 			else if (a.second == REGEX_CODE && b.second == -2){
 				std::string content = parse_regex_content(a.first);
 				std::string data = "";
-				printf("%d content 1: %s\n", __LINE__, content.c_str());
+				__debugPrint(logFile, "%d content 1: %s\n", __LINE__, content.c_str());
 				while (data.length() <= b.first.length()) {
-					printf("\t%d data: %s\n", __LINE__, b.first.substr(b.first.length() - data.length()).c_str());
+					__debugPrint(logFile, "\t%d data: %s\n", __LINE__, b.first.substr(b.first.length() - data.length()).c_str());
 					if (data.compare(b.first.substr(b.first.length() - data.length())) == 0)
 						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
-					printf("%d accept: %s\n", __LINE__, data.c_str());
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
 					data = data + content;
 				}
 			}
 			else if (b.second == REGEX_CODE && a.second == -1){
 				std::string content = parse_regex_content(b.first);
 				std::string data = "";
-				printf("%d content 2: %s\n", __LINE__, content.c_str());
+				__debugPrint(logFile, "%d content 2: %s\n", __LINE__, content.c_str());
 				while (data.length() <= a.first.length()) {
 					if (data.compare(a.first.substr(0, data.length())) == 0)
 						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
-					printf("%d accept: %s\n", __LINE__, data.c_str());
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
 					data = data + content;
 				}
 			}
 			else if (b.second == REGEX_CODE && a.second == -2){
 				std::string content = parse_regex_content(b.first);
 				std::string data = "";
-				printf("%d content 3: %s\n", __LINE__, content.c_str());
+				__debugPrint(logFile, "%d content 3: %s\n", __LINE__, content.c_str());
 				while (data.length() <= a.first.length()) {
 					if (data.compare(a.first.substr(a.first.length() - data.length())) == 0)
 						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
 					else
 						break;
-					printf("%d accept: %s\n", __LINE__, data.c_str());
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
 					data = data + content;
 				}
 			}

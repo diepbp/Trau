@@ -28,7 +28,7 @@ Extract z3-4.4.1.0.tar.gz and follow its README to install the custom Z3.
 - Build Trau
 ```
 	cd build
-	make 
+	make clean; make 
 ```
 	
 Command-line Usage
