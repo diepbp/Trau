@@ -1810,25 +1810,35 @@ public:
 			content = parse_regex_content(elementNames[constPos].first);
 //		__debugPrint(logFile, "%d *** %s ***: const pos: %s\n", __LINE__, __FUNCTION__, content.c_str());
 		/* find the start position --> */
-		std::vector<std::string> locationConstraint;
+		std::string startPos = leng_prefix_lhs(a, elementNames, lhs_str, rhs_str, constPos);
+		std::string flatArrayName = generateFlatArray(a, lhs_str);
 
 		std::vector<std::string> possibleCases;
 		if (elementNames[constPos].second == -1) {
 
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
+				std::vector<std::string> locationConstraint;
 				/*length = i*/
-				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i) + ")";
-				possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, 0, i, tmp));
+				locationConstraint.emplace_back("(< " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i + 1) + ")");
+				if (i > 0) {
+					..
+					locationConstraint.emplace_back("(= (select " + flatArrayName + " (+ " + std::to_string(i - 1) + " " + startPos + ")) " + std::to_string(content[i - 1]) + ")");
+				}
 			}
 		}
 		else if (elementNames[constPos].second == REGEX_CODE) {
 			possibleCases.emplace_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
 		}
 		else {
+			assert(elementNames[constPos].second == -2);
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
-				/*length = i*/
-				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(content.length() - i) + ")";
-				possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, i, content.length(), tmp));
+				std::vector<std::string> locationConstraint;
+				/*length = i */
+				locationConstraint.emplace_back("(< " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i + 1) + ")");
+				if (i > 0) {
+					..
+					locationConstraint.emplace_back("(= (select " + flatArrayName + " (+ " + std::to_string(i - 1) + " " + startPos + ")) " + std::to_string(content[content.length() - i - 1]) + ")");
+				}
 			}
 		}
 
