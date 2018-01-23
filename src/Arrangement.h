@@ -1815,35 +1815,28 @@ public:
 
 		std::vector<std::string> possibleCases;
 		if (elementNames[constPos].second == -1) {
-
-			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
+			std::vector<std::string> oneCase;
+			for (int i = 1; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				std::vector<std::string> locationConstraint;
 				/*length = i*/
-				locationConstraint.emplace_back("(< " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i + 1) + ")");
-				if (i > 0) {
-					..
-					locationConstraint.emplace_back("(= (select " + flatArrayName + " (+ " + std::to_string(i - 1) + " " + startPos + ")) " + std::to_string(content[i - 1]) + ")");
-				}
+				locationConstraint.emplace_back("(< " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i) + ")");
+				locationConstraint.emplace_back("(= (select " + flatArrayName + " (+ " + std::to_string(i - 1) + " " + startPos + ")) " + std::to_string(content[i - 1]) + ")");
+				oneCase.emplace_back(orConstraint(locationConstraint));
 			}
+			possibleCases.emplace_back(andConstraint(oneCase));
 		}
 		else if (elementNames[constPos].second == REGEX_CODE) {
 			possibleCases.emplace_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
 		}
 		else {
-			assert(elementNames[constPos].second == -2);
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
-				std::vector<std::string> locationConstraint;
-				/*length = i */
-				locationConstraint.emplace_back("(< " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(i + 1) + ")");
-				if (i > 0) {
-					..
-					locationConstraint.emplace_back("(= (select " + flatArrayName + " (+ " + std::to_string(i - 1) + " " + startPos + ")) " + std::to_string(content[content.length() - i - 1]) + ")");
-				}
+				/*length = i*/
+				std::string tmp = "(= " + generateFlatSize(elementNames[constPos], rhs_str) + " " + std::to_string(content.length() - i) + ")";
+				possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos, content, i, content.length(), tmp));
 			}
 		}
 
 		std::string result = orConstraint(possibleCases);
-//		__debugPrint(logFile, "%d >> leaving %s\n", __LINE__, __FUNCTION__);
 		return result;
 	}
 
