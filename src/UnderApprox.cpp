@@ -2090,9 +2090,40 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					s.first.arg02.find("Automata ") != std::string::npos)
 				continue;
 
-			if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0)
+			if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0) {
 				if (s.first.arg01.compare("\"\"") == 0 || s.first.arg02.compare("\"\"") == 0)
 					continue;
+
+				bool canSkip = false;
+				if (s.first.arg02[0] == '"') {
+					if (equalitiesMap.find(s.first.arg01) != equalitiesMap.end())
+					for (const auto _eq : equalitiesMap[s.first.arg01]) {
+						for (const auto e : _eq)
+							if (s.first.arg02.find(e) == std::string::npos) {
+								canSkip = true;
+								break;
+							}
+						if (canSkip)
+							break;
+					}
+				}
+
+				if (s.first.arg01[0] == '"') {
+					if (equalitiesMap.find(s.first.arg02) != equalitiesMap.end())
+					for (const auto _eq : equalitiesMap[s.first.arg02]) {
+						for (const auto e : _eq)
+							if (s.first.arg01.find(e) == std::string::npos) {
+								canSkip = true;
+								break;
+							}
+						if (canSkip)
+							break;
+					}
+				}
+
+				if (canSkip)
+					continue;
+			}
 
 			StringOP op = s.first;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
