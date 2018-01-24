@@ -3658,6 +3658,61 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 }
 
 /*
+ * v01 is inside v02?
+ */
+int vectorInsideVector(std::vector<std::string> v01, std::vector<std::string> v02){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	for (unsigned int i = 0; i <= v02.size() - v01.size(); ++i) {
+		unsigned int pos = 0;
+		while (pos < v01.size() && v02[i + pos].compare(v01[pos]) == 0)
+			pos++;
+		if (pos == v01.size())
+			return i;
+	}
+	return -1;
+}
+
+/*
+ *
+ */
+void addConnectedVarToEQmap(){
+	std::map<std::string, std::vector<std::vector<std::string>>> _newEqMap = equalitiesMap;
+	for (const auto& varEq00: equalitiesMap) {
+		if (connectedVariables.find(varEq00.first) != connectedVariables.end() && varEq00.second[0].size() > 1){
+			for (const auto& varEq: equalitiesMap) {
+				std::vector<std::vector<std::string>> tmpVector = varEq.second;
+				if (varEq.first.compare(varEq00.first) != 0){
+
+					for (const auto eq00: varEq.second) {
+						for (const auto eq01: varEq00.second)
+							if (eq00.size() > eq01.size()) {
+								int pos = vectorInsideVector(eq01, eq00);
+								if (pos != -1) {
+									__debugPrint(logFile, "%d %s: %s %s %d\n", __LINE__, __FUNCTION__, varEq.first.c_str(), varEq00.first.c_str(), pos);
+									/* create a new one */
+									std::vector<std::string> tmp;
+									for (int i = 0; i < pos; ++i)
+										tmp.emplace_back(eq00[i]);
+									tmp.emplace_back(varEq00.first);
+									for (unsigned int i = pos + eq01.size(); i < eq00.size(); ++i)
+										tmp.emplace_back(eq00[i]);
+
+									_newEqMap[varEq.first].emplace_back(tmp);
+									break;
+								}
+							}
+
+					}
+				}
+			}
+		}
+	}
+	equalitiesMap.clear();
+	equalitiesMap = _newEqMap;
+	printEqualMap(equalitiesMap);
+}
+
+/*
  *
  */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
@@ -3666,6 +3721,7 @@ void init(std::map<StringOP, std::string> &rewriterStrMap){
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
+	addConnectedVarToEQmap();
 	sumConstString();
 	createConstMap();
 }
