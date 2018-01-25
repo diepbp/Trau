@@ -18,6 +18,7 @@
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
+#define DEFAULT_CHAR 'z'
 
 extern std::string orgInput;
 extern bool getModel;

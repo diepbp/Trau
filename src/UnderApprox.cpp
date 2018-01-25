@@ -3092,7 +3092,8 @@ void forwardPropagate(
 			strValue[var.first] = value;
 			/* update it parents */
 			forwardPropagate(var.first, len, strValue);
-			backwardPropagarate(var.first, len, strValue);
+			if (equalitiesMap[var.first].size() > 1)
+				backwardPropagarate(var.first, len, strValue);
 			__debugPrint(logFile, ">> %d done update parents\n", __LINE__);
 			/* update peers */
 			for (const auto& eq : var.second){
@@ -3197,7 +3198,7 @@ std::vector<int> createString(
 	if (canAssign) {
 		for (int i = 0; i < len[name]; ++i)
 			if (val[i] == 0)
-				val[i] = 'a';
+				val[i] = DEFAULT_CHAR;
 	}
 	else {
 		/* cannot assign because we do not know anything */
@@ -3504,13 +3505,13 @@ bool Z3_run(
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
 								if (elseValue > 'z' || elseValue < '!')
-									elseValue = 'z';
+									elseValue = DEFAULT_CHAR;
 								break;
 							}
 							else {
 								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
 								if (tmpNum > 'z' || tmpNum < '!')
-									tmpNum = 'z';
+									tmpNum = DEFAULT_CHAR;
 								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}
 						}
@@ -3717,7 +3718,6 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
  * v01 is inside v02?
  */
 int vectorInsideVector(std::vector<std::string> v01, std::vector<std::string> v02){
-	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (unsigned int i = 0; i <= v02.size() - v01.size(); ++i) {
 		unsigned int pos = 0;
 		while (pos < v01.size() && v02[i + pos].compare(v01[pos]) == 0)
