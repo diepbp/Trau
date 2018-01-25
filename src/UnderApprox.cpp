@@ -2036,10 +2036,11 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		if (eq.second.size() <= 1)
 			continue;
 
-//		if (eq.second.size() > 4) {
-//			connectedVarSet.insert(eq.first);
-//			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
-//		}
+		if (eq.second.size() > 4) {
+			if (connectedVariables.find(eq.first) == connectedVariables.end())
+				connectedVarSet[eq.first] = CONNECTSIZE;
+			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
+		}
 
 		std::map<std::string, std::vector<std::string>> tmpUsedComponents;
 		for (const auto& v : eq.second)
@@ -3021,7 +3022,13 @@ void forwardPropagate(
 		sValue = getDataStr(newlyUpdate, strValue);
 	else
 		sValue = strValue[newlyUpdate];
-
+	for (int i = 0; i < len[newlyUpdate]; ++i)
+		if (sValue[i] != 0) {
+			__debugPrint(logFile, "%c", (char)sValue[i]);
+		}
+		else
+			__debugPrint(logFile, "%d", sValue[i]);
+	__debugPrint(logFile, "\n");
 
 	for (const auto& var : equalitiesMap){
 		std::vector<int> value;
@@ -3039,6 +3046,7 @@ void forwardPropagate(
 				int pos = 0;
 				for (const auto& s : eq)
 					if (s.compare(newlyUpdate) == 0 && !isConstStr(s)){
+						__debugPrint(logFile, "%d update %s by %s, value size = %ld\n", __LINE__, var.first.c_str(), newlyUpdate.c_str(), value.size());
 						int length = 0;
 						if (s[0] == '"') {
 							assert(isRegexStr(s));
@@ -3073,6 +3081,14 @@ void forwardPropagate(
 
 
 		if (foundInParents) {
+			__debugPrint(logFile, "%d %s update var : %s, len = %d, size value = %ld\n", __LINE__, newlyUpdate.c_str(), var.first.c_str(), len[var.first], value.size());
+			for (int i = 0; i < len[var.first]; ++i)
+				if (value[i] != 0) {
+					__debugPrint(logFile, "%c", (char)value[i]);
+				}
+				else
+					__debugPrint(logFile, "%d", value[i]);
+			__debugPrint(logFile, "\n");
 			strValue[var.first] = value;
 			/* update it parents */
 			forwardPropagate(var.first, len, strValue);
@@ -3265,8 +3281,8 @@ void backwardPropagarate(
 						update = true;
 					}
 					else if (value[pos + i] == 0 && sValue[i] != 0){
-						assert(false);
 					}
+
 				pos += len[var];
 				if (update == true) {
 					strValue[var] = sValue;
@@ -3296,6 +3312,8 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 	std::vector<std::pair<std::string, int>> lenVector;
 	std::map<std::string, int> lenInt;
 	std::map<std::string, std::string> strValue;
+
+	/* format lengths */
 	for (const auto& s : len)
 		if (s.first.find("len_") == 0){
 			std::string name = s.first.substr(4);
@@ -3308,6 +3326,7 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 			lenInt[s.first] = atoi(s.second.c_str());
 		}
 
+	/* format values */
 	for (const auto& s : _strValue)
 		if (s.first.find("arr_") == 0){
 			std::string name = s.first.substr(4);
@@ -3484,12 +3503,18 @@ bool Z3_run(
 							tokens = parse_string_language(buffer, " (),.=");
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
+								if (elseValue > 'z' || elseValue < '!')
+									elseValue = 'z';
 								break;
 							}
 							else {
-								valueMap[std::atoi(tokens[2].c_str())] = std::atoi(tokens[tokens.size() - 1].c_str());
+								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
+								if (tmpNum > 'z' || tmpNum < '!')
+									tmpNum = 'z';
+								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}
 						}
+
 						/* convert map to string */
 						std::string valueStr = "";
 						for (unsigned int j = 0; j < valueMap.size(); ++ j) {
