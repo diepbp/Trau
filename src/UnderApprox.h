@@ -34,6 +34,7 @@ static std::set<std::string> allVariables;
 static pthread_mutex_t smt_mutex;
 
 static int regexCnt;
+static std::map<std::pair<std::string, std::string>, bool> notContainMap;
 static std::vector<std::string> smtVarDefinition;
 static std::vector<std::string> smtLenConstraints;
 
@@ -72,6 +73,14 @@ bool isRegexStr(std::string str);
  *
  */
 bool isConstStr(std::string str);
+
+/*
+ *
+ */
+bool passNotContainMapReview(
+		Arrangment a,
+		std::vector<std::pair<std::string, int>> lhs_elements,
+		std::vector<std::pair<std::string, int>> rhs_elements);
 
 /*
  * First base case
@@ -518,6 +527,11 @@ void reset();
  * replace all "Length " by "len_"
  */
 std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnConstraints);
+
+/*
+ *
+ */
+void createNotContainMap(std::map<StringOP, std::string> &rewriterStrMap);
 
 void init(std::map<StringOP, std::string> &rewriterStrMap);
 

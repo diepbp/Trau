@@ -107,6 +107,44 @@ bool isConstStr(std::string str){
 		return false;
 }
 
+bool passNotContainMapReview(
+		Arrangment a,
+		std::vector<std::pair<std::string, int>> lhs_elements,
+		std::vector<std::pair<std::string, int>> rhs_elements){
+	/* do the left */
+	for (unsigned int i = 0; i < lhs_elements.size(); ++i)
+		if (a.left_arr[i] == SUMFLAT) { /* a = bx + cy */
+
+			for (unsigned int j = 0; j < rhs_elements.size(); ++j)
+				if (a.right_arr[j] == (int)i) {
+					if (rhs_elements[j].second < 0)
+						for (const auto notContain : notContainMap)
+							if (notContain.first.first.compare(lhs_elements[i].first) == 0 &&
+									rhs_elements[j].first.find(notContain.first.second) != std::string::npos) {
+								__debugPrint(logFile, "%d %s: %s cannot contain %s\n", __LINE__, __FUNCTION__, notContain.first.first.c_str(), rhs_elements[j].first.c_str());
+								return false;
+							}
+				}
+		}
+
+	/* do the right */
+	for (unsigned int i = 0; i < rhs_elements.size(); ++i)
+		if (a.right_arr[i] == SUMFLAT) { /* a = bx + cy */
+
+			for (unsigned int j = 0; j < lhs_elements.size(); ++j)
+				if (a.left_arr[j] == (int)i) {
+					if (lhs_elements[j].second < 0)
+						for (const auto notContain : notContainMap)
+							if (notContain.first.first.compare(rhs_elements[i].first) == 0 &&
+									lhs_elements[j].first.find(notContain.first.second) != std::string::npos) {
+								__debugPrint(logFile, "%d %s: %s cannot contain %s\n", __LINE__, __FUNCTION__, notContain.first.first.c_str(), lhs_elements[j].first.c_str());
+								return false;
+							}
+				}
+		}
+	return true;
+}
+
 /*
  * First base case
  */
@@ -579,18 +617,19 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-		//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
-		possibleCases[i].constMap.clear();
-		possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
-		std::string tmp = possibleCases[i].
-				generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
+		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
+			possibleCases[i].constMap.clear();
+			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
+			std::string tmp = possibleCases[i].
+					generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
 
-		if (tmp.length() > 0) {
-			cases.emplace_back(tmp);
-//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//			__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
-		}
-		else {
+			if (tmp.length() > 0) {
+				cases.emplace_back(tmp);
+				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+			}
+			else {
+			}
 		}
 	}
 #endif
@@ -3675,6 +3714,7 @@ void pthreadController(){
  *
  */
 void reset(){
+	notContainMap.clear();
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
@@ -3771,7 +3811,20 @@ void addConnectedVarToEQmap(){
 /*
  *
  */
+void createNotContainMap(std::map<StringOP, std::string> &rewriterStrMap){
+	for (const auto op : rewriterStrMap)
+		if (op.first.name.compare("Contains") == 0 && op.second.compare("false") == 0){
+			if (op.first.arg02[0] == '"') {
+				notContainMap[std::make_pair(op.first.arg01, op.first.arg02.substr(1, op.first.arg02.length() - 2))] = false;
+			}
+		}
+}
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
+	createNotContainMap(rewriterStrMap);
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap();
 
