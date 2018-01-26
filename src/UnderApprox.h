@@ -372,7 +372,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap);
  * Remove all equalities without connected variables and consts
  */
 
-void refineEqualMap();
+void refineEqualMap(void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap));
 
 /*
  *
@@ -413,6 +413,15 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str);
  *
  */
 bool equalVector(std::vector<std::string> a, std::vector<std::string> b);
+
+/*
+ *
+ */
+bool similarVector(
+		std::vector<std::string> a,
+		std::vector<std::string> b,
+		std::map<std::string, std::vector<std::string>> notEqualMap
+		);
 
 /*
  *
@@ -535,7 +544,12 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 /*
  *
  */
-void createNotContainMap(std::map<StringOP, std::string> &rewriterStrMap);
+void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap);
+
+/*
+ *
+ */
+std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<StringOP, std::string> rewriterStrMap);
 
 void init(std::map<StringOP, std::string> &rewriterStrMap);
 

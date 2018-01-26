@@ -1740,12 +1740,14 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
  */
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalMap.begin();
-			it != equalMap.end(); ++it) {
-		__debugPrint(logFile, "%s = (%ld cases) \n", it->first.c_str(), it->second.size());
-		for (unsigned int i = 0; i < it->second.size(); ++i) {
-			for (unsigned int j = 0; j < it->second[i].size(); ++j) {
-				__debugPrint(logFile, "\t%s ",  it->second[i][j].c_str());
+	for (const auto _eq : equalMap) {
+		if (_eq.second.size() <= 1)
+			continue;
+
+		__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
+		for (const auto vec : _eq.second) {
+			for (const auto s : vec) {
+				__debugPrint(logFile, "\t%s ",  s.c_str());
 			}
 			__debugPrint(logFile, "\n");
 		}
@@ -2069,7 +2071,7 @@ void createConstMap(){
 void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::string, std::vector<std::string>> usedComponents;
 	std::map<std::string, int> connectedVarSet;
-
+	connectedVariables.clear();
 	/* collect from equality map */
 	for (const auto& eq : equalitiesMap) {
 		if (eq.second.size() <= 1)
@@ -2170,8 +2172,12 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			/* add all of variables to the connected var set*/
 			if (s.first.arg01[0] != '\"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
-					if (s.first.arg02[0] == '"')
-						connectedVarSet[s.first.arg01] = s.first.arg02.length() - 2;
+					if (s.first.arg02[0] == '"') {
+						if (connectedVarSet.find(s.first.arg01) == connectedVarSet.end())
+							connectedVarSet[s.first.arg01] = s.first.arg02.length() - 2;
+						else
+							connectedVarSet[s.first.arg01] = std::max((int)s.first.arg02.length() - 2, connectedVarSet[s.first.arg01]);
+					}
 				}
 				else
 					connectedVarSet[s.first.arg01] = CONNECTSIZE;
@@ -2179,8 +2185,12 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			}
 			if (s.first.arg02[0] != '"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
-					if (s.first.arg01[0] == '"')
-						connectedVarSet[s.first.arg02] = s.first.arg01.length() - 2;
+					if (s.first.arg01[0] == '"') {
+						if (connectedVarSet.find(s.first.arg02) == connectedVarSet.end())
+							connectedVarSet[s.first.arg02] = s.first.arg01.length() - 2;
+						else
+							connectedVarSet[s.first.arg02] = std::max((int)s.first.arg01.length() - 2, connectedVarSet[s.first.arg02]);
+					}
 				}
 				else
 					connectedVarSet[s.first.arg02] = CONNECTSIZE;
@@ -2215,9 +2225,10 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 /*
  * Remove all equalities without connected variables and consts
  */
-void refineEqualMap(){
+void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
+	std::map<std::string, std::vector<std::string>> notEqualMap = createNotEqualMap(rewriterStrMap);
 
 	/* remove duplications */
 	for (const auto& varEq: equalitiesMap) {
@@ -2266,10 +2277,10 @@ void refineEqualMap(){
 
 		/* remove all duplications in tmp_vector */
 		std::vector<std::vector<std::string>> tmp_vector01;
-		for (unsigned int i = 0; i < tmp_vector.size(); ++i){
+		for (unsigned i = 0; i < tmp_vector.size(); ++i){
 			bool notAdd = false;
-			for (unsigned int j = 0; j < i; ++j){
-				if (equalVector(tmp_vector[i], tmp_vector[j])) {
+			for (unsigned j = 0; j < i; ++j){
+				if (similarVector(tmp_vector[i], tmp_vector[j], notEqualMap)) {
 					notAdd = true;
 					break;
 				}
@@ -2491,10 +2502,89 @@ bool equalVector(std::vector<std::string> a, std::vector<std::string> b){
 	if (a.size() != b.size()) {
 		return false;
 	}
-	for (unsigned int i = 0; i < a.size(); ++i)
+	for (unsigned i = 0; i < a.size(); ++i)
 		if (a[i].compare(b[i]) != 0) {
 			return false;
 		}
+	return true;
+}
+
+/*
+ *
+ */
+bool similarVector(
+		std::vector<std::string> a,
+		std::vector<std::string> b,
+		std::map<std::string, std::vector<std::string>> notEqualMap
+		){
+	if (equalVector(a, b))
+		return true;
+
+	unsigned posB = 0;
+	for (unsigned i = 0; i < a.size(); ++i){
+		if (a[i][0] != '"') {
+			if (connectedVariables.find(a[i]) != connectedVariables.end()) {
+				if (notEqualMap.find(a[i]) == notEqualMap.end())
+					return false;
+
+				/* var vs var */
+				while (posB < b.size()){
+					if (b[posB][0] == '"')
+						return false;
+					else if (connectedVariables.find(b[posB]) != connectedVariables.end()) {
+						if (!equalVector(notEqualMap[a[i]], notEqualMap[b[posB]])) {
+							return false;
+						}
+						else {
+							posB++;
+							break;
+						}
+					}
+					else {
+						++posB;
+						if (posB > b.size())
+							return false;
+					}
+				}
+			}
+		}
+		else {
+			/* const vs const */
+			while (posB < b.size()){
+				if (b[posB][0] == '"') {
+					if (a[i].compare(b[posB]) == 0) {
+						posB++;
+						break;
+					}
+					else
+						return false;
+				}
+				else if (connectedVariables.find(b[posB]) != connectedVariables.end()) {
+					return false;
+				}
+				else {
+					++posB;
+					if (posB > b.size())
+						return false;
+				}
+			}
+		}
+	}
+
+	for (unsigned i = posB; i < b.size(); ++i)
+		if (b[i][0] == '"' || connectedVariables.find(b[i]) != connectedVariables.end())
+			return false;
+
+	if (a.size() > 1) {
+		/* print test */
+		__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+		for (const auto s : a)
+			__debugPrint(logFile, "%s ", s.c_str());
+		__debugPrint(logFile, "\n");
+		for (const auto s : b)
+			__debugPrint(logFile, "%s ", s.c_str());
+		__debugPrint(logFile, "\n");
+	}
 	return true;
 }
 
@@ -3832,7 +3922,7 @@ void addConnectedVarToEQmap(){
 /*
  *
  */
-void createNotContainMap(std::map<StringOP, std::string> &rewriterStrMap){
+void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
 		if (op.first.name.compare("Contains") == 0 && op.second.compare("false") == 0){
 			if (op.first.arg02[0] == '"') {
@@ -3844,10 +3934,28 @@ void createNotContainMap(std::map<StringOP, std::string> &rewriterStrMap){
 /*
  *
  */
+std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<StringOP, std::string> rewriterStrMap){
+	std::map<std::string, std::vector<std::string>> ret;
+	for (const auto op : rewriterStrMap)
+		if (op.first.name.compare("=") == 0 && op.second.compare("false") == 0){
+			if (op.first.arg02[0] == '"') {
+				if (ret.find(op.first.arg01) == ret.end())
+					ret[op.first.arg01] = {op.first.arg02.substr(1, op.first.arg02.length() - 2)};
+				else
+					ret[op.first.arg01].emplace_back(op.first.arg02.substr(1, op.first.arg02.length() - 2));
+			}
+		}
+	return ret;
+}
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> &rewriterStrMap){
 	createNotContainMap(rewriterStrMap);
+
 	collectConnectedVariables(rewriterStrMap);
-	refineEqualMap();
+	refineEqualMap(rewriterStrMap);
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
