@@ -2662,6 +2662,35 @@ std::string constraintsIfEmpty(
 	}
 	return "";
 }
+
+/*
+ *
+ */
+unsigned findMaxP(std::vector<std::vector<std::string>> v){
+	unsigned maxLocal = 0;
+	for (unsigned i = 0; i < v.size(); ++i)
+		for (unsigned j = i + 1; j < v.size(); ++j){
+
+			/* optimize: find longest common prefix and posfix */
+			std::vector<std::string> lhs;
+			std::vector<std::string> rhs;
+			optimizeEquality(v[i], v[j], lhs, rhs);
+
+			unsigned cnt = 0;
+			for (const auto& s : lhs)
+				if (s[0] == '\"' || s.length() > 3)
+					cnt++;
+			maxLocal = cnt > maxLocal ? cnt : maxLocal;
+
+			cnt = 0;
+			for (const auto& s : rhs)
+				if (s[0] == '\"' || s.length() > 3)
+					cnt++;
+			maxLocal = cnt > maxLocal ? cnt : maxLocal;
+		}
+
+	return maxLocal;
+}
 /*
  * Pthread
  * Each thread handles a part in the global map from start -> end
@@ -2692,15 +2721,7 @@ void convertEqualities(){
 		/* different tactic for size of it->second */
 		const int flatP = 1;
 		const int maxPConsidered = 6;
-		unsigned maxLocal = 0;
-		for (const auto& element : it->second) {
-			unsigned cnt = 0;
-			for (const auto& s : element)
-				if (s[0] == '\"' || s.length() > 3)
-					cnt++;
-
-			maxLocal = cnt > maxLocal ? cnt : maxLocal;
-		}
+		unsigned maxLocal = findMaxP(it->second);
 
 #ifdef PRINTTEST_UNDERAPPROX
 		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
@@ -3961,8 +3982,8 @@ bool underapproxController(
 
 		writeOutput_basic(OUTPUT);
 
-		bool val = Z3_run(_equalMap, false);
-		if (val == false){
+		result = Z3_run(_equalMap, false);
+		if (result == false){
 			regexCnt = 0;
 			toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {

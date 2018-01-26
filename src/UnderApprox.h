@@ -18,7 +18,7 @@
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
-#define DEFAULT_CHAR 'z'
+#define DEFAULT_CHAR 'a'
 
 extern std::string orgInput;
 extern bool getModel;
@@ -440,6 +440,10 @@ void optimizeEquality(
 		std::vector<std::string> rhs,
 		std::vector<std::string> &new_lhs,
 		std::vector<std::string> &new_rhs);
+/*
+ *
+ */
+unsigned findMaxP(std::vector<std::vector<std::string>> v);
 
 /*
  * Pthread
