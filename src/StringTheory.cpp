@@ -1611,9 +1611,9 @@ void Th_init_search(Z3_theory t) {
  */
 void Th_push(Z3_theory t) {
 	sLevel++;
-	__debugPrint(logFile, "\n*******************************************\n");
-	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
-	__debugPrint(logFile, "\n*******************************************\n");
+//	__debugPrint(logFile, "\n*******************************************\n");
+//	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
+//	__debugPrint(logFile, "\n*******************************************\n");
 	if (sLevel == 1 && initLength.size() == 0) {
 		initLength = collectCurrentLength(t);
 		for (const auto& s : initLength){
@@ -1628,12 +1628,9 @@ void Th_push(Z3_theory t) {
    \see Th_push
  */
 void Th_pop(Z3_theory t) {
-	__debugPrint(logFile, "\n*******************************************\n");
-	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
-	__debugPrint(logFile, "\n*******************************************\n");
-
-//	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-//	printZ3Node(t, ctxAssign);
+//	__debugPrint(logFile, "\n*******************************************\n");
+//	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
+//	__debugPrint(logFile, "\n*******************************************\n");
 
 //	__debugPrint(logFile, "Remove in internalVarMap\n");
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap.begin(); it != internalVarMap.end(); ++it) {
@@ -9090,7 +9087,7 @@ void check(Z3_theory t)
 		printf("potential model:\n%s\n", Z3_model_to_string(ctx, m));
 		break;
 	case Z3_L_TRUE:
-		printf(">> SAT\n");
+		printf("\n>> SAT\n");
 #if 0
 		if (ourGrm.size() == 0) {
 			printf("OverApprox: sat\n");

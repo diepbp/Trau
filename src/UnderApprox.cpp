@@ -1741,8 +1741,6 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (const auto _eq : equalMap) {
-		if (_eq.second.size() <= 1)
-			continue;
 
 		__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
 		for (const auto vec : _eq.second) {
@@ -2042,16 +2040,16 @@ void createConstMap(){
 	int constCnt = 0;
 	constMap.clear();
 
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin(); it != equalitiesMap.end(); ++it) {
-		for (unsigned int j = 0; j < it->second.size(); ++j){
+	for (const auto _eq : equalitiesMap) {
+		for (const auto v: _eq.second){
 
 			/* create a general value that the component belongs to */
-			std::string value = sumStringVector(it->second[j]);
+			std::string value = sumStringVector(v);
 
 			/* push to map */
-			for (unsigned int k = 0; k < it->second[j].size(); ++k)
-				if (it->second[j][k][0] == '\"'){
-					std::string content = it->second[j][k].substr(1, it->second[j][k].length() - 2);
+			for (const auto s : v)
+				if (s[0] == '\"'){
+					std::string content = s.substr(1, s.length() - 2);
 					/* string is regex ? */
 //					if (isRegexStr(content)) {
 //						content = content + "__" + std::to_string(constCnt);
