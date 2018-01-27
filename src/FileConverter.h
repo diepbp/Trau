@@ -72,6 +72,11 @@ void updateReplaceAll(
 		std::map<StringOP, std::string> rewriterStrMap);
 
 /*
+ *
+ */
+void updateNot(std::vector<std::pair<std::string, int>> &tokens);
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::vector<std::pair<std::string, int>> &tokens);

@@ -238,6 +238,53 @@ StringOP findStringOP(
 }
 
 /*
+ *
+ */
+void updateNot(std::vector<std::pair<std::string, int>> &tokens){
+	int found = findTokens(tokens, 0, "not", 3);
+	while (found != -1) {
+		int endCond = -1;
+		__debugPrint(logFile, "%d token = %s %d\n", __LINE__, tokens[found - 1].first.c_str(), tokens[found - 1].second);
+		assert(tokens[found - 1].second == 92);
+		if (tokens[found + 1].second == 92)
+		endCond = findCorrespondRightParentheses(found - 1, tokens);
+
+		bool foundConst = false;
+		for (int i = found; i < endCond; ++i)
+			if (tokens[i].second == 86 && tokens[i].first.length() > 2) {
+				foundConst = true;
+				break;
+			}
+
+
+		if (foundConst) {
+			bool eqType = false;
+			for (int i = found - 2; i >= 0; --i) {
+				if (tokens[i].second == 92) {
+					eqType = true;
+					found = i;
+					endCond = findCorrespondRightParentheses(i, tokens);
+				}
+				break;
+			}
+			std::vector<std::pair<std::string, int>> addingTokens;
+			if (eqType) {
+				addingTokens.push_back(std::make_pair("true", 15));
+				tokens = replaceTokens(tokens, found, endCond + 1, addingTokens); /* found at ( */
+				found = findTokens(tokens, found, "not", 3);
+			}
+			else {
+				addingTokens.push_back(std::make_pair("true", 15));
+				tokens = replaceTokens(tokens, found - 1, endCond + 1, addingTokens); /* found at not */
+				found = findTokens(tokens, found, "not", 3);
+			}
+		}
+		else
+			found = findTokens(tokens, found + 1, "not", 3);
+	}
+}
+
+/*
  * (implies x) --> (implies false x)
  */
 void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
@@ -1194,6 +1241,8 @@ void toLengthLine(
 		}
 
 	updateImplies(tokens);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+	updateNot(tokens);
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);

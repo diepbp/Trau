@@ -4082,7 +4082,7 @@ bool underapproxController(
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
 		toLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
-			printf(">> UNSAT\n");
+			printf(">> UNSAT %d\n", __LINE__);
 			return false;
 		}
 
@@ -4093,7 +4093,7 @@ bool underapproxController(
 			regexCnt = 0;
 			toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
-				printf(">> UNSAT\n");
+				printf(">> UNSAT %d\n", __LINE__);
 				return false;
 			}
 			writeOutput_basic(OUTPUT);

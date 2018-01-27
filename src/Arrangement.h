@@ -1900,6 +1900,93 @@ public:
 	}
 
 	/*
+	 * Var = Var
+	 */
+	std::string generateConstraint01_twoVar(
+		std::string lhs_str, std::string rhs_str,
+		std::pair<std::string, int> a, std::pair<std::string, int> b,
+		std::map<std::string, int> connectedVariables){
+		__debugPrint(logFile, "%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, a.first.c_str(), b.first.c_str());
+		bool isConstA = a.second < 0;
+		bool isConstB = b.second < 0;
+
+		std::string arrA = generateFlatArray(a, lhs_str);
+		std::string arrB = generateFlatArray(b, rhs_str);
+		std::string nameA = "";
+		std::string nameB = "";
+		if (a.second >= 0) {
+			nameA += "len_";
+			nameA += a.first;
+		}
+		else {
+			assert (constMap.find(a.first) != constMap.end());
+			nameA += "len_";
+			nameA += constMap[a.first];
+		}
+
+		if (b.second >= 0) {
+			nameB += "len_";
+			nameB += b.first;
+		}
+		else {
+			assert (constMap.find(b.first) != constMap.end());
+			nameB += "len_";
+			nameB += constMap[b.first];
+		}
+
+		std::string result = "(= " + nameA + " " + nameB + ")";
+		result = result +  "(= " + generateFlatSize(a, lhs_str) + " " + generateFlatSize(b, rhs_str) + ")";
+
+		if (!isConstA && !isConstB) {
+			if (connectedVariables.find(b.first) != connectedVariables.end() &&
+					connectedVariables.find(a.first) != connectedVariables.end()){
+				int bound = std::max(connectedVariables[b.first], connectedVariables[a.first]);
+				int consideredSize = std::min(bound + 1, 99);
+
+				for (int i = 1; i <= consideredSize; ++i){
+					std::vector<std::string> orConstraints;
+					orConstraints.emplace_back("(= (select " + arrA + " " + std::to_string(i - 1) + ") " +
+													"(select " + arrB + " " + std::to_string(i - 1) + "))");
+					orConstraints.emplace_back("(< " + nameA + " " + std::to_string(i) + ")");
+					result = result + orConstraint(orConstraints);
+				}
+			}
+		}
+
+		else if (isConstA && isConstB) {
+			if (a.first.compare(b.first) != 0)
+				return "";
+		}
+
+		else if (isConstA) {
+			/* record characters for some special variables */
+			if (connectedVariables.find(b.first) != connectedVariables.end()){
+				int consideredSize = a.first.length();
+				result = result + "(= " + nameB + " " + std::to_string(consideredSize) + ")";
+				for (int i = 0; i < consideredSize; ++i){
+					result = result + " (= " + std::to_string(a.first[i]) + " " +
+										"(select " + arrB + " " + std::to_string(i) + "))";
+				}
+			}
+		}
+
+		else if (isConstB){
+			/* record characters for some special variables */
+			if (connectedVariables.find(a.first) != connectedVariables.end()){
+				int consideredSize = b.first.length();
+				result = result + "(= " + nameA + " " + std::to_string(consideredSize) + ")";
+				for (int i = 0; i < consideredSize; ++i){
+					result = result + "(= " + std::to_string(b.first[i]) + " " +
+										"(select " + arrA + " " + std::to_string(i) + "))";
+				}
+			}
+		}
+
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, result.c_str());
+		return result;
+	}
+
+	/*
 	 * Flat = Flat
 	 * size = size && it = it  ||
 	 * size = size && it = 1
@@ -2350,30 +2437,29 @@ public:
 				checkLeft[i] = true;
 				checkRight[left_arr[i]] = true;
 
-				if (QCONSTMAX == 2 &&
-						lhs_elements[i].second == -1 && rhs_elements[left_arr[i]].second == -1 &&
-						checkLeft[i + 1] == false &&
-						lhs_elements[i + 1].second == -2 && rhs_elements[left_arr[i + 1]].second == -2) /* const = const */{
-					if (lhs_elements[i].first.compare(rhs_elements[left_arr[i]].first) == 0) { /* "abc" = "abc" */
-						constraint01 = constraint01 +	"(= " + generateFlatSize(lhs_elements[i], lhs_str) + " " + generateFlatSize(rhs_elements[left_arr[i]], rhs_str) + ") " +
-								"(= " + generateFlatSize(lhs_elements[i + 1], lhs_str) + " " + generateFlatSize(rhs_elements[left_arr[i + 1]], rhs_str) + ") ";
-						checkLeft[i + 1] = true;
-						checkRight[left_arr[i + 1]] = true;
-						i++;
-//						 printf("%d constraints01: %s\n", __LINE__, constraint01.c_str());
-					}
-					else { /* "abc" = "def" */
-						__debugPrint(logFile, "%d CANNOT HAPPEN: %s = %s\n", __LINE__, lhs_elements[i].first.c_str(), rhs_elements[left_arr[i]].first.c_str());
-						return "";
+				if (QCONSTMAX == 2){
+					/* a1 = b1 && a2 == b2 --> a = b */
+					if (checkLeft[i + 1] == false) {
+						if ((rhs_elements[left_arr[i]].second == -1 && rhs_elements[left_arr[i + 1]].second == -2) ||
+								(rhs_elements[left_arr[i]].second == 0 && rhs_elements[left_arr[i + 1]].second == 1)){
+							std::string tmp = generateConstraint01_twoVar(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], connectedVariables);
+							if (tmp.length() > 0)
+								constraint01 = constraint01 + tmp + " ";
+							else
+								return "";
+							checkLeft[i + 1] = true;
+							checkRight[left_arr[i + 1]] = true;
+							i++;
+							continue;
+						}
 					}
 				}
-				else {
-					std::string tmp = generateConstraint01(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], pMax, connectedVariables);
-					if (tmp.length() == 0) { /* cannot happen due to const */
-						return "";
-					}
-					constraint01 = constraint01 + tmp + " ";
+
+				std::string tmp = generateConstraint01(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], pMax, connectedVariables);
+				if (tmp.length() == 0) { /* cannot happen due to const */
+					return "";
 				}
+				constraint01 = constraint01 + tmp + " ";
 			}
 
 		if (constraint01.length() > 5) {
