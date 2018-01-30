@@ -2439,7 +2439,7 @@ public:
 
 				if (QCONSTMAX == 2){
 					/* a1 = b1 && a2 == b2 --> a = b */
-					if (checkLeft[i + 1] == false) {
+					if (checkLeft[i + 1] == false && lhs_elements[i].second == 0) {
 						if ((rhs_elements[left_arr[i]].second == -1 && rhs_elements[left_arr[i + 1]].second == -2) ||
 								(rhs_elements[left_arr[i]].second == 0 && rhs_elements[left_arr[i + 1]].second == 1)){
 							std::string tmp = generateConstraint01_twoVar(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], connectedVariables);

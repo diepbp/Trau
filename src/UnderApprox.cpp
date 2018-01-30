@@ -617,7 +617,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
@@ -626,7 +626,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 			}
 			else {
 			}
@@ -1741,7 +1741,8 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (const auto _eq : equalMap) {
-		if (_eq.second.size() > 1) {
+//		if (_eq.second.size() > 1) {
+		if (_eq.second.size() > 0) {
 			__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
 			for (const auto vec : _eq.second) {
 				for (const auto s : vec) {
@@ -2138,22 +2139,22 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				bool canSkip = false;
 				if (s.first.arg02[0] == '"') {
 					if (equalitiesMap.find(s.first.arg01) != equalitiesMap.end())
-					for (const auto _eq : equalitiesMap[s.first.arg01]) {
-						for (const auto e : _eq)
-							if (s.first.arg02.find(e) == std::string::npos) {
-								canSkip = true;
+						for (const auto _eq : equalitiesMap[s.first.arg01]) {
+							for (const auto e : _eq)
+								if (e[0] == '"' && s.first.arg02.find(e) == std::string::npos) {
+									canSkip = true;
+									break;
+								}
+							if (canSkip)
 								break;
-							}
-						if (canSkip)
-							break;
-					}
+						}
 				}
 
 				if (s.first.arg01[0] == '"') {
 					if (equalitiesMap.find(s.first.arg02) != equalitiesMap.end())
 					for (const auto _eq : equalitiesMap[s.first.arg02]) {
 						for (const auto e : _eq)
-							if (s.first.arg01.find(e) == std::string::npos) {
+							if (e[0] == '"' && s.first.arg01.find(e) == std::string::npos) {
 								canSkip = true;
 								break;
 							}
@@ -2523,6 +2524,7 @@ bool similarVector(
 	for (unsigned i = 0; i < a.size(); ++i){
 		if (a[i][0] != '"') {
 			if (connectedVariables.find(a[i]) != connectedVariables.end()) {
+				return false;
 				if (notEqualMap.find(a[i]) == notEqualMap.end())
 					return false;
 
@@ -2531,6 +2533,7 @@ bool similarVector(
 					if (b[posB][0] == '"')
 						return false;
 					else if (connectedVariables.find(b[posB]) != connectedVariables.end()) {
+						return false;
 						if (!equalVector(notEqualMap[a[i]], notEqualMap[b[posB]])) {
 							return false;
 						}
@@ -3107,6 +3110,7 @@ void syncConst(
 
 		bool update = false;
 		for (const auto& eq : var.second){
+			__debugPrint(logFile, "%d varName = %s\n", __LINE__, var.first.c_str());
 			int pos = 0;
 			for (const auto& s : eq){
 				if (s[0] == '"') {
@@ -4006,12 +4010,14 @@ void updateRewriter(
 	for (const auto& op : rewriterStrMap){
 		if (op.first.name.compare("=") == 0) {
 			if (op.second.compare("false") == 0) {
-				if (equalitiesMap.find(op.first.arg01) != equalitiesMap.end() &&
+				if (equalitiesMap.find(op.first.arg01) != equalitiesMap.end() ||
 						equalitiesMap.find(op.first.arg02) != equalitiesMap.end()) {
 					StringOP tmp = op.first;
 					__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
 					continue;
 				}
+				else
+					newRewriterStrMap[op.first] = op.second;
 			}
 		}
 		else if (allVars.find(op.first.arg01) != allVars.end() ||
@@ -4055,7 +4061,13 @@ bool underapproxController(
 	init(rewriterStrMap);
 
 	std::set<std::string> allVars = collectAllVars();
+
 	updateRewriter(rewriterStrMap, allVars);
+
+	for (const auto& elem : rewriterStrMap){
+		StringOP op = elem.first;
+		__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), elem.second.c_str());
+	}
 
 	additionalHandling(rewriterStrMap);
 
