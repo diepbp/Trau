@@ -1209,11 +1209,13 @@ void handle_NOTContains(
 void handle_NOTEqual(
 		std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0){
+		if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0 &&
+				(connectedVariables.find(s.first.arg01) != connectedVariables.end() || connectedVariables.find(s.first.arg02) != connectedVariables.end())){
 			global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
 		}
 	}
 }
+
 /**
  * handle startswith constraints
  */
@@ -3623,6 +3625,9 @@ bool Z3_run(
 		if (fgets(buffer, 4000, in) == NULL)
 			assert(false);
 		std::string getSat = buffer;
+		if (getSat.find("rror") != std::string::npos)
+			assert(false);
+
 		getSat = getSat.substr(0, 3);
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, buffer);
 
@@ -3630,6 +3635,7 @@ bool Z3_run(
 			printf(">> Z3: SAT\n\n");
 			sat = true;
 		}
+
 		else {
 			if (finalCall == true)
 				printf(">> Z3: UNSAT\n\n");
