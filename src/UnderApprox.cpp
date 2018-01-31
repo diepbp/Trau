@@ -617,7 +617,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
@@ -626,7 +626,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 			}
 			else {
 			}
@@ -1421,6 +1421,10 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
  *
  */
 void create_constraints_strVar(std::vector<std::string> &defines, std::vector<std::string> &constraints){
+	int maxLength = 270;
+	for (const auto& constStr : constMap)
+		maxLength = std::max(maxLength, (int)constStr.first.length());
+	std::string maxLengthStr = std::to_string(maxLength);
 	for (const auto& var: allVariables){
 
 		/* len_x = sum(len_x_i)*/
@@ -1429,7 +1433,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < QMAX; ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " 270))");
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
 			lenX += lenVarName;
 			lenX += "_";
 			lenX += std::to_string(i);
@@ -3625,7 +3629,7 @@ bool Z3_run(
 		if (fgets(buffer, 4000, in) == NULL)
 			assert(false);
 		std::string getSat = buffer;
-		if (getSat.find("rror") != std::string::npos)
+		if (getSat.find("error ") != std::string::npos)
 			assert(false);
 
 		getSat = getSat.substr(0, 3);

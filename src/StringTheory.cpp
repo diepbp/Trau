@@ -4127,7 +4127,12 @@ void extendVariableToFindAllPossibleEqualities(
 	else {
 		/* he = himself */
 		if (refined_result.size() == 0) {
-			refined_result.push_back({node});
+			if (!isConcatFunc(t, node))
+				refined_result.push_back({node});
+			else {
+				std::vector<Z3_ast> tmpVector = {Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0), Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1)};
+				refined_result.push_back(tmpVector);
+			}
 			__debugPrint(logFile, "\t %d add itself: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
 		}
 
