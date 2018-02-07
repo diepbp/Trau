@@ -4601,7 +4601,7 @@ void compute_parikh(
 /*
  *
  */
-bool check_substr_basic(
+bool parikh_check_substr_basic(
 		Z3_theory t,
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list){
@@ -4990,7 +4990,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
 		__debugPrint(logFile, "%d before parikh_check_replaceall: var = %s\n", __LINE__, varName.c_str());
 		bool fine_replace = parikh_check_replaceall(t, itor->second, boolMapValues);
-		bool substr_basic = check_substr_basic(t, itor->first, itor->second);
+		bool substr_basic = parikh_check_substr_basic(t, itor->first, itor->second);
 
 		if (!fine_replace || !substr_basic) {
 			__debugPrint(logFile, "%d * %s * replaceall does not work\n", __LINE__, __FUNCTION__);
@@ -5053,7 +5053,6 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		if (!fine_contain) {
 			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
-//			addAxiom(t, negatePositiveEquality(t, n.first, conflict, boolMapValues), __LINE__, true);
 			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
 			return {};
 		}
@@ -8732,7 +8731,20 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
 		Z3_ast reg1Ast = Z3_get_app_arg(ctx, Z3_to_app(ctx, regex), 0);
 		std::string reg1Str = getStdRegexStr(t, reg1Ast);
 		return  "(" + reg1Str + ")*";
-	} else {
+	} else if (regexFuncDecl == td->RegexCharRange) {
+		Z3_ast start = Z3_get_app_arg(ctx, Z3_to_app(ctx, regex), 0);
+		Z3_ast finish = Z3_get_app_arg(ctx, Z3_to_app(ctx, regex), 1);
+		std::string arg00 = getConstString(t, start);
+		std::string arg01 = getConstString(t, finish);
+
+		assert(arg00.length() == 1);
+		assert(arg01.length() == 1);
+		std::string ret = "";
+		for (unsigned i = arg00[0]; i <= (unsigned)arg01[0]; ++i)
+			ret = ret + "~" + (char)i;
+		return ret.substr(1);
+	}
+	else {
 		return "__Contain_Vars__";
 	}
 }

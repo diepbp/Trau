@@ -690,7 +690,7 @@ typedef struct _AutomatonStringData
  /*
   *
   */
- bool check_substr_basic(
+ bool parikh_check_substr_basic(
  		Z3_theory t,
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list);
