@@ -1722,10 +1722,34 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 #endif
 
 	std::vector<Z3_ast> eq_nn1 = collect_eqc(t, nn1);
-//	displayListNode(t, eq_nn1, "eq of nn1: ");
 	std::vector<Z3_ast> eq_nn2 = collect_eqc(t, nn2);
-//	displayListNode(t, eq_nn2, "eq of nn2: ");
 
+	if (isVariable(t, nn1)) {
+		if (isConcatFunc(t, nn2)){
+			std::vector<Z3_ast> list;
+			collect_node_in_concat(t, nn2, list);
+			for (const auto& node : list){
+				std::vector<Z3_ast> eq_node = collect_eqc(t, node);
+				for (const auto& _node : eq_node)
+					if (_node == nn1)
+						return;
+			}
+		}
+	}
+
+	if (isVariable(t, nn2)) {
+		if (isConcatFunc(t, nn1)){
+			std::vector<Z3_ast> list;
+			collect_node_in_concat(t, nn1, list);
+			displayListNode(t, list, "xxxxxx");
+			for (const auto& node : list){
+				std::vector<Z3_ast> eq_node = collect_eqc(t, node);
+				for (const auto& _node : eq_node)
+					if (_node == nn2)
+						return;
+			}
+		}
+	}
 	if (done == true)
 		return;
 
@@ -2962,6 +2986,17 @@ bool propagate(Z3_theory t, Z3_ast node){
 	std::vector<Z3_ast> parents_filtered;
 	for (const auto& n : parents)
 		if (!isLengthFunc(t, n)){
+			std::vector<Z3_ast> listNodes;
+			if (isConcatFunc(t, node)) {
+				collect_node_in_concat(t, node, listNodes);
+
+				for (const auto& _node : listNodes) {
+					std::vector<Z3_ast> eq_node = collect_eqc(t, _node);
+					for (const auto& __node : eq_node)
+						if (__node == n)
+							return true;
+				}
+			}
 			bool add = true;
 			for (unsigned int i = 0 ; i < parents_filtered.size(); ++i) {
 				std::vector<Z3_ast> eq_parent = getEqualValues(parents_filtered[i]);
@@ -3932,7 +3967,7 @@ void extendVariableToFindAllPossibleEqualities(
 		std::set<Z3_ast> connectedVariables,
 		std::set<std::string> &non_root,
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
-		int level) {
+		std::map<Z3_ast, int> &levelMap) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	__debugPrint(logFile, "%d *** %s *** %s\n", __LINE__, Z3_ast_to_string(ctx, node), __FUNCTION__);
@@ -3956,6 +3991,20 @@ void extendVariableToFindAllPossibleEqualities(
 	std::vector<Z3_ast> refined_eqNode;
 	for (const auto& _node : eqNode)
 		if (isConcatFunc(t, _node)) {
+
+			/* check y = x y z*/
+			std::vector<Z3_ast> list;
+			collect_node_in_concat(t, _node, list);
+			for (const auto& __node : list){
+				std::vector<Z3_ast> eq_node = collect_eqc(t, __node);
+				for (const auto& _n : eq_node) {
+					if (_n == node){
+						refined_eqNode.emplace_back(_node);
+						continue;
+					}
+				}
+			}
+
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 1);
 
@@ -4016,12 +4065,19 @@ void extendVariableToFindAllPossibleEqualities(
 
 			if (!isAutomatonFunc(t, arg0)) { /* variable or Concat ... */
 				if (allEqPossibilities.find(arg0) == allEqPossibilities.end()) {
-					extendVariableToFindAllPossibleEqualities(t,
-							arg0,
-							connectedVariables,
-							non_root,
-							allEqPossibilities,
-							level + 1);
+					/* break cycle */
+					if (levelMap.find(arg0) == levelMap.end()) {
+						levelMap[arg0] = levelMap[node] + 1;
+						extendVariableToFindAllPossibleEqualities(t,
+								arg0,
+								connectedVariables,
+								non_root,
+								allEqPossibilities,
+								levelMap);
+					}
+					else
+						allEqPossibilities[arg0].push_back({arg0});
+
 				}
 				arg0_eq = allEqPossibilities[arg0];
 			}
@@ -4031,12 +4087,17 @@ void extendVariableToFindAllPossibleEqualities(
 
 			if (!isAutomatonFunc(t, arg1)) {
 				if (allEqPossibilities.find(arg1) == allEqPossibilities.end()) {
-					extendVariableToFindAllPossibleEqualities(t,
-							arg1,
-							connectedVariables,
-							non_root,
-							allEqPossibilities,
-							level + 1);
+					if (levelMap.find(arg1) == levelMap.end()) {
+						levelMap[arg1] = levelMap[node] + 1;
+						extendVariableToFindAllPossibleEqualities(t,
+								arg1,
+								connectedVariables,
+								non_root,
+								allEqPossibilities,
+								levelMap);
+					}
+					else
+						allEqPossibilities[arg1].push_back({arg1});
 				}
 				arg1_eq = allEqPossibilities[arg1];
 			}
@@ -4166,6 +4227,28 @@ std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_a
 	return tmp;
 }
 
+void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list){
+	Z3_context ctx = Z3_theory_get_context(t);
+	assert(isConcatFunc(t, node));
+
+	Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
+	Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
+
+	if (isStrVariable(t, arg0))
+		list.emplace_back(arg0);
+	else {
+		if (isConcatFunc(t, arg0))
+			collect_node_in_concat(t, arg0, list);
+	}
+
+	if (isStrVariable(t, arg1))
+		list.emplace_back(arg1);
+	else {
+		if (isConcatFunc(t, arg1))
+			collect_node_in_concat(t, arg1, list);
+	}
+}
+
 /*
  *
  */
@@ -4175,6 +4258,16 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 	std::set<Z3_ast> ret;
 
 	for (const auto& concatNode : concat_astNode_map) {
+
+		 std::vector<Z3_ast> list;
+		 collect_node_in_concat(t, concatNode.second, list);
+		 for (unsigned i = 0; i < list.size(); ++i){
+			 std::vector<Z3_ast> eq_node = collect_eqc(t, list[i]);
+			 for (unsigned j = i + 1; j < list.size(); ++j)
+				 for (unsigned k = 0; k < eq_node.size(); ++k)
+					 if (eq_node[k] == list[j])
+						 ret.emplace(list[i]);
+		 }
 		/* check connected for 1st variable */
 		if (inConcat.find(concatNode.first.first) != inConcat.end() &&
 				inConcat[concatNode.first.first] != concatNode.second)
@@ -4943,27 +5036,30 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 
 	/* find all equal possibilities*/
 	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> allEqPossibilities;
+	std::map<Z3_ast, int> levelMap;
 	for (const auto& var: inputVarMap) {
 		std::string currentVarName = Z3_ast_to_string(ctx, var.first);
 		if (non_root.find(currentVarName) == non_root.end()){
+			levelMap[var.first] = 0;
 			extendVariableToFindAllPossibleEqualities(	t,
 					var.first,
 					connectedVariables,
 					non_root,
 					allEqPossibilities,
-					0);
+					levelMap);
 		}
 	}
 
 	for (const auto& var: replaceNodeMap) {
 		std::string currentVarName = Z3_ast_to_string(ctx, var.second);
 		if (non_root.find(currentVarName) == non_root.end()){
+			levelMap[var.second] = 0;
 			extendVariableToFindAllPossibleEqualities(t,
 					var.second,
 					connectedVariables,
 					non_root,
 					allEqPossibilities,
-					0);
+					levelMap);
 		}
 	}
 

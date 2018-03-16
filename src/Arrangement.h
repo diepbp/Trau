@@ -2190,6 +2190,7 @@ public:
 			std::string lhs_str, std::string rhs_str,
 			int pMax,
 			std::map<std::string, int> connectedVariables){
+		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 		std::string result = "";
 		/* constraint for not equal */
 		for (unsigned int i = 0; i < elementNames.size(); ++i)
@@ -2230,6 +2231,8 @@ public:
 				/* regex */
 
 			}
+
+			__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 
 			/* collect */
 			/* only handle the case of splitting const string into two parts*/
@@ -2335,7 +2338,7 @@ public:
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements,
 			std::map<std::string, int> connectedVariables){
-
+		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 		std::vector<std::string> result_element;
 
 		bool checkLeft[lhs_elements.size()];
@@ -2370,7 +2373,7 @@ public:
 				/* empty */
 				/* some first flats can be empty */
 				if (lhs_elements[i].second == -1) /* head of const */ {
-					if (lhs_elements[i].first.length() <= SPLIT_UNDER_BOUND ||
+					if (lhs_elements[i].first.length() <= 0 ||
 						(QCONSTMAX == 2 &&
 							i + 1 < lhs_elements.size() &&
 							left_arr[i + 1] == EMPTYFLAT &&
@@ -2412,7 +2415,7 @@ public:
 				/* empty */
 				/* some first flats can be empty */
 				if (rhs_elements[i].second == -1) /* head of const */ {
-					if (rhs_elements[i].first.length() <= SPLIT_UNDER_BOUND ||
+					if (rhs_elements[i].first.length() <= SPLIT_UNDER_BOUND - 2 ||
 						(QCONSTMAX == 2 &&
 							i + 1 < rhs_elements.size() &&
 							right_arr[i + 1] == EMPTYFLAT &&

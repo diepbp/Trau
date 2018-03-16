@@ -579,7 +579,7 @@ typedef struct _AutomatonStringData
 		 std::set<Z3_ast> connectedVariables,
 		 std::set<std::string> &variableBelongToOthers,
 		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
-		 int level);
+		 std::map<Z3_ast, int> &levelMap);
 
  /*
   * all vars do not contain some letters
@@ -596,6 +596,11 @@ typedef struct _AutomatonStringData
   		Z3_theory t,
   		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues);
+
+  /*
+   *
+   */
+  void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list);
  /*
   *
   */

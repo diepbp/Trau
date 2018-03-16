@@ -617,7 +617,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
@@ -626,7 +626,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 			}
 			else {
 			}
@@ -2049,6 +2049,10 @@ void createConstMap(){
 	constMap.clear();
 
 	for (const auto _eq : equalitiesMap) {
+		if (_eq.first[0] == '"') {
+			std::string content = _eq.first.substr(1, _eq.first.length() - 2);
+			constMap[content] = "const_" + std::to_string(constCnt++);
+		}
 		for (const auto v: _eq.second){
 
 			/* create a general value that the component belongs to */
@@ -2092,6 +2096,25 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		std::map<std::string, std::vector<std::string>> tmpUsedComponents;
 		for (const auto& v : eq.second)
 			if (v.size() > 1){
+				std::map<std::string, int> variableCounting;
+				for (const auto& var : v) {
+					if (equalitiesMap.find(var) != equalitiesMap.end())
+						for (const auto& _eq : equalitiesMap[var]) {
+							if (_eq.size() == 1){
+								variableCounting[_eq[0]]++;
+								if (variableCounting[_eq[0]] > 1){
+									connectedVarSet[_eq[0]] = CONNECTSIZE;
+									__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, _eq[0].c_str());
+								}
+							}
+
+						}
+					variableCounting[var]++;
+					if (variableCounting[var] > 1){
+						connectedVarSet[var] = CONNECTSIZE;
+						__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
+					}
+				}
 
 				/* push to map */
 				for (const auto& var : v)
@@ -3566,6 +3589,10 @@ std::map<std::string, std::string> formatResult(std::map<std::string, std::strin
 	for (const auto& var : finalStrValue){
 		if (len.find("len_" + var.first) == len.end())
 			continue;
+		else if (len["len_" + var.first].compare("0") == 0) {
+			finalResult[var.first] = "";
+			continue;
+		}
 
 		if (isInternalVar(var.first))
 			continue;
