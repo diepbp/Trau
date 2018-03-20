@@ -40,7 +40,7 @@
 #include "antlrParser/SMTLIB2ScriptListener.h"
 #include "antlrParser/SMTLIB2TermListener.h"
 
-#define DEBUGLOG 1
+//#define DEBUGLOG 1
 #define REMOVINGLOG 1
 #define NUM_THREADS	1
 #define FLATMAX 100;

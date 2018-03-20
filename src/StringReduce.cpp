@@ -1897,6 +1897,12 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
  */
 Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	Z3_context ctx = Z3_theory_get_context(t);
+	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)){
+		std::string tmp01 = Z3_ast_to_string(ctx, s1);
+		std::string tmp02 = Z3_ast_to_string(ctx, s2);
+		throw std::runtime_error("One side of equality must be a string variable! The error is at:" + tmp01 + " = " + tmp02);
+	}
+
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	std::string s1_str = customizeString(Z3_ast_to_string(ctx, s1));
 	std::string s2_str = customizeString(Z3_ast_to_string(ctx, s2));

@@ -3217,12 +3217,7 @@ Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence) {
 	}
 
 #ifdef DEBUGLOG
-	if (isIndependence) {
-//		__debugPrint(logFile, "\n>> @%d Eval Node (isIndependence = true): @%d ", __LINE__, sLevel);
-	}
-	else {
-//		__debugPrint(logFile, "\n>> @%d Eval Node (isIndependence = false): @%d ", __LINE__, sLevel);
-	}
+	__debugPrint(logFile, "\n %d ", __LINE__);
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 #endif
@@ -3387,6 +3382,8 @@ Automaton evalConcat(Z3_theory t, Z3_ast arg00, Z3_ast arg01, bool isIndependenc
  */
 Automaton evalVariable(Z3_theory t, Z3_ast node, bool isIndependence){
 	assert(isVariable(t, node));
+	if (checkCylicity(t, node) == true)
+		return Automaton(UNKNOWN_AUTOMATON);
 	return evalIntersection(t, getEqualValues(node), isIndependence);
 }
 
@@ -3408,6 +3405,35 @@ void sortingElements(std::vector<Automaton> &list) {
 		list[i] = list[minPos];
 		list[minPos] = t;
 	}
+}
+
+bool checkCylicity(Z3_theory t, Z3_ast node){
+	Z3_context ctx = Z3_theory_get_context(t);
+	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, node));
+	std::vector<Z3_ast> eq_n = collect_eqc(t, node);
+	unsigned pos = 0;
+	std::map<Z3_ast, int> repeated;
+	std::vector<Z3_ast> queue;
+	queue.emplace_back(node);
+	repeated[node] = 1;
+	while (pos < queue.size()) {
+		std::vector<Z3_ast> eq_n = collect_eqc(t, queue[pos]);
+		pos++;
+		for (const auto& n : eq_n)
+			if (isConcatFunc(t, n)) {
+				std::vector<Z3_ast> list;
+				collect_node_in_concat(t, n, list);
+				for (const auto& __n: list) {
+					__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, __n));
+					if (repeated[__n] == 1)
+						return true;
+					__debugPrint(logFile, "%d %s: passed\n", __LINE__, __FUNCTION__);
+					queue.emplace_back(__n);
+					repeated[__n] = 1;
+				}
+			}
+	}
+	return false;
 }
 
 Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndependence) {
@@ -3458,9 +3484,24 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 	}
 
 #ifdef DEBUGLOG
-//	__debugPrint(logFile, ">> @%d at Number of elements: %ld \n", __LINE__, elements_filtered.size());
-//	displayListNode(t, elements_filtered);
+	__debugPrint(logFile, ">> @%d at Number of elements: %ld \n", __LINE__, elements_filtered.size());
 #endif
+
+//	/* skip the case y vs x y x*/
+//	for (unsigned i = 0; i < elements_filtered.size(); ++i)
+//		if (isStrVariable(t, elements_filtered[i])) {
+//			std::vector<Z3_ast> eq_n = collect_eqc(t, elements_filtered[i]);
+//
+//			for (unsigned j = i + 1; j < elements_filtered.size(); ++j)
+//				if (isConcatFunc(t, elements_filtered[j])) {
+//					std::vector<Z3_ast> list;
+//					collect_node_in_concat(t, elements_filtered[j], list);
+//					for (const auto& _n : eq_n)
+//						for (const auto& __n: list)
+//							if (_n == __n)
+//								return ret;
+//				}
+//		}
 
 	/* evaluate all elements */
 	std::vector<Automaton> elements;
@@ -4302,10 +4343,8 @@ std::set<char> getNotContainLetters(
 	std::set<char> initSet;
 	for (unsigned i = 32; i < 128; ++i)
 		initSet.emplace(i);
-
 	for (const auto& node : list) {
 		if (isStrVariable(t, node)) {
-			printZ3Node(t, node);
 			std::set<char> tmp;
 			for (const auto& contain : containPairBoolMap)
 				if (contain.first.first == node &&
@@ -4325,6 +4364,7 @@ std::set<char> getNotContainLetters(
 			initSet = newSet;
 		}
 	}
+	__debugPrint(logFile, "%d *** step 02 ***\n", __LINE__);
 	return initSet;
 }
 
@@ -4353,7 +4393,6 @@ std::map<char, int> eval_parikh_fixedbound(
 	std::map<char, int> m;
 	/* init map */
 	std::set<char> initSet = getNotContainLetters(t, list, boolValues);
-
 	for (const auto& node : list) {
 		if (isNonDetAutomatonFunc(t, node)) {
 			/* not contain chars */
@@ -4366,7 +4405,6 @@ std::map<char, int> eval_parikh_fixedbound(
 			initSet = newSet;
 		}
 	}
-
 	for (const auto& node: list)
 		if (isConstStr(t, node) || isDetAutomatonFunc(t, node)) {
 			std::string str = getConstString(t, node);
@@ -4725,7 +4763,7 @@ bool parikh_check_substr_basic(
 		/* --> cut */
 		for (unsigned j = start; j <= finish; ++j)
 			l00.emplace_back(list[0][j]);
-		for (unsigned j = start; j <= list[i].size() - (list[0].size() - finish); ++j)
+		for (unsigned j = start; j <= list[i].size() - (list[0].size() - finish) + 1; ++j)
 			l01.emplace_back(list[i][j]);
 
 		if (l00.size() == 1) {
@@ -4921,22 +4959,22 @@ bool parikh_check_replaceall(
 		/* cut common prefix and suffix */
 		std::vector<Z3_ast> l00;
 		std::vector<Z3_ast> l01;
-		unsigned start = 0, finish = list[0].size() - 1;
+		unsigned start = 0, removeItems = 0;
 		while (start < list[0].size())
 			if (list[0][start] == list[i][start])
 				++start;
 			else
 				break;
-		while (finish >= 0)
-			if (list[0][finish] == list[i][list[i].size() - (list[0].size() - finish)])
-				--finish;
+		while (list[0].size() - removeItems > start)
+			if (list[0][list[0].size() - removeItems - 1] == list[i][list[i].size() - removeItems - 1])
+				removeItems++;
 			else
 				break;
-
 		/* --> cut */
-		for (unsigned j = start; j <= finish; ++j)
+		for (unsigned j = start; j < list[0].size() - removeItems; ++j)
 			l00.emplace_back(list[0][j]);
-		for (unsigned j = start; j <= list[i].size() - (list[0].size() - finish); ++j)
+
+		for (unsigned j = start; j < list[i].size() - removeItems; ++j)
 			l01.emplace_back(list[i][j]);
 
 		/* compare */
@@ -4970,7 +5008,7 @@ bool parikh_check_replaceall(
 		for (const auto& ch : fixed01)
 			if (lower00[ch.first] > ch.second)
 				return false;
-
+		__debugPrint(logFile, "%d *** step 3 ***\n", __LINE__);
 		/* check regex plus for replaceall */
 		__debugPrint(logFile, "%d checking regex plus\n", __LINE__);
 		std::set<char> notContain00 = getNotContainLetters(t, list[0], boolValues);
@@ -5020,6 +5058,8 @@ bool parikh_check_replaceall(
 			}
 		}
 	}
+
+	__debugPrint(logFile, "%d %s: done\n", __LINE__, __FUNCTION__);
 	return true;
 }
 
@@ -8869,7 +8909,7 @@ std::vector<std::string> getStdGrmStr(Z3_theory t, Z3_ast grammar) {
 std::vector<std::string> lookUp_Grammar(std::string name){
 	/* replace the first char of name */
 	std::string tmpName = name;
-	if (tmpName[0] != 'Q'){
+	if (tmpName[0] != '$'){
 		printf("%d %s\n", __LINE__, tmpName.c_str());
 		throw std::runtime_error("CFG variable is incorrect\n");
 	}

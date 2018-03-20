@@ -1023,6 +1023,7 @@ void prepareEncoderDecoderMap(std::string fileName){
 
 	unsigned cnt = 0;
 	for (const char& ch : encoded) {
+		__debugPrint(logFile, "%d *** %s ***: %c --> %c\n", __LINE__, __FUNCTION__, ch, unused[cnt]);
 		ENCODEMAP[ch] = unused[cnt];
 		DECODEMAP[unused[cnt]] = ch;
 		cnt++;
@@ -1063,7 +1064,7 @@ void rewriteGRM(std::string s,
 	std::string result = "";
 	for (unsigned int i = 0; i < equalitiesMap[varName].size(); ++i) {
 		if (hasNoVar(equalitiesMap[varName][i])) {
-
+			result = "";
 			std::vector<std::string> components = equalitiesMap[varName][i];
 
 			displayListString(components, "zxxxxxxxxx");

@@ -130,18 +130,20 @@ public:
 			std::vector<int> currentSplit){
 		/* check general split */
 		/* x_i == 0 --> x_i+1 == 0 */
-		for (unsigned int i = 1; i < currentSplit.size(); ++i)
-			if (currentSplit[i] != 0){
-				if (elementNames[i].second > 0) /* var */ {
-					if (currentSplit[i - 1] == 0) /* empty */
-						return false;
-				}
-				else if (elementNames[i].second == -2) /* const */{
-					if (currentSplit[i - 1] == 0) /* empty */
-						return false;
-				}
-
-			}
+//		__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+//		for (unsigned int i = 1; i < currentSplit.size(); ++i)
+//			if (currentSplit[i] != 0){
+//				if (elementNames[i].second > 0) /* var */ {
+//					if (currentSplit[i - 1] == 0) /* empty */ {
+//						return false;
+//					}
+//				}
+//				else if (elementNames[i].second == -2) /* const */{
+//					if (currentSplit[i - 1] == 0) /* empty */
+//						return false;
+//				}
+//
+//			}
 //		__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 		/* check feasible const split */
 		int pos = 0;
@@ -313,13 +315,10 @@ public:
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
 		assert(pos <= (int) str.length());
-//		__debugPrint(logFile, "*** %s ***: %ld/%ld\n", __FUNCTION__, currentSplit.size(), elementNames.size());
 		/* reach end */
 		if (currentSplit.size() == elementNames.size()){
 			if (pos == (int)str.length() &&
 					feasibleSplit_const(str, elementNames, currentSplit)) {
-
-//				splitPrintTest(currentSplit, "Accepted");
 				allPossibleSplits.emplace_back(currentSplit);
 			}
 			else {
@@ -396,6 +395,7 @@ public:
 			bool canCompile = false;
 			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
+//				if (true) {
 				if (regexContent.find('|') != std::string::npos) {
 					assert(regexContent.find('&') == std::string::npos);
 					re.Compile(regexContent);
@@ -1638,7 +1638,7 @@ public:
 		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
 		if (charRange.first != -1) {
 			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
-				sprintf(strTmp, "(or (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d) (> %d %s))",
+				sprintf(strTmp, "(or (and (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
 						pre_lhs.c_str(),
@@ -1688,6 +1688,7 @@ public:
 			std::string value, /* value of regex */
 			int start, int finish,
 			std::string extraConstraint = "" /* length = ? */) {
+
 		assert (elementNames[constPos].second < 0);
 
 		std::vector<std::string> locationConstraint;
@@ -1712,6 +1713,7 @@ public:
 
 		assert (locationConstraint.size() > 0);
 		std::string result = andConstraint(locationConstraint) + "\n";
+		__debugPrint(logFile, "%d %s %s\n %s\n", __LINE__, __FUNCTION__, value.c_str(), result.c_str());
 		return result;
 	}
 
@@ -1999,7 +2001,7 @@ public:
 		bool isConstA = a.second < 0;
 		bool isConstB = b.second < 0;
 
-
+		__debugPrint(logFile, "%d %s: %s = %s\n", __LINE__, __FUNCTION__, a.first.c_str(), b.first.c_str());
 
 		std::string nameA = generateFlatSize(a, lhs_str);
 		std::string nameB = generateFlatSize(b, rhs_str);
@@ -2057,59 +2059,79 @@ public:
 				}
 			}
 			else if (a.second == REGEX_CODE && b.second == -1){
-				std::string content = parse_regex_content(a.first);
-				std::string data = "";
-				while (data.length() <= b.first.length()) {
-					if (data.compare(b.first.substr(0, data.length())) == 0)
-						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+				std::string regexContent = parse_regex_full_content(a.first);
+				RegEx re;
+				re.Compile(regexContent);
+				unsigned length = 0;
+				if (regexContent[regexContent.length() - 1] == '+')
+					length = 1;
+				while (length <= b.first.length()) {
+					std::string regexValue = b.first.substr(0, length);
+					if (re.MatchAll(regexValue) == true) {
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(length) + ")");
+					}
 					else
 						break;
-					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
-					data = data + content;
+					length++;
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, regexValue.c_str());
 				}
 			}
 			else if (a.second == REGEX_CODE && b.second == -2){
-				std::string content = parse_regex_content(a.first);
-				std::string data = "";
-				__debugPrint(logFile, "%d content 1: %s\n", __LINE__, content.c_str());
-				while (data.length() <= b.first.length()) {
-					__debugPrint(logFile, "\t%d data: %s\n", __LINE__, b.first.substr(b.first.length() - data.length()).c_str());
-					if (data.compare(b.first.substr(b.first.length() - data.length())) == 0)
-						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+				std::string regexContent = parse_regex_full_content(a.first);
+				RegEx re;
+				re.Compile(regexContent);
+				unsigned length = 0;
+				if (regexContent[regexContent.length() - 1] == '+')
+					length = 1;
+				while (length <= b.first.length()) {
+					std::string regexValue = b.first.substr(b.first.length() - length, length);
+					if (re.MatchAll(regexValue) == true) {
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(length) + ")");
+					}
 					else
 						break;
-					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
-					data = data + content;
+					length++;
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, regexValue.c_str());
 				}
 			}
 			else if (b.second == REGEX_CODE && a.second == -1){
-				std::string content = parse_regex_content(b.first);
-				std::string data = "";
-				__debugPrint(logFile, "%d content 2: %s\n", __LINE__, content.c_str());
-				while (data.length() <= a.first.length()) {
-					if (data.compare(a.first.substr(0, data.length())) == 0)
-						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+				std::string regexContent = parse_regex_full_content(b.first);
+				RegEx re;
+				re.Compile(regexContent);
+				unsigned length = 0;
+				if (regexContent[regexContent.length() - 1] == '+')
+					length = 1;
+				while (length <= a.first.length()) {
+					std::string regexValue = a.first.substr(0, length);
+					if (re.MatchAll(regexValue) == true) {
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(length) + ")");
+					}
 					else
 						break;
-					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
-					data = data + content;
+					length++;
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, regexValue.c_str());
 				}
 			}
 			else if (b.second == REGEX_CODE && a.second == -2){
-				std::string content = parse_regex_content(b.first);
-				std::string data = "";
-				__debugPrint(logFile, "%d content 3: %s\n", __LINE__, content.c_str());
-				while (data.length() <= a.first.length()) {
-					if (data.compare(a.first.substr(a.first.length() - data.length())) == 0)
-						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(data.length()) + ")");
+				std::string regexContent = parse_regex_full_content(b.first);
+				RegEx re;
+				re.Compile(regexContent);
+				unsigned length = 0;
+				if (regexContent[regexContent.length() - 1] == '+')
+					length = 1;
+				while (length <= a.first.length()) {
+					std::string regexValue = a.first.substr(a.first.length() - length, length);
+					if (re.MatchAll(regexValue) == true) {
+						possibleCases.emplace_back("(= " + nameA + " " + std::to_string(length) + ")");
+					}
 					else
 						break;
-					__debugPrint(logFile, "%d accept: %s\n", __LINE__, data.c_str());
-					data = data + content;
+					length++;
+					__debugPrint(logFile, "%d accept: %s\n", __LINE__, regexValue.c_str());
 				}
 			}
 			else if (a.second == REGEX_CODE && b.second == REGEX_CODE) {
-
+				__debugPrint(logFile, "%d might get error here\n", __LINE__);
 				std::string content01 = parse_regex_content(b.first);
 				std::string content02 = parse_regex_content(a.first);
 				unsigned int lcdLength = lcd(content01.length(), content02.length());
@@ -2216,7 +2238,9 @@ public:
 						else if (QCONSTMAX == 1)
 							min_rhs += elementNames[i].first.length();
 					}
-					else if (elementNames[i].second == REGEX_CODE && elementNames[i].first.find('+') != std::string::npos){
+					else if (elementNames[i].second == REGEX_CODE &&
+							elementNames[i].first.find('+') != std::string::npos &&
+							elementNames[i].first.find('|') == std::string::npos){
 						/* regex plus */
 						size_t endPos = elementNames[i].first.find(')');
 						assert(endPos != std::string::npos);

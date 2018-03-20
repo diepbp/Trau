@@ -515,6 +515,8 @@ typedef struct _AutomatonStringData
  Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence);
  // Automaton evalNode_Lazy(Z3_theory t, Z3_ast node, bool isIndependence);
 
+ bool checkCylicity(Z3_theory t, Z3_ast node);
+
  void updateForAllEqualNodes(Z3_ast node, Automaton value);
  Automaton evalAutomataDef(Z3_theory t, Z3_ast arg);
  Automaton evalConcat(Z3_theory t, Z3_ast arg00, Z3_ast arg01, bool isIndependence);

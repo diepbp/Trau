@@ -368,6 +368,12 @@ void createConstMap();
 
 void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap);
 
+/**
+ * transform char range function
+ */
+std::vector<std::string> reformatCharRange(std::vector<std::string> v);
+
+
 /*
  * Remove all equalities without connected variables and consts
  */
@@ -485,7 +491,8 @@ std::string getValueFromRegex(std::string s, int length);
  */
 void syncConst(
 		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> &strValue);
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
 
 /*
  *
@@ -493,7 +500,7 @@ void syncConst(
 std::vector<int> createString(
 		std::string name,
 		std::string value,
-		std::map<std::string, int> len,
+		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> strValue,
 		bool &assigned);
 /*
@@ -501,20 +508,26 @@ std::vector<int> createString(
  */
 void backwardPropagarate(
 		std::string name,
-		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> &strValue);
+		std::map<std::string, int> &len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
 /*
  *
  */
 void forwardPropagate(
 		std::string newlyUpdate,
-		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> &strValue);
+		std::map<std::string, int> &len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
 
 /*
  * create str values after running Z3
  */
-std::map<std::string, std::string> formatResult(std::map<std::string, std::string> len, std::map<std::string, std::string> strValue);
+std::map<std::string, std::string> formatResult(
+		std::map<std::string,
+		std::string> len,
+		std::map<std::string, std::string> _strValue,
+		bool &completion);
 
 /*
  *
