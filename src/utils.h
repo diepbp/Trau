@@ -40,7 +40,7 @@
 #include "antlrParser/SMTLIB2ScriptListener.h"
 #include "antlrParser/SMTLIB2TermListener.h"
 
-//#define DEBUGLOG 1
+#define DEBUGLOG 1
 #define REMOVINGLOG 1
 #define NUM_THREADS	1
 #define FLATMAX 100;
@@ -55,7 +55,7 @@
 
 #define TMPDIR "/tmp/fat_str_convert/"
 
-#ifdef DEBUGLOG
+//#ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define __debugPrintAxiom(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define printZ3Node(t, n) {__printNode( (t), (n));}

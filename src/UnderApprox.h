@@ -47,6 +47,8 @@ static std::map<std::string, std::set<std::string>> notMap;
 static std::map<std::string, int> varLength;
 static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 
+static std::map<std::string, int> varPieces;
+
 static int noFlatVariables = 0;
 
 /*

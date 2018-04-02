@@ -2765,9 +2765,13 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 
 			if (!isRegexStr(list[k])) {
 				if (list[k].length() > SPLIT_UNDER_BOUND) /* const string */ {
-					for (int j = 0; j < QCONSTMAX; ++j) { /* split variables into QMAX parts */
+					if (varPieces.find(list[k]) == varPieces.end())
+						varPieces[list[k]] = 0;
+					for (int j = 0; j < QCONSTMAX; ++j) {
+//					for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
 						elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
 					}
+					varPieces[list[k]] += QMAX;
 				}
 				else {
 					/* length < SPLIT_UNDER_BOUND */
@@ -2782,14 +2786,14 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 			}
 		}
 		else {
-			for (int j = 0; j < QMAX; ++j) { /* split variables into QMAX parts */
+			if (varPieces.find(list[k]) == varPieces.end())
+				varPieces[list[k]] = 0;
+			for (int j = 0; j < QCONSTMAX; ++j) {
+//			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
 				elements.emplace_back(std::make_pair(list[k], j));
 			}
+			varPieces[list[k]] += QMAX;
 		}
-
-	//	for (unsigned int i = 0; i < elements.size(); ++i)
-	//		printf("%s.%d ---- ", elements[i].first.c_str(), elements[i].second);
-	//	printf("%d\n",__LINE__);
 
 	return elements;
 }
@@ -4017,6 +4021,7 @@ void pthreadController(){
  *
  */
 void reset(){
+	varPieces.clear();
 	notContainMap.clear();
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
