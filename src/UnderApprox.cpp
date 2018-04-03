@@ -583,8 +583,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 	std::vector<Arrangment> possibleCases;
 	if (lhs_elements[0].first.find("__flat_") != std::string::npos ||
 			(lhs_elements.size() == 2 &&
-					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second == 1) ||
-					  (lhs_elements[0].second == -1 && lhs_elements[1].second == -2)))) {
+					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second % QMAX == 1) ||
+					  (lhs_elements[0].second % QCONSTMAX == -1 && lhs_elements[1].second % QCONSTMAX == 0)))) {
 		/* create manually */
 		/*9999999 10000000 vs 1 1 1 1 1 */
 		possibleCases.emplace_back(manuallyCreate_arrangment(lhs_elements, rhs_elements));
@@ -2767,20 +2767,20 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 
 	for (unsigned int k = 0; k < list.size(); ++k)
 		if (list[k][0] == '\"') {
-
+			std::string content = list[k].substr(1, list[k].length() - 2);
 			if (!isRegexStr(list[k])) {
 				if (list[k].length() > SPLIT_LOWER_BOUND) /* const string */ {
-					if (varPieces.find(list[k]) == varPieces.end())
-						varPieces[list[k]] = 0;
+					if (varPieces.find(content) == varPieces.end())
+						varPieces[content] = 0;
 //					for (int j = 0; j < QCONSTMAX; ++j) {
-					for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
-						elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
+					for (int j = varPieces[content]; j < varPieces[content] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+						elements.emplace_back(std::make_pair(content, -(j + 1)));
 					}
-					varPieces[list[k].substr(1, list[k].length() - 2)] += QCONSTMAX;
+					varPieces[content] += QCONSTMAX;
 				}
 				else {
 					/* length < SPLIT_LOWER_BOUND */
-					elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
+					elements.emplace_back(std::make_pair(content, -1));
 				}
 			}
 			else {
@@ -3919,7 +3919,7 @@ bool Z3_run(
 		bool completion = true;
 		std::map<std::string, std::string> results = formatResult(len_results, str_results, completion);
 		if (completion == false)
-			return false;
+			assert(false);
 		printSatisfyingAssignments(decodeResultMap(results), len_results);
 		if (beReviewed) {
 			verifyOutput(lengthFile, _equalMap, len_results, results);

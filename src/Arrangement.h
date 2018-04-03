@@ -130,7 +130,7 @@ public:
 			std::vector<int> currentSplit){
 		/* check feasible const split */
 		int pos = 0;
-		for (unsigned int i = 0; i < currentSplit.size(); ++i) {
+		for (unsigned i = 0; i < currentSplit.size(); ++i) {
 			if (elementNames[i].second == REGEX_CODE) {
 			}
 
@@ -143,16 +143,15 @@ public:
 
 				std::string lhs = str.substr(pos, currentSplit[i]);
 				std::string rhs = "";
-				if (elementNames[i].second == -1) /* head */ {
+				if (elementNames[i].second % QCONSTMAX == -1) /* head */ {
 					rhs = elementNames[i].first.substr(0, currentSplit[i]);
-
 
 					if (i + 1 < elementNames.size()) {
 						if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
 							assert (currentSplit[i] == (int)elementNames[i].first.length()); /* const length must be equal to length of const */
 						}
 						else {
-							assert (elementNames[i + 1].second == -2);
+							assert (elementNames[i + 1].second % QCONSTMAX == 0);
 							assert ((currentSplit[i] + currentSplit[i + 1] == (int)elementNames[i].first.length())); /* sum of all const parts must be equal to length of const */
 						}
 					}
@@ -311,11 +310,10 @@ public:
 			return;
 		}
 
-		unsigned int textLeft = str.length() - pos;
+		unsigned textLeft = str.length() - pos;
 
 		/* special case for const: leng = leng */
-		if (elementNames[currentSplit.size()].second == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
-//			__debugPrint(logFile, "\tcase 1\n");
+		if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 && (QCONSTMAX == 1 || elementNames[currentSplit.size()].first.length() == 1)) {
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 
@@ -328,8 +326,8 @@ public:
 		}
 
 		/* const head */
-		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 2) {
-//			__debugPrint(logFile, "\tcase 2\n");
+		if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 &&
+				QCONSTMAX == 2) {
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
 				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
 				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
@@ -343,10 +341,13 @@ public:
 		}
 
 		/* special case for const tail, when we know the length of const head */
-		else if (currentSplit.size() > 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-//			__debugPrint(logFile, "\tcase 3\n");
-			assert (elementNames[currentSplit.size() - 1].second == -1);
-			unsigned int length = (unsigned int)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
+		else if (currentSplit.size() > 0 &&
+					elementNames[currentSplit.size()].second % QCONSTMAX == 0 &&
+					elementNames[currentSplit.size()].second < 0 &&
+					elementNames[currentSplit.size()].second > REGEX_CODE &&
+					QCONSTMAX == 2) /* const */ {
+			assert (elementNames[currentSplit.size() - 1].second % QCONSTMAX == -1);
+			unsigned length = (unsigned)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
 			if (length <= textLeft) {
 				currentSplit.emplace_back(length);
@@ -357,9 +358,12 @@ public:
 		}
 
 		/* head is const part 2*/
-		else if (currentSplit.size() == 0 && elementNames[currentSplit.size()].second == -2 && QCONSTMAX == 2) /* const */ {
-//			__debugPrint(logFile, "\tcase 4\n");
-			for (unsigned int i = 0; i < std::min(elementNames[currentSplit.size()].first.length(), str.length()); ++i) {
+		else if (currentSplit.size() == 0 &&
+				elementNames[0].second % QCONSTMAX == 0 &&
+				elementNames[0].second < 0 &&
+				elementNames[0].second > REGEX_CODE &&
+				QCONSTMAX == 2) /* const */ {
+			for (unsigned i = 0; i < std::min(elementNames[0].first.length(), str.length()); ++i) {
 
 				std::string tmp00 = elementNames[0].first.substr(i);
 				std::string tmp01 = str.substr(0, tmp00.length());
@@ -372,7 +376,8 @@ public:
 		}
 
 		else {
-//			__debugPrint(logFile, "\tcase 5\n");
+			assert(!(elementNames[currentSplit.size()].second < 0 && elementNames[currentSplit.size()].second > REGEX_CODE));
+
 			std::string regexContent = "";
 			RegEx re;
 			bool canCompile = false;
@@ -400,7 +405,7 @@ public:
 						}
 					}
 					else {
-						/* manully doing matching regex */
+						/* manually doing matching regex */
 						std::string tmp = "";
 						if (elementNames[currentSplit.size()].first.find('+') != std::string::npos)
 							tmp = regexContent;
@@ -447,7 +452,6 @@ public:
 
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {
-//			printf("%d Case 00: const qmax = 1\n", __LINE__);
 			/* compare text, check whether the string can start from the location pos in text */
 			if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
 				currentSplit.emplace_back(elementNames[currentSplit.size()].first.length());
@@ -457,9 +461,11 @@ public:
 		}
 
 		/* special case for const tail, when we know the length of const head */
-		else if (elementNames[currentSplit.size()].second == -2 && currentSplit.size() > 0) /* tail, not the first */ {
-//			printf("%d Case 01: const tail at middle\n", __LINE__);
-			assert (elementNames[currentSplit.size() - 1].second == -1);
+		else if (elementNames[currentSplit.size()].second % QCONSTMAX == 0 &&
+				elementNames[currentSplit.size()].second < 0 &&
+				elementNames[currentSplit.size()].second > REGEX_CODE &&
+				currentSplit.size() > 0) /* tail, not the first */ {
+			assert (elementNames[currentSplit.size() - 1].second % QCONSTMAX == -1);
 			int length = elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
 			currentSplit.emplace_back(length);
@@ -467,35 +473,44 @@ public:
 			currentSplit.pop_back();
 		}
 
-		else if (elementNames[currentSplit.size()].second == -2 && currentSplit.size() == 0) /* tail, first */ {
-//			printf("%d Case 02: const tail at first\n", __LINE__);
+		else if (elementNames[currentSplit.size()].second % QCONSTMAX == 0 &&
+				elementNames[currentSplit.size()].second < 0 &&
+				elementNames[currentSplit.size()].second > REGEX_CODE &&
+				currentSplit.size() == 0) /* tail, first */ {
 			/* find all possible start points */
 			std::vector<int> tail = tail_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
-			for (unsigned int i = 0 ; i < tail.size(); ++i) {
+			for (unsigned i = 0 ; i < tail.size(); ++i) {
 				currentSplit.emplace_back(tail[i]);
 				collectAllPossibleSplits_regex((pos + tail[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
-
 		}
 
-		else if (elementNames[currentSplit.size()].second == -1 && currentSplit.size() + 1 == elementNames.size() && QCONSTMAX == 2) /* head, the last element */ {
-//			printf("%d Case 03: const head at last: %d\n", __LINE__, pos);
+		else if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 &&
+				elementNames[currentSplit.size()].second < 0 &&
+				elementNames[currentSplit.size()].second > REGEX_CODE &&
+				currentSplit.size() + 1 == elementNames.size() &&
+				QCONSTMAX == 2) /* head, the last element */ {
 			/* find all possible start points */
 			std::vector<int> head = head_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
-			for (unsigned int i = 0 ; i < head.size(); ++i) {
+			for (unsigned i = 0 ; i < head.size(); ++i) {
 				currentSplit.emplace_back(head[i]);
 				collectAllPossibleSplits_regex((pos + head[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
 		}
 
-		else if (elementNames[currentSplit.size()].second == -1 && currentSplit.size() + 1 < elementNames.size() && QCONSTMAX == 2) /* head, not the last element */ {
-//			printf("%d Case 04: const head at middle\n", __LINE__);
+		else if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 &&
+				elementNames[currentSplit.size()].second < 0 &&
+				elementNames[currentSplit.size()].second > REGEX_CODE &&
+				currentSplit.size() + 1 < elementNames.size() &&
+				QCONSTMAX == 2) /* head, not the last element */ {
 			/* check full string */
-			if (elementNames[currentSplit.size() + 1].second == -2){
+			if (elementNames[currentSplit.size() + 1].second % QCONSTMAX == 0 &&
+					elementNames[currentSplit.size() + 1].second < 0 &&
+					elementNames[currentSplit.size() + 1].second > REGEX_CODE){
 				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
-					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
+					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
@@ -505,7 +520,7 @@ public:
 			else {
 				/* this const only has 1 part */
 				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
-					for (unsigned int i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
+					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
@@ -528,7 +543,6 @@ public:
 			if (loop == true) /* assign value < 0 */
 				for (unsigned int i = 1 ; i < regexPos.size(); ++i) {
 					/* because of loop, do not care about 0 iteration */
-//					printf("%d Case 06: value = (loop)%ld %s\n", __LINE__, - content.length() * regexPos[i], content.c_str());
 					int tmp = (content.length() * regexPos[i]) % str.length();
 					if (tmp == 0)
 						currentSplit.emplace_back(MINUSZERO);
@@ -540,7 +554,6 @@ public:
 			else
 				for (unsigned int i = 0 ; i < regexPos.size(); ++i) { /* assign value >= 0 */
 					int tmp = (pos + content.length() * regexPos[i]) % str.length();
-//					printf("%d Case 06: value = (unloop)%d\n", __LINE__, tmp);
 					currentSplit.emplace_back(content.length() * regexPos[i]);
 					collectAllPossibleSplits_regex(tmp, str, pMax, elementNames, currentSplit, allPossibleSplits);
 					currentSplit.pop_back();
@@ -548,8 +561,7 @@ public:
 		}
 
 		else {
-//			printf("%d Case 07.\n", __LINE__);
-			for (unsigned int i = 0; i < str.length(); ++i) { /* assign value < 0 because it can iterate many times */
+			for (unsigned i = 0; i < str.length(); ++i) { /* assign value < 0 because it can iterate many times */
 				int length = i;
 				if (length == 0)
 					currentSplit.emplace_back(MINUSZERO);
@@ -950,13 +962,13 @@ public:
 
 				}
 
-				if (elementNames[i].second == -1 && i < elementNames.size() - 1) {
+				if (elementNames[i].second % QCONSTMAX == -1 && i < elementNames.size() - 1) {
 					if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
 						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
 						splitPos++;
 					}
 					else {
-						assert(elementNames[i + 1].second == -2);
+						assert(elementNames[i + 1].second % QCONSTMAX == 0);
 						strAnd.emplace_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
 						i++;
 						splitPos += 2;
@@ -1097,13 +1109,13 @@ public:
 
 				}
 
-				if (elementNames[i].second == -1 && i < elementNames.size() - 1) {
+				if (elementNames[i].second % QCONSTMAX == -1 && i < elementNames.size() - 1) {
 					if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
 						strAnd.emplace_back("(= " + generateFlatSize(elementNames[i], rhs) + " " + std::to_string(split[splitPos]) + ")");
 						splitPos++;
 					}
 					else {
-						assert(elementNames[i + 1].second == -2);
+						assert(elementNames[i + 1].second % QCONSTMAX == 0);
 						strAnd.emplace_back("(= (+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ") " + std::to_string(split[splitPos] + split[splitPos + 1]) + ")");
 						i++;
 						splitPos += 2;
@@ -1485,46 +1497,6 @@ public:
 	}
 
 	/*
-	 * total length of [0..pos] flats
-	 * (+ ...)
-	 */
-	std::string headerLength(
-			std::vector<std::pair<std::string, int>> elementNames,
-			int pos,
-			std::string rhs_str){
-		if (pos == 0) {
-			assert (false);
-			return "0";
-		}
-
-		std::string result = "";
-		int length = 0;
-		/* check fixed length? */
-		for (int i = 0; i < pos - 1; ++i) {
-			if (elementNames[i].second < 0){
-				if (elementNames[i].second == -1 && elementNames[i + 1].second == -2) {
-					length += elementNames[i].first.length();
-				}
-			}
-			else {
-				length = -1;
-				break;
-			}
-		}
-		if (length >= 0 && elementNames[pos - 1].second == -2)
-			return "const_" + std::to_string(length);
-
-		/* work as usual */
-		for (int i = 0; i < pos; ++i) {
-			assert (false);
-			result = result + generateFlatSize(elementNames[i]) + " ";
-		}
-		if (pos > 1)
-			result = "(+ " + result + ")";
-		return result;
-	}
-
-	/*
 	 * Case: X =  "abc"
 	 * return: (and X_0 = a && X_[1] = b && X_[1] = c)
 	 */
@@ -1793,7 +1765,10 @@ public:
 		std::string flatArrayName = generateFlatArray(a, lhs_str);
 
 		std::vector<std::string> possibleCases;
-		if (elementNames[constPos].second == -1) {
+		if (elementNames[constPos].second == REGEX_CODE) {
+			possibleCases.emplace_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
+		}
+		else if (elementNames[constPos].second % QCONSTMAX == -1) {
 			std::vector<std::string> oneCase;
 			for (int i = 1; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
 				std::vector<std::string> locationConstraint;
@@ -1803,9 +1778,6 @@ public:
 				oneCase.emplace_back(orConstraint(locationConstraint));
 			}
 			possibleCases.emplace_back(andConstraint(oneCase));
-		}
-		else if (elementNames[constPos].second == REGEX_CODE) {
-			possibleCases.emplace_back(handle_Regex_WithPosition_array(a, elementNames, lhs_str, rhs_str, constPos));
 		}
 		else {
 			for (int i = 0; i <= std::min(LOCALSPLITMAX, (int)content.length()); ++i) {
@@ -1839,20 +1811,20 @@ public:
 				if (elementNames.size() == 1 && QCONSTMAX > 1) {
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i));
 				}
+				else if (elementNames[i].second == REGEX_CODE) {
+					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i));
+				}
 				/* tail of string, head of elements*/
-				else if (i == 0 && elementNames[i].second == -2 && QCONSTMAX > 1) {
+				else if (i == 0 && elementNames[i].second % QCONSTMAX == 0 && QCONSTMAX > 1) {
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i));
 				}
 				/* head of string, tail of elements */
-				else if (i == elementNames.size() - 1 && elementNames[i].second == -1 && QCONSTMAX > 1)  {
+				else if (i == elementNames.size() - 1 && elementNames[i].second % QCONSTMAX == -1 && QCONSTMAX > 1)  {
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i));
 				}
 				/* only care about first element */
-				else if (elementNames[i].second == -1)  {
+				else if (elementNames[i].second % QCONSTMAX == -1)  {
 					possibleCases.emplace_back(handle_Const_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0, elementNames[i].first.length()));
-				}
-				else if (elementNames[i].second == REGEX_CODE) {
-					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i));
 				}
 			}
 			else if (elementNames[i].second >= 0 && connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
@@ -2191,7 +2163,7 @@ public:
 		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 		std::string result = "";
 		/* constraint for not equal */
-		for (unsigned int i = 0; i < elementNames.size(); ++i)
+		for (unsigned i = 0; i < elementNames.size(); ++i)
 			if ((notMap.find(elementNames[i].first) != notMap.end() &&
 					notMap[elementNames[i].first].find(a.first) != notMap[elementNames[i].first].end()) ||
 					(notMap.find(a.first) != notMap.end() &&
@@ -2207,9 +2179,9 @@ public:
 				int max_lhs = a.first.length();
 
 				int min_rhs = 0;
-				for (unsigned int i = 0; i < elementNames.size(); ++i) {
-					if (elementNames[i].second == -1) {
-						if (QCONSTMAX == 2 && i + 1 < elementNames.size() && elementNames[i + 1].second == -2)
+				for (unsigned i = 0; i < elementNames.size(); ++i) {
+					if (elementNames[i].second % QCONSTMAX == -1) {
+						if (QCONSTMAX == 2 && i + 1 < elementNames.size() && elementNames[i + 1].second % QCONSTMAX == 0)
 							min_rhs += elementNames[i].first.length();
 						else if (QCONSTMAX == 1)
 							min_rhs += elementNames[i].first.length();
@@ -2229,7 +2201,6 @@ public:
 			}
 			else {
 				/* regex */
-
 			}
 
 			__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
@@ -2237,7 +2208,7 @@ public:
 			/* collect */
 			/* only handle the case of splitting const string into two parts*/
 			std::vector<std::string> addElements;
-			for (unsigned int i = 0 ; i < elementNames.size(); ++i)
+			for (unsigned i = 0 ; i < elementNames.size(); ++i)
 				addElements.emplace_back(generateFlatSize(elementNames[i], rhs_str));
 
 			result = result + " (= " + generateFlatSize(a, lhs_str) + " " + addConstraint_full(addElements) + ")";
@@ -2298,9 +2269,9 @@ public:
 		else {
 			/* lhs is not a const string or regex */
 			int minLength = 0;
-			for (unsigned int i = 0 ; i < elementNames.size() - 1; ++i)
-				if (elementNames[i].second == -1 &&
-						elementNames[i + 1].second == -2) {/* const */
+			for (unsigned i = 0 ; i < elementNames.size() - 1; ++i)
+				if (elementNames[i].second % QCONSTMAX == -1 &&
+						elementNames[i + 1].second % QCONSTMAX == 0) {/* const */
 					minLength += elementNames[i].first.length();
 				}
 			if (minLength > pMax) {
@@ -2372,7 +2343,7 @@ public:
 
 				/* empty */
 				/* some first flats can be empty */
-				if (lhs_elements[i].second == -1) /* head of const */ {
+				if (lhs_elements[i].second % QCONSTMAX == -1) /* head of const */ {
 					if (lhs_elements[i].first.length() <= 0 ||
 						(QCONSTMAX == 2 &&
 							i + 1 < lhs_elements.size() &&
@@ -2414,7 +2385,7 @@ public:
 			else if (right_arr[i] == EMPTYFLAT) {
 				/* empty */
 				/* some first flats can be empty */
-				if (rhs_elements[i].second == -1) /* head of const */ {
+				if (rhs_elements[i].second % QCONSTMAX == -1) /* head of const */ {
 					if (rhs_elements[i].first.length() <= SPLIT_LOWER_BOUND - 2 ||
 						(QCONSTMAX == 2 &&
 							i + 1 < rhs_elements.size() &&
@@ -2442,8 +2413,8 @@ public:
 
 				if (QCONSTMAX == 2){
 					/* a1 = b1 && a2 == b2 --> a = b */
-					if (checkLeft[i + 1] == false && lhs_elements[i].second == 0) {
-						if ((rhs_elements[left_arr[i]].second < 0 && rhs_elements[left_arr[i]].second == -1 && rhs_elements[left_arr[i + 1]].second == -2) ||
+					if (checkLeft[i + 1] == false && lhs_elements[i].second % QMAX == 0 && i + 1 < lhs_elements.size()) {
+						if ((rhs_elements[left_arr[i]].second < 0 && rhs_elements[left_arr[i]].second % QCONSTMAX == -1 && rhs_elements[left_arr[i + 1]].second % QCONSTMAX == 0) ||
 								(rhs_elements[left_arr[i]].second >= 0 && rhs_elements[left_arr[i]].second % QMAX == 0 && rhs_elements[left_arr[i + 1]].second % QMAX == 1)){
 							std::string tmp = generateConstraint01_twoVar(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], connectedVariables);
 							if (tmp.length() > 0)
@@ -2457,6 +2428,8 @@ public:
 						}
 					}
 				}
+				else
+					assert(false);
 
 				std::string tmp = generateConstraint01(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], pMax, connectedVariables);
 				if (tmp.length() == 0) { /* cannot happen due to const */
