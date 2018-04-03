@@ -1409,44 +1409,48 @@ void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<
  */
 void create_constraints_const(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 
-	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it)
-		if (!isRegexStr(it->first)){
-
-			defines.emplace_back("(declare-const len_" + it->second + " Int)");
+	for (const auto constNode : constMap)
+		if (!isRegexStr(constNode.first)){
+			__debugPrint(logFile, "%d %s: %d\n", __LINE__, constNode.first.c_str(), varPieces[constNode.first])
+			std::string lenName = std::to_string(constNode.first.length());
+			constraints.emplace_back("(assert (= " + lenName + " len_" + constNode.second  + "))");
+			defines.emplace_back("(declare-const len_" + constNode.second + " Int)");
 			/* len_x = sum(len_x_i)*/
 			std::string lenX = "";
-			std::string varName = "len_" + it->second + "_";
-			if ( it->first.length() <= SPLIT_UNDER_BOUND - 2) { /* -2 because of "xxxx" */
-				defines.emplace_back("(declare-const len_" + it->second + "_" + "1 Int)");
-				constraints.emplace_back("(assert (>= len_" + it->second + "_" + "1 0))");
+			std::string varName = "len_" + constNode.second + "_";
+			if (constNode.first.length() <= SPLIT_LOWER_BOUND - 2) { /* -2 because of "xxxx" */
+				defines.emplace_back("(declare-const len_" + constNode.second + "_" + "1 Int)");
+				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + "1 0))");
 				lenX = varName + "1 0";
+				if (QCONSTMAX > 1)
+					lenX = "(+ " + lenX + ")";
+				constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
 			}
-			else for (int i = 1; i <= QCONSTMAX; ++i) {
-				defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(i) + " Int)");
-				constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(i) + " 0))");
+			else for (int i = 1; i <= std::max(varPieces[constNode.first], QCONSTMAX); ++i) {
+				defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(i) + " Int)");
+				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(i) + " 0))");
 				lenX = lenX + varName + std::to_string(i) + " ";
+				if (i % QCONSTMAX == 0) {
+					/* (+ sum(len_x_i) */
+					if (QCONSTMAX > 1)
+						lenX = "(+ " + lenX + ")";
+					/*(assert (= const (+ sum(len_x_i)))) */
+					constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
+					lenX = "";
+				}
 			}
-
-			/* (+ sum(len_x_i) */
-			if (QCONSTMAX > 1)
-				lenX = "(+ " + lenX + ")";
-
-			std::string lenName = std::to_string(it->first.length());
-			/*(assert (= const (+ sum(len_x_i)))) */
-			constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
-			constraints.emplace_back("(assert (= " + lenName + " len_" + it->second  + "))");
 		}
 		else {
-			defines.emplace_back("(declare-const len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
+			defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
 
-			if (it->first.find("+") != std::string::npos)
-				constraints.emplace_back("(assert (> len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+			if (constNode.first.find("+") != std::string::npos)
+				constraints.emplace_back("(assert (> len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
 			else {
-				assert(it->first.find("*") != std::string::npos);
-				constraints.emplace_back("(assert (>= len_" + it->second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+				assert(constNode.first.find("*") != std::string::npos);
+				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
 			}
 
-			create_constraints_regex(defines, constraints, it->first, it->second);
+			create_constraints_regex(defines, constraints, constNode.first, constNode.second);
 		}
 }
 
@@ -1469,7 +1473,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		/* len_x = sum(len_x_i)*/
 		std::string lenX = "";
 		std::string lenVarName = generateVarLength(var);
-		for (int i = 0; i < QMAX; ++i) {
+		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
 			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
@@ -1477,14 +1481,15 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			lenX += "_";
 			lenX += std::to_string(i);
 			lenX += " ";
+
+			if ((i + 1) % QMAX == 0) {
+				/* (+ sum(len_x_i) */
+				if (QMAX > 1)
+					lenX = "(+ " + lenX + ")";
+				constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
+				lenX = "";
+			}
 		}
-
-		/* (+ sum(len_x_i) */
-		if (QMAX > 1)
-			lenX = "(+ " + lenX + ")";
-
-		//constraints.emplace_back("(assert (< " + lenVarName + " 300))");
-		constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
 
 		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
 			/* they are internal variables */
@@ -2764,17 +2769,17 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 		if (list[k][0] == '\"') {
 
 			if (!isRegexStr(list[k])) {
-				if (list[k].length() > SPLIT_UNDER_BOUND) /* const string */ {
+				if (list[k].length() > SPLIT_LOWER_BOUND) /* const string */ {
 					if (varPieces.find(list[k]) == varPieces.end())
 						varPieces[list[k]] = 0;
-					for (int j = 0; j < QCONSTMAX; ++j) {
-//					for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+//					for (int j = 0; j < QCONSTMAX; ++j) {
+					for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
 						elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -(j + 1)));
 					}
-					varPieces[list[k]] += QMAX;
+					varPieces[list[k].substr(1, list[k].length() - 2)] += QCONSTMAX;
 				}
 				else {
-					/* length < SPLIT_UNDER_BOUND */
+					/* length < SPLIT_LOWER_BOUND */
 					elements.emplace_back(std::make_pair(list[k].substr(1, list[k].length() - 2), -1));
 				}
 			}
@@ -2788,8 +2793,7 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 		else {
 			if (varPieces.find(list[k]) == varPieces.end())
 				varPieces[list[k]] = 0;
-			for (int j = 0; j < QCONSTMAX; ++j) {
-//			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
 				elements.emplace_back(std::make_pair(list[k], j));
 			}
 			varPieces[list[k]] += QMAX;
@@ -3453,7 +3457,7 @@ std::vector<int> createString(
 		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> strValue,
 		bool &assigned){
-	__debugPrint(logFile, "%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, name.c_str(), value.c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s = %s, len = %d\n", __LINE__, __FUNCTION__, name.c_str(), value.c_str(), len[name]);
 	std::vector<int> val(5000, 0);
 	if (strValue.find(name) != strValue.end())
 		val = strValue[name];
@@ -3466,6 +3470,7 @@ std::vector<int> createString(
 				pos += getConstLength(var, len);
 			}
 			else if(strValue.find(var) != strValue.end()){
+				__debugPrint(logFile, "%d known var of %s\n", __LINE__, var.c_str());
 				/* add an evaluated value */
 				for (int i = 0; i < len[var]; ++i)
 					if (val[pos + i] == 0)
@@ -3478,15 +3483,17 @@ std::vector<int> createString(
 					}
 				pos += len[var];
 			}
-			else
+			else {
+				__debugPrint(logFile, "%d unknown var of %s\n", __LINE__, var.c_str());
 				/* unknown */
 				pos += len[var];
+			}
 		}
+		__debugPrint(logFile, "%d %d %d\n", __LINE__, pos, len[name]);
 		assert(pos == len[name]);
 	}
 
 	/* update values found by the solver & previous iterations */
-
 	for (int i = 0; i < len[name]; ++i)
 		if (val[i] == 0)
 			if (i < (int)value.length())

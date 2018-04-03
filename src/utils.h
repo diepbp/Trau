@@ -47,7 +47,7 @@
 #define PMAX 50 // size of a flat
 #define QMAX 2 // number of flats
 #define QCONSTMAX 2 // number of flats for const
-#define SPLIT_UNDER_BOUND 3
+#define SPLIT_LOWER_BOUND 3
 #define CONNECTSIZE 300
 
 #define Z3_PATH "z3 "
@@ -55,7 +55,7 @@
 
 #define TMPDIR "/tmp/fat_str_convert/"
 
-//#ifdef DEBUGLOG
+#ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define __debugPrintAxiom(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define printZ3Node(t, n) {__printNode( (t), (n));}
