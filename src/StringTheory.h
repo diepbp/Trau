@@ -39,6 +39,7 @@ extern Z3_ast emptyConstStr;
 extern const std::string escapeDict[];
 
 extern int numOfFlats;
+extern bool skipOverapprox;
 
 extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
 
@@ -55,6 +56,8 @@ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 static std::map<std::string, std::set<char>> charSet;
 
 static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
+
+
 /**
    \brief Data-structure for storing theory specific data.
  */

@@ -1750,7 +1750,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 			}
 		}
 	}
-	if (done == true)
+	if (done == true || skipOverapprox == true)
 		return;
 
 	Z3_context ctx = Z3_theory_get_context(t);
@@ -3926,8 +3926,9 @@ std::string customizeString(std::string s) {
 	if (s[0] == '|') s = s.substr(1, s.length() - 2);
 	if (s[0] == '"') s = s.substr(1, s.length() - 2);
 	const size_t pos = s.find("!!");
-	if (pos != std::string::npos)
-		s = s.substr(pos + 2);
+	if (s.compare("!!") != 0)
+		if (pos != std::string::npos)
+			s = s.substr(pos + 2);
 
 	for (unsigned int i = 0; i < s.size(); ++i)
 		if (s[i] == '~')
@@ -4016,6 +4017,13 @@ void extendVariableToFindAllPossibleEqualities(
 	std::vector<std::vector<Z3_ast>> result;
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
 	displayListNode(t, eqNode, "EQ to current node ");
+	for (const auto& n : eqNode) {
+		if (isConcatFunc(t, n)) {
+			std::vector<Z3_ast> list;
+			collect_node_in_concat(t, n, list);
+			displayListNode(t, list, "node in concat ");
+		}
+	}
 
 	Z3_ast constNode = findConstInList(t, eqNode);
 
@@ -4232,7 +4240,8 @@ void extendVariableToFindAllPossibleEqualities(
 			if (!isConcatFunc(t, node))
 				refined_result.push_back({node});
 			else {
-				std::vector<Z3_ast> tmpVector = {Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0), Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1)};
+				std::vector<Z3_ast> tmpVector;
+				collect_node_in_concat(t, node, tmpVector);
 				refined_result.push_back(tmpVector);
 			}
 			__debugPrint(logFile, "\t %d add itself: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
@@ -4970,6 +4979,7 @@ bool parikh_check_replaceall(
 				removeItems++;
 			else
 				break;
+
 		/* --> cut */
 		for (unsigned j = start; j < list[0].size() - removeItems; ++j)
 			l00.emplace_back(list[0][j]);
@@ -4977,11 +4987,30 @@ bool parikh_check_replaceall(
 		for (unsigned j = start; j < list[i].size() - removeItems; ++j)
 			l01.emplace_back(list[i][j]);
 
+		std::vector<Z3_ast> l10;
+		std::vector<Z3_ast> l11;
+		/* remove common vars */
+		for (const auto& v : l00)
+			if (isStrVariable(t, v)){
+				if (std::find(l01.begin(), l01.end(), v) == l01.end())
+					l10.emplace_back(v);
+			}
+			else
+				l10.emplace_back(v);
+
+		for (const auto& v : l01)
+			if (isStrVariable(t, v)){
+				if (std::find(l00.begin(), l00.end(), v) == l00.end())
+					l11.emplace_back(v);
+			}
+			else
+				l11.emplace_back(v);
+
 		/* compare */
-		std::map<char, int> fixed00 = eval_parikh_fixedbound(t, l00, boolValues);
-		std::map<char, int> lower00 = eval_parikh_lowerbound(t, l00, boolValues);
-		std::map<char, int> fixed01 = eval_parikh_fixedbound(t, l01, boolValues);
-		std::map<char, int> lower01 = eval_parikh_lowerbound(t, l01, boolValues);
+		std::map<char, int> fixed00 = eval_parikh_fixedbound(t, l10, boolValues);
+		std::map<char, int> lower00 = eval_parikh_lowerbound(t, l10, boolValues);
+		std::map<char, int> fixed01 = eval_parikh_fixedbound(t, l11, boolValues);
+		std::map<char, int> lower01 = eval_parikh_lowerbound(t, l11, boolValues);
 
 		__debugPrint(logFile, "%d fixed00 bound\n", __LINE__);
 		for (const auto& p : fixed00)
@@ -5008,6 +5037,28 @@ bool parikh_check_replaceall(
 		for (const auto& ch : fixed01)
 			if (lower00[ch.first] > ch.second)
 				return false;
+
+		bool constOnly00 = true, constOnly01 = true;
+		for (const auto& ch : fixed00)
+			if (lower00[ch.first] != ch.second) {
+				constOnly00 = false;
+				break;
+			}
+		for (const auto& ch : fixed01)
+			if (lower01[ch.first] != ch.second) {
+				constOnly01 = false;
+				break;
+			}
+
+		if (constOnly00 || constOnly01){
+			for (const auto& ch : fixed00)
+				if (fixed01[ch.first] != ch.second)
+					return false;
+			for (const auto& ch : fixed01)
+				if (fixed00[ch.first] != ch.second)
+					return false;
+		}
+
 		__debugPrint(logFile, "%d *** step 3 ***\n", __LINE__);
 		/* check regex plus for replaceall */
 		__debugPrint(logFile, "%d checking regex plus\n", __LINE__);

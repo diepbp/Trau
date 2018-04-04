@@ -1345,7 +1345,6 @@ void create_const_array(
 					maxSize = s.length();
 			}
 
-			displayListString(components, " collectAlternativeComponents ");
 			std::string constraint = "(or \n";
 			/* 1st */
 			for (const auto& c: components) {
@@ -1476,7 +1475,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
+//			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
 			lenX += lenVarName;
 			lenX += "_";
 			lenX += std::to_string(i);
@@ -2002,12 +2001,17 @@ void sumConstString(){
 							__debugPrint(logFile, "%d content = %s, index = %d\n", __LINE__, content.c_str(), index);
 							/* parse this regex */
 							std::vector<std::vector<std::string>> regexElements = combineConstStr(refineVectors(parseRegexComponents(underApproxRegex(content))));
-
+#ifdef DEBUGLOG
+							__debugPrint(logFile, "%d regexElements: %ld\n", __LINE__, regexElements.size());
+//							for (const auto& re : regexElements){
+//								__debugPrint(logFile, "%d ", __LINE__);
+//								for (const auto &s : re)
+//									__debugPrint(logFile, "%s ", s.c_str());
+//								__debugPrint(logFile, "\n");
+//							}
+#endif
 							/* assume that regexElements size is 1 */
 							assert(regexElements.size() >= 1);
-
-							if (regexElements.size() > 1)
-								__debugPrint(logFile, "%d IMPORTANT NOTE: regexElements size = %ld\n", __LINE__, regexElements.size());
 
 							unsigned int pos = 0;
 
@@ -2317,7 +2321,8 @@ std::vector<std::string> reformatCharRange(std::vector<std::string> v){
 				if (posFinsih >= newS.length())
 					break;
 
-				assert(posFinsih - posStart == 4);
+				if (posFinsih - posStart != 4)
+					break;
 				std::string tmp = "(";
 				for (int i = newS[posStart + 1]; i < newS[posFinsih - 1]; ++i)
 					tmp = tmp + (char) i + "|";
@@ -2519,12 +2524,21 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 	std::vector<std::vector<std::string>> result;
 
 	std::vector<std::string> components = collectAlternativeComponents(str);
+	__debugPrint(logFile, "%d collectAlternativeComponents: %ld\n", __LINE__, components.size());
 	if (components.size() > 1){
 		for (const auto& c : components) {
 			std::vector<std::vector<std::string>> tmp = parseRegexComponents(c);
-			assert(tmp.size() <= 1);
-			if (tmp.size() == 1)
-				result.emplace_back(tmp[0]);
+#ifdef DEBUGLOG
+			__debugPrint(logFile, "%d components: %ld\n", __LINE__, tmp.size());
+			for (const auto& re : tmp){
+				__debugPrint(logFile, "%d ", __LINE__);
+				for (const auto &s : re)
+					__debugPrint(logFile, "%s ", s.c_str());
+				__debugPrint(logFile, "\n");
+			}
+#endif
+			for (const auto& comp : tmp)
+				result.emplace_back(comp);
 		}
 		return result;
 	}
@@ -2558,6 +2572,9 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 	else if (rightParentheses == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
 		/* (a)* */
 		optimizeFlatAutomaton(str);
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "%d leaving  %s\n", __LINE__, __FUNCTION__);
+#endif
 		return {{str}};
 	}
 
@@ -2583,8 +2600,8 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 			std::vector<std::vector<std::string>> rightComponents = parseRegexComponents(right);
 			if (leftComponents.size() > 0) {
 				if (rightComponents.size() > 0) {
-					for (unsigned int i = 0; i < leftComponents.size(); ++i)
-						for (unsigned int j = 0; j < rightComponents.size(); ++j) {
+					for (int i = 0; i < std::min(REGEX_BOUND, (int)leftComponents.size()); ++i)
+						for (int j = 0; j < std::min(REGEX_BOUND, (int)rightComponents.size()); ++j) {
 							std::vector<std::string> tmp;
 							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
 							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
@@ -2706,22 +2723,26 @@ bool similarVector(
  * remove duplication
  */
 std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list){
-
-	bool duplicated[1000];
-	memset(duplicated, false, sizeof duplicated);
-	for (unsigned int i = 0; i < list.size(); ++i)
-		if (!duplicated[i])
-			for (unsigned int j = i + 1; j < list.size(); ++j)
-				if (!duplicated[j]) {
-					if (equalVector(list[i], list[j])) {
-						duplicated[j] = true;
-					}
-				}
-
+	__debugPrint(logFile, "%d *** %s ***: %ld\n", __LINE__, __FUNCTION__, list.size());
 	std::vector<std::vector<std::string>> result;
-	for (unsigned int i = 0 ; i < list.size(); ++i)
-		if (!duplicated[i])
-			result.emplace_back(list[i]);
+	if (list.size() < 1000) {
+		bool duplicated[1000];
+		memset(duplicated, false, sizeof duplicated);
+		for (unsigned int i = 0; i < list.size(); ++i)
+			if (!duplicated[i])
+				for (unsigned int j = i + 1; j < list.size(); ++j)
+					if (!duplicated[j]) {
+						if (equalVector(list[i], list[j])) {
+							duplicated[j] = true;
+						}
+					}
+
+		for (unsigned int i = 0 ; i < list.size(); ++i)
+			if (!duplicated[i])
+				result.emplace_back(list[i]);
+	}
+	else
+		result = list;
 
 	for (unsigned int i = 0; i < result.size(); ++i)
 		for (unsigned int j = 0; j < result[i].size(); ++j)
@@ -2734,6 +2755,7 @@ std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std:
  * a b c (abc)* --> abc (abc)*
  */
 std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<std::string>> regexElements){
+	__debugPrint(logFile, "%d *** %s ***: %ld\n", __LINE__, __FUNCTION__, regexElements.size());
 	std::vector<std::vector<std::string>> results;
 	for (unsigned int i = 0; i < regexElements.size(); ++i) {
 		std::vector<std::string> tmp;
@@ -2756,6 +2778,7 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
 		}
 		results.emplace_back(tmp);
 	}
+	__debugPrint(logFile, "%d leaving %s \n", __LINE__, __FUNCTION__);
 	return results;
 }
 /*

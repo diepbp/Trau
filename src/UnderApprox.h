@@ -19,6 +19,7 @@
 #define MAXP 6
 #define MAXQ 7
 #define DEFAULT_CHAR 'a'
+#define REGEX_BOUND 10
 
 extern std::string orgInput;
 extern bool getModel;
