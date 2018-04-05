@@ -758,7 +758,14 @@ typedef struct _AutomatonStringData
  void assignFinalValues(Z3_theory t);
  void assignFinalValues(Z3_theory t, std::map<Z3_ast, std::string> str_values, std::vector<Z3_ast> &axiomToAdd);
  Z3_ast axiom_FinalValue(Z3_theory t, Z3_ast node, std::string value);
- void assignOtherValue(Z3_theory t);
+
+ /*
+  * Get value for variables that do not have relation with others
+  */
+ bool assignOtherValue(
+ 		Z3_theory t,
+ 		std::map<Z3_ast, std::string> &str_values,
+ 		std::map<Z3_ast, int> &len_values);
 
  bool guessLanguage(Z3_theory t, Z3_ast node);
  bool canSplit(int boundedFlat,
@@ -767,14 +774,52 @@ typedef struct _AutomatonStringData
 		 std::string frame,
 		 std::vector<std::string> &flats);
 
+ /**
+  *
+  */
+ bool matchAutomaton(
+ 		Z3_theory t,
+ 		Z3_ast node,
+ 		std::string value);
+
+ /*
+  *
+  */
+ void splitValueForConcat(
+ 		Z3_theory t,
+ 		std::vector<Z3_ast> list,
+ 		std::string value,
+ 		int pos,
+ 		std::map<Z3_ast, std::string> str_values,
+ 		std::map<Z3_ast, int> len_values,
+ 		std::map<Z3_ast, std::string> &assignments,
+ 		bool &completion);
+
+ /*
+  *
+  */
+ bool splitValueForConcat(
+ 		Z3_theory t,
+ 		std::vector<Z3_ast> list,
+ 		std::string value,
+ 		std::map<Z3_ast, std::string> &str_values,
+ 		std::map<Z3_ast, int> &len_values);
+
+ /*
+  *
+  */
+ bool splitValueForConcat(
+ 		Z3_theory t,
+ 		Z3_ast node,
+ 		std::string value,
+ 		std::map<Z3_ast, std::string> &str_values,
+ 		std::map<Z3_ast, int> &len_values);
+
  bool determindConcat(Z3_theory t,
-		 std::vector<Z3_ast> leaves_list,
-		 int pos, std::map<Z3_ast,
+		 std::set<Z3_ast> leaves_list,
+		 std::map<Z3_ast,
 		 std::string> str_values, std::map<Z3_ast,
-		 int> len_values,
-		 std::vector<Z3_ast> &axiomToAdd,
-		 std::vector<Z3_ast> &errorNodes);
- void update_ExtendList(Z3_theory t, std::vector<Z3_ast> eq, std::vector<Z3_ast> &tmp_ConcatList, int pos);
+		 int> len_values);
 
  void update_constValue(Z3_theory t,
 		 Z3_ast node,
@@ -783,23 +828,8 @@ typedef struct _AutomatonStringData
 		 std::map<Z3_ast, int> &len_values,
 		 int line);
 
- void undo_update_constValue(Z3_theory t,
-		 Z3_ast node,
-		 std::map<Z3_ast, std::string> &str_values,
-		 int line);
-
- void undo_update_LengthValue(Z3_theory t,
-		 Z3_ast node,
-		 std::map<Z3_ast, int> &len_values,
-		 int line);
-
  bool initialize(Z3_theory t, std::map<Z3_ast, std::string> &str_values,  std::map<Z3_ast, int> &len_values);
  bool initializeNode(Z3_theory t, Z3_ast node, std::map<Z3_ast, std::string> &str_values,  std::map<Z3_ast, int> &len_values, std::map<Z3_ast, bool> &handled);
-
- bool split_knownHead(Z3_theory t, std::string value, Z3_ast arg0, Z3_ast arg1, std::string &value_arg1, std::map<Z3_ast, std::string> str_values, std::map<Z3_ast, int> len_values);
- bool split_knownTail(Z3_theory t, std::string value, Z3_ast arg0, Z3_ast arg1, std::string &value_arg0, std::map<Z3_ast, std::string> str_values, std::map<Z3_ast, int> len_values);
- bool split_knownHeadLength(Z3_theory t, std::string value, Z3_ast arg0, Z3_ast arg1, std::string &value_arg0, std::string &value_arg1, std::map<Z3_ast, std::string> str_values, std::map<Z3_ast, int> len_values);
- bool split_knownTailLength(Z3_theory t, std::string value, Z3_ast arg0, Z3_ast arg1, std::string &value_arg0, std::string &value_arg1, std::map<Z3_ast, std::string> str_values, std::map<Z3_ast, int> len_values);
 
  std::pair<int, int> getLengthRange(Z3_theory t, Z3_ast node, std::map<Z3_ast, int> len_values);
 

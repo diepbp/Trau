@@ -168,7 +168,7 @@ std::set<char> getUsedChars(std::string str);
 /*
  *
  */
-void prepareEncoderDecoderMap(std::string fileName);
+bool prepareEncoderDecoderMap(std::string fileName);
 
 /*
  * "abc123" 			--> 6

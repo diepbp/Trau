@@ -674,6 +674,9 @@ void Automaton::DFS_Frame(int pos, std::string currentStr, bool &stop) {
  * Does a string belong to the language
  */
 bool Automaton::match(std::string str){
+	if (isUnknown())
+		return true;
+
 	bool match = false;
 
 	std::set<int> firstChar = collectFirstChar();
@@ -822,32 +825,20 @@ void Automaton::DFS_Upto(int pos, int length, std::string currentStr, std::set<s
  * Each node should not be repeated 4
  */
 void Automaton::DFS_LengthRange(int pos,
-																int lengthMin, int lengthMax,
-																std::string currentStr,
-																std::set<std::string> &ret,
-																int components) {
+		int lengthMin, int lengthMax,
+		std::string currentStr,
+		std::set<std::string> &ret,
+		int components) {
 //	if (ret.size() >= value_count)
 	if (ret.size() >= 1)
 		return;
 
 	std::vector<int>::iterator it = std::find(acceptStates.begin(), acceptStates.end(), pos);
 	if (it != acceptStates.end() && (int)currentStr.length() >= lengthMin && (int)currentStr.length() <= lengthMax) {
-//	if (it != acceptStates.end() && (int)currentStr.length() == lengthMin && (int)currentStr.length() <= lengthMax) {
 		ret.insert(currentStr);
 	}
 
 	if ((int)currentStr.length() > lengthMax){
-//		__debugPrint(logFile, " (%d) %d -- Accept states: ", __LINE__, *it);
-//		for (int i = 0 ; i < acceptStates.size();++i){
-//			__debugPrint(logFile, "%d ", acceptStates[i]);
-//		}
-//		__debugPrint(logFile, "\n");
-		return;
-	}
-
-
-	if ((int)(frame.length() - components) > (int)(lengthMin - currentStr.length())) {
-		__debugPrint(logFile, "Out of frame: %d %s -- %d (%d/%d)\n", __LINE__, currentStr.c_str(), (int)currentStr.length(), components, (int)frame.length());
 		return;
 	}
 

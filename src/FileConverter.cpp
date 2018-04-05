@@ -975,7 +975,7 @@ std::set<char> getUsedChars(std::string str){
 /*
  *
  */
-void prepareEncoderDecoderMap(std::string fileName){
+bool prepareEncoderDecoderMap(std::string fileName){
 	FILE* in = fopen(fileName.c_str(), "r");
 	if (!in) {
 		printf("%d %s", __LINE__, fileName.c_str());
@@ -1014,13 +1014,17 @@ void prepareEncoderDecoderMap(std::string fileName){
 				unused.emplace_back(i);
 
 	__debugPrint(logFile, "%d *** %s ***: unused = %ld, encoded = %ld\n", __LINE__, __FUNCTION__, unused.size(), encoded.size());
-	assert(unused.size() >= encoded.size());
 
-
-	for (const auto& ch : unused)
-		__debugPrint(logFile, "%c ", ch);
-	__debugPrint(logFile, "\n");
-
+	if (unused.size() < encoded.size()) {
+		unsigned cnt = 0;
+		for (const char& ch : encoded) {
+			__debugPrint(logFile, "%d *** %s ***: %c --> %c\n", __LINE__, __FUNCTION__, ch, 128 + cnt);
+			ENCODEMAP[ch] = 20 + cnt;
+			DECODEMAP[20 + cnt] = ch;
+			cnt++;
+		}
+		return false;
+	}
 	unsigned cnt = 0;
 	for (const char& ch : encoded) {
 		__debugPrint(logFile, "%d *** %s ***: %c --> %c\n", __LINE__, __FUNCTION__, ch, unused[cnt]);
@@ -1028,6 +1032,7 @@ void prepareEncoderDecoderMap(std::string fileName){
 		DECODEMAP[unused[cnt]] = ch;
 		cnt++;
 	}
+	return true;
 }
 
 /*
