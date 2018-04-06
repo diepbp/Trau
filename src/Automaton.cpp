@@ -53,7 +53,7 @@ Z3_ast Automaton::CalculateParikhImage(Z3_theory t){
 //	printZ3Node(t, parikh);
 
 	// length constraints
-	Z3_ast ret[2] = {CreateEdgeConstraints(t), parikh};
+	Z3_ast ret[2] = {createEdgeConstraints(t), parikh};
 
 	return Z3_mk_and(ctx, 2, ret);
 
@@ -348,7 +348,7 @@ Z3_ast Automaton::calculateParikh(Z3_theory t, std::map<int, std::vector<Transit
 	return mk_and_fromVector(t, retAst);
 }
 
-Z3_ast Automaton::CreateEdgeConstraints(Z3_theory t) {
+Z3_ast Automaton::createEdgeConstraints(Z3_theory t) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "%d at %s: Create Edge Constraints of: %s", __LINE__, __FILE__, name.c_str());
 	__debugPrint(logFile, "\n");
@@ -367,7 +367,7 @@ Z3_ast Automaton::CreateEdgeConstraints(Z3_theory t) {
 	return mk_and_fromVector(t, edge_constraints);
 }
 
-std::string Automaton::CreateLengthConstraints() {
+std::string Automaton::createLengthConstraints() {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "%d at %s: Create Length Constraints.\n", __LINE__, __FILE__);
 #endif
@@ -407,7 +407,7 @@ std::string Automaton::CreateLengthConstraints() {
 	return "(" + char_constraints + ") && (" + len_constraints + ")";
 }
 
-Z3_ast Automaton::CreateLengthConstraints(Z3_theory t, Z3_ast lenNode) {
+Z3_ast Automaton::createLengthConstraints(Z3_theory t, Z3_ast lenNode) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "%d at %s: Create Length Constraints of: %s", __LINE__, __FILE__, name.c_str());
 	__debugPrint(logFile, "\n");

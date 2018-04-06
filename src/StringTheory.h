@@ -40,6 +40,7 @@ extern const std::string escapeDict[];
 
 extern int numOfFlats;
 extern bool skipOverapprox;
+extern bool multiRegex;
 
 extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
 
@@ -817,9 +818,8 @@ typedef struct _AutomatonStringData
 
  bool determindConcat(Z3_theory t,
 		 std::set<Z3_ast> leaves_list,
-		 std::map<Z3_ast,
-		 std::string> str_values, std::map<Z3_ast,
-		 int> len_values);
+		 std::map<Z3_ast, std::string> &str_values,
+		 std::map<Z3_ast, int> &len_values);
 
  void update_constValue(Z3_theory t,
 		 Z3_ast node,

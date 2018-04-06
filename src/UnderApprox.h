@@ -24,6 +24,7 @@
 extern std::string orgInput;
 extern bool getModel;
 extern bool beReviewed;
+
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, int> global_smtVars;
 static std::vector<std::vector<std::string>> global_smtStatements;
@@ -51,6 +52,7 @@ static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 static std::map<std::string, int> varPieces;
 
 static int noFlatVariables = 0;
+static bool multiRegex;
 
 /*
  * get value from eq map

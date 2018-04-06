@@ -19,6 +19,7 @@ int numOfFlats;
 bool lengthDefined = false;
 bool languageDefined = false;
 bool done = false;
+bool skipUnderApprox;
 
 int varCnt = 0;
 int value_count = 0;
@@ -1013,9 +1014,6 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
  * only collect leaf, string format
  */
 std::string node_to_string(Z3_theory t, Z3_ast node) {
-//	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
-//	printZ3Node(t, node);
-//	__debugPrint(logFile, "\n");
 
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_context ctx = Z3_theory_get_context(t);
@@ -1057,8 +1055,8 @@ void getAllNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeLis
 		nodeList.emplace_back(node);
 		Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
 		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
-		getNodesInConcat(t, leftArg, nodeList);
-		getNodesInConcat(t, rightArg, nodeList);
+		getAllNodesInConcat(t, leftArg, nodeList);
+		getAllNodesInConcat(t, rightArg, nodeList);
 	}
 }
 
@@ -2045,7 +2043,7 @@ bool updateConcatLength(Z3_theory t, Z3_ast node, bool alwaysAdd = true) {
 	newValue.second = domain00.second >= 0 && domain01.second >= 0 ? domain00.second + domain01.second : -1;
 
 	printZ3Node(t, node);
-	__debugPrint(logFile, " %d\t\t updateConcatLength (%d, %d) -- (%d, %d) --> (%d, %d)\n", __LINE__, domain00.first, domain00.second, domain01.first, domain01.second, newValue.first, newValue.second);
+	__debugPrint(logFile, "\n%d\t\t updateConcatLength (%d, %d) -- (%d, %d) --> (%d, %d)\n", __LINE__, domain00.first, domain00.second, domain01.first, domain01.second, newValue.first, newValue.second);
 	length_LanguageMap[std::make_pair(node, sLevel)] = newValue;
 
 	if (alwaysAdd || !(oldValue.first == newValue.first && oldValue.second == newValue.second)) {
@@ -2060,6 +2058,7 @@ bool updateConcatLength(Z3_theory t, Z3_ast node, bool alwaysAdd = true) {
  *
  */
 bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx) {
+	Z3_context ctx = Z3_theory_get_context(t);
 	bool change = false;
 	std::pair<int, int> value = getLengthDomain(node);
 	if (value.first < minn) {
@@ -2070,7 +2069,7 @@ bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx) {
 		value.second = maxx;
 		change = true;
 	}
-	__debugPrint(logFile, "%d Update --> (%d, %d)\n", __LINE__, value.first, value.second);
+	__debugPrint(logFile, "%d Update %s --> (%d, %d)\n", __LINE__, Z3_ast_to_string(ctx, node), value.first, value.second);
 	length_LanguageMap[std::make_pair(node, sLevel)] = value;
 	return change;
 }
@@ -2129,7 +2128,7 @@ void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList){
 		__debugPrint(logFile, " (line %d) (%d -- %d)", __LINE__, domain.first, domain.second);
 
 		if (isStrVariable(t, currentNode) || isConcatFunc(t, currentNode) || isAutomatonFunc(t, currentNode)) {
-			std::vector<Z3_ast> eq_nodes = getEqualValues(currentNode);
+			std::vector<Z3_ast> eq_nodes = collect_eqc(t, currentNode);
 
 			// edit domain --> collect the best guy
 			collectBestDomain(eq_nodes, domain);
@@ -2179,7 +2178,8 @@ void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList){
 
 
 			if (domain.second >= 0) {
-				// propagate concat
+#if 0
+				// propagate concat to children
 				for (unsigned int i = 0; i < eq_nodes.size(); ++i) {
 					if (isConcatFunc(t, eq_nodes[i])) {
 						Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, eq_nodes[i]), 0);
@@ -2209,6 +2209,7 @@ void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList){
 						}
 					}
 				}
+#endif
 			}
 		}
 		pos++;
@@ -5309,11 +5310,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 	//  ctxDepAnalysis(t, varAppearInAssign, freeVar_map, membership);
 
 	if (lengthDefined == false) {
-		// determine domain of variables
 //		reduceVariableDomain(t);
 		findVariableDomain();
-//
-//		updateLength(t);
 		lengthDefined = true;
 	}
 	__debugPrint(logFile, " Pass level 1\n");
@@ -5366,16 +5364,22 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
 		}
 
+		skipUnderApprox = false;
 		if (containPairBoolMap.size() == 0 &&
 			indexOfStrMap.size() == 0 &&
 			lastIndexOfStrMap.size() == 0 &&
 			endsWithStrMap.size() == 0 &&
 			startsWithStrMap.size() == 0 &&
 			replaceAllStrMap.size() == 0 &&
-			replaceStrMap.size() == 0)
+			replaceStrMap.size() == 0 &&
+			skipOverapprox == false) {
+
+			updateLength(t);
 			if (assignConcreteValue(t)){
 				return Z3_TRUE;
 			}
+		}
+
 
 		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
@@ -5391,9 +5395,16 @@ Z3_bool Th_final_check(Z3_theory t) {
 						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
 			}
 
-			Z3_ast negation = negatePositiveContext(t, boolVars);
-			orConstraints.emplace_back(negation);
-			addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
+
+			if (boolVars.size() == 0 && orConstraints.size() == 0) {
+				/* give up*/
+				return Z3_FALSE;
+			}
+			else {
+				Z3_ast negation = negatePositiveContext(t, boolVars);
+				orConstraints.emplace_back(negation);
+				addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
+			}
 		}
 		else {
 			done = true;
@@ -5752,6 +5763,7 @@ bool assignConcreteValue(Z3_theory t){
 		for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
 			std::vector<Z3_ast> list;
 			getAllNodesInConcat(t, it->second, list);
+			displayListNode(t, list, "list of children");
 			for (const auto& n : list)
 				if (n != it->second){
 					std::vector<Z3_ast> eq = collect_eqc(t, n);
@@ -5797,7 +5809,7 @@ bool assignConcreteValue(Z3_theory t){
 		}
 		else
 			return false;
-		done = true;
+		skipUnderApprox = true;
 	}
 	else {
 		return false;
@@ -5958,39 +5970,56 @@ void splitValueForConcat(
 		std::map<Z3_ast, int> len_values,
 		std::map<Z3_ast, std::string> &assignments,
 		bool &completion){
-	if (pos == list.size()) {
-		completion = true;
+	if (pos == (int) list.size()) {
+		if (value.length() == 0)
+			completion = true;
 		return;
 	}
 	int leng = -1;
-
+	__debugPrint(logFile, "%d *** %s ***: at %d / %s\n", __LINE__, __FUNCTION__, pos, value.c_str());
 	/* know value */
 	if (str_values.find(list[pos]) != str_values.end()){
 		leng = str_values[list[pos]].length();
+		if (leng > (int)value.length())
+			return;
 		std::string tmp = value.substr(0, leng);
 		if (tmp.compare(str_values[list[pos]]) != 0)
 			return;
 		else {
 			assignments[list[pos]] = str_values[list[pos]];
 			splitValueForConcat(t, list, value.substr(leng), pos + 1, str_values, len_values, assignments, completion);
+
+			if (completion)
+				return;
 		}
 	}
 
 	/* know length */
-	if (len_values.find(list[pos]) != len_values.end()){
+	else if (len_values.find(list[pos]) != len_values.end()){
 		leng = len_values[list[pos]];
+		if (leng > (int)value.length())
+			return;
 		std::string tmp = value.substr(0, leng);
 		if (matchAutomaton(t, list[pos], tmp)){
 			assignments[list[pos]] = tmp;
 			splitValueForConcat(t, list, value.substr(leng), pos + 1, str_values, len_values, assignments, completion);
+
+			if (completion)
+				return;
 		}
 	}
 
-	else for (unsigned i = 0; i < value.size(); ++i){
-		std::string tmp = value.substr(0, leng);
+	else for (unsigned i = 0; i <= value.size(); ++i){
+		std::string tmp = value.substr(0, i);
+		__debugPrint(logFile, "%d matchAutomaton %s at %d\n", __LINE__, tmp.c_str(), pos);
 		if (matchAutomaton(t, list[pos], tmp)){
+			__debugPrint(logFile, "%d matched %s \n", __LINE__, tmp.c_str());
 			assignments[list[pos]] = tmp;
+			assert(tmp.length() + value.substr(i).length() == value.length());
+
 			splitValueForConcat(t, list, value.substr(i), pos + 1, str_values, len_values, assignments, completion);
+			if (completion)
+				return;
 		}
 
 	}
@@ -6049,8 +6078,8 @@ bool splitValueForConcat(
 bool determindConcat(
 		Z3_theory t,
 		std::set<Z3_ast> leaves_list,
-		std::map<Z3_ast, std::string> str_values,
-		std::map<Z3_ast, int> len_values){
+		std::map<Z3_ast, std::string> &str_values,
+		std::map<Z3_ast, int> &len_values){
 
 	__debugPrint(logFile, "leavesList.size = %ld\n", leaves_list.size());
 	Z3_context ctx = Z3_theory_get_context(t);
@@ -6092,6 +6121,9 @@ bool determindConcat(
 
 			// 3. size is determined?
 			std::pair<int, int> lengthRange = getLengthRange(t, node, len_values);
+			if (len_values.find(node) != len_values.end())
+				lengthRange = std::make_pair(len_values[node], len_values[node]);
+
 			__debugPrint(logFile, "\n %d lengthRange: %d to %d \n",  __LINE__, lengthRange.first, lengthRange.second);
 			if (lengthRange.first > lengthRange.second && lengthRange.second != -1)
 				return false;
@@ -6105,12 +6137,14 @@ bool determindConcat(
 
 				values_list = ton.createStringWithLengthRange(lengthRange.first, lengthRange.second);
 				__debugPrint(logFile, "%d Number of possible values (%d-%d): %d\n", __LINE__, lengthRange.first, lengthRange.second, (int)values_list.size());
-				if (values_list.size() == 0)
-					__debugPrint(logFile, "%s\n", ton.toString(true).c_str());
+				if (values_list.size() == 0) {
+					__debugPrint(logFile, "%d %s\n", __LINE__, ton.toString(true).c_str());
+					return false;
+				}
 			}
 
 			displayListString(values_list, "List of values");
-			assert(values_list.size() == 1);
+			assert(values_list.size() <= 2);
 
 			// 5. split values
 			for (std::set<std::string>::iterator it = values_list.begin(); it != values_list.end(); ++it) {
@@ -6124,6 +6158,7 @@ bool determindConcat(
 						if (splitValueForConcat(t, _n, *it, str_values, len_values)){
 						}
 						else {
+							__debugPrint(logFile, "%d Cannot splitValueForConcat\n", __LINE__);
 							return false;
 						}
 					}
@@ -6221,6 +6256,8 @@ void update_constValue(Z3_theory t,
  *
  */
 std::pair<int, int> getLengthRange(Z3_theory t, Z3_ast node, std::map<Z3_ast, int> len_values){
+	Z3_context ctx = Z3_theory_get_context(t);
+	__debugPrint(logFile, "%d *** %s ***: %s", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, node));
 	std::pair<int, int> domain = getLengthDomain(node);
 	if (domain.first < 0)
 		domain.first = 0;
@@ -6231,7 +6268,7 @@ std::pair<int, int> getLengthRange(Z3_theory t, Z3_ast node, std::map<Z3_ast, in
 	if (len_values.find(node) != len_values.end())
 		return std::make_pair(len_values[node], len_values[node]);
 
-	std::vector<Z3_ast> eq = getEqualValues(node);
+	std::vector<Z3_ast> eq = collect_eqc(t, node);
 	if (eq.size() == 0)
 		return std::make_pair(0, PMAX * QMAX);
 
@@ -8863,11 +8900,10 @@ void check(Z3_theory t)
 		printf("================================================\n");
 		break;
 	case Z3_L_UNDEF:
-		printf(">> unknown\n");
-		printf("potential model:\n%s\n", Z3_model_to_string(ctx, m));
+		printf(">> UNKNOWN\n");
 		break;
 	case Z3_L_TRUE:
-		printf("\n>> SAT\n");
+
 #if 0
 		if (ourGrm.size() == 0) {
 			printf("OverApprox: sat\n");
@@ -8886,14 +8922,12 @@ void check(Z3_theory t)
 
 		break;
 #else
-		//		printf("OverApprox: sat\n");
-		//		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables = collectCombinationOverVariables(t);
-		//		std::map<std::string, int> currentLength = collectCurrentLength(t);
-		//
-		//		for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = combinationOverVariables.begin(); it != combinationOverVariables.end(); ++it)
-		//			__debugPrint(logFile, "%d check var: %s\n", __LINE__, it->first.c_str());
-		//
-		//		underapproxController(combinationOverVariables, currentLength, inputFile);
+		if (skipUnderApprox){
+			printf("================================================\n");
+			printf("%s", Z3_model_to_string(ctx, m));
+			printf("================================================\n");
+			printf("\n>> SAT\n");
+		}
 		break;
 #endif
 	}

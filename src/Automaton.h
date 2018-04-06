@@ -92,10 +92,10 @@ struct Automaton {
 	std::string calculateParikh(std::map<int, std::vector<Transition>> inList, std::map<int, std::vector<Transition>> outList, int acceptingState);
 	Z3_ast calculateParikh(Z3_theory t, std::map<int, std::vector<Transition>> inList, std::map<int, std::vector<Transition>> outList, int acceptingState);
 
-	Z3_ast CreateEdgeConstraints(Z3_theory t);
+	Z3_ast createEdgeConstraints(Z3_theory t);
 
-	std::string CreateLengthConstraints();
-	Z3_ast CreateLengthConstraints(Z3_theory t, Z3_ast lenNode);
+	std::string createLengthConstraints();
+	Z3_ast createLengthConstraints(Z3_theory t, Z3_ast lenNode);
 
 	std::string createVarLen();
 

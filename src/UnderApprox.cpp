@@ -2003,15 +2003,11 @@ void sumConstString(){
 							std::vector<std::vector<std::string>> regexElements = combineConstStr(refineVectors(parseRegexComponents(underApproxRegex(content))));
 #ifdef DEBUGLOG
 							__debugPrint(logFile, "%d regexElements: %ld\n", __LINE__, regexElements.size());
-//							for (const auto& re : regexElements){
-//								__debugPrint(logFile, "%d ", __LINE__);
-//								for (const auto &s : re)
-//									__debugPrint(logFile, "%s ", s.c_str());
-//								__debugPrint(logFile, "\n");
-//							}
 #endif
 							/* assume that regexElements size is 1 */
 							assert(regexElements.size() >= 1);
+							if (regexElements.size() > 1)
+								multiRegex = true;
 
 							unsigned int pos = 0;
 
@@ -2149,7 +2145,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					if (var[0] != '"'){
 						if (equalitiesMap.find(var) != equalitiesMap.end())
 							for (const auto& _eq : equalitiesMap[var]) {
-								if (_eq.size() == 1 && _eq[0][0] != '"'){
+								if (_eq.size() == 1 && _eq[0][0] != '"' && _eq[0].compare(var) != 0){
 									variableCounting[_eq[0]]++;
 									if (variableCounting[_eq[0]] > 1){
 										connectedVarSet[_eq[0]] = CONNECTSIZE;
@@ -2160,6 +2156,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 							}
 						variableCounting[var]++;
 						if (variableCounting[var] > 1){
+
 							connectedVarSet[var] = CONNECTSIZE;
 							__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 						}
@@ -4058,6 +4055,7 @@ void reset(){
 	global_smtStatements.clear();
 	connectedVariables.clear();
 	trivialUnsat = false;
+	multiRegex = false;
 }
 
 /*
