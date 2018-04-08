@@ -1690,7 +1690,12 @@ public:
 			assert(elementNames[pos + 1].second % QMAX == 1);
 			assert(QMAX == 2);
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
-			lenRhs = lenRhs.substr(0, lenRhs.length() - 2);
+			if (elementNames[pos + 1].second < 10)
+				lenRhs = lenRhs.substr(0, lenRhs.length() - 2);
+			else if (elementNames[pos + 1].second < 100)
+					lenRhs = lenRhs.substr(0, lenRhs.length() - 3);
+			else if (elementNames[pos + 1].second < 1000)
+				lenRhs = lenRhs.substr(0, lenRhs.length() - 4);
 		}
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
