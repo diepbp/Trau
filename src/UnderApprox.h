@@ -494,6 +494,14 @@ std::string getValueFromRegex(std::string s, int length);
 /*
  *
  */
+std::vector<int> getDataStr(
+		std::string var,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue);
+
+/*
+ *
+ */
 void syncConst(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,

@@ -5050,10 +5050,10 @@ bool parikh_check_replaceall(
 
 		if (constOnly00 || constOnly01){
 			for (const auto& ch : fixed00)
-				if (fixed01[ch.first] != ch.second)
+				if (fixed01.find(ch.first) != fixed01.end() && fixed01[ch.first] != ch.second)
 					return false;
 			for (const auto& ch : fixed01)
-				if (fixed00[ch.first] != ch.second)
+				if (fixed00.find(ch.first) != fixed00.end() && fixed00[ch.first] != ch.second)
 					return false;
 		}
 
