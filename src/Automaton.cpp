@@ -741,7 +741,6 @@ void Automaton::DFS_Match(
 		std::string destination,
 		bool& matched,
 		int components) {
-//	__debugPrint(logFile, "\nchar pos: %d, pos: %d\n", charPos, pos);
 	std::vector<int>::iterator it = std::find(acceptStates.begin(), acceptStates.end(), pos);
 	if (it != acceptStates.end() && charPos == (int)destination.length())
 		matched = true;
@@ -751,11 +750,6 @@ void Automaton::DFS_Match(
 
 	if ((int)destination.length() < charPos)
 		return;
-
-	if ((int)(frame.length() - components) > (int)(destination.length() - charPos)) {
-		__debugPrint(logFile, "%d Out of frame: %d (%d/%ld)\n", __LINE__, charPos, components, frame.length());
-		return;
-	}
 
 	for (unsigned int i = 0; i < transitionMap[pos].size(); ++i) {
 		if (transitionMap[pos][i].label == 0) {

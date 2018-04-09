@@ -21,6 +21,7 @@ bool getModel = false;
 bool beReviewed = false;
 bool cleanLog = true;
 int cnt = 0;
+bool skipOverapprox;
 std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
 std::map<std::string, std::vector<std::string>> ourGrm;
@@ -171,7 +172,12 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	/* create file */
 	outFile = outFile + fileName;
 
-	prepareEncoderDecoderMap(fileDir);
+	bool completed = prepareEncoderDecoderMap(fileDir);
+	if (completed == false)
+		skipOverapprox = true;
+	else
+		skipOverapprox = false;
+
 	encodeSpecialChars(fileDir, outFile);
 
 	return outFile;
