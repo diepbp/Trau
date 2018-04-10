@@ -5406,8 +5406,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 			}
 
 
-			if (boolVars.size() == 0 && orConstraints.size() == 0) {
+			if (boolVars.size() == 0 && orConstraints.size() == 0 && multiRegex) {
 				/* give up*/
+				__debugPrint(logFile, "%d %s gives up\n", __LINE__, __FUNCTION__);
 				return Z3_FALSE;
 			}
 			else {
@@ -5982,25 +5983,28 @@ void splitValueForConcat(
 		std::map<Z3_ast, int> len_values,
 		std::map<Z3_ast, std::string> &assignments,
 		bool &completion){
+	__debugPrint(logFile, "%d *** %s ***: at %d / %s\n", __LINE__, __FUNCTION__, pos, value.c_str());
 	if (pos == (int) list.size()) {
-		if (value.length() == 0)
+		if (value.length() == 0) {
 			completion = true;
+		}
 		return;
 	}
 	int leng = -1;
-	__debugPrint(logFile, "%d *** %s ***: at %d / %s\n", __LINE__, __FUNCTION__, pos, value.c_str());
+
 	/* know value */
 	if (str_values.find(list[pos]) != str_values.end()){
 		leng = str_values[list[pos]].length();
-		if (leng > (int)value.length())
+		if (leng > (int)value.length()) {
 			return;
+		}
 		std::string tmp = value.substr(0, leng);
-		if (tmp.compare(str_values[list[pos]]) != 0)
+		if (tmp.compare(str_values[list[pos]]) != 0) {
 			return;
+		}
 		else {
 			assignments[list[pos]] = str_values[list[pos]];
 			splitValueForConcat(t, list, value.substr(leng), pos + 1, str_values, len_values, assignments, completion);
-
 			if (completion)
 				return;
 		}
@@ -6022,7 +6026,7 @@ void splitValueForConcat(
 	}
 
 	/* take all remaining string */
-	else if (pos == list.size() - 1) {
+	else if (pos == (int)list.size() - 1) {
 		__debugPrint(logFile, "%d matchAutomaton %s at %d\n", __LINE__, value.c_str(), pos);
 		if (matchAutomaton(t, list[pos], value)){
 			__debugPrint(logFile, "%d matched %s \n", __LINE__, value.c_str());
@@ -6066,8 +6070,29 @@ bool splitValueForConcat(
 	if (!completion)
 		return false;
 	else {
+		/* check if they have been updated */
+		bool updated = true;
 		for (const auto& n : list) {
 			assert(assignments.find(n) != assignments.end());
+			if (str_values.find(n) !=str_values.end() && len_values.find(n) != len_values.end()) {
+				if (str_values[n].compare(assignments[n]) != 0) {
+					updated = false;
+					break;
+				}
+			}
+			else {
+				updated = false;
+				break;
+			}
+
+		}
+
+		if (updated) {
+			__debugPrint(logFile, "%d %s skip updating\n", __LINE__, __FUNCTION__);
+			return true;
+		}
+
+		for (const auto& n : list) {
 			update_constValue(t, n, assignments[n], str_values, len_values, __LINE__);
 		}
 
@@ -6075,7 +6100,7 @@ bool splitValueForConcat(
 			std::vector<Z3_ast> eq = collect_eqc(t, n);
 			for (const auto& nn : eq)
 				if (isConcatFunc(t, nn)){
-					if (splitValueForConcat(t, nn, assignments[n], str_values, len_values))
+					if (!splitValueForConcat(t, nn, assignments[n], str_values, len_values))
 						return false;
 				}
 		}
@@ -6183,10 +6208,11 @@ bool determindConcat(
 				std::vector<Z3_ast> eqOfNode = collect_eqc(t, node);
 				for (const auto _n : eqOfNode) {
 					if (isConcatFunc(t, _n)) {
-						if (splitValueForConcat(t, _n, *it, str_values, len_values)){
-						}
-						else {
-							__debugPrint(logFile, "%d Cannot splitValueForConcat\n", __LINE__);
+						bool completion = splitValueForConcat(t, _n, *it, str_values, len_values);
+						if (!completion){
+							__debugPrint(logFile, "%d Cannot splitValueForConcat: ", __LINE__);
+							printZ3Node(t, _n);
+							__debugPrint(logFile, "\n");
 							return false;
 						}
 					}
