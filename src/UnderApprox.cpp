@@ -3359,6 +3359,9 @@ void forwardPropagate(
 		sValue = strValue[newlyUpdate];
 	__debugPrint(logFile, "%d len = %d/%ld\n", __LINE__, len[newlyUpdate], sValue.size());
 
+	if (len[newlyUpdate] == 0)
+		return;
+
 	if (newlyUpdate[0] != '"')
 		assert(len[newlyUpdate] == (int) sValue.size());
 
@@ -3605,6 +3608,9 @@ void backwardPropagarate(
 	else if (newlyUpdate[0] == '"'){
 		name = constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)];
 	}
+
+	if (len[name] == 0)
+		return;
 
 	for (unsigned i = 0; i < value.size(); ++i)
 		if (value[i] != 0) {

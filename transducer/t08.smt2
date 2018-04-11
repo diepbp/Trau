@@ -19,4 +19,4 @@
 (assert (= x (ReplaceAll cat "x" "yx")))
 
 (assert (= x1 (ReplaceAll x "x" "aaquota")))
-
+(check-sat)
