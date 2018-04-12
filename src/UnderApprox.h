@@ -52,7 +52,7 @@ static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 static std::map<std::string, int> varPieces;
 
 static int noFlatVariables = 0;
-static bool multiRegex;
+extern bool multiRegex;
 
 /*
  * get value from eq map
@@ -73,6 +73,11 @@ void updatePossibleArrangements(
  *
  */
 bool isRegexStr(std::string str);
+
+/*
+ *
+ */
+bool isUnionStr(std::string str);
 
 /*
  *
@@ -393,22 +398,7 @@ std::map<std::string, std::string> decodeResultMap(std::map<std::string, std::st
 /*
  *
  */
-std::vector<std::string> collectAlternativeComponents(std::string str);
-
-/*
- *
- */
 std::string underApproxRegex(std::string str);
-
-/*
- * (a) --> a
- */
-void removeExtraParentheses(std::string &s);
-
-/*
- * (a)|(b) --> a|b
- */
-std::set<std::string> extendComponent(std::string s);
 
 /**
  * (abc|cde|ghi)*

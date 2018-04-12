@@ -218,8 +218,6 @@ std::vector<std::string> collectAlternativeComponents(std::string str){
 	if (startPos != 0)
 		result.push_back(str.substr(startPos, str.length() - startPos));
 	else {
-//		printf("%d %s: %s\n", __LINE__, __FUNCTION__, str.c_str());
-//		assert (str.find('|') == std::string::npos && str.find('~') == std::string::npos);
 		return {str};
 	}
 
@@ -307,11 +305,6 @@ std::vector<std::pair<std::string, int>> parseTerm(std::string term){
 	tree::ParseTree *tree = parser.term();
 	SMTLIB2TermListener listener;
 	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-
-//	__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, term.c_str());
-//	for (const auto &lineToken : listener.smtTokens[0]) {
-//		printf("%s - %d \t", lineToken.first.c_str(), lineToken.second);
-//	}
 	return listener.smtTokens[0];
 }
 
@@ -329,12 +322,6 @@ std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file
 	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
 	return listener.smtTokens;
-//	for (const auto& tokens : listener.smtTokens) {
-//		for (const auto &lineToken : tokens) {
-//			printf("%s - %d \t", lineToken.first.c_str(), lineToken.second);
-//		}
-//		printf("\n");
-//	}
 }
 
 /*
@@ -351,4 +338,33 @@ std::vector<unsigned> sort_indexes(const std::vector<std::pair<std::string, int>
 			[&v](size_t i1, size_t i2) {return v[i1].second < v[i2].second;});
 
 	return idx;
+}
+
+/*
+ * (a)|(b | c) --> {a, b, c}
+ */
+std::set<std::string> extendComponent(std::string s){
+	std::vector<std::string> components = collectAlternativeComponents(s);
+	if (components.size() > 0) {
+		if (components.size() == 1)
+			return {components[0]};
+		std::set<std::string> ret;
+		for (unsigned int i = 0 ; i < components.size(); ++i) {
+			removeExtraParentheses(components[i]);
+			std::set<std::string> tmp = extendComponent(components[i]);
+			ret.insert(tmp.begin(), tmp.end());
+		}
+		return ret;
+	}
+	else
+		assert(false);
+	return {};
+}
+
+/*
+ * (a) --> a
+ */
+void removeExtraParentheses(std::string &s){
+	while (s[0] == '(' && findCorrespondRightParentheses(0, s) == (int)s.length() - 1)
+		s = s.substr(1, s.length() - 2);
 }

@@ -124,6 +124,10 @@ public:
 		printf("\n");
 	}
 
+	bool isUnionStr(std::string str){
+		return str.find("|") != std::string::npos;
+	}
+
 	bool feasibleSplit_const(
 			std::string str,
 			std::vector<std::pair<std::string, int> > elementNames,
@@ -131,7 +135,7 @@ public:
 		/* check feasible const split */
 		int pos = 0;
 		for (unsigned i = 0; i < currentSplit.size(); ++i) {
-			if (elementNames[i].second == REGEX_CODE) {
+			if (elementNames[i].second == REGEX_CODE || isUnionStr(elementNames[i].first)) {
 			}
 
 			/* TODO: bound P */
@@ -148,6 +152,7 @@ public:
 
 					if (i + 1 < elementNames.size()) {
 						if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
+							__debugPrint(logFile, "%d %d = %s\n", __LINE__, currentSplit[i], elementNames[i].first.c_str());
 							assert (currentSplit[i] == (int)elementNames[i].first.length()); /* const length must be equal to length of const */
 						}
 						else {
@@ -161,6 +166,7 @@ public:
 				}
 
 				if (lhs.compare(rhs) != 0){
+					assert(false);
 					__debugPrint(logFile, "%d FALSE %s - %s\n", __LINE__, lhs.c_str(), rhs.c_str());
 					return false;
 				}
@@ -304,8 +310,6 @@ public:
 				allPossibleSplits.emplace_back(currentSplit);
 			}
 			else {
-//				__debugPrint(logFile, "%d currentSplit = %ld, elementNames = %ld, pos = %d, len = %ld (%s)\n", __LINE__, currentSplit.size(), elementNames.size(), pos, str.length(), str.c_str());
-//				splitPrintTest(currentSplit, "Rejected");
 			}
 			return;
 		}
@@ -326,15 +330,26 @@ public:
 		}
 
 		/* const head */
-		if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 &&
+		else if (elementNames[currentSplit.size()].second % QCONSTMAX == -1 &&
 				QCONSTMAX == 2) {
 			if (elementNames[currentSplit.size()].first.length() <= textLeft) {
-				std::string constValue = str.substr(pos, elementNames[currentSplit.size()].first.length());
-				if (constValue.compare(elementNames[currentSplit.size()].first) == 0) {
-					for (int i = 1; i < std::min(7, (int)elementNames[currentSplit.size()].first.length()); ++i) {
-						currentSplit.emplace_back(i);
-						collectAllPossibleSplits_const(pos + i, str, pMax, elementNames, currentSplit, allPossibleSplits);
-						currentSplit.pop_back();
+				std::set<std::string> values;
+				if (isUnionStr(elementNames[currentSplit.size()].first)){
+					values = extendComponent(elementNames[currentSplit.size()].first);
+				}
+				else
+					values.emplace(elementNames[currentSplit.size()].first);
+
+				for (const auto& value : values) {
+					std::string constValue = str.substr(pos, value.length());
+					if (constValue.compare(value) == 0) {
+						if (values.size() > 1)
+							__debugPrint(logFile, "%d passed value: %s\n", __LINE__, value.c_str());
+						for (int i = 0; i < std::min(7, (int)value.length()); ++i) {
+							currentSplit.emplace_back(i);
+							collectAllPossibleSplits_const(pos + i, str, pMax, elementNames, currentSplit, allPossibleSplits);
+							currentSplit.pop_back();
+						}
 					}
 				}
 			}
@@ -347,14 +362,25 @@ public:
 					elementNames[currentSplit.size()].second > REGEX_CODE &&
 					QCONSTMAX == 2) /* const */ {
 			assert (elementNames[currentSplit.size() - 1].second % QCONSTMAX == -1);
-			unsigned length = (unsigned)elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
-
-			if (length <= textLeft) {
-				currentSplit.emplace_back(length);
-				collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
-				currentSplit.pop_back();
+			std::set<std::string> values;
+			if (isUnionStr(elementNames[currentSplit.size()].first)){
+				values = extendComponent(elementNames[currentSplit.size()].first);
 			}
+			else
+				values.emplace(elementNames[currentSplit.size()].first);
 
+			for (const auto& value : values) {
+				std::string constValue = str.substr(pos - currentSplit[currentSplit.size() - 1], value.length());
+				unsigned length = (unsigned)value.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
+
+				if (constValue.compare(value) == 0) {
+					if (length <= textLeft) {
+						currentSplit.emplace_back(length);
+						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
+					}
+				}
+			}
 		}
 
 		/* head is const part 2*/
@@ -363,15 +389,23 @@ public:
 				elementNames[0].second < 0 &&
 				elementNames[0].second > REGEX_CODE &&
 				QCONSTMAX == 2) /* const */ {
-			for (unsigned i = 0; i < std::min(elementNames[0].first.length(), str.length()); ++i) {
-
-				std::string tmp00 = elementNames[0].first.substr(i);
-				std::string tmp01 = str.substr(0, tmp00.length());
-				if (tmp00.compare(tmp01) == 0){
-					currentSplit.emplace_back(tmp00.length());
-					collectAllPossibleSplits_const(pos + tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
-					currentSplit.pop_back();
-				}
+			std::set<std::string> values;
+			if (isUnionStr(elementNames[currentSplit.size()].first)){
+				values = extendComponent(elementNames[currentSplit.size()].first);
+			}
+			else
+				values.emplace(elementNames[currentSplit.size()].first);
+			for (const auto& value : values)
+				for (unsigned i = 0; i < std::min(value.length(), str.length()); ++i) {
+					if (values.size() > 1)
+						__debugPrint(logFile, "%d passed value: %s\n", __LINE__, value.c_str());
+					std::string tmp00 = value.substr(i);
+					std::string tmp01 = str.substr(0, i);
+					if (tmp00.compare(tmp01) == 0){
+						currentSplit.emplace_back(tmp00.length());
+						collectAllPossibleSplits_const(pos + tmp00.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
+					}
 			}
 		}
 
@@ -383,7 +417,6 @@ public:
 			bool canCompile = false;
 			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
-//				if (true) {
 				if (regexContent.find('|') != std::string::npos) {
 					assert(regexContent.find('&') == std::string::npos);
 					re.Compile(regexContent);
@@ -449,6 +482,8 @@ public:
 		else if (currentSplit.size() >= elementNames.size()) {
 			return;
 		}
+
+		assert(!isUnionStr(elementNames[currentSplit.size()].first));
 
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {
@@ -701,9 +736,9 @@ public:
 		else if (lhs.second % QMAX == 0) /* tail */ {
 			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
-				__debugPrint(logFile, "%d try lhs = %s\n", __LINE__, lhs.first.substr(i).c_str());
+				__debugPrint(logFile, "%d try lhs = %s: %ld\n", __LINE__, lhs.first.substr(i).c_str(), allPossibleSplits.size());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
-				__debugPrint(logFile, "%d >> finished \n", __LINE__);
+				__debugPrint(logFile, "%d >> finished: %ld \n", __LINE__, allPossibleSplits.size());
 			}
 		}
 		else if (lhs.second % QMAX == -1) /* head */ {

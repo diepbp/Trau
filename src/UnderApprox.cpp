@@ -100,6 +100,13 @@ bool isRegexStr(std::string str){
 /*
  *
  */
+bool isUnionStr(std::string str){
+	return str.find("|") != std::string::npos;
+}
+
+/*
+ *
+ */
 bool isConstStr(std::string str){
 	if (str[0] == '"' && str.find(")*") == std::string::npos && str.find(")+") == std::string::npos)
 		return true;
@@ -1329,11 +1336,12 @@ void create_const_array(
 
 	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
 		defines.emplace_back("(declare-const arr_" + it->second + " (Array Int Int))");
-		if (!isRegexStr(it->first))
+		if (!isRegexStr(it->first) && !isUnionStr(it->first)){
 			for (unsigned int i = 0 ; i < it->first.length(); ++i) {
 				constraints.emplace_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
 			}
-		else {
+		}
+		else if (isRegexStr(it->first)){
 			std::string regexContent = parse_regex_content(it->first);
 			std::vector<std::string> components = collectAlternativeComponents(regexContent);
 
@@ -1409,7 +1417,42 @@ void create_constraints_RegexCnt(std::vector<std::string> &defines, std::vector<
 void create_constraints_const(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 
 	for (const auto constNode : constMap)
-		if (!isRegexStr(constNode.first)){
+		if (!isRegexStr(constNode.first) && isUnionStr(constNode.first)){
+			std::set<std::string> components = extendComponent(constNode.first);
+			__debugPrint(logFile, "%d ", __LINE__);
+			for (const auto& s : components)
+				__debugPrint(logFile, "%s ", s.c_str());
+			__debugPrint(logFile, "\n");
+
+			defines.emplace_back("(declare-const len_" + constNode.second + " Int)");
+			std::vector<std::string> orConstraints;
+			for (const auto& s : components){
+				std::vector<std::string> tmp;
+				tmp.emplace_back("(= " + std::to_string(s.length()) + " len_" + constNode.second + ")");
+				for (unsigned i = 0; i < s.length(); ++i)
+					tmp.emplace_back("(= (select arr_" + constNode.second + " " + std::to_string(i) + ") " + std::to_string(s[i]) + ")");
+				orConstraints.emplace_back(andConstraint(tmp));
+			}
+			constraints.emplace_back("(assert " + orConstraint(orConstraints) + ")");
+
+			std::string lenX = "";
+			std::string varName = "len_" + constNode.second + "_";
+			for (int i = 1; i <= std::max(varPieces[constNode.first], QCONSTMAX); ++i) {
+				defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(i) + " Int)");
+				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(i) + " 0))");
+				lenX = lenX + varName + std::to_string(i) + " ";
+				if (i % QCONSTMAX == 0) {
+					/* (+ sum(len_x_i) */
+					if (QCONSTMAX > 1)
+						lenX = "(+ " + lenX + ")";
+					/*(assert (= const (+ sum(len_x_i)))) */
+					constraints.emplace_back("(assert (= len_" + constNode.second + " " + lenX  + "))");
+					lenX = "";
+				}
+			}
+
+		}
+		else if (!isRegexStr(constNode.first)){
 			__debugPrint(logFile, "%d %s: %d\n", __LINE__, constNode.first.c_str(), varPieces[constNode.first])
 			std::string lenName = std::to_string(constNode.first.length());
 			constraints.emplace_back("(assert (= " + lenName + " len_" + constNode.second  + "))");
@@ -1538,7 +1581,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 		}
 		else if (component.length() > 2) { /* const is not an empty string */
 			if(!isRegexStr(component)) {
-				lenX = lenX + " " + std::to_string(component.length() - 2);
+				lenX = lenX + " len_" + constMap[component.substr(1, component.length() - 2)];
 				cnt ++;
 			}
 			else {
@@ -2196,7 +2239,8 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* from rewriterMap */
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("StartsWith") == 0 ||
+		if (s.first.name.compare("CharAt") == 0 ||
+				s.first.name.compare("StartsWith") == 0 ||
 				s.first.name.compare("EndsWith") == 0 ||
 				s.first.name.compare("Replace") == 0 ||
 				s.first.name.compare("ReplaceAll") == 0 ||
@@ -2244,6 +2288,11 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 			StringOP op = s.first;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
+			if (s.first.name.compare("CharAt") == 0){
+				if (s.first.arg01[0] != '\"') {
+					connectedVarSet[s.first.arg01] = CONNECTSIZE;
+				}
+			}
 			/* add all of variables to the connected var set*/
 			if (s.first.arg01[0] != '\"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
@@ -2456,36 +2505,6 @@ std::string underApproxRegex(std::string str){
 	return str;
 }
 
-/*
- * (a) --> a
- */
-void removeExtraParentheses(std::string &s){
-	while (s[0] == '(' && findCorrespondRightParentheses(0, s) == (int)s.length() - 1)
-		s = s.substr(1, s.length() - 2);
-}
-
-/*
- * (a)|(b | c) --> {a, b, c}
- */
-std::set<std::string> extendComponent(std::string s){
-	__debugPrint(logFile, "%d *** %s ***: \"%s\"\n", __LINE__, __FUNCTION__, s.c_str());
-	std::vector<std::string> components = collectAlternativeComponents(s);
-	if (components.size() > 0) {
-		if (components.size() == 1)
-			return {components[0]};
-		std::set<std::string> ret;
-		for (unsigned int i = 0 ; i < components.size(); ++i) {
-			removeExtraParentheses(components[i]);
-			std::set<std::string> tmp = extendComponent(components[i]);
-			ret.insert(tmp.begin(), tmp.end());
-		}
-		return ret;
-	}
-	else
-		assert(false);
-	return {};
-}
-
 /**
  * (abc|cde|ghi)*
  */
@@ -2537,7 +2556,23 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 			for (const auto& comp : tmp)
 				result.emplace_back(comp);
 		}
-		return result;
+		bool merge = true;
+		std::string tmp = "";
+		for (const auto& s : result)
+			if (s.size() > 1){
+				merge = false;
+				break;
+			}
+			else if (s.size() > 0)
+				tmp = tmp + "|" + s[0];
+
+		if (merge == true) {
+			tmp = tmp.substr(1);
+			__debugPrint(logFile, "%d return %s\n", __LINE__, tmp.c_str());
+			return {{tmp}};
+		}
+		else
+			return result;
 	}
 
 	size_t leftParentheses = str.find('(');
@@ -2591,6 +2626,8 @@ std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
 			assert (false);
 			/* several options ab | cd | ef */
 		}
+
+		__debugPrint(logFile, "%d left = %s --- right = %s\n", __LINE__, left.c_str(), right.c_str());
 
 		if (str[pos] != '|' || str[pos] != '~') {
 			std::vector<std::vector<std::string>> leftComponents = parseRegexComponents(left);
@@ -2721,6 +2758,11 @@ bool similarVector(
  */
 std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list){
 	__debugPrint(logFile, "%d *** %s ***: %ld\n", __LINE__, __FUNCTION__, list.size());
+	for (const auto& l : list) {
+		for (const auto& s : l)
+			__debugPrint(logFile, "%s ", s.c_str());
+		__debugPrint(logFile, "\n");
+	}
 	std::vector<std::vector<std::string>> result;
 	if (list.size() < 1000) {
 		bool duplicated[1000];
@@ -2753,13 +2795,18 @@ std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std:
  */
 std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<std::string>> regexElements){
 	__debugPrint(logFile, "%d *** %s ***: %ld\n", __LINE__, __FUNCTION__, regexElements.size());
+	for (const auto& l : regexElements) {
+		for (const auto& s : l)
+			__debugPrint(logFile, "%s ", s.c_str());
+		__debugPrint(logFile, "\n");
+	}
 	std::vector<std::vector<std::string>> results;
-	for (unsigned int i = 0; i < regexElements.size(); ++i) {
+	for (unsigned i = 0; i < regexElements.size(); ++i) {
 		std::vector<std::string> tmp;
 		bool isRegex_prev = true;
-		for (unsigned int j = 0; j < regexElements[i].size(); ++j) {
+		for (unsigned j = 0; j < regexElements[i].size(); ++j) {
 			if (isRegex_prev == false) {
-				isRegex_prev = isRegexStr(regexElements[i][j]);
+				isRegex_prev = isRegexStr(regexElements[i][j]) || isUnionStr(regexElements[i][j]);
 				if (isRegex_prev == false) {
 					std::string tmpStr = tmp[tmp.size() - 1];
 					std::string newStr = regexElements[i][j];
@@ -2769,7 +2816,7 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
 					tmp.emplace_back(regexElements[i][j]);
 			}
 			else {
-				isRegex_prev = isRegexStr(regexElements[i][j]);
+				isRegex_prev = isRegexStr(regexElements[i][j]) || isUnionStr(regexElements[i][j]);
 				tmp.emplace_back(regexElements[i][j]);
 			}
 		}
@@ -2849,7 +2896,7 @@ void optimizeEquality(
 	new_rhs.clear();
 	/* cut prefix */
 	int prefix = -1;
-	for (unsigned int i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
+	for (unsigned i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
 		if (lhs[i].compare(rhs[i]) == 0)
 			prefix = i;
 		else
@@ -2857,16 +2904,16 @@ void optimizeEquality(
 
 	/* cut suffix */
 	int suffix = -1;
-	for (unsigned int i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
+	for (unsigned i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
 		if (lhs[lhs.size() - 1 - i].compare(rhs[rhs.size() - 1 - i]) == 0)
 			suffix = i;
 		else
 			break;
 
-	for (unsigned int i = prefix + 1; i < lhs.size() - suffix - 1; ++i)
+	for (unsigned i = prefix + 1; i < lhs.size() - suffix - 1; ++i)
 		new_lhs.emplace_back(lhs[i]);
 
-	for (unsigned int i = prefix + 1; i < rhs.size() - suffix - 1; ++i)
+	for (unsigned i = prefix + 1; i < rhs.size() - suffix - 1; ++i)
 		new_rhs.emplace_back(rhs[i]);
 }
 
@@ -2956,9 +3003,8 @@ void convertEqualities(){
 		const int maxPConsidered = 6;
 		unsigned maxLocal = findMaxP(it->second);
 
-#ifdef PRINTTEST_UNDERAPPROX
 		__debugPrint(logFile, "%d Max list size: %d\n", __LINE__, maxLocal);
-#endif
+
 		if (it->second.size() == 0)
 			continue;
 		assert (it->second[0].size() > 0);
@@ -3280,7 +3326,7 @@ void syncConst(
 			int pos = 0;
 			for (const auto& s : eq){
 				if (s[0] == '"') {
-					if (!isRegexStr(s)) {
+					if (!isRegexStr(s) && !isUnionStr(s)) {
 						/* assign value directly */
 						for (unsigned i = 1; i < s.length() - 1; ++i)
 							if (strValue[var.first][pos + i - 1] == 0) {
@@ -3295,7 +3341,7 @@ void syncConst(
 								assert(strValue[var.first][pos + i - 1] == s[i]);
 							}
 					}
-					else {
+					else if (isRegexStr(s)) {
 						/* find value */
 						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
 						std::string tmp = getValueFromRegex(s, getConstLength(s, len));
@@ -3320,6 +3366,9 @@ void syncConst(
 								else
 									assert(strValue[var.first][pos + i] == tmp[i]);
 						}
+					}
+					else {
+
 					}
 					pos += getConstLength(s, len);
 
@@ -3349,7 +3398,7 @@ void forwardPropagate(
 		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s (completion : %d)\n", __LINE__, __FUNCTION__, newlyUpdate.c_str(), completion? 1 : 0);
 	if (completion == false)
 		return;
 	std::vector<int> sValue;
@@ -3428,7 +3477,7 @@ void forwardPropagate(
 						if (isRegexStr(s))
 							pos += getConstLength(s, len);
 						else if (s[0] == '"')
-							pos += s.length() - 2;
+							pos += getConstLength(s, len);
 						else {
 							assert(len.find(s) != len.end());
 							pos += len[s];
@@ -3461,7 +3510,7 @@ void forwardPropagate(
 				int pos = 0;
 				for (const auto& s : eq){
 					if (isConstStr(s)) {
-						pos += s.length() - 2;
+						pos += getConstLength(s, len);
 					}
 					else {
 						int length = 0;
@@ -3596,7 +3645,7 @@ void backwardPropagarate(
 		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s (completion: %d)\n", __LINE__, __FUNCTION__, newlyUpdate.c_str(), completion ? 1 : 0);
 	if (completion == false)
 		return;
 	std::vector<int> value = strValue[newlyUpdate];
@@ -3608,7 +3657,7 @@ void backwardPropagarate(
 	else if (newlyUpdate[0] == '"'){
 		name = constMap[newlyUpdate.substr(1, newlyUpdate.length() - 2)];
 	}
-
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, name.c_str());
 	if (len[name] == 0)
 		return;
 
@@ -3628,6 +3677,7 @@ void backwardPropagarate(
 			__debugPrint(logFile, "%d step 0.1: var = %s\n", __LINE__, var.c_str());
 			if (var[0] == '"') {
 				int length = getConstLength(var, len);
+				__debugPrint(logFile, "%d length = %d\n", __LINE__, length);
 				if (isRegexStr(var)) {
 					bool update = false;
 
@@ -3648,7 +3698,10 @@ void backwardPropagarate(
 							update = true;
 						}
 						else if (value[pos + i] == 0 && sValue[i] != 0){
-							//__debugPrint(logFile, "%d weird case at i = %d, %d @ %s\n", __LINE__, i, sValue[i], )
+							__debugPrint(logFile, "%d weird case at i = %d, %d\n", __LINE__, i, sValue[i]);
+						}
+						else {
+							__debugPrint(logFile, "%d weird case at i %d = %d, pos + i: %d vs %d\n", __LINE__, i, sValue[i], pos + i, value[pos + i]);
 						}
 
 					if (update == true) {
@@ -3659,6 +3712,9 @@ void backwardPropagarate(
 							__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, var.c_str());
 							return;
 						}
+					}
+					else {
+						__debugPrint(logFile, ">> %d no update for var: %s\n", __LINE__, var.c_str());
 					}
 				}
 
@@ -3795,6 +3851,8 @@ std::map<std::string, std::string> formatResult(
 			finalStrValue[varName] = {};
 		}
 		else {
+			if (varName.length() > 4 && varName.substr(varName.length() - 4).compare("_100") == 0)
+				varName = varName.substr(0, varName.length() - 4);
 			if (connectedVariables.find(varName) != connectedVariables.end()) {
 				__debugPrint(logFile, "%d varname = %s\n", __LINE__, varName.c_str());
 				bool assigned = true;
@@ -3827,6 +3885,8 @@ std::map<std::string, std::string> formatResult(
 		}
 		else {
 			bool assigned = true;
+			if (varName.length() > 4 && varName.substr(varName.length() - 4).compare("_100") == 0)
+				varName = varName.substr(0, varName.length() - 4);
 			std::vector<int> tmp = createString(varName, strValue[varName], lenInt, finalStrValue, assigned);
 
 			if (assigned) {

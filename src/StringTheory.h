@@ -40,7 +40,6 @@ extern const std::string escapeDict[];
 
 extern int numOfFlats;
 extern bool skipOverapprox;
-extern bool multiRegex;
 
 extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
 
@@ -910,6 +909,16 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  /*
   *
   */
+ bool collectCharAtInPositiveContext(
+		 Z3_theory t,
+		 Z3_ast boolNode,
+		 bool boolValue,
+		 std::map<StringOP, std::string> &rewriterStrMap,
+		 std::set<std::string> &carryOnConstraints);
+
+ /*
+  *
+  */
  bool collectContainValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
@@ -1098,6 +1107,8 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  bool isRegexPlusFunc(Z3_theory t, Z3_ast n);
 
  bool isConcatFunc(Z3_theory t, Z3_ast n);
+
+ bool isCharAtFunc(Z3_theory t, Z3_ast n);
 
  bool isConstStr(Z3_theory t, Z3_ast node);
 

@@ -686,6 +686,29 @@ void updateRegexPlus(
 }
 
 /*
+ *
+ */
+void updateCharAt(std::vector<std::pair<std::string, int>> &tokens){
+	// replace CharAt --> select
+	int found = findTokens(tokens, 0, "CharAt", 88);
+	while (found != -1) {
+		int pos = found - 1;
+		while (pos > 0)
+			if (tokens[pos].first[0] == '=')
+				break;
+			else --pos;
+
+		assert(pos > 0);
+		int tmp = findCorrespondRightParentheses(pos - 1, tokens);
+
+		std::vector<std::pair<std::string, int>> addingTokens;
+		addingTokens.push_back(std::make_pair("true", 15));
+		tokens = replaceTokens(tokens, pos - 1, tmp + 1, addingTokens);
+		found = findTokens(tokens, found, "CharAt", 88);
+	}
+}
+
+/*
  * xyz --> len_xyz
  */
 void updateVariables(
@@ -1268,6 +1291,7 @@ void toLengthLine(
 	updateToUpper(tokens);
 	updateToLower(tokens);
 	updateSubstring(tokens, rewriterStrMap);
+	updateCharAt(tokens);
 
 	updateConst(tokens); /* "abcdef" --> 6 */
 	updateStr2Regex(tokens);

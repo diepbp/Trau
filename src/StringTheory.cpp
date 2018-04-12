@@ -29,6 +29,7 @@ Z3_ast emptyConstStr;
 int nondeterministicCounter = 0;
 
 bool havingGrmConstraints = false;
+bool multiRegex = false;
 
 clock_t timer;
 
@@ -40,7 +41,9 @@ std::map<StringOP, std::string> subStrStrMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
 
+std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
 std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
+
 std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
 std::map<StringOP, std::string> endsWithStrMap;
 std::map<StringOP, std::string> startsWithStrMap;
@@ -1717,6 +1720,8 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 	__debugPrint(logAxiom, "\n");
 #endif
 
+	Z3_context ctx = Z3_theory_get_context(t);
+
 	std::vector<Z3_ast> eq_nn1 = collect_eqc(t, nn1);
 	std::vector<Z3_ast> eq_nn2 = collect_eqc(t, nn2);
 
@@ -1749,7 +1754,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 	if (done == true || skipOverapprox == true)
 		return;
 
-	Z3_context ctx = Z3_theory_get_context(t);
+
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	if (isConstStr(t, nn1) || isConstStr(t, nn2)) {
 		return;
@@ -5405,7 +5410,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
 			}
 
-
+			__debugPrint(logFile, "%d boolVars: %ld, orConstraints: %ld, multiRegex: %d\n", __LINE__, boolVars.size(), orConstraints.size(), multiRegex == true ? 1 : 0);
 			if (boolVars.size() == 0 && orConstraints.size() == 0 && multiRegex) {
 				/* give up*/
 				__debugPrint(logFile, "%d %s gives up\n", __LINE__, __FUNCTION__);
@@ -7221,6 +7226,7 @@ Z3_ast findEqualVariable(Z3_theory t, Z3_ast node) {
 	}
 	return NULL;
 }
+
 /*
  *
  */
@@ -7389,6 +7395,32 @@ void classifyAstByTypeInPositiveContext(Z3_theory t, Z3_ast node, std::map<Z3_as
 		}
 	}
 
+}
+
+/*
+ *
+ */
+bool collectCharAtInPositiveContext(
+		Z3_theory t,
+		Z3_ast boolNode,
+		bool boolValue,
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
+	for (const auto& it : charAtStrMap) {
+		if (boolStr.compare(it.second.first) == 0){
+			if (boolValue) {
+				rewriterStrMap[it.first] = it.second.second;
+				if (carryOn.find(boolNode) != carryOn.end())
+					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
+			}
+			else
+				rewriterStrMap[it.first] = "-1";
+			return true;
+		}
+	}
+	return false;
 }
 
 /*
@@ -7724,7 +7756,7 @@ void collectDataInPositiveContext(
 
 			T_TheoryType type = getNodeType(t, argAst);
 
-			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false;
+			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false, found08 = false;
 			if (type == my_Z3_Var) {
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				if (astToString.find("$$_bool") != std::string::npos) {
@@ -7736,6 +7768,7 @@ void collectDataInPositiveContext(
 					found05 = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
 					found06 = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+					found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 				}
 			}
 
@@ -7752,11 +7785,12 @@ void collectDataInPositiveContext(
 						found05 = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
 						found06 = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found07 = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+						found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					}
 				}
 			}
 
-			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07)){
+			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07 || found08)){
 				collectEqualValueInPositiveContext(t, argAst, rewriterStrMap);
 			}
 		}
@@ -8434,6 +8468,19 @@ bool isConcatFunc(Z3_theory t, Z3_ast n) {
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_func_decl d = Z3_get_app_decl(ctx, Z3_to_app(ctx, n));
 	if (d == td->Concat)
+		return true;
+	else
+		return false;
+}
+
+/*
+ *
+ */
+bool isCharAtFunc(Z3_theory t, Z3_ast n) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+	Z3_func_decl d = Z3_get_app_decl(ctx, Z3_to_app(ctx, n));
+	if (d == td->CharAt)
 		return true;
 	else
 		return false;

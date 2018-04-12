@@ -6,7 +6,7 @@ extern std::map<Z3_ast, Z3_ast> grm_astNode_map;
 extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
 extern std::map<StringOP, std::string> subStrStrMap;
-
+extern std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
 extern std::map<StringOP, std::string> endsWithStrMap;
@@ -1044,6 +1044,8 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 
 		std::vector<Z3_ast> tmp = {Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)), Z3_mk_lt(ctx, args[1], mk_length(t, args[0]))};
 		Z3_ast cond = mk_and_fromVector(t, tmp);
+		Z3_ast astBool = mk_internal_bool_var(t);
+		std::string boolVar = Z3_ast_to_string(ctx, astBool);
 
 		bool update;
 		Z3_ast and_item[3];
@@ -1052,7 +1054,12 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		and_item[2] = Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 1));
 		Z3_ast thenBranch = Z3_mk_and(ctx, 3, and_item);
 		Z3_ast elseBranch = Z3_mk_eq(ctx, ts1, mk_str_value(t, ""));
-		breakdownAssert = Z3_mk_ite(ctx, cond, thenBranch, elseBranch);
+		std::vector<Z3_ast> tmp01 = {Z3_mk_eq(ctx, astBool, cond), Z3_mk_ite(ctx, astBool, thenBranch, elseBranch)};
+		breakdownAssert = mk_and_fromVector(t, tmp01);
+
+		carryOn[astBool] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
+		charAtStrMap[StringOP("CharAt", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, ts0)));
+
 		return ts1;
 	}
 }
@@ -1625,6 +1632,39 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 	}
 
 	//------------------------------------------
+	// Reduce app: CharAt
+	//------------------------------------------
+	else if (d == td->CharAt) {
+		Z3_ast breakDownAst = NULL;
+
+#ifdef DEBUGLOG
+		__debugPrint(logFile, "CharAt(");
+		printZ3Node(t, convertedArgs[0]);
+		__debugPrint(logFile, ", ");
+		printZ3Node(t, convertedArgs[1]);
+		__debugPrint(logFile, ")");
+		__debugPrint(logFile, "  =>  ");
+#endif
+
+		*result = reduce_charAt(t, convertedArgs, breakDownAst);
+
+#ifdef DEBUGLOG
+		printZ3Node(t, *result);
+		if( breakDownAst != NULL )
+		{
+			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
+			printZ3Node(t, breakDownAst);
+		}
+		__debugPrint(logFile, "\n\n");
+#endif
+		// when quick path is taken, breakDownAst == NULL;
+		if (breakDownAst != NULL)
+			Z3_assert_cnstr(ctx, breakDownAst);
+		delete[] convertedArgs;
+		return Z3_TRUE;
+	}
+
+	//------------------------------------------
 	// Reduce app: Indexof
 	//------------------------------------------
 	else if (d == td->Indexof) {
@@ -1900,7 +1940,13 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)){
 		std::string tmp01 = Z3_ast_to_string(ctx, s1);
 		std::string tmp02 = Z3_ast_to_string(ctx, s2);
-		throw std::runtime_error("One side of equality must be a string variable! The error is at:" + tmp01 + " = " + tmp02);
+		if (tmp01.find("CharAt") != std::string::npos || tmp02.find("CharAt") != std::string::npos){
+			if (!isConstStr(t, s1) && isConstStr(t, s2)){
+				throw std::runtime_error("CharAt function accepts a const letter only!");
+			}
+		}
+		else
+			throw std::runtime_error("One side of equality must be a string variable! The error is at:" + tmp01 + " = " + tmp02);
 	}
 
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);

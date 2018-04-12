@@ -247,7 +247,6 @@ int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<st
  */
 std::vector<std::string> collectAlternativeComponents(std::string str);
 
-
 /*
  *
  */
@@ -282,4 +281,15 @@ std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file
  *
  */
 std::vector<unsigned> sort_indexes(const std::vector<std::pair<std::string, int>> &v);
+
+/*
+ * (a)|(b) --> a|b
+ */
+std::set<std::string> extendComponent(std::string s);
+
+/*
+ * (a) --> a
+ */
+void removeExtraParentheses(std::string &s);
+
 #endif /* UTILS_H_ */
