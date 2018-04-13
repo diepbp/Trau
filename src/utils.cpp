@@ -368,3 +368,27 @@ void removeExtraParentheses(std::string &s){
 	while (s[0] == '(' && findCorrespondRightParentheses(0, s) == (int)s.length() - 1)
 		s = s.substr(1, s.length() - 2);
 }
+
+/*
+ *
+ */
+bool isRegexStr(std::string str){
+	return str.find(")*") != std::string::npos || str.find(")+") != std::string::npos;
+}
+
+/*
+ *
+ */
+bool isUnionStr(std::string str){
+	return str.find("|") != std::string::npos;
+}
+
+/*
+ *
+ */
+bool isConstStr(std::string str){
+	if (str[0] == '"' && str.find(")*") == std::string::npos && str.find(")+") == std::string::npos)
+		return true;
+	else
+		return false;
+}

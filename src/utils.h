@@ -292,4 +292,21 @@ std::set<std::string> extendComponent(std::string s);
  */
 void removeExtraParentheses(std::string &s);
 
+/*
+ *
+ */
+bool isRegexStr(std::string str);
+
+
+/*
+ *
+ */
+bool isUnionStr(std::string str);
+
+/*
+ *
+ */
+bool isConstStr(std::string str);
+
+
 #endif /* UTILS_H_ */

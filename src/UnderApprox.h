@@ -72,11 +72,6 @@ void updatePossibleArrangements(
 /*
  *
  */
-bool isRegexStr(std::string str);
-
-/*
- *
- */
 bool isUnionStr(std::string str);
 
 /*
@@ -484,14 +479,6 @@ std::string getValueFromRegex(std::string s, int length);
 /*
  *
  */
-std::vector<int> getDataStr(
-		std::string var,
-		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> strValue);
-
-/*
- *
- */
 void syncConst(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
@@ -506,6 +493,36 @@ std::vector<int> createString(
 		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> strValue,
 		bool &assigned);
+
+/*
+ *
+ */
+std::string getVarName(std::string s);
+
+/*
+ *
+ */
+int getVarLength(
+		std::string newlyUpdate,
+		std::map<std::string, int> len);
+
+/*
+ *
+ */
+std::vector<int> getVarValue(
+		std::string newlyUpdate,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue);
+
+/*
+ *
+ */
+void updateStrValue(
+		std::string var,
+		std::vector<int> value,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue);
+
 /*
  *
  */

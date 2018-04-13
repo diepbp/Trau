@@ -1913,6 +1913,8 @@ public:
 			assert (constMap.find(a.first) != constMap.end());
 			nameA += "len_";
 			nameA += constMap[a.first];
+			if (isRegexStr(a.first))
+				nameA += "_100";
 		}
 
 		if (b.second >= 0) {
@@ -1923,6 +1925,8 @@ public:
 			assert (constMap.find(b.first) != constMap.end());
 			nameB += "len_";
 			nameB += constMap[b.first];
+			if (isRegexStr(b.first))
+				nameB += "_100";
 		}
 
 		std::string result = "(= " + nameA + " " + nameB + ")";
