@@ -5064,6 +5064,15 @@ bool parikh_check_replaceall(
 					return false;
 		}
 
+		if (constOnly00 && constOnly01){
+			for (const auto& ch : fixed00)
+				if (fixed01[ch.first] != ch.second)
+					return false;
+			for (const auto& ch : fixed01)
+				if (fixed00[ch.first] != ch.second)
+					return false;
+		}
+
 		__debugPrint(logFile, "%d *** step 3 ***\n", __LINE__);
 		/* check regex plus for replaceall */
 		__debugPrint(logFile, "%d checking regex plus\n", __LINE__);

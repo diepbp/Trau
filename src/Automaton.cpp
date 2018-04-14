@@ -836,8 +836,6 @@ void Automaton::DFS_LengthRange(int pos,
 		return;
 	}
 
-	__debugPrint(logFile, "%d %s -- %d (%d/%d)\n", __LINE__, currentStr.c_str(), (int)currentStr.length(), components, (int)frame.length());
-
 	for (unsigned int i = 0; i < transitionMap[pos].size(); ++i)
 		if (transitionMap[pos][i].label == 0) {
 			DFS_LengthRange(transitionMap[pos][i].in, lengthMin, lengthMax, currentStr, ret, components);
