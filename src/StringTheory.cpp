@@ -225,9 +225,6 @@ Z3_ast mk_str_value(Z3_theory t, char const * str) {
 	if (constStr_astNode_map.find(keyStr) == constStr_astNode_map.end()) {
 		Z3_symbol str_sym = Z3_mk_string_symbol(ctx, str);
 		Z3_ast strNode = Z3_theory_mk_value(ctx, t, str_sym, td->String);
-		__debugPrint(logFile, "\n %d ", __LINE__);
-		printZ3Node(t, strNode);
-		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, str);
 		constStr_astNode_map[keyStr] = strNode;
 	}
 	return constStr_astNode_map[keyStr];
@@ -1611,14 +1608,11 @@ void Th_init_search(Z3_theory t) {
  */
 void Th_push(Z3_theory t) {
 	sLevel++;
-	__debugPrint(logFile, "\n*******************************************\n");
-	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
-	__debugPrint(logFile, "\n*******************************************\n");
+//	__debugPrint(logFile, "\n*******************************************\n");
+//	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
+//	__debugPrint(logFile, "\n*******************************************\n");
 	if (sLevel == 1) {
 		initLength = collectCurrentLength(t);
-		for (const auto& s : initLength){
-			__debugPrint(logFile, "%d currentLength: \t%s : %d\n", __LINE__, s.first.c_str(), s.second);
-		}
 	}
 }
 
@@ -1632,39 +1626,26 @@ void Th_pop(Z3_theory t) {
 //	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
 //	__debugPrint(logFile, "\n*******************************************\n");
 
-//	__debugPrint(logFile, "Remove in internalVarMap\n");
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap.begin(); it != internalVarMap.end(); ++it) {
 		if (it->first.second == sLevel && it->second.name.compare(UNKNOWN_AUTOMATON) != 0) {
-//			printZ3Node(t, it->first.first);
-//			__debugPrint(logFile, "%d\n", it->first.second);
 			it->second.name = UNKNOWN_AUTOMATON;
 		}
 	}
 
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap_withoutCombination.begin(); it != internalVarMap_withoutCombination.end(); ++it)  {
 		if (it->first.second == sLevel && it->second.name.compare(UNKNOWN_AUTOMATON) != 0) {
-//			printZ3Node(t, it->first.first);
-//			__debugPrint(logFile, "%d\n", it->first.second);
 			it->second.name = UNKNOWN_AUTOMATON;
 		}
 	}
 
-//	__debugPrint(logFile, "Remove in equalMap\n");
 	for (std::map<std::pair<Z3_ast, int>, std::vector<Z3_ast>>::iterator it = equalMap.begin(); it != equalMap.end(); ++it) {
 		if (it->first.second >= sLevel && it->second.size() > 0) {
-//			printZ3Node(t, it->first.first);
-//			__debugPrint(logFile, " -- %d\n", it->first.second);
-//			displayListNode(t, it->second);
-
 			it->second.clear();
 		}
 	}
 
-//	__debugPrint(logFile, "Remove in length_LanguageMap\n");
 	for (std::map<std::pair<Z3_ast, int>, std::pair<int, int>>::iterator it = length_LanguageMap.begin(); it != length_LanguageMap.end(); ) {
 		if (it->first.second >= sLevel) {
-//			printZ3Node(t, it->first.first);
-//			__debugPrint(logFile, "\n");
 			it = length_LanguageMap.erase(it);
 		}
 		else
@@ -3927,7 +3908,7 @@ std::string customizeString(std::string s) {
 	if (s[0] == '|') s = s.substr(1, s.length() - 2);
 	if (s[0] == '"') s = s.substr(1, s.length() - 2);
 	const size_t pos = s.find("!!");
-	if (s.compare("!!") != 0)
+	if (s.compare("!!") != 0 && s.find("$$") < 2)
 		if (pos != std::string::npos)
 			s = s.substr(pos + 2);
 
@@ -4185,9 +4166,9 @@ void extendVariableToFindAllPossibleEqualities(
 			if ((constNode != NULL && constNode != _node) ||
 					constNode == NULL){
 				/* skip the generic automata */
-				std::string automaton2str = Z3_ast_to_string(ctx, _node);
-				__debugPrint(logFile, "%d should not check it\n", __LINE__);
-				if (automaton2str.find("$$") == std::string::npos && automaton2str.find("!!") == std::string::npos) {
+				std::string automaton2str = Z3_ast_to_string(ctx, Z3_get_app_arg(ctx, Z3_to_app(ctx, _node), 0));
+				__debugPrint(logFile, "%d should not check %s\n", __LINE__, automaton2str.c_str());
+				if (automaton2str.find("$$") > 2 || automaton2str.find("!!") == std::string::npos) {
 					__debugPrint(logFile, "%d add const \"%s\" to node: %s\n", __LINE__, automaton2str.c_str(), Z3_ast_to_string(ctx, node));
 					result.push_back({_node});
 				}
@@ -4450,7 +4431,11 @@ std::map<char, int> eval_parikh_lowerbound(
 			for (unsigned i = 0; i < str.length(); ++i)
 				m[str[i]] = m[str[i]] + 1;
 		}
-	return m;
+	std::map<char, int> ret;
+	for (const auto& n : m)
+		if (n.second > 0)
+			ret[n.first] = n.second;
+	return ret;
 }
 
 /*
@@ -4828,8 +4813,8 @@ bool parikh_check_contain(
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 
-	for (const auto& l : list)
-		displayListNode(t, l, "Quick check list: ");
+//	for (const auto& l : list)
+//		displayListNode(t, l, "Quick check list: ");
 
 	std::vector<std::string> constList;
 
@@ -4911,8 +4896,8 @@ bool parikh_check_regex(
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
 
-	for (const auto& v : list)
-		displayListNode(t, v, "Quick check list: ");
+//	for (const auto& v : list)
+//		displayListNode(t, v, "Quick check list: ");
 
 	std::map<std::string, int> data = parikhMap[node];
 	for (const auto& ch : data)
@@ -4966,8 +4951,8 @@ bool parikh_check_replaceall(
 	if (list.size() <= 1)
 		return true;
 
-	for (const auto& l : list)
-		displayListNode(t, l, "Quick check list: ");
+//	for (const auto& l : list)
+//		displayListNode(t, l, "Quick check list: ");
 
 	for (unsigned i = 1; i < list.size(); ++i) {
 		/* cut common prefix and suffix */
@@ -5017,60 +5002,70 @@ bool parikh_check_replaceall(
 		std::map<char, int> fixed01 = eval_parikh_fixedbound(t, l11, boolValues);
 		std::map<char, int> lower01 = eval_parikh_lowerbound(t, l11, boolValues);
 
-		__debugPrint(logFile, "%d fixed00 bound\n", __LINE__);
+		__debugPrint(logFile, "%d fixed00 bound size %ld\n", __LINE__, fixed00.size());
 		for (const auto& p : fixed00)
-			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+			__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
 
-		__debugPrint(logFile, "\n%d fixed01 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d fixed01 bound size %ld\n", __LINE__, fixed01.size());
 		for (const auto& p : fixed01)
-			__debugPrint(logFile, "%c: %d; ", p.first, p.second);
+			__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
 
-		__debugPrint(logFile, "\n%d lower00 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d lower00 bound: of size %ld\n", __LINE__, lower00.size());
 		for (const auto& p : lower00)
 			if (p.second > 0)
 				__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
 
-		__debugPrint(logFile, "\n%d lower01 bound\n", __LINE__);
+		__debugPrint(logFile, "\n%d lower01 bound: of size %ld\n", __LINE__, lower01.size());
 		for (const auto& p : lower01)
 			if (p.second > 0)
 				__debugPrint(logFile, "%c: %d\t\t ", p.first, p.second);
-
+		bool constOnly00 = (lower00.size() == fixed00.size()) && fixed00.size() > 0;
+		bool constOnly01 = (lower01.size() == fixed01.size()) && fixed01.size() > 0;
 		for (const auto& ch : fixed00)
-			if (lower01[ch.first] > ch.second)
-				return false;
+			if (lower01.find(ch.first) != lower01.end())
+				if (lower01[ch.first] > ch.second)
+					return false;
 
 		for (const auto& ch : fixed01)
-			if (lower00[ch.first] > ch.second)
-				return false;
+			if (lower00.find(ch.first) != lower01.end())
+				if (lower00[ch.first] > ch.second)
+					return false;
 
-		bool constOnly00 = true, constOnly01 = true;
+
 		for (const auto& ch : fixed00)
 			if (lower00[ch.first] != ch.second) {
+				__debugPrint(logFile, "%d not constOnly00 because %d != %d at %c\n", __LINE__, lower00[ch.first], ch.second, ch.first);
 				constOnly00 = false;
 				break;
 			}
 		for (const auto& ch : fixed01)
 			if (lower01[ch.first] != ch.second) {
+				__debugPrint(logFile, "%d not constOnly01 because %d != %d at %c\n", __LINE__, lower01[ch.first], ch.second, ch.first);
 				constOnly01 = false;
 				break;
 			}
-
-		if (constOnly00 || constOnly01){
-			for (const auto& ch : fixed00)
-				if (fixed01.find(ch.first) != fixed01.end() && fixed01[ch.first] != ch.second)
-					return false;
-			for (const auto& ch : fixed01)
-				if (fixed00.find(ch.first) != fixed00.end() && fixed00[ch.first] != ch.second)
-					return false;
-		}
-
+		__debugPrint(logFile, "\n%d const ? %d ---  const ? %d\n", __LINE__, constOnly00? 1 : 0, constOnly01? 1 : 0);
 		if (constOnly00 && constOnly01){
+			__debugPrint(logFile, "%d both  sides are const\n", __LINE__);
 			for (const auto& ch : fixed00)
 				if (fixed01[ch.first] != ch.second)
 					return false;
 			for (const auto& ch : fixed01)
 				if (fixed00[ch.first] != ch.second)
 					return false;
+		}
+		else if (constOnly00){
+			__debugPrint(logFile, "%d LHS is const\n", __LINE__);
+			if (constOnly00)
+				for (const auto& ch : fixed00)
+					if (fixed01.find(ch.first) != fixed01.end() && fixed01[ch.first] > ch.second)
+						return false;
+		}
+		else if (constOnly01){
+			__debugPrint(logFile, "%d RHS is const\n", __LINE__);
+				for (const auto& ch : fixed01)
+					if (fixed00.find(ch.first) != fixed00.end() && fixed00[ch.first] > ch.second)
+						return false;
 		}
 
 		__debugPrint(logFile, "%d *** step 3 ***\n", __LINE__);
