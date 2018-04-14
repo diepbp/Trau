@@ -4370,6 +4370,8 @@ void updateRewriter(
 			if (op.second.compare("false") == 0) {
 				if (equalitiesMap.find(op.first.arg01) != equalitiesMap.end() ||
 						equalitiesMap.find(op.first.arg02) != equalitiesMap.end()) {
+
+					// TODO: need to fix
 					StringOP tmp = op.first;
 					__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
 					continue;
