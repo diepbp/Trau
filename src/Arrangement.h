@@ -152,7 +152,6 @@ public:
 
 					if (i + 1 < elementNames.size()) {
 						if (QCONSTMAX == 1 || elementNames[i].first.length() == 1) {
-							__debugPrint(logFile, "%d %d = %s\n", __LINE__, currentSplit[i], elementNames[i].first.c_str());
 							assert (currentSplit[i] == (int)elementNames[i].first.length()); /* const length must be equal to length of const */
 						}
 						else {

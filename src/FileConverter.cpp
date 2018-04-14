@@ -1276,9 +1276,7 @@ void toLengthLine(
 		}
 
 	updateImplies(tokens);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateNot(tokens);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
@@ -1472,9 +1470,6 @@ void toLengthFile(
 	for (const auto& tokens : fileTokens) {
 		toLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 	}
-
-	__debugPrint(logFile, "Print smtLength: %d \n", __LINE__);
-	displayListString(smtLenConstraints, "");
 }
 
 /*

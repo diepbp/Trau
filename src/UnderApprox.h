@@ -474,6 +474,11 @@ void createStringFromSet(std::set<std::string> list, int length, std::string &re
 /*
  * len = 10, (ab)* --> abababababab
  */
+std::string getTrivialRegex(std::string s, int length);
+
+/*
+ * len = 10, (ab)* --> abababababab
+ */
 std::string getValueFromRegex(std::string s, int length);
 
 /*
@@ -512,15 +517,6 @@ int getVarLength(
 std::vector<int> getVarValue(
 		std::string newlyUpdate,
 		std::map<std::string, int> len,
-		std::map<std::string, std::vector<int>> strValue);
-
-/*
- *
- */
-void updateStrValue(
-		std::string var,
-		std::vector<int> value,
-		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue);
 
 /*
@@ -539,6 +535,13 @@ void forwardPropagate(
 		std::map<std::string, int> &len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
+
+/*
+ *
+ */
+bool needValue(std::string name,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue);
 
 /*
  * create str values after running Z3
@@ -592,6 +595,11 @@ void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
  *
  */
 std::set<std::string> collectAllVars();
+
+/*
+ *
+ */
+bool isTrivialInequality(std::string x, std::string  y);
 
 /*
  *
