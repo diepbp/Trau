@@ -2311,17 +2311,6 @@ public:
 		}
 
 		else {
-			/* lhs is not a const string or regex */
-			int minLength = 0;
-			for (unsigned i = 0 ; i < elementNames.size() - 1; ++i)
-				if (elementNames[i].second % QCONSTMAX == -1 &&
-						elementNames[i + 1].second % QCONSTMAX == 0) {/* const */
-					minLength += elementNames[i].first.length();
-				}
-			if (minLength > pMax) {
-				return "";
-			}
-
 			/* do not need AND */
 			/* result = sum (length) */
 			result = result + "(= " + generateFlatSize(a, lhs_str) + " (+ ";
