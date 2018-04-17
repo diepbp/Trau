@@ -4581,24 +4581,10 @@ void updateRewriter(
 		std::set<std::string> allVars){
 	std::map<StringOP, std::string> newRewriterStrMap;
 	for (const auto& op : rewriterStrMap){
-<<<<<<< Upstream, based on origin/master
-		if (op.first.name.compare("=") == 0) {
-			if (op.second.compare("false") == 0) {
-				if (equalitiesMap.find(op.first.arg01) != equalitiesMap.end() ||
-						equalitiesMap.find(op.first.arg02) != equalitiesMap.end()) {
 
-					// TODO: need to fix
-					StringOP tmp = op.first;
-					__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
-					continue;
-				}
-				else
-					newRewriterStrMap[op.first] = op.second;
-=======
 		if (op.first.name.compare("=") == 0 && op.second.compare("false") == 0){
 			if (isTrivialInequality(op.first.arg01, op.first.arg02)) {
 				continue;
->>>>>>> a965375 update
 			}
 		}
 
