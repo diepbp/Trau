@@ -1494,7 +1494,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
 			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
 			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
-//			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
+			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
 			lenX += lenVarName;
 			lenX += "_";
 			lenX += std::to_string(i);

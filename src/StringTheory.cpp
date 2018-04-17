@@ -4375,7 +4375,6 @@ std::set<char> getNotContainLetters(
 			initSet = newSet;
 		}
 	}
-	__debugPrint(logFile, "%d *** step 02 ***\n", __LINE__);
 	return initSet;
 }
 
@@ -4651,7 +4650,7 @@ void compute_parikh(
 				printZ3Node(t, repAll.first.first);
 				__debugPrint(logFile, "\n");
 
-				std::set<char> notContainLetters = getNotContainLetters(t, combinationOverVariables[repAll.first.first], boolMapValues);
+//				std::set<char> notContainLetters = getNotContainLetters(t, combinationOverVariables[repAll.first.first], boolMapValues);
 				compute_parikh(t, repAll.first.first, combinationOverVariables, boolMapValues, minimum_parikhImg, fixed_parikhImg);
 
 				std::map<std::string, int> tmp_min = minimum_parikhImg[repAll.first.first];
@@ -4698,6 +4697,55 @@ void compute_parikh(
 					}
 				}
 			}
+
+		/* replace */
+		for (const auto& rep : replaceNodeMap)
+			if (n == rep.second && std::find(eq.begin(), eq.end(), rep.first.first) == eq.end()) {
+				__debugPrint(logFile, "%d going to check: ", __LINE__);
+				printZ3Node(t, rep.first.first);
+				__debugPrint(logFile, "\n");
+
+				//				std::set<char> notContainLetters = getNotContainLetters(t, combinationOverVariables[repAll.first.first], boolMapValues);
+				compute_parikh(t, rep.first.first, combinationOverVariables, boolMapValues, minimum_parikhImg, fixed_parikhImg);
+
+				std::map<std::string, int> tmp_min = minimum_parikhImg[rep.first.first];
+				std::map<std::string, int> tmp_fix = fixed_parikhImg[rep.first.first];
+
+				__debugPrint(logFile, "%d tmp result\n", __LINE__);
+				for (const auto& ch : tmp_min)
+					__debugPrint(logFile, "%s:%d\t", ch.first.c_str(), ch.second);
+				__debugPrint(logFile, "\n");
+
+				Z3_ast tobeReplaced = rep.first.second.first;
+				if (isConstStr(t, tobeReplaced) || isDetAutomatonFunc(t, tobeReplaced)){
+					std::string s0 = getConstString(t, tobeReplaced);
+
+					Z3_ast replacing = rep.first.second.second;
+					if (isConstStr(t, replacing) || isDetAutomatonFunc(t, replacing)){
+						std::string s1 = getConstString(t, replacing);
+						__debugPrint(logFile, "%d %s %s\n", __LINE__, s0.c_str(), s1.c_str());
+
+						if (s0.length() == 1) {
+							if (s1.find(s0) == std::string::npos){
+								/* other letters, if they are not in s0, will stay the same */
+								for (const auto& ch : tmp_min)
+									if (ch.first.find(s0) == std::string::npos) {
+										data_min.emplace(ch);
+									}
+							}
+							else {
+								/* get max of two sets */
+								data_min = getMaxParikhMap(data_min, tmp_min);
+							}
+						}
+
+						/* other letters, if they are not in s0 and s1, will stay the same */
+						for (const auto& ch : tmp_fix)
+							if (ch.first.find(s0) == std::string::npos && s1.find(ch.first) == std::string::npos)
+								data_fix.emplace(ch);
+					}
+				}
+			}
 	}
 
 	for (const auto& n : eq) {
@@ -4718,6 +4766,9 @@ void compute_parikh(
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 	for (const auto& node : replaceAllNodeMap)
+		compute_parikh(t, node.second, combinationOverVariables, boolMapValues, min_parikhMap, fix_parikhMap);
+
+	for (const auto& node: replaceNodeMap)
 		compute_parikh(t, node.second, combinationOverVariables, boolMapValues, min_parikhMap, fix_parikhMap);
 
 	/* test */
