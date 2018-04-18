@@ -539,8 +539,7 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements,
-		std::map<std::string, int> &newVars){
+		std::vector<std::pair<std::string, int>> rhs_elements){
 	/* first base case */
 	clock_t t;
 	t = clock();
@@ -628,7 +627,7 @@ std::vector<std::string> collectAllPossibleArrangements(
  * generate its array name
  */
 std::string generateVarArray(std::string a){
-	return "arr_" + a;
+	return ARRPREFIX + a;
 }
 
 /*
@@ -636,7 +635,7 @@ std::string generateVarArray(std::string a){
  * generate its array name
  */
 std::string generateVarLength(std::string a){
-	return "len_" + a;
+	return LENPREFIX + a;
 }
 
 /*
@@ -671,7 +670,7 @@ bool canSkipNotContain(
 			for (const auto& _eq : var.second) {
 				if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
 					StringOP opTmp(CONTAINS, var.first, arg);
-					if (rewriterStrMap[opTmp].compare("false") == 0) {
+					if (rewriterStrMap[opTmp].compare(FALSETR) == 0) {
 						__debugPrint(logFile, "%d *** %s ***: Contains - %s - %s\n", __LINE__, __FUNCTION__, v.c_str(), arg.c_str());
 						return true;
 					}
@@ -690,8 +689,8 @@ std::string create_constraints_StartsWith(
 		std::string boolValue){
 	__debugPrint(logFile, "%d *** %s ***: StartsWith %s %s\n", __LINE__, __FUNCTION__, str00.c_str(), str01.c_str());
 
-	if (boolValue.compare("false") != 0)
-		return "true";
+	if (boolValue.compare(FALSETR) != 0)
+		return TRUESTR;
 
 	bool isConst_00 = false;
 	bool isConst_01 = false;
@@ -712,12 +711,11 @@ std::string create_constraints_StartsWith(
 		/* (length b = 0 && ...) || length b = 1 && ...*/
 		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
-			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
+			andConstraints.emplace_back(createEqualConstraint(generateVarLength(str01), std::to_string(j)));
 			for (unsigned int i = 1; i < j + 1; ++i) {
-				andConstraints.emplace_back("(= (select " +
-						generateVarArray(str01) + " " +
-						std::to_string(i - 1) + ") " +
-						std::to_string(str00[i]) + ")");
+				andConstraints.emplace_back(createEqualConstraint(
+						createSelectConstraint(generateVarArray(str01), std::to_string(i - 1)),
+						std::to_string(str00[i])));
 			}
 			orConstraints.emplace_back(andConstraint(andConstraints));
 			andConstraints.clear();
@@ -829,7 +827,7 @@ std::string create_constraints_EndsWith(
 		assert(false);
 	}
 
-	if (boolValue.compare("false") == 0)
+	if (boolValue.compare(FALSETR) == 0)
 		ret = "(not " + ret + ")";
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
@@ -854,11 +852,11 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
 		isConst_02 = true;
 
 	/* do not replace */
-	if (boolValue.compare("false") == 0){
+	if (boolValue.compare(FALSETR) == 0){
 		/* new value = old value = args[0] */
 		/* len = len && value = value */
 		std::vector<std::string> andConstraints;
-		andConstraints.emplace_back("(= " + generateVarArray(args[0]) + " " + generateVarLength(lhs) +")");
+		andConstraints.emplace_back(createEqualConstraint(generateVarArray(args[0]), generateVarLength(lhs)));
 		if (connectedVariables.find(args[0]) != connectedVariables.end() ||
 				connectedVariables.find(lhs) != connectedVariables.end()){
 			// TODO replace constraints: two connected variables
@@ -877,7 +875,7 @@ std::string create_constraints_Replace(std::string lhs, std::vector<std::string>
 	if (isConst_02) {
 
 	}
-	return "true";
+	return TRUESTR;
 }
 
 /*
@@ -910,8 +908,8 @@ std::string create_constraints_ReplaceAll(
 
 	/* */
 	if (isConst_00 && isConst_01 && isConst_02)
-		return "true";
-	else if (isConst_01 && isConst_02 && boolValue.compare("true") == 0) {
+		return TRUESTR;
+	else if (isConst_01 && isConst_02 && boolValue.compare(TRUESTR) == 0) {
 		std::string result = "";
 		/* find all eq variable */
 		std::vector<std::string> eqArg0 = find_eq_class(args[0]);
@@ -973,7 +971,7 @@ std::string create_constraints_ReplaceAll(
 			return "(and " + result + ")";
 		}
 	}
-	return "true";
+	return TRUESTR;
 }
 
 /*
@@ -996,16 +994,18 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	int maxSize = findVariableSize(var) * MAXQ;
 	for (unsigned i = value.length() - 2; i <= (unsigned)std::min(CONNECTSIZE, maxSize); ++i){
 		std::vector<std::string> tmp;
-		tmp.emplace_back("(< " + lenName + " " + std::to_string(i) + " )");
+		tmp.emplace_back(createLessConstraint(lenName, std::to_string(i)));
 
-		for (unsigned int k = 0; k < value.length() - 2; ++k) {
-			unsigned int pos = k + i - value.length() + 2;
-			tmp.emplace_back("(not (= (select " + arrName + " " + std::to_string(pos) + ") " + std::to_string(value[k + 1]) + "))");
+		for (unsigned k = 0; k < value.length() - 2; ++k) {
+			unsigned pos = k + i - value.length() + 2;
+			tmp.emplace_back("(not " + createEqualConstraint(
+								createSelectConstraint(arrName, std::to_string(pos)),
+								std::to_string(value[k + 1])) + ")");
 		}
 		andConstraints.emplace_back(orConstraint(tmp));
 	}
 
-	andConstraints.emplace_back("(< " + lenName + " " + std::to_string(std::min(CONNECTSIZE, maxSize)) + " )");
+	andConstraints.emplace_back(createLessConstraint(lenName, std::to_string(std::min(CONNECTSIZE, maxSize))));
 	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
@@ -1044,10 +1044,10 @@ std::string create_constraints_NOTEqual(
 		if (isRegexStr(str00)) {
 			// TODO not equal regex
 			multiRegex = true;
-			return "false";
+			return FALSETR;
 		}
 		else if (isUnionStr(str00)) {
-			return "true";
+			return TRUESTR;
 		}
 
 		std::string len01 = generateVarLength(str01);
@@ -1076,23 +1076,26 @@ std::string create_constraints_NOTEqual(
 			std::string len01 = generateVarLength(str01);
 			std::string arr00 = generateVarArray(str00);
 			std::string arr01 = generateVarArray(str01);
+
 			/* != "a" b */
-			orConstraints.emplace_back("(not (= " + len00 + " " + len01 + "))");
+			orConstraints.emplace_back(createNotOperator(createEqualConstraint(len00, len01)));
 
 			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
 				/*len a = len b <= i || a[i - 1] == b [i-1] */
 				std::string tmp = "";
-				tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
-				tmp = tmp + "(= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + "))";
+				tmp += createLessConstraint(len00, std::to_string(i));
+				tmp += createEqualConstraint(
+								createSelectConstraint(arr00, std::to_string(i - 1)),
+								createSelectConstraint(arr01, std::to_string(i - 1)))	;
 				tmp = "(or " + tmp + ")";
 				andConstraints.emplace_back(tmp);
 			}
-			orConstraints.emplace_back("(not " + andConstraint(andConstraints) + ")");
+			orConstraints.emplace_back(createNotOperator(andConstraint(andConstraints)));
 			ret = orConstraint(orConstraints);
 		}
 		else {
 			// TODO not equal concat
-			ret = "false";
+			ret = FALSETR;
 		}
 	}
 
@@ -1115,10 +1118,17 @@ std::string create_constraints_ToLower(std::string str00, std::string str01){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
-		tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
+		tmp += createLessConstraint(len00, std::to_string(i));
 		tmp = tmp + "(ite (and (<= 65 (select " + arr00 + " " + std::to_string(i - 1) + ")) (>= 90 (select " + arr00 + " " + std::to_string(i - 1) + ")))";
-		tmp = tmp + " (= (+ (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
-		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
+
+		tmp += createEqualConstraint(
+				createSelectConstraint(arr01, std::to_string(i - 1)),
+				createPlusOperator(
+							createSelectConstraint(arr00, std::to_string(i - 1)),
+							"32"));
+		tmp += createEqualConstraint(
+				createSelectConstraint(arr00, std::to_string(i - 1)),
+				createSelectConstraint(arr01, std::to_string(i - 1)));
 		tmp = "(or " + tmp + ")";
 		andConstraints.emplace_back(tmp);
 	}
@@ -1159,9 +1169,9 @@ void handle_NOTContains(
 	std::map<std::pair<std::string, std::string>, bool> done;
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(CONTAINS) == 0){
-			if (element.second.compare("false") == 0){
-				if (element.first.arg01.find("Concat ") != std::string::npos ||
-						element.first.arg02.find("Concat ") != std::string::npos ||
+			if (element.second.compare(FALSETR) == 0){
+				if (element.first.arg01.find(CONCAT) != std::string::npos ||
+						element.first.arg02.find(CONCAT) != std::string::npos ||
 						element.first.arg02.find("Automata ") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.arg01, element.first.arg02, rewriterStrMap)){
@@ -1186,7 +1196,7 @@ void handle_NOTContains(
 					if (value01.find(value02.substr(1, value02.length() - 2)) == std::string::npos)
 						return;
 					else
-						global_smtStatements.push_back({"false"});
+						global_smtStatements.push_back({FALSETR});
 				}
 				else {
 					// not handle this case
@@ -1202,7 +1212,7 @@ void handle_NOTContains(
 void handle_NOTEqual(
 		std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0 &&
+		if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0 &&
 				(connectedVariables.find(s.first.arg01) != connectedVariables.end() ||
 						connectedVariables.find(s.first.arg02) != connectedVariables.end())){
 			global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
@@ -1217,7 +1227,7 @@ void handle_StartsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("StartsWith") == 0){
+		if (s.first.name.compare(STARTSWITH) == 0){
 			global_smtStatements.push_back({create_constraints_StartsWith(s.first.arg01, s.first.arg02, s.second)});
 		}
 	}
@@ -1230,7 +1240,7 @@ void handle_EndsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("EndsWith") == 0){
+		if (s.first.name.compare(STARTSWITH) == 0){
 			global_smtStatements.push_back({create_constraints_EndsWith(s.first.arg01, s.first.arg02, s.second)});
 		}
 	}
@@ -1300,8 +1310,7 @@ void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
 	for (const auto& s : connectedVariables){
-		defines.emplace_back("(declare-const arr_" + s.first + " (Array Int Int))");
-//		constraints.emplace_back("(assert (< " + generateVarLength(s) + " " + std::to_string(100) +"))");
+		defines.emplace_back(createArrayDefinition(ARRPREFIX + s.first));
 	}
 }
 
@@ -1312,15 +1321,18 @@ void create_const_array(
 		std::vector<std::string> &defines,
 		std::vector<std::string> &constraints){
 
-	for (std::map<std::string, std::string>::iterator it = constMap.begin(); it != constMap.end(); ++it){
-		defines.emplace_back("(declare-const arr_" + it->second + " (Array Int Int))");
-		if (!isRegexStr(it->first) && !isUnionStr(it->first)){
-			for (unsigned int i = 0 ; i < it->first.length(); ++i) {
-				constraints.emplace_back("(assert (= (select arr_" + it->second + " " + std::to_string(i) + ") " + std::to_string(it->first[i]) + "))");
+	for (const auto& var : constMap){
+		std::string varArr = ARRPREFIX + var.second;
+		defines.emplace_back(createArrayDefinition(varArr));
+		if (!isRegexStr(var.first) && !isUnionStr(var.first)){
+			for (unsigned int i = 0 ; i < var.first.length(); ++i) {
+				constraints.emplace_back(createAssert(createEqualConstraint(
+						createSelectConstraint(varArr, std::to_string(i)),
+						std::to_string(var.first[i]))));
 			}
 		}
-		else if (isRegexStr(it->first)){
-			std::string regexContent = parse_regex_content(it->first);
+		else if (isRegexStr(var.first)){
+			std::string regexContent = parse_regex_content(var.first);
 			std::vector<std::string> components = collectAlternativeComponents(regexContent);
 
 			unsigned minSize = 10000, maxSize = 0;
@@ -1335,8 +1347,10 @@ void create_const_array(
 			/* 1st */
 			for (const auto& c: components) {
 				constraint = constraint + " (and ";
-				for (unsigned int j = 0 ; j < c.length(); ++j) {
-					constraint = constraint + ("(= (select arr_" + it->second + " " + std::to_string(j) + ") " + std::to_string(c[j]) + ") ");
+				for (unsigned j = 0 ; j < c.length(); ++j) {
+					constraint += createEqualConstraint(
+									createSelectConstraint(varArr, std::to_string(j)),
+									std::to_string(c[j]));
 				}
 				constraint = constraint + ")";
 			}
@@ -1351,7 +1365,9 @@ void create_const_array(
 					for (const auto& c: components) {
 						constraint = constraint + " (and ";
 						for (unsigned int j = 0 ; j < c.length(); ++j) {
-							constraint = constraint + ("(= (select arr_" + it->second + " " + std::to_string(j + base) + ") " + std::to_string(c[j]) + ") ");
+							constraint += createEqualConstraint(
+											createSelectConstraint(varArr, std::to_string(j + base)),
+											std::to_string(c[j]));
 						}
 						constraint = constraint + ")";
 					}
@@ -1402,72 +1418,79 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 				__debugPrint(logFile, "%s ", s.c_str());
 			__debugPrint(logFile, "\n");
 
-			defines.emplace_back("(declare-const len_" + constNode.second + " Int)");
+			std::string varName = LENPREFIX + constNode.second;
+			defines.emplace_back(createIntDefinition(varName));
+
 			std::vector<std::string> orConstraints;
 			for (const auto& s : components){
 				std::vector<std::string> tmp;
-				tmp.emplace_back("(= " + std::to_string(s.length()) + " len_" + constNode.second + ")");
+				tmp.emplace_back(createEqualConstraint(std::to_string(s.length()), varName));
+				std::string varArr = ARRPREFIX + constNode.second;
 				for (unsigned i = 0; i < s.length(); ++i)
-					tmp.emplace_back("(= (select arr_" + constNode.second + " " + std::to_string(i) + ") " + std::to_string(s[i]) + ")");
+					tmp.emplace_back(createEqualConstraint(
+							createSelectConstraint(varArr, std::to_string(i)),
+							std::to_string(s[i])));
 				orConstraints.emplace_back(andConstraint(tmp));
 			}
-			constraints.emplace_back("(assert " + orConstraint(orConstraints) + ")");
+			constraints.emplace_back(createAssert(orConstraint(orConstraints)));
 
 			std::string lenX = "";
-			std::string varName = "len_" + constNode.second + "_";
 			for (int i = 1; i <= std::max(varPieces[constNode.first], QCONSTMAX); ++i) {
-				defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(i) + " Int)");
-				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(i) + " 0))");
-				lenX = lenX + varName + std::to_string(i) + " ";
+				defines.emplace_back(createIntDefinition(varName + "_" + std::to_string(i)));
+				constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, varName + "_" + std::to_string(i))));
+				lenX = lenX + varName + "_" + std::to_string(i) + " ";
 				if (i % QCONSTMAX == 0) {
 					/* (+ sum(len_x_i) */
 					if (QCONSTMAX > 1)
 						lenX = "(+ " + lenX + ")";
 					/*(assert (= const (+ sum(len_x_i)))) */
-					constraints.emplace_back("(assert (= len_" + constNode.second + " " + lenX  + "))");
+					constraints.emplace_back(createAssert(createEqualConstraint(
+							varName,
+							lenX)));
 					lenX = "";
 				}
 			}
 
 		}
-		else if (!isRegexStr(constNode.first)){
-			__debugPrint(logFile, "%d %s: %d\n", __LINE__, constNode.first.c_str(), varPieces[constNode.first])
-			std::string lenName = std::to_string(constNode.first.length());
-			constraints.emplace_back("(assert (= " + lenName + " len_" + constNode.second  + "))");
-			defines.emplace_back("(declare-const len_" + constNode.second + " Int)");
+		else if (!isRegexStr(constNode.first) && !isUnionStr(constNode.first)){
+			std::string lenValue = std::to_string(constNode.first.length());
+			std::string lenName = LENPREFIX + constNode.second;
+			defines.emplace_back(createIntDefinition(lenName));
+			constraints.emplace_back(createAssert(createEqualConstraint(lenValue, lenName)));
+
 			/* len_x = sum(len_x_i)*/
 			std::string lenX = "";
-			std::string varName = "len_" + constNode.second + "_";
 			if (constNode.first.length() <= SPLIT_LOWER_BOUND - 2) { /* -2 because of "xxxx" */
-				defines.emplace_back("(declare-const len_" + constNode.second + "_" + "1 Int)");
-				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + "1 0))");
-				lenX = varName + "1 0";
+				defines.emplace_back(createIntDefinition(lenName + "_1"));
+				constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenName + "_1")));
+				lenX = lenName + "_1 0";
 				if (QCONSTMAX > 1)
 					lenX = "(+ " + lenX + ")";
-				constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
+				constraints.emplace_back(createAssert(createEqualConstraint(lenValue, lenX)));
 			}
 			else for (int i = 1; i <= std::max(varPieces[constNode.first], QCONSTMAX); ++i) {
-				defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(i) + " Int)");
-				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(i) + " 0))");
-				lenX = lenX + varName + std::to_string(i) + " ";
+				defines.emplace_back(createIntDefinition(lenName + "_" + std::to_string(i)));
+				constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenName + "_" + std::to_string(i))));
+				lenX = lenX + lenName + "_" + std::to_string(i) + " ";
 				if (i % QCONSTMAX == 0) {
 					/* (+ sum(len_x_i) */
 					if (QCONSTMAX > 1)
 						lenX = "(+ " + lenX + ")";
 					/*(assert (= const (+ sum(len_x_i)))) */
-					constraints.emplace_back("(assert (= " + lenName + " " + lenX  + "))");
+					constraints.emplace_back(createAssert(createEqualConstraint(lenValue, lenX)));
 					lenX = "";
 				}
 			}
 		}
 		else {
-			defines.emplace_back("(declare-const len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " Int)");
+			std::string lenName = std::string(LENPREFIX) + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE));
+			defines.emplace_back(createIntDefinition(lenName));
 
 			if (constNode.first.find("+") != std::string::npos)
-				constraints.emplace_back("(assert (> len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+				constraints.emplace_back(createAssert(createLessConstraint(ZERO, lenName)));
 			else {
 				assert(constNode.first.find("*") != std::string::npos);
-				constraints.emplace_back("(assert (>= len_" + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE)) + " 0))");
+				constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenName)));
 			}
 
 			create_constraints_regex(defines, constraints, constNode.first, constNode.second);
@@ -1494,26 +1517,24 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		std::string lenX = "";
 		std::string lenVarName = generateVarLength(var);
 		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
-			defines.emplace_back("(declare-const " + lenVarName + "_" + std::to_string(i) + " Int)");
-			constraints.emplace_back("(assert (>= " + lenVarName + "_" + std::to_string(i) + " 0))");
+			std::string lenTmp = lenVarName + "_" + std::to_string(i);
+			defines.emplace_back(createIntDefinition(lenTmp));
+			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
 			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
-			lenX += lenVarName;
-			lenX += "_";
-			lenX += std::to_string(i);
-			lenX += " ";
+			lenX = lenX + lenTmp + " ";
 
 			if ((i + 1) % QMAX == 0) {
 				/* (+ sum(len_x_i) */
 				if (QMAX > 1)
 					lenX = "(+ " + lenX + ")";
-				constraints.emplace_back("(assert (= " + lenVarName + " " + lenX  + "))");
+				constraints.emplace_back(createAssert(createEqualConstraint(lenVarName, lenX)));
 				lenX = "";
 			}
 		}
 
 		if (var.find(FLATPREFIX) != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
 			/* they are internal variables */
-			defines.emplace_back("(declare-const " + lenVarName + " Int)");
+			defines.emplace_back(createIntDefinition(lenVarName));
 		}
 	}
 }
@@ -1533,10 +1554,10 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 		componentSizes.emplace(c.length());
 
 	int cnt = 0;
-	std::string constraint = "(assert (= len_" + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
+	std::string constraint = "(assert (= " + std::string(LENPREFIX) + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
 	for (const auto& size : componentSizes){
 		std::string tmp = name + "__p" + std::to_string(cnt++);
-		defines.emplace_back("(declare-const " + tmp + " Int)");
+		defines.emplace_back(createIntDefinition(tmp));
 		constraint = constraint + "(* " + tmp + " " + std::to_string(size) + ") ";
 	}
 	constraint += ") ) )";
@@ -1554,18 +1575,18 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 	int cnt = 0;
 	for (const auto& component: components){
 		if (component[0] != '\"'){ /* not a const */
-			lenX = lenX + " len_" + component;
+			lenX = lenX + " " + LENPREFIX + component;
 			cnt ++;
 		}
 		else if (component.length() > 2) { /* const is not an empty string */
 			if(!isRegexStr(component)) {
-				lenX = lenX + " len_" + constMap[component.substr(1, component.length() - 2)];
+				lenX = lenX + " " + LENPREFIX + constMap[component.substr(1, component.length() - 2)];
 				cnt ++;
 			}
 			else {
 				/* regex */
 				assert(constMap.find(component.substr(1, component.length() - 2)) != constMap.end());
-				lenX = lenX + " len_" + constMap[component.substr(1, component.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
+				lenX = lenX + " " + LENPREFIX + constMap[component.substr(1, component.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
 				cnt ++;
 			}
 		}
@@ -1577,12 +1598,17 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 
 	/*(= len_X (+ sum(len_y)) */
 	if (x[0] != '\"')
-		lenX = "(= len_" + x + " " + lenX  + ")";
+		lenX = createEqualConstraint(std::string(LENPREFIX) + x, lenX);
 	else {
-		if(!isRegexStr(x))
-			lenX = "(= " + std::to_string(x.length() - 2) + " " + lenX  + ")";
+		if(!isRegexStr(x) && !isUnionStr(x))
+			lenX = createEqualConstraint(std::to_string(x.length() - 2), lenX);
+		else if (isRegexStr(x)){
+			lenX = createEqualConstraint(lenX, LENPREFIX + constMap[x.substr(1, x.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE)));
+			assert(constMap.find(x.substr(1, x.length() - 2)) != constMap.end());
+		}
 		else {
-			lenX = "(= " + std::to_string(parse_regex_content(x.substr(1, x.length() - 2)).length()) + " " + lenX  + ")";
+			lenX = createEqualConstraint(lenX, LENPREFIX + constMap[x.substr(1, x.length() - 2)]);
+			assert(constMap.find(x.substr(1, x.length() - 2)) != constMap.end());
 		}
 	}
 
@@ -1708,7 +1734,7 @@ void printSatisfyingAssignments(
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
-			if (tokens[1].substr(0, 4).compare("len_") == 0) {
+			if (tokens[1].substr(0, 4).compare(LENPREFIX) == 0) {
 			}
 			else {
 				printf("%s : %s\n", tokens[1].c_str(), value.c_str());
@@ -1749,7 +1775,7 @@ void verifyOutput(std::string outFile,
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
-			if (tokens[1].substr(0, 4).compare("len_") == 0) {
+			if (tokens[1].substr(0, 4).compare(LENPREFIX) == 0) {
 				std::string tmp = def.substr(4);
 				additionalAssertions.emplace_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
 			}
@@ -1776,7 +1802,7 @@ void verifyOutput(std::string outFile,
 /*
  * convert lhs == rhs to SMT formula
  */
-std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
+std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements){
@@ -1791,18 +1817,10 @@ std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
 #endif
 
 
-
-	std::map<std::string, int> newVars;
-
 	std::vector<std::string> cases = collectAllPossibleArrangements(
 			lhs, rhs,
-			lhs_elements, rhs_elements,
-			newVars);
-	//	displayListString(cases, " print cases");
-	std::pair<std::vector<std::string>, std::map<std::string, int>> result = std::make_pair(cases, newVars);
-	if (cases.size() == 0)
-		newVars.clear();
-	return result;
+			lhs_elements, rhs_elements);
+	return cases;
 }
 
 /*
@@ -1908,7 +1926,7 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
 		if (eqVector[0][i][0] == '\"') /* const */
 			result = result + " " + std::to_string(eqVector[0][i].length() - 2);
 		else
-			result = result + " len_" + eqVector[0][i];
+			result = result + " " + LENPREFIX + eqVector[0][i];
 	if (eqVector[0].size() == 1)
 		return result;
 	else
@@ -2218,22 +2236,22 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* from rewriterMap */
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("CharAt") == 0 ||
-				s.first.name.compare("StartsWith") == 0 ||
-				s.first.name.compare("EndsWith") == 0 ||
+		if (s.first.name.compare(CHARAT) == 0 ||
+				s.first.name.compare(STARTSWITH) == 0 ||
+				s.first.name.compare(ENDSWITH) == 0 ||
 				s.first.name.compare(REPLACE) == 0 ||
 				s.first.name.compare(REPLACEALL) == 0 ||
-				(s.first.name.compare(CONTAINS) == 0 && s.second.compare("false") == 0) ||
-				(s.first.name.compare("=") == 0 && (s.second.compare("false") == 0 || s.second.compare(TOUPPER) == 0 || s.second.compare(TOLOWER) == 0))){
+				(s.first.name.compare(CONTAINS) == 0 && s.second.compare(FALSETR) == 0) ||
+				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(TOUPPER) == 0 || s.second.compare(TOLOWER) == 0))){
 			StringOP op = s.first;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.arg01.find("Concat ") != std::string::npos ||
-					s.first.arg02.find("Concat ") != std::string::npos ||
+			if (s.first.arg01.find(CONCAT) != std::string::npos ||
+					s.first.arg02.find(CONCAT) != std::string::npos ||
 					s.first.arg02.find("Automata ") != std::string::npos)
 				continue;
 
-			if (s.first.name.compare("=") == 0 && s.second.compare("false") == 0) {
+			if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0) {
 				if (s.first.arg01.compare("\"\"") == 0 || s.first.arg02.compare("\"\"") == 0)
 					continue;
 
@@ -2270,7 +2288,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				}
 			}
 
-			if (s.first.name.compare("CharAt") == 0){
+			if (s.first.name.compare(CHARAT) == 0){
 				if (s.first.arg01[0] != '\"') {
 					connectedVarSet[s.first.arg01] = CONNECTSIZE;
 				}
@@ -2278,7 +2296,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 			/* add all of variables to the connected var set*/
 			if (s.first.arg01[0] != '\"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(STARTSWITH) == 0) {
 					if (s.first.arg02[0] == '"') {
 						if (connectedVarSet.find(s.first.arg01) == connectedVarSet.end())
 							connectedVarSet[s.first.arg01] = s.first.arg02.length() - 2;
@@ -2294,7 +2312,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			}
 
 			if (s.first.arg02[0] != '"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare("StartsWith") == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(STARTSWITH) == 0) {
 					if (s.first.arg01[0] == '"') {
 						if (connectedVarSet.find(s.first.arg02) == connectedVarSet.end())
 							connectedVarSet[s.first.arg02] = s.first.arg01.length() - 2;
@@ -2828,7 +2846,6 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 				if (list[k].length() > SPLIT_LOWER_BOUND) /* const string */ {
 					if (varPieces.find(content) == varPieces.end())
 						varPieces[content] = 0;
-//					for (int j = 0; j < QCONSTMAX; ++j) {
 					for (int j = varPieces[content]; j < varPieces[content] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
 						elements.emplace_back(std::make_pair(content, -(j + 1)));
 					}
@@ -2921,7 +2938,7 @@ std::string constraintsIfEmpty(
 		if (tmpStr.size() > 0)
 			return tmpStr;
 		else
-			return "true";
+			return TRUESTR;
 	}
 	return "";
 }
@@ -2968,18 +2985,6 @@ unsigned findMaxP(std::vector<std::vector<std::string>> v){
 void convertEqualities(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
-//	int start, *mytid, end;
-//	mytid = (int *) tid;
-//	/* define elements that will be handled by this thread*/
-//	start = (*mytid * (equalitiesMap.size() / NUM_THREADS));
-//	if (*mytid != NUM_THREADS - 1)
-//		end = start + (equalitiesMap.size() / NUM_THREADS);
-//	else
-//		end = equalitiesMap.size();
-
-	/* return a number of results*/
-//	auto startIt = std::next(equalitiesMap.begin(), start);
-//	auto endIt = std::next(equalitiesMap.begin(), end);
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
 			it != equalitiesMap.end();
 			++it) {
@@ -2998,9 +3003,7 @@ void convertEqualities(){
 			continue;
 		assert (it->second[0].size() > 0);
 
-//		pthread_mutex_lock (&smt_mutex);
 		global_smtStatements.push_back({createLengthConstraintForAssignment(it->first, it->second[0])});
-//		pthread_mutex_unlock (&smt_mutex);
 
 		if (connectedVariables.find(it->first) != connectedVariables.end() || it->first[0] == '"'){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality({it->first});
@@ -3008,67 +3011,56 @@ void convertEqualities(){
 			for (const auto& element: it->second) {
 				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
 				t = clock();
-				std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector({it->first}),
+				std::vector<std::string> result = equalityToSMT(	sumStringVector({it->first}),
 						sumStringVector(element),
 						lhs_elements,
 						rhs_elements
 				);
 				t = clock() - t;
 
-//				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
-				if (result.first.size() != 0) {
+				if (result.size() != 0) {
 					/* sync result */
-					for (const auto& r : result.second)
-						global_smtVars[r.first] = 'd';
-
-					global_smtStatements.emplace_back(result.first);
+					global_smtStatements.emplace_back(result);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
-//				pthread_mutex_unlock (&smt_mutex);
 			}
 
 		}
 		else if (maxLocal > maxPConsidered) {
 			/* add an eq = flat . flat . flat, then other equalities will compare will it */
-//			pthread_mutex_lock (&smt_mutex);
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
-//			pthread_mutex_unlock (&smt_mutex);
 			/* compare with others */
 			for (const auto& element: it->second) {
 				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
 				t = clock();
-				std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(genericFlat),
+				std::vector<std::string> result = equalityToSMT(
+						sumStringVector(genericFlat),
 						sumStringVector(element),
 						lhs_elements,
 						rhs_elements
 				);
 				t = clock() - t;
 
-//				pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
-				if (result.first.size() != 0) {
+				if (result.size() != 0) {
 					/* sync result */
-					for (const auto& r : result.second) {
-						global_smtVars[r.first] = 'd';
-					}
-					global_smtStatements.emplace_back(result.first);
+					global_smtStatements.emplace_back(result);
 				}
 				else {
 					__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
 					/* trivial unsat */
 					trivialUnsat = true;
 				}
-//				pthread_mutex_unlock (&smt_mutex);
 			}
 		}
 		else {
@@ -3090,31 +3082,26 @@ void convertEqualities(){
 					std::vector<std::pair<std::string, int>> lhs_elements = createEquality(lhs);
 					std::vector<std::pair<std::string, int>> rhs_elements = createEquality(rhs);
 					t = clock();
-					std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(it->second[i]),
+					std::vector<std::string> result = equalityToSMT(
+							sumStringVector(it->second[i]),
 							sumStringVector(it->second[j]),
 							lhs_elements,
 							rhs_elements
 					);
 					t = clock() - t;
 
-//					pthread_mutex_lock (&smt_mutex);
 #ifdef PRINTTEST_UNDERAPPROX
 					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
 #endif
-					if (result.first.size() != 0) {
-
+					if (result.size() != 0) {
 						/* sync result*/
-						for (const auto& smtVar : result.second) {
-							global_smtVars[smtVar.first] = 'd';
-						}
-						global_smtStatements.emplace_back(result.first);
+						global_smtStatements.emplace_back(result);
 					}
 					else {
 						__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
 						/* trivial unsat */
 						trivialUnsat = true;
 					}
-//					pthread_mutex_unlock (&smt_mutex);
 				}
 		}
 
@@ -3135,7 +3122,7 @@ void testSequential(){
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(it->second[i - 1]);
 			std::vector<std::pair<std::string, int>> rhs_elements = createEquality(it->second[i]);
 
-			std::pair<std::vector<std::string>, std::map<std::string, int>> result = equalityToSMT(	sumStringVector(it->second[i]),
+			std::vector<std::string> result = equalityToSMT(	sumStringVector(it->second[i]),
 					sumStringVector(it->second[i]),
 					lhs_elements,
 					rhs_elements
@@ -3835,7 +3822,7 @@ void formatOtherVars(
 	/* 3rd: handling other vars */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
-		if (len.find("len_" + varName) == len.end())
+		if (len.find(LENPREFIX + varName) == len.end())
 			continue;
 		if (isInternalVar(varName))
 			continue;
@@ -3887,7 +3874,7 @@ void formatRegexes(
 	/* 2nd: handling regex */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
-		if (len.find("len_" + varName) == len.end())
+		if (len.find(LENPREFIX + varName) == len.end())
 			continue;
 		if (isInternalVar(varName))
 			continue;
@@ -3935,7 +3922,7 @@ void formatConnectedVars(
 	/* 1st: handling connected vars */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
-		if (len.find("len_" + varName) == len.end() || isInternalVar(varName))
+		if (len.find(LENPREFIX + varName) == len.end() || isInternalVar(varName))
 			continue;
 		if (lenVector[s].second == 0) {
 			strValue[varName] = {};
@@ -3991,7 +3978,7 @@ std::map<std::string, std::string> formatResult(
 
 	/* format lengths */
 	for (const auto& s : len)
-		if (s.first.find("len_") == 0){
+		if (s.first.find(LENPREFIX) == 0){
 			std::string name = s.first.substr(4);
 			lenVector.push_back(std::make_pair(name, atoi(s.second.c_str())));
 			lenInt[name] = atoi(s.second.c_str());
@@ -4006,7 +3993,7 @@ std::map<std::string, std::string> formatResult(
 
 	/* format values */
 	for (const auto& s : _strValue)
-		if (s.first.find("arr_") == 0){
+		if (s.first.find(ARRPREFIX) == 0){
 			std::string name = s.first.substr(4);
 			strValue[name] = s.second;
 		}
@@ -4044,9 +4031,9 @@ std::map<std::string, std::string> formatResult(
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
 		int varLength = getVarLength(var.first, lenInt);
-		if (len.find("len_" + var.first) == len.end())
+		if (len.find(LENPREFIX + var.first) == len.end())
 			continue;
-		else if (len["len_" + var.first].compare("0") == 0) {
+		else if (len[LENPREFIX + var.first].compare("0") == 0) {
 			finalResult[var.first] = "";
 			continue;
 		}
@@ -4174,7 +4161,7 @@ bool Z3_run(
 						__debugPrint(logFile, "%d value %s: %s\n", __LINE__, array_map[name].c_str(), valueStr.c_str());
 						str_results[array_map[name]] = valueStr;
 					}
-					else if (name.find("arr_") != std::string::npos){
+					else if (name.find(ARRPREFIX) != std::string::npos){
 						/* array map */
 						if (fgets(buffer, 9900, in) == NULL)
 							assert(false);
@@ -4346,7 +4333,7 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 		while (true){
 			size_t pos = tmp.find("(Length ");
 			if (pos != std::string::npos){
-				std::string _tmp = tmp.substr(0, pos) + "len_";
+				std::string _tmp = tmp.substr(0, pos) + LENPREFIX;
 				for (unsigned int i = pos + 8; i < tmp.length(); ++i)
 					if (tmp[i] != ')')
 						_tmp = _tmp + tmp[i];
@@ -4426,7 +4413,7 @@ void addConnectedVarToEQmap(){
  */
 void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
-		if (op.first.name.compare(CONTAINS) == 0 && op.second.compare("false") == 0){
+		if (op.first.name.compare(CONTAINS) == 0 && op.second.compare(FALSETR) == 0){
 			if (op.first.arg02[0] == '"') {
 				notContainMap[std::make_pair(op.first.arg01, op.first.arg02.substr(1, op.first.arg02.length() - 2))] = false;
 			}
@@ -4439,7 +4426,7 @@ void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::string, std::vector<std::string>> ret;
 	for (const auto op : rewriterStrMap)
-		if (op.first.name.compare("=") == 0 && op.second.compare("false") == 0){
+		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
 			if (op.first.arg02[0] == '"') {
 				if (ret.find(op.first.arg01) == ret.end())
 					ret[op.first.arg01] = {op.first.arg02.substr(1, op.first.arg02.length() - 2)};
@@ -4582,7 +4569,7 @@ void updateRewriter(
 	std::map<StringOP, std::string> newRewriterStrMap;
 	for (const auto& op : rewriterStrMap){
 
-		if (op.first.name.compare("=") == 0 && op.second.compare("false") == 0){
+		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
 			if (isTrivialInequality(op.first.arg01, op.first.arg02)) {
 				continue;
 			}

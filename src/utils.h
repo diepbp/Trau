@@ -67,11 +67,31 @@
 #define printZ3Node(t, n) {}
 #endif
 
+#define LENGTH "Length"
+#define CONCAT "Concat"
+#define SUBSTRING "Substring"
+#define INDEXOF "Indexof"
+#define LASTINDEXOF "LastIndexof"
+#define STARTSWITH "StartsWith"
+#define ENDSWITH "EndsWith"
 #define TOUPPER "ToUpper"
 #define TOLOWER "ToLower"
 #define REPLACE "Replace"
 #define REPLACEALL "ReplaceAll"
 #define CONTAINS "Contains"
+#define CHARAT "CharAt"
+#define STR2REG "Str2Reg"
+#define REGEXSTAR "RegexStar"
+#define REGEXPLUS "RegexPlus"
+#define REGEXCHARRANGE "RegexCharRange"
+#define REGEXIN "RegexIn"
+#define REGEXUNION "RegexUnion"
+#define REGEXCONCAT "RegexConcat"
+
+#define TRUESTR "true"
+#define FALSETR "false"
+#define LENPREFIX "len_"
+#define ARRPREFIX "arr_"
 
 struct TokenElement{
     TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}
@@ -316,5 +336,54 @@ bool isUnionStr(std::string str);
  */
 bool isConstStr(std::string str);
 
+/*
+ *
+ */
+std::string createEqualConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createLessEqualConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createLessConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createPlusOperator(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createSelectConstraint(std::string arr, std::string at);
+
+/*
+ *
+ */
+std::string createModOperator(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createNotOperator(std::string x);
+
+/*
+ *
+ */
+std::string createAssert(std::string x);
+
+/*
+ *
+ */
+std::string createArrayDefinition(std::string x);
+
+/*
+ *
+ */
+std::string createIntDefinition(std::string x);
 
 #endif /* UTILS_H_ */

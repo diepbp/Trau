@@ -179,7 +179,7 @@ Z3_context mk_context_custom(Z3_config cfg)
 {
 	Z3_context ctx;
 
-	Z3_set_param_value(cfg, "MODEL", "true");
+	Z3_set_param_value(cfg, "MODEL", TRUESTR);
 	ctx = Z3_mk_context(cfg);
 	Z3_set_error_handler(ctx, error_handler);
 
@@ -1351,25 +1351,25 @@ Z3_theory mk_theory(Z3_context ctx) {
 	Z3_symbol grammarSort_name = Z3_mk_string_symbol(ctx, "Grammar");
 	td->Grammar = Z3_theory_mk_sort(ctx, Th, grammarSort_name);
 
-	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, "Concat");
+	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, CONCAT);
 	Z3_sort concat_domain[2];
 	concat_domain[0] = td->String;
 	concat_domain[1] = td->String;
 	td->Concat = Z3_theory_mk_func_decl(ctx, Th, concat_name, 2, concat_domain, td->String);
 	//---------------------------
-	Z3_symbol length_name = Z3_mk_string_symbol(ctx, "Length");
+	Z3_symbol length_name = Z3_mk_string_symbol(ctx, LENGTH);
 	Z3_sort length_domain[1];
 	length_domain[0] = td->String;
 	td->Length = Z3_theory_mk_func_decl(ctx, Th, length_name, 1, length_domain, IntSort);
 	//---------------------------
-	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, "Substring");
+	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, SUBSTRING);
 	Z3_sort substring_domain[3];
 	substring_domain[0] = td->String;
 	substring_domain[1] = IntSort;
 	substring_domain[2] = IntSort;
 	td->SubString = Z3_theory_mk_func_decl(ctx, Th, substring_name, 3, substring_domain, td->String);
 	//---------------------------
-	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, "Indexof");
+	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, INDEXOF);
 	Z3_sort indexof_domain[2];
 	indexof_domain[0] = td->String;
 	indexof_domain[1] = td->String;
@@ -1388,13 +1388,13 @@ Z3_theory mk_theory(Z3_context ctx) {
 	contains_domain[1] = td->String;
 	td->Contains = Z3_theory_mk_func_decl(ctx, Th, contains_name, 2, contains_domain, BoolSort);
 	//---------------------------
-	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, "StartsWith");
+	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, STARTSWITH);
 	Z3_sort startsWith_domain[2];
 	startsWith_domain[0] = td->String;
 	startsWith_domain[1] = td->String;
 	td->StartsWith = Z3_theory_mk_func_decl(ctx, Th, startsWith_name, 2, startsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, "EndsWith");
+	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, ENDSWITH);
 	Z3_sort endsWith_domain[2];
 	endsWith_domain[0] = td->String;
 	endsWith_domain[1] = td->String;
@@ -1415,59 +1415,59 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->ReplaceAll = Z3_theory_mk_func_decl(ctx, Th, replaceAll_name, 3, replaceAll_domain, td->String);
 
 	//---------------------------
-	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, "LastIndexof");
+	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, LASTINDEXOF);
 	Z3_sort lastIndexof_domain[2];
 	lastIndexof_domain[0] = td->String;
 	lastIndexof_domain[1] = td->String;
 	td->LastIndexof = Z3_theory_mk_func_decl(ctx, Th, lastIndexof_name, 2, lastIndexof_domain, IntSort);
 	//---------------------------
-	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, "CharAt");
+	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, CHARAT);
 	Z3_sort charAt_domain[2];
 	charAt_domain[0] = td->String;
 	charAt_domain[1] = IntSort;
 	td->CharAt = Z3_theory_mk_func_decl(ctx, Th, charAt_name, 2, charAt_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, "ToUpper");
+	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, TOUPPER);
 	Z3_sort toUpper_domain[1];
 	toUpper_domain[0] = td->String;
 	td->ToUpper = Z3_theory_mk_func_decl(ctx, Th, toUpper_name, 1, toUpper_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, "ToLower");
+	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, TOLOWER);
 	Z3_sort toLower_domain[1];
 	toLower_domain[0] = td->String;
 	td->ToLower = Z3_theory_mk_func_decl(ctx, Th, toLower_name, 1, toLower_domain, td->String);
 
 	//===========================
 	// Str2Reg := String --> Regex
-	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, "Str2Reg");
+	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, STR2REG);
 	Z3_sort str2Reg_domain[1];
 	str2Reg_domain[0] = td->String;
 	td->Str2Reg = Z3_theory_mk_func_decl(ctx, Th, str2Reg_name, 1, str2Reg_domain, td->Regex);
 	//---------------------------
 	// RegexStar := Regex --> Regex
-	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, "RegexStar");
+	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, REGEXSTAR);
 	Z3_sort regexStar_domain[1];
 	regexStar_domain[0] = td->Regex;
 	td->RegexStar = Z3_theory_mk_func_decl(ctx, Th, regexStar_name, 1, regexStar_domain, td->Regex);
 	//---------------------------
 	// RegexIn := String x Regex --> Bool
-	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, "RegexIn");
+	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, REGEXIN);
 	Z3_sort regexIn_domain[2];
 	regexIn_domain[0] = td->String;
 	regexIn_domain[1] = td->Regex;
 	td->RegexIn = Z3_theory_mk_func_decl(ctx, Th, regexIn_name, 2, regexIn_domain, BoolSort);
 	//---------------------------
 	// RegexUnion := Regex x Regex --> Regex
-	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, "RegexUnion");
+	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, REGEXUNION);
 	Z3_sort regexUnion_domain[2];
 	regexUnion_domain[0] = td->Regex;
 	regexUnion_domain[1] = td->Regex;
 	td->RegexUnion = Z3_theory_mk_func_decl(ctx, Th, regexUnion_name, 2, regexUnion_domain, td->Regex);
 	//---------------------------
 	// RegexConcat := Regex x Regex --> Regex
-	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, "RegexConcat");
+	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, REGEXCONCAT);
 	Z3_sort regexConcat_domain[2];
 	regexConcat_domain[0] = td->Regex;
 	regexConcat_domain[1] = td->Regex;
@@ -1481,13 +1481,13 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->Unroll = Z3_theory_mk_func_decl(ctx, Th, unrollFunc_name, 2, unrollFunc_domain, td->String);
 	//---------------------------
 	// RegexPlus := Regex --> Regex
-	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, "RegexPlus");
+	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, REGEXPLUS);
 	Z3_sort regexPlus_domain[1];
 	regexPlus_domain[0] = td->Regex;
 	td->RegexPlus = Z3_theory_mk_func_decl(ctx, Th, regexPlus_name, 1, regexPlus_domain, td->Regex);
 	//---------------------------
 	// RegexCharRange := String x String --> Regex
-	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, "RegexCharRange");
+	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, REGEXCHARRANGE);
 	Z3_sort regexCharRange_domain[2];
 	regexCharRange_domain[0] = td->String;
 	regexCharRange_domain[1] = td->String;
@@ -5437,7 +5437,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			skipOverapprox == false) {
 			bool skipQuickSolver = false;
 			for (const auto& n : rewriterStrMap)
-				if (n.first.name.compare("=") == 0 && n.second.compare("true") != 0)
+				if (n.first.name.compare("=") == 0 && n.second.compare(TRUESTR) != 0)
 					skipQuickSolver = true;
 
 			if (!skipQuickSolver) {
@@ -7605,13 +7605,13 @@ void collectEqualValueInPositiveContext(
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 1);
 			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "false";
+				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = FALSETR;
 		}
 		else {
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = "true";
+				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = TRUESTR;
 		}
 	}
 	else if (astToString.find("(= ") != std::string::npos &&
@@ -7667,12 +7667,12 @@ bool collectReplaceValueInPositiveContext(
 	for (const auto& it : replaceStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = "true";
+				rewriterStrMap[it.first] = TRUESTR;
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = "false";
+				rewriterStrMap[it.first] = FALSETR;
 			return true;
 		}
 	}
@@ -7699,12 +7699,12 @@ bool collectReplaceAllValueInPositiveContext(
 	for (const auto& it : replaceAllStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = "true";
+				rewriterStrMap[it.first] = TRUESTR;
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = "false";
+				rewriterStrMap[it.first] = FALSETR;
 			return true;
 		}
 	}
@@ -7816,11 +7816,11 @@ void collectDataInPositiveContext(
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				if (astToString.find("$$_bool") != std::string::npos) {
 					collectBoolValueInPositiveContext(t, argAst, boolVars);
-					found01 = collectContainValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+					found01 = collectContainValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
-					found04 = collectEndsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
-					found05 = collectStartsWithValueInPositiveContext(t, argAst, "true", rewriterStrMap);
+					found04 = collectEndsWithValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
+					found05 = collectStartsWithValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found06 = collectReplaceValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
@@ -7833,11 +7833,11 @@ void collectDataInPositiveContext(
 					collectBoolValueInPositiveContext(t, argAst, boolVars);
 					std::string astToString = Z3_ast_to_string(ctx, boolNode);
 					if (astToString.find("$$_bool") != std::string::npos) {
-						found01 = collectContainValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+						found01 = collectContainValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-						found04 = collectEndsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
-						found05 = collectStartsWithValueInPositiveContext(t, boolNode, "false", rewriterStrMap);
+						found04 = collectEndsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
+						found05 = collectStartsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found06 = collectReplaceValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found07 = collectReplaceAllValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);

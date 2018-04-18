@@ -392,3 +392,74 @@ bool isConstStr(std::string str){
 	else
 		return false;
 }
+
+/*
+ *
+ */
+std::string createEqualConstraint(std::string x, std::string y){
+	return "(= " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createLessEqualConstraint(std::string x, std::string y){
+	return "(<= " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createLessConstraint(std::string x, std::string y){
+	return "(< " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createPlusOperator(std::string x, std::string y){
+	return "(+ " + x + " " + y + ")";
+}
+
+
+/*
+ *
+ */
+std::string createSelectConstraint(std::string arr, std::string at){
+	return "(select " + arr + " " + at + ")";
+}
+
+/*
+ *
+ */
+std::string createModOperator(std::string x, std::string y){
+	return "(mod " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createNotOperator(std::string x){
+	return "(not " + x + ")";
+}
+
+/*
+ *
+ */
+std::string createAssert(std::string x){
+	return "(assert " + x + ")";
+}
+
+/*
+ *
+ */
+std::string createArrayDefinition(std::string x){
+	return "(declare-const " + x + " (Array Int Int))";
+}
+
+/*
+ *
+ */
+std::string createIntDefinition(std::string x){
+	return "(declare-const " + x + " Int)";
+}

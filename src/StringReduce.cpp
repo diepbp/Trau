@@ -333,10 +333,10 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 				std::string substr2 = arg0Str.substr(index2);
 				arg0Str = substr0 + arg2Str + substr2;
 			}
-			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
+			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = TRUESTR;
 			return mk_str_value(t, arg0Str.c_str());
 		} else {
-			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
+			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = FALSETR;
 			return args[0];
 		}
 	} else {
@@ -580,10 +580,10 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 			std::string substr0 = arg0Str.substr(0, index1);
 			std::string substr2 = arg0Str.substr(index2);
 			std::string replaced = substr0 + arg2Str + substr2;
-			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
+			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = TRUESTR;
 			return mk_str_value(t, replaced.c_str());
 		} else {
-			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
+			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = FALSETR;
 			return args[0];
 		}
 	} else {
@@ -764,10 +764,10 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 			reduceAst = Z3_mk_false(ctx);
 		} else {
 			if (arg0Str.substr(0, arg1Str.length()) == arg1Str) {
-				startsWithStrMap[StringOP("StartsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = "true";
+				startsWithStrMap[StringOP(STARTSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
-				startsWithStrMap[StringOP("StartsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = "false";
+				startsWithStrMap[StringOP(STARTSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = FALSETR;
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
@@ -777,7 +777,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		Z3_ast ts1 = mk_internal_string_var(t);
 
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
-		startsWithStrMap[StringOP("StartsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = boolVar;
+		startsWithStrMap[StringOP(STARTSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = boolVar;
 		// boolVar = startswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> innerItems;
@@ -806,10 +806,10 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
 			reduceAst = Z3_mk_false(ctx);
 		} else {
 			if (arg0Str.substr(arg0Str.length() - arg1Str.length(), arg1Str.length()) == arg1Str) {
-				endsWithStrMap[StringOP("EndsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = "true";
+				endsWithStrMap[StringOP(ENDSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
-				endsWithStrMap[StringOP("EndsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = "false";
+				endsWithStrMap[StringOP(ENDSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = FALSETR;
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
@@ -818,7 +818,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAsser
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
-		endsWithStrMap[StringOP("EndsWith", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = boolVar;
+		endsWithStrMap[StringOP(ENDSWITH, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = boolVar;
 		// boolVar = endswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> innerItems;
@@ -845,10 +845,10 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		std::string arg1Str = getConstStrValue(t, args[1]);
 		if (arg0Str.find(arg1Str) != std::string::npos) {
 			int index = arg0Str.find(arg1Str);
-			indexOfStrMap[StringOP("Indexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", std::to_string(index));
+			indexOfStrMap[StringOP(INDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", std::to_string(index));
 			return mk_int(ctx, index);
 		} else {
-			indexOfStrMap[StringOP("Indexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
+			indexOfStrMap[StringOP(INDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -885,7 +885,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 		//  indexAst = |x1|
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
 
-		indexOfStrMap[StringOP("Indexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
+		indexOfStrMap[StringOP(INDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, LENPREFIX + std::string(Z3_ast_to_string(ctx, x1)));
 
 		if (!canSkipExt(t, args[1])) {
 			//     args[0]  = x3 . x4
@@ -939,10 +939,10 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 		std::string arg1Str = getConstStrValue(t, args[1]);
 		if (arg0Str.rfind(arg1Str) != std::string::npos) {
 			int index = arg0Str.rfind(arg1Str);
-			lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", std::to_string(index));
+			lastIndexOfStrMap[StringOP(LASTINDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", std::to_string(index));
 			return mk_int(ctx, index);
 		} else {
-			lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
+			lastIndexOfStrMap[StringOP(LASTINDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair("", "-1");
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -976,7 +976,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAs
 		Z3_ast condAst_x2 = registerContain(t, x2, args[1]);
 		thenItems.push_back(Z3_mk_not(ctx, condAst_x2));
 
-		lastIndexOfStrMap[StringOP("LastIndexof", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, x1)));
+		lastIndexOfStrMap[StringOP(LASTINDEXOF, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, LENPREFIX + std::string(Z3_ast_to_string(ctx, x1)));
 
 		if (!canSkipExt(t, args[1])) {
 			// args[0]  = x3 . x4 /\ |x3| = |x1| + 1 /\ ! contains(x4, args[1])
@@ -1058,7 +1058,7 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		breakdownAssert = mk_and_fromVector(t, tmp01);
 
 		carryOn[astBool] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
-		charAtStrMap[StringOP("CharAt", exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, "len_" + std::string(Z3_ast_to_string(ctx, ts0)));
+		charAtStrMap[StringOP(CHARAT, exportNodeName(t, args[0]), exportNodeName(t, args[1]))] = std::make_pair(boolVar, LENPREFIX + std::string(Z3_ast_to_string(ctx, ts0)));
 
 		return ts1;
 	}
@@ -1085,10 +1085,10 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		and_item[2] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
 
 		/* convert to string, prepare for replaceStrMap */
-		std::string tmp = "(= len_" + (string)Z3_ast_to_string(ctx, ts0) + " ";
+		std::string tmp = "(= " + std::string(LENPREFIX) + (std::string)Z3_ast_to_string(ctx, ts0) + " ";
 		tmp = tmp + Z3_ast_to_string(ctx, args[1]) + ")";
 
-		subStrStrMap[StringOP("Substring", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = tmp;
+		subStrStrMap[StringOP(SUBSTRING, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = tmp;
 		breakdownAssert = Z3_mk_and(ctx, 3, and_item);
 	}
 	else {
@@ -1096,7 +1096,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		Z3_ast and_item[2];
 		and_item[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
 		and_item[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
-		subStrStrMap[StringOP("Substring", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
+		subStrStrMap[StringOP(SUBSTRING, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = TRUESTR;
 		breakdownAssert = Z3_mk_and(ctx, 2, and_item);
 	}
 	return ts1;
@@ -1940,7 +1940,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)){
 		std::string tmp01 = Z3_ast_to_string(ctx, s1);
 		std::string tmp02 = Z3_ast_to_string(ctx, s2);
-		if (tmp01.find("CharAt") != std::string::npos || tmp02.find("CharAt") != std::string::npos){
+		if (tmp01.find(CHARAT) != std::string::npos || tmp02.find(CHARAT) != std::string::npos){
 			if (!isConstStr(t, s1) && isConstStr(t, s2)){
 				throw std::runtime_error("CharAt function accepts a const letter only!");
 			}

@@ -33,8 +33,6 @@ static std::vector<std::vector<std::string>> global_smtStatements;
 static std::set<std::string> allVariables;
 #endif
 
-static pthread_mutex_t smt_mutex;
-
 static int regexCnt;
 static std::map<std::pair<std::string, std::string>, bool> notContainMap;
 static std::vector<std::string> smtVarDefinition;
@@ -147,8 +145,7 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements,
-		std::map<std::string, int> &newVars);
+		std::vector<std::pair<std::string, int>> rhs_elements);
 
 /*
  *
@@ -324,7 +321,7 @@ void verifyOutput(std::string outFile,
 /*
  * convert lhs == rhs to SMT formula
  */
-std::pair<std::vector<std::string>, std::map<std::string, int>> equalityToSMT(
+std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
 		std::vector<std::pair<std::string, int>> rhs_elements);
