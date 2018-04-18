@@ -57,13 +57,21 @@
 
 #ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
+#define __print(_format, ...) { fprintf( logfile, (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define __debugPrintAxiom(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define printZ3Node(t, n) {__printNode( (t), (n));}
 #define printZ3NodeAxiom(t, n) {__printNodeAxiom( (t), (n));}
 #else
 #define __debugPrint(_fp, _format, ...) {}
+#define __print(_format, ...) {}
 #define printZ3Node(t, n) {}
 #endif
+
+#define TOUPPER "ToUpper"
+#define TOLOWER "ToLower"
+#define REPLACE "Replace"
+#define REPLACEALL "ReplaceAll"
+#define CONTAINS "Contains"
 
 struct TokenElement{
     TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}

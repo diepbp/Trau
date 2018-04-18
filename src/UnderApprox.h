@@ -45,7 +45,6 @@ static std::map<std::string, int> connectedVariables;
 
 //static std::map<std::pair<std::string, std::string>, std::string> constMap;
 static std::map<std::string, std::string> constMap;
-static std::map<std::string, std::set<std::string>> notMap;
 static std::map<std::string, int> varLength;
 static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 

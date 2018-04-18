@@ -1382,7 +1382,7 @@ Z3_theory mk_theory(Z3_context ctx) {
 	indexof2_domain[2] = IntSort;
 	td->Indexof2 = Z3_theory_mk_func_decl(ctx, Th, indexof2_name, 3, indexof2_domain, IntSort);
 	//---------------------------
-	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, "Contains");
+	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, CONTAINS);
 	Z3_sort contains_domain[2];
 	contains_domain[0] = td->String;
 	contains_domain[1] = td->String;
@@ -1400,14 +1400,14 @@ Z3_theory mk_theory(Z3_context ctx) {
 	endsWith_domain[1] = td->String;
 	td->EndsWith = Z3_theory_mk_func_decl(ctx, Th, endsWith_name, 2, endsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, "Replace");
+	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, REPLACE);
 	Z3_sort replace_domain[3];
 	replace_domain[0] = td->String;
 	replace_domain[1] = td->String;
 	replace_domain[2] = td->String;
 	td->Replace = Z3_theory_mk_func_decl(ctx, Th, replace_name, 3, replace_domain, td->String);
 	//---------------------------
-	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, "ReplaceAll");
+	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, REPLACEALL);
 	Z3_sort replaceAll_domain[3];
 	replaceAll_domain[0] = td->String;
 	replaceAll_domain[1] = td->String;
@@ -7488,7 +7488,7 @@ bool collectContainValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP("Contains", exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = value;
+			rewriterStrMap[StringOP(CONTAINS, exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = value;
 			return true;
 		}
 	}
@@ -7620,16 +7620,16 @@ void collectEqualValueInPositiveContext(
 		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 		if (toUpperMap.find(arg0) != toUpperMap.end()) {
-			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg0]), exportNodeName(t, arg1))] = "upper";
+			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg0]), exportNodeName(t, arg1))] = TOUPPER;
 		}
 		else if (toUpperMap.find(arg1) != toUpperMap.end()){
-			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg1]), exportNodeName(t, arg0))] = "upper";
+			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg1]), exportNodeName(t, arg0))] = TOUPPER;
 		}
 		else if (toLowerMap.find(arg1) != toLowerMap.end()){
-			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg1]), exportNodeName(t, arg0))] = "lower";
+			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg1]), exportNodeName(t, arg0))] = TOLOWER;
 		}
 		else if (toLowerMap.find(arg0) != toLowerMap.end()) {
-			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg0]), exportNodeName(t, arg1))] = "lower";
+			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg0]), exportNodeName(t, arg1))] = TOLOWER;
 		}
 	}
 }

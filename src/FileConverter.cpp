@@ -343,12 +343,12 @@ void updateContain(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 
-	int found = findTokens(tokens, 0, "Contains", 88);
+	int found = findTokens(tokens, 0, CONTAINS, 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		StringOP op(findStringOP(tokens, "Contains", 2, found));
+		StringOP op(findStringOP(tokens, CONTAINS, 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		if (rewriterStrMap[op].compare("true") == 0)
 			tokens = replaceTokens(tokens, found - 1, pos, "true", 15);
@@ -356,7 +356,7 @@ void updateContain(
 			tokens = replaceTokens(tokens, found - 1, pos, "false", 7);
 		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		found = findTokens(tokens, 0, "Contains", 88);
+		found = findTokens(tokens, 0, CONTAINS, 88);
 	}
 }
 
@@ -442,7 +442,7 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, "Replace", 88);
+	int found = findTokens(tokens, 0, REPLACE, 88);
 	while (found != -1){
 		while (found >= 0) {
 			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
@@ -453,7 +453,7 @@ void updateReplace(
 			else
 				found = found - 1;
 		}
-		found = findTokens(tokens, found, "Replace", 88);
+		found = findTokens(tokens, found, REPLACE, 88);
 	}
 }
 
@@ -463,7 +463,7 @@ void updateReplace(
 void updateReplaceAll(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, "ReplaceAll", 88);
+	int found = findTokens(tokens, 0, REPLACEALL, 88);
 	while (found != -1){
 		while (found >= 0) {
 			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
@@ -474,7 +474,7 @@ void updateReplaceAll(
 			else
 				found = found - 1;
 		}
-		found = findTokens(tokens, found, "ReplaceAll", 88);
+		found = findTokens(tokens, found, REPLACEALL, 88);
 	}
 }
 

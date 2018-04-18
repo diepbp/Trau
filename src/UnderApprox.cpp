@@ -13,7 +13,8 @@
  */
 
 #include "UnderApprox.h"
-
+#define NOTFOUND "!FoUnD"
+#define FLATPREFIX "__flat_"
 bool trivialUnsat = false;
 
 /*
@@ -31,9 +32,9 @@ std::string getPossibleValue(std::string s){
 						return value[0];
 			}
 		else
-			return "!FoUnD";
+			return NOTFOUND;
 	}
-	return "!FoUnD";
+	return NOTFOUND;
 }
 
 bool isEqualVector(std::vector<std::string> a, std::vector<std::string> b) {
@@ -148,7 +149,7 @@ void handleCase_0_0(
 	/* left = right */
 	tmpLeft.emplace_back(0);
 	tmpRight.emplace_back(0);
-	arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+	arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 }
 
 /*
@@ -162,7 +163,7 @@ void handleCase_0_0_general(){
 		/* left = right */
 		tmpLeft.emplace_back(0);
 		tmpRight.emplace_back(0);
-		arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 	}
 }
 
@@ -186,7 +187,7 @@ void handleCase_n_0(
 		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 
 		/* update */
 		if (usingFilter == true) {
@@ -221,7 +222,7 @@ void handleCase_n_0_general(
 		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 
 		/* add directly without checking */
 		if (arrangements[std::make_pair(i, 0)].size() == 0) {
@@ -250,7 +251,7 @@ void handleCase_0_n(
 		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 
 		/* update */
 		if (usingFilter == true) {
@@ -284,7 +285,7 @@ void handleCase_0_n_general(
 		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 
 		/* update */
 		/* add directly without checking */
@@ -318,7 +319,7 @@ void handleCase_n_n(
 					std::vector<int> tmpRight;
 					for (unsigned int k = 0 ; k <= j; ++k)
 						tmpRight.emplace_back(i);
-					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 				}
 
 				/* [i] = sum (k..j) */
@@ -358,7 +359,7 @@ void handleCase_n_n(
 					for (unsigned int k = 0; k < j; ++k)
 						tmpRight.emplace_back(EMPTYFLAT);
 					tmpRight.emplace_back(SUMFLAT);
-					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 				}
 
 				/* fourth case: left = right */
@@ -398,7 +399,6 @@ void handleCase_n_n_general(
 	for (int i = 0 ; i < lhs; ++i)
 		for (int j = 0; j < rhs; ++j)
 			if (arrangements.find(std::make_pair(i,j)) == arrangements.end()){
-				// printf("%d ..>>> calculate (%d, %d)\n", __LINE__, i, j);
 				/* 2.0 [i] = empty */
 				std::vector<Arrangment> tmp01_ext = arrangements[std::make_pair(i - 1, j)];
 				for (unsigned int t = 0 ; t < tmp01_ext.size(); ++t) {
@@ -427,7 +427,7 @@ void handleCase_n_n_general(
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 				}
 
 				/* [i] = sum (k..j) */
@@ -478,7 +478,7 @@ void handleCase_n_n_general(
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, notMap));
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
 				}
 
 				/* fourth case: left = right */
@@ -491,15 +491,9 @@ void handleCase_n_n_general(
 				/* update */
 				/* add directly */
 				std::vector<Arrangment> possibleCases;
-				//				possibleCases.insert(possibleCases.end(), tmp01_ext.begin(), tmp01_ext.end());
-				//				possibleCases.insert(possibleCases.end(), tmp02_ext.begin(), tmp02_ext.end());
 				possibleCases.insert(possibleCases.end(), tmp03.begin(), tmp03.end());
 				possibleCases.insert(possibleCases.end(), tmp04.begin(), tmp04.end());
 				possibleCases.insert(possibleCases.end(), tmp05.begin(), tmp05.end());
-
-				//				std::vector<Arrangment> possibleCases_filtered;
-				//				updatePossibleArrangements(possibleCases, possibleCases_filtered);
-				//				arrangements[std::make_pair(i, j)] = possibleCases_filtered;
 				arrangements[std::make_pair(i, j)] = possibleCases;
 			}
 }
@@ -530,7 +524,7 @@ Arrangment manuallyCreate_arrangment(
  		for (unsigned i = 0; i < rhs_elements.size(); ++i)
  			right_arr.emplace_back(1);
  	}
-	return Arrangment(left_arr, right_arr, constMap, notMap);
+	return Arrangment(left_arr, right_arr, constMap);
 }
 
 /*
@@ -564,7 +558,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* because of "general" functions, we need to refine arrangements */
 	std::vector<Arrangment> possibleCases;
-	if (lhs_elements[0].first.find("__flat_") != std::string::npos ||
+	if (lhs_elements[0].first.find(FLATPREFIX) != std::string::npos ||
 			(lhs_elements.size() == 2 &&
 					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second % QMAX == 1) ||
 					  (lhs_elements[0].second % QCONSTMAX == -1 && lhs_elements[1].second % QCONSTMAX == 0)))) {
@@ -618,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-				//__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -676,7 +670,7 @@ bool canSkipNotContain(
 	for (const auto& var : equalitiesMap)
 			for (const auto& _eq : var.second) {
 				if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
-					StringOP opTmp("Contains", var.first, arg);
+					StringOP opTmp(CONTAINS, var.first, arg);
 					if (rewriterStrMap[opTmp].compare("false") == 0) {
 						__debugPrint(logFile, "%d *** %s ***: Contains - %s - %s\n", __LINE__, __FUNCTION__, v.c_str(), arg.c_str());
 						return true;
@@ -947,7 +941,6 @@ std::string create_constraints_ReplaceAll(
 				if (tmp.length() == 0)
 					continue;
 
-				__debugPrint(logFile, "%d reach half: %s\n", __LINE__, tmp.c_str());
 				/* */
 				for (const auto& var : eqToStr) {
 
@@ -968,7 +961,6 @@ std::string create_constraints_ReplaceAll(
 										result += "(= " + constMap[listRegexPlus00[i]] + "__p0 " + constMap[listRegexPlus01[i]] +"__p0) ";
 										__debugPrint(logFile, "%d %s vs %s\n", __LINE__, listRegexPlus00[i].c_str(), listRegexPlus01[i].c_str());
 									}
-									__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, result.c_str());
 
 								}
 								else
@@ -1166,7 +1158,7 @@ void handle_NOTContains(
 		std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::pair<std::string, std::string>, bool> done;
 	for (const auto& element : rewriterStrMap){
-		if (element.first.name.compare("Contains") == 0){
+		if (element.first.name.compare(CONTAINS) == 0){
 			if (element.second.compare("false") == 0){
 				if (element.first.arg01.find("Concat ") != std::string::npos ||
 						element.first.arg02.find("Concat ") != std::string::npos ||
@@ -1178,18 +1170,18 @@ void handle_NOTContains(
 				std::string value02 = getPossibleValue(element.first.arg02);
 				std::string value01 = getPossibleValue(element.first.arg01);
 				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
-				if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") == 0 &&
+				if (value02.compare(NOTFOUND) != 0 && value01.compare(NOTFOUND) == 0 &&
 						done.find(std::make_pair(element.first.arg01, value02)) == done.end()) {
 
 					global_smtStatements.push_back({create_constraints_NOTContain(element.first.arg01, value02)});
 
 					done[std::make_pair(element.first.arg01, value02)] = true;
 				}
-				else if (value02.compare("!FoUnD") == 0 && value01.compare("!FoUnD") != 0 &&
+				else if (value02.compare(NOTFOUND) == 0 && value01.compare(NOTFOUND) != 0 &&
 						done.find(std::make_pair(value01, element.first.arg02)) == done.end()) {
 					// TODO handle_NOTContains
 				}
-				else if (value02.compare("!FoUnD") != 0 && value01.compare("!FoUnD") != 0) {
+				else if (value02.compare(NOTFOUND) != 0 && value01.compare(NOTFOUND) != 0) {
 					/* const vs const */
 					if (value01.find(value02.substr(1, value02.length() - 2)) == std::string::npos)
 						return;
@@ -1250,7 +1242,7 @@ void handle_EndsWith(
  */
 void handle_Replace(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("Replace") == 0){
+		if (s.first.name.compare(REPLACE) == 0){
 		}
 	}
 }
@@ -1275,7 +1267,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 	}
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("ReplaceAll") == 0){
+		if (s.first.name.compare(REPLACEALL) == 0){
 			std::vector<std::string> args = {s.first.arg01, s.first.arg02, s.first.arg03};
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
@@ -1286,7 +1278,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare("upper") == 0){
+		if (s.second.compare(TOUPPER) == 0){
 			global_smtStatements.push_back({create_constraints_ToUpper(s.first.arg01, s.first.arg02)});
 		}
 	}
@@ -1297,7 +1289,7 @@ void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare("lower") == 0){
+		if (s.second.compare(TOLOWER) == 0){
 			global_smtStatements.push_back({create_constraints_ToLower(s.first.arg01, s.first.arg02)});
 		}
 	}
@@ -1519,7 +1511,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			}
 		}
 
-		if (var.find("__flat_") != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
+		if (var.find(FLATPREFIX) != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
 			/* they are internal variables */
 			defines.emplace_back("(declare-const " + lenVarName + " Int)");
 		}
@@ -1715,7 +1707,7 @@ void printSatisfyingAssignments(
 		std::string value = intResultMap[tokens[1]];
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
-				tokens[1].find("__flat_") == std::string::npos) {
+				tokens[1].find(FLATPREFIX) == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare("len_") == 0) {
 			}
 			else {
@@ -1726,7 +1718,7 @@ void printSatisfyingAssignments(
 
 	for (const auto& value : strValue)
 		if (value.first.find("$$") == std::string::npos &&
-				value.first.find("__flat_") == std::string::npos &&
+				value.first.find(FLATPREFIX) == std::string::npos &&
 				value.first.find("const") != 0 &&
 				value.first[0] != '"'){
 			printf("%s : %s\n", value.first.c_str(), value.second.c_str());
@@ -1756,7 +1748,7 @@ void verifyOutput(std::string outFile,
 		__debugPrint(logFile, "%d %s %s\n", __LINE__, def.c_str(), value.c_str());
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
-				tokens[1].find("__flat_") == std::string::npos) {
+				tokens[1].find(FLATPREFIX) == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare("len_") == 0) {
 				std::string tmp = def.substr(4);
 				additionalAssertions.emplace_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
@@ -1769,7 +1761,7 @@ void verifyOutput(std::string outFile,
 
 	for (const auto& value : strValue)
 		if (value.first.find("$$") == std::string::npos &&
-				value.first.find("__flat_") == std::string::npos &&
+				value.first.find(FLATPREFIX) == std::string::npos &&
 				value.first.find("const") != 0 &&
 				value.first[0] != '"'){
 			additionalAssertions.emplace_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
@@ -2229,10 +2221,10 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		if (s.first.name.compare("CharAt") == 0 ||
 				s.first.name.compare("StartsWith") == 0 ||
 				s.first.name.compare("EndsWith") == 0 ||
-				s.first.name.compare("Replace") == 0 ||
-				s.first.name.compare("ReplaceAll") == 0 ||
-				(s.first.name.compare("Contains") == 0 && s.second.compare("false") == 0) ||
-				(s.first.name.compare("=") == 0 && (s.second.compare("false") == 0 || s.second.compare("upper") == 0 || s.second.compare("lower") == 0))){
+				s.first.name.compare(REPLACE) == 0 ||
+				s.first.name.compare(REPLACEALL) == 0 ||
+				(s.first.name.compare(CONTAINS) == 0 && s.second.compare("false") == 0) ||
+				(s.first.name.compare("=") == 0 && (s.second.compare("false") == 0 || s.second.compare(TOUPPER) == 0 || s.second.compare(TOLOWER) == 0))){
 			StringOP op = s.first;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
@@ -2872,7 +2864,7 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 std::vector<std::string> createSetOfFlatVariables(int flatP) {
 	std::vector<std::string> result;
 	for (int i = 0 ; i < flatP; ++i) {
-		std::string varName = "__flat_" + std::to_string(noFlatVariables + i);
+		std::string varName = FLATPREFIX + std::to_string(noFlatVariables + i);
 		result.emplace_back(varName);
 		connectedVariables[varName] = CONNECTSIZE;
 		allVariables.insert(varName);
@@ -3215,10 +3207,10 @@ std::string getTrivialRegex(std::string s, int length){
 		if (found == true)
 			return ret;
 		else
-			return "!fOuNd";
+			return NOTFOUND;
 	}
 	else {
-		return "!fOuNd";
+		return NOTFOUND;
 	}
 }
 
@@ -3244,7 +3236,7 @@ std::string getValueFromRegex(std::string s, int length){
 		if (found == true)
 			return ret;
 		else
-			return "!fOuNd";
+			return NOTFOUND;
 	}
 	else if (isUnionStr(s)){
 		std::vector<std::string> components = collectAlternativeComponents(s);
@@ -3252,13 +3244,13 @@ std::string getValueFromRegex(std::string s, int length){
 			if ((int)c.length() == length)
 				return c;
 		assert(false);
-		return "!fOuNd";
+		return NOTFOUND;
 	}
 	else {
 		/**
 		 * simple const
 		 */
-		return "!fOuNd";
+		return NOTFOUND;
 	}
 }
 
@@ -3299,7 +3291,7 @@ void syncConst(
 			else {
 				int varLength = getVarLength(var.first, len);
 				std::string tmp = getTrivialRegex(var.first, varLength);
-				if (tmp.compare("!fOuNd") != 0) {
+				if (tmp.compare(NOTFOUND) != 0) {
 					assert(varLength == (int)tmp.length());
 					std::vector<int> tmpVector(varLength, 0);
 					for (int i = 0; i < varLength; ++i)
@@ -3346,7 +3338,7 @@ void syncConst(
 						/* find value */
 						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
 						std::string tmpRegex = getTrivialRegex(s, getVarLength(s, len));
-						if (tmpRegex.compare("!fOuNd") != 0) {
+						if (tmpRegex.compare(NOTFOUND) != 0) {
 							std::vector<int> tmpVector;
 							for (unsigned i = 0; i < tmpRegex.length(); ++i)
 								tmpVector.emplace_back(tmpRegex[i]);
@@ -3500,6 +3492,13 @@ void forwardPropagate(
 		bool foundInParents = false;
 		for (const auto& eq : var.second)
 			if (std::find(eq.begin(), eq.end(), newlyUpdate) != eq.end()) {
+				for (unsigned i = 0; i < value.size(); ++i)
+					if (value[i] != 0) {
+						__debugPrint(logFile, "%c", (char)value[i]);
+					}
+					else
+						__debugPrint(logFile, "%d", value[i]);
+				__debugPrint(logFile, "\n");
 				int pos = 0;
 				for (const auto& s : eq) {
 					int varLength = getVarLength(s, len);
@@ -3512,6 +3511,7 @@ void forwardPropagate(
 								foundInParents = true;
 							}
 							else if (value[pos + i] != 0 && sValue[i] != 0 && value[pos + i] != sValue[i]) {
+								__debugPrint(logFile, "%d error when %s at %d/%ld of %s\n", __LINE__, newlyUpdate.c_str(), pos, value.size(), var.first.c_str());
 								len[newlyUpdate] = -10001;
 								completion = false;
 								return;
@@ -3907,7 +3907,7 @@ void formatRegexes(
 
 			if (needValue(varName, len, strValue)) {
 				std::string tmp = getValueFromRegex(varName, getVarLength(varName, len));
-				if (tmp.compare("!fOuNd") == 0) {
+				if (tmp.compare(NOTFOUND) == 0) {
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, varName.c_str());
 					}
@@ -4426,7 +4426,7 @@ void addConnectedVarToEQmap(){
  */
 void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
-		if (op.first.name.compare("Contains") == 0 && op.second.compare("false") == 0){
+		if (op.first.name.compare(CONTAINS) == 0 && op.second.compare("false") == 0){
 			if (op.first.arg02[0] == '"') {
 				notContainMap[std::make_pair(op.first.arg01, op.first.arg02.substr(1, op.first.arg02.length() - 2))] = false;
 			}
@@ -4681,7 +4681,7 @@ bool underapproxController(
 			regexCnt = 0;
 			toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
-				printf(">> UNSAT %d\n", __LINE__);
+				printf(">> UNSAT\n");
 				return false;
 			}
 			writeOutput_basic(OUTPUT);

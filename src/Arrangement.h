@@ -25,25 +25,19 @@ public:
 	std::vector<int> left_arr;
 	std::vector<int> right_arr;
 
-	// std::map<std::pair<std::string, std::string>, std::string> constMap; // extra info for all Arrangement
 	std::map<std::string, std::string> constMap; // extra info for all Arrangement
-	std::map<std::string, std::set<std::string>> notMap; // extra info for all Arrangement
 
 	Arrangment(std::vector<int> _left_arr,
 			std::vector<int> _right_arr,
-			//			std::map<std::pair<std::string, std::string>, std::string> _constMap,
-			std::map<std::string, std::string> _constMap,
-			std::map<std::string, std::set<std::string>> _notMap){
+			std::map<std::string, std::string> _constMap){
 
 		constMap.clear();
-		notMap.clear();
 
 		left_arr.insert(left_arr.end(), _left_arr.begin(), _left_arr.end());
 		right_arr.insert(right_arr.end(), _right_arr.begin(), _right_arr.end());
 
 		/* extra info */
 		constMap.insert(_constMap.begin(), _constMap.end());
-		notMap.insert(_notMap.begin(), _notMap.end());
 
 	}
 
@@ -214,11 +208,6 @@ public:
 		else /* cannot happens */ {
 			// isloopExist = false;
 		}
-
-		/* print test */
-//		for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-//			printf("\t%d %d at pos = %d\n", __LINE__, possibleCases[i], posLhs);
-//		}
 
 		return possibleCases;
 	}
@@ -703,8 +692,7 @@ public:
 	 */
 	std::vector<std::vector<int> > collectAllPossibleSplits(
 			std::pair<std::string, int> lhs,
-			std::vector<std::pair<std::string, int> > elementNames,
-			int pMax
+			std::vector<std::pair<std::string, int> > elementNames
 	){
 		/* create alias elementNames with smaller number of elements*/
 		std::vector<std::pair<std::string, int> > alias;
@@ -735,9 +723,7 @@ public:
 		else if (lhs.second % QMAX == 0) /* tail */ {
 			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
-				__debugPrint(logFile, "%d try lhs = %s: %ld\n", __LINE__, lhs.first.substr(i).c_str(), allPossibleSplits.size());
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
-				__debugPrint(logFile, "%d >> finished: %ld \n", __LINE__, allPossibleSplits.size());
 			}
 		}
 		else if (lhs.second % QMAX == -1) /* head */ {
@@ -810,9 +796,12 @@ public:
 		std::vector<std::string> addElements;
 
 		if (a.second != REGEX_CODE) {
-			for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
-				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
-			}
+			if (a.second % QCONSTMAX != -1)
+				for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
+					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+					if (i % QCONSTMAX == -1)
+						break;
+				}
 
 			if (a.second % QMAX != 0)
 				for (int i = a.second - 1; i >= 0; --i){ /* a is var */
@@ -839,9 +828,12 @@ public:
 			std::string rhs) {
 		std::vector<std::string> addElements;
 		if (a.second != REGEX_CODE) {
-			for (int i = a.second + 1; i < 0; ++i){ /* a is const */
-				addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
-			}
+			if (a.second % QCONSTMAX != -1)
+				for (int i = a.second + 1; i < 0; ++i){ /* a is const */
+					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+					if (i % QCONSTMAX == -1)
+						break;
+				}
 
 			if (a.second % QMAX != 0)
 				for (int i = a.second - 1; i >= 0; --i){ /* a is var */
@@ -2163,14 +2155,6 @@ public:
 				elements.emplace_back(a);
 				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables);
 			}
-
-			/* constraint for not equal */
-			/* (not (= len_b a.length)) */
-			// TODO not equal
-			if (notMap.find(b.first) != notMap.end() &&
-					notMap[b.first].find(a.first) != notMap[b.first].end()) {
-				result = result + " " + notConstraint(a, b);
-			}
 		}
 
 		else { /* isConstB */
@@ -2180,14 +2164,6 @@ public:
 				std::vector<std::pair<std::string, int>> elements;
 				elements.emplace_back(b);
 				result = result + " " + unrollConnectedVariable(a, elements, lhs_str, rhs_str, connectedVariables);
-			}
-
-			/* constraint for not equal */
-			/* (not (= len_a b.length)) */
-			// TODO not equal
-			if (notMap.find(a.first) != notMap.end() &&
-					notMap[a.first].find(b.first) != notMap[a.first].end()) {
-				result = result + " " + notConstraint(a, b);
 			}
 		}
 
@@ -2205,14 +2181,6 @@ public:
 			std::map<std::string, int> connectedVariables){
 		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 		std::string result = "";
-		/* constraint for not equal */
-		for (unsigned i = 0; i < elementNames.size(); ++i)
-			if ((notMap.find(elementNames[i].first) != notMap.end() &&
-					notMap[elementNames[i].first].find(a.first) != notMap[elementNames[i].first].end()) ||
-					(notMap.find(a.first) != notMap.end() &&
-							notMap[a.first].find(elementNames[i].first) != notMap[a.first].end())) {
-				result = result + " " + notConstraint(a, elementNames[i]);
-			}
 
 		if (a.second < 0) { /* const string or regex */
 			/* check feasibility */
@@ -2246,8 +2214,6 @@ public:
 				/* regex */
 			}
 
-			__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
-
 			/* collect */
 			/* only handle the case of splitting const string into two parts*/
 			std::vector<std::string> addElements;
@@ -2271,8 +2237,7 @@ public:
 			}
 			else if (splitType == 1) {
 				/* handle const */
-				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
-				__debugPrint(logFile, "%d allPossibleSplits = %ld\n", __LINE__, allPossibleSplits.size());
+				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames);
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
@@ -2290,23 +2255,18 @@ public:
 			}
 			else {
 				/* handle connected var */
-				// result = result + " " + connectedVar_anywhere(a, elementNames, lhs_str, rhs_str, connectedVariables, newVars);
-				__debugPrint(logFile, "%d >> %s: step 01\n", __LINE__, __FUNCTION__);
 				/* handle const */
-				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, pMax);
-				__debugPrint(logFile, "%d >> %s: step 02: %ld\n", __LINE__, __FUNCTION__, allPossibleSplits.size());
+				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames);
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
 					strSplits.emplace(fromSplitToLengConstraint_havingConnectedVar_andConst(a, elementNames, allPossibleSplits[i], lhs_str, rhs_str, connectedVariables));
 				}
-				__debugPrint(logFile, "%d >> %s: step done\n", __LINE__, __FUNCTION__);
 				if (strSplits.size() > 0)
 					result = result + " " + orConstraint(strSplits);
 				else
 					return "";
 			}
-			__debugPrint(logFile, "%d >> %s: finished\n", __LINE__, __FUNCTION__);
 		}
 
 		else {

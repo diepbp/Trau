@@ -333,10 +333,10 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 				std::string substr2 = arg0Str.substr(index2);
 				arg0Str = substr0 + arg2Str + substr2;
 			}
-			replaceAllStrMap[StringOP("ReplaceAll", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
+			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
 			return mk_str_value(t, arg0Str.c_str());
 		} else {
-			replaceAllStrMap[StringOP("ReplaceAll", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
+			replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
 			return args[0];
 		}
 	} else {
@@ -364,7 +364,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAss
 		// condAst = Contains(args[0], args[1])
 		Z3_ast condAst_arg00 = registerContain(t, args[0], args[1]);
 		std::string boolName = Z3_ast_to_string(ctx, condAst_arg00);
-		replaceAllStrMap[StringOP("ReplaceAll", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = boolName;
+		replaceAllStrMap[StringOP(REPLACEALL, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = boolName;
 
 		bool update = true;
 		bool canSkip = canSkipExt(t, args[1]);
@@ -580,10 +580,10 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 			std::string substr0 = arg0Str.substr(0, index1);
 			std::string substr2 = arg0Str.substr(index2);
 			std::string replaced = substr0 + arg2Str + substr2;
-			replaceStrMap[StringOP("Replace", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
+			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "true";
 			return mk_str_value(t, replaced.c_str());
 		} else {
-			replaceStrMap[StringOP("Replace", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
+			replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = "false";
 			return args[0];
 		}
 	} else {
@@ -603,7 +603,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert
 
 		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
 		std::string boolName = Z3_ast_to_string(ctx, condAst_arg0);
-		replaceStrMap[StringOP("Replace", exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = boolName;
+		replaceStrMap[StringOP(REPLACE, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = boolName;
 
 		// -----------------------
 		// true branch
