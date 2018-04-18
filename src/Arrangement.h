@@ -19,8 +19,6 @@
 #define REGEX_CODE -100
 #define MINUSZERO 999
 
-#define ZERO "0"
-
 class Arrangment{
 public:
 
@@ -953,7 +951,6 @@ public:
 							split[splitPos],
 							lhs, rhs,
 							connectedVariables);
-//					__debugPrint(logFile, "%d constraintForConnectedVar: %s\n", __LINE__, constraintForConnectedVar.c_str());
 					strAnd.emplace_back(constraintForConnectedVar);
 					if (split[splitPos] == MINUSZERO) {
 						/* looping */
@@ -981,7 +978,9 @@ public:
 					}
 					else {
 						assert(elementNames[i + 1].second % QCONSTMAX == 0);
-						strAnd.emplace_back(createEqualConstraint("(+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ")", std::to_string(split[splitPos] + split[splitPos + 1])));
+						strAnd.emplace_back(createEqualConstraint(
+								"(+ " + generateFlatSize(elementNames[i], rhs) + " " + generateFlatSize(elementNames[i + 1], rhs) + ")",
+								std::to_string(split[splitPos] + split[splitPos + 1])));
 						i++;
 						splitPos += 2;
 					}
@@ -991,17 +990,23 @@ public:
 						/* looping at 0 */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.emplace_back(createEqualConstraint(ZERO, createModOperator(generateFlatSize(elementNames[i], rhs), std::to_string(content.length()))));
+						strAnd.emplace_back(createEqualConstraint(
+								ZERO,
+								createModOperator(generateFlatSize(elementNames[i], rhs), std::to_string(content.length()))));
 						splitPos++;
 					}
 					else if (split[splitPos] < 0) {
 						/* looping */
 						assert(elementNames[i].second == REGEX_CODE);
 						assert(a.second == REGEX_CODE);
-						strAnd.emplace_back(createEqualConstraint(createModOperator(generateFlatSize(elementNames[i], rhs), std::to_string(content.length())), std::to_string(std::abs(split[splitPos++]))));
+						strAnd.emplace_back(createEqualConstraint(
+								createModOperator(generateFlatSize(elementNames[i], rhs), std::to_string(content.length())),
+								std::to_string(std::abs(split[splitPos++]))));
 					}
 					else
-						strAnd.emplace_back(createEqualConstraint(generateFlatSize(elementNames[i], rhs), std::to_string(split[splitPos++])));
+						strAnd.emplace_back(createEqualConstraint(
+								generateFlatSize(elementNames[i], rhs),
+								std::to_string(split[splitPos++])));
 				}
 			}
 		}
@@ -1022,12 +1027,16 @@ public:
 			if (split[splitPos] == MINUSZERO) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.emplace_back(createEqualConstraint(ZERO, createModOperator(addConstraint_full(addElements), std::to_string(content.length()))));
+				strAnd.emplace_back(createEqualConstraint(
+						ZERO,
+						createModOperator(addConstraint_full(addElements), std::to_string(content.length()))));
 			}
 			else if (split[splitPos] < 0) {
 				/* looping */
 				assert(a.second == REGEX_CODE);
-				strAnd.emplace_back(createEqualConstraint(createModOperator(addConstraint_full(addElements), std::to_string(content.length())), std::to_string(std::abs(split[splitPos]))));
+				strAnd.emplace_back(createEqualConstraint(
+						createModOperator(addConstraint_full(addElements), std::to_string(content.length())),
+						std::to_string(std::abs(split[splitPos]))));
 			}
 			else {
 				strAnd.emplace_back(createEqualConstraint(addConstraint_full(addElements), std::to_string(split[splitPos])));
