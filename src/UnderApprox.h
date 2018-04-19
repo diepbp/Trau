@@ -542,6 +542,38 @@ bool needValue(std::string name,
 /*
  * create str values after running Z3
  */
+void formatOtherVars(
+		std::vector<unsigned> indexes,
+		std::map<std::string, std::string> solverValues,
+		std::vector<std::pair<std::string, int>> lenVector,
+		std::map<std::string, int> &len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
+
+/*
+ *
+ */
+void formatRegexes(
+		std::vector<unsigned> indexes,
+		std::map<std::string, std::string> solverValues,
+		std::vector<std::pair<std::string, int>> lenVector,
+		std::map<std::string, int> &len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
+
+/*
+ *
+ */
+void formatConnectedVars(
+		std::vector<unsigned> indexes,
+		std::map<std::string, std::string> solverValues,
+		std::vector<std::pair<std::string, int>> lenVector,
+		std::map<std::string, int> &len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
+/*
+ * create str values after running Z3
+ */
 std::map<std::string, std::string> formatResult(
 		std::map<std::string,
 		std::string> len,
