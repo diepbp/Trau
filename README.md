@@ -49,7 +49,9 @@ Running Example(s)
 where the file "examples/concat-006" contents are the following:
 ```
 	(declare-fun a () String)
-	(assert (= (Concat a "hello") "testhello"))
+	(declare-fun b () String)
+	(assert (= (Concat a "hello") b))
+	(assert (= b "testhello"))
 	(check-sat)
 ```	
 When Trau terminates, it prints results as follows:

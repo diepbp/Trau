@@ -1,7 +1,9 @@
 (declare-fun a () String)
 (declare-fun b () String)
+(declare-fun x () String)
 
-(assert (= (Concat a b) "testhello"))
+(assert (= x "testhello"))
+(assert (= (Concat a b) x))
 (assert (= a "testhe"))
 
 (check-sat)

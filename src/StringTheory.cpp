@@ -1622,9 +1622,9 @@ void Th_push(Z3_theory t) {
    \see Th_push
  */
 void Th_pop(Z3_theory t) {
-//	__debugPrint(logFile, "\n*******************************************\n");
-//	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
-//	__debugPrint(logFile, "\n*******************************************\n");
+	__debugPrint(logFile, "\n*******************************************\n");
+	__debugPrint(logFile, "[POP]: Level = %d\n", sLevel - 1);
+	__debugPrint(logFile, "\n*******************************************\n");
 
 	for (std::map<std::pair<Z3_ast, int>, Automaton>::iterator it = internalVarMap.begin(); it != internalVarMap.end(); ++it) {
 		if (it->first.second == sLevel && it->second.name.compare(UNKNOWN_AUTOMATON) != 0) {
@@ -1732,8 +1732,11 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 			}
 		}
 	}
-	if (done == true || skipOverapprox == true)
+	if (done == true || skipOverapprox == true) {
+		if (done)
+			__debugPrint(logFile, "%d Completed!\n", __LINE__);
 		return;
+	}
 
 
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
@@ -4267,14 +4270,14 @@ void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list)
 	Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
 	Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
 
-	if (isStrVariable(t, arg0))
+	if (isStrVariable(t, arg0) || isAutomatonFunc(t, arg0))
 		list.emplace_back(arg0);
 	else {
 		if (isConcatFunc(t, arg0))
 			collect_node_in_concat(t, arg0, list);
 	}
 
-	if (isStrVariable(t, arg1))
+	if (isStrVariable(t, arg1) || isAutomatonFunc(t, arg1))
 		list.emplace_back(arg1);
 	else {
 		if (isConcatFunc(t, arg1))
@@ -5358,8 +5361,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 	printf(".");
 	calculateConcatLength(t);
 
-	if (done)
+	if (done) {
+		__debugPrint(logFile, "%d Completed!\n", __LINE__);
 		return Z3_TRUE;
+	}
 
 	if (checkDone(t))
 		return Z3_TRUE;
@@ -5444,6 +5449,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 				updateLength(t);
 
 				if (!assignedConcrete && assignConcreteValue(t)){
+					__debugPrint(logFile, "%d Completed!\n", __LINE__);
 					done = true;
 					return Z3_TRUE;
 				}
@@ -6043,7 +6049,7 @@ void splitValueForConcat(
 		std::map<Z3_ast, int> len_values,
 		std::map<Z3_ast, std::string> &assignments,
 		bool &completion){
-	__debugPrint(logFile, "%d *** %s ***: at %d / %s\n", __LINE__, __FUNCTION__, pos, value.c_str());
+	__debugPrint(logFile, "%d *** %s ***: at %d / %s, list size = %ld\n", __LINE__, __FUNCTION__, pos, value.c_str(), list.size());
 	if (pos == (int) list.size()) {
 		if (value.length() == 0) {
 			completion = true;
@@ -6063,10 +6069,15 @@ void splitValueForConcat(
 			return;
 		}
 		else {
+			if (assignments.find(list[pos]) != assignments.end() &&
+					assignments[list[pos]].compare(str_values[list[pos]]) != 0)
+				return;
+
 			assignments[list[pos]] = str_values[list[pos]];
 			splitValueForConcat(t, list, value.substr(leng), pos + 1, str_values, len_values, assignments, completion);
 			if (completion)
 				return;
+			assignments.erase(list[pos]);
 		}
 	}
 
@@ -6076,18 +6087,29 @@ void splitValueForConcat(
 		if (leng > (int)value.length())
 			return;
 		std::string tmp = value.substr(0, leng);
+
+		if (assignments.find(list[pos]) != assignments.end() &&
+						assignments[list[pos]].compare(tmp) != 0)
+					return;
+
 		if (matchAutomaton(t, list[pos], tmp)){
 			assignments[list[pos]] = tmp;
 			splitValueForConcat(t, list, value.substr(leng), pos + 1, str_values, len_values, assignments, completion);
 
 			if (completion)
 				return;
+			assignments.erase(list[pos]);
 		}
 	}
 
 	/* take all remaining string */
 	else if (pos == (int)list.size() - 1) {
 		__debugPrint(logFile, "%d matchAutomaton %s at %d\n", __LINE__, value.c_str(), pos);
+
+		if (assignments.find(list[pos]) != assignments.end() &&
+				assignments[list[pos]].compare(value) != 0)
+			return;
+
 		if (matchAutomaton(t, list[pos], value)){
 			__debugPrint(logFile, "%d matched %s \n", __LINE__, value.c_str());
 			assignments[list[pos]] = value;
@@ -6095,12 +6117,18 @@ void splitValueForConcat(
 			splitValueForConcat(t, list, "", pos + 1, str_values, len_values, assignments, completion);
 			if (completion)
 				return;
+			assignments.erase(list[pos]);
 		}
 	}
 
 	else for (unsigned i = 0; i <= value.size(); ++i){
 		std::string tmp = value.substr(0, i);
 		__debugPrint(logFile, "%d matchAutomaton %s at %d\n", __LINE__, tmp.c_str(), pos);
+
+		if (assignments.find(list[pos]) != assignments.end() &&
+				assignments[list[pos]].compare(tmp) != 0)
+			continue;
+
 		if (matchAutomaton(t, list[pos], tmp)){
 			__debugPrint(logFile, "%d matched %s \n", __LINE__, tmp.c_str());
 			assignments[list[pos]] = tmp;
@@ -6109,6 +6137,7 @@ void splitValueForConcat(
 			splitValueForConcat(t, list, value.substr(i), pos + 1, str_values, len_values, assignments, completion);
 			if (completion)
 				return;
+			assignments.erase(list[pos]);
 		}
 
 	}
