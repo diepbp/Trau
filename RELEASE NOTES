@@ -1,0 +1,14 @@
+RELEASE NOTES
+
+Version 1.0
+==================
+- Language support: SMTLIB 2.0
+- Input Requirements:
+	One side of string equalities must be a string variable.
+- Benchmark evaluated:
+	Kaluza: http://webblaze.cs.berkeley.edu/2010/kaluza/
+	PISA: https://github.com/z3str/Z3-str
+	AppScan: https://github.com/z3str/Z3-str
+	Transducer: 
+	Stringfuzz: http://stringfuzz.dmitryblotsky.com/
+- Bug fixed: bugs found by CAV18 committees about cyclic constraints/overlapping variables are fixed. Thank you the committees for reporting the bugs.
