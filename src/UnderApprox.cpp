@@ -4654,10 +4654,6 @@ bool underapproxController(
 
 	__debugPrint(logFile, "%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
 
-	if (orgInput.find("streq.readable.smt") != std::string::npos){
-		printf(">> SAT\n");
-		return true;
-	}
 
 
 	toNonGRMFile(fileDir, NONGRM, equalitiesMap, constMap);
