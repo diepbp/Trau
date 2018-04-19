@@ -1,6 +1,0 @@
-(declare-fun y () String)
-
-(assert (= (Concat a "llo") "testhello" ) )
-
-(check-sat)
-(get-model)
