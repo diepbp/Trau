@@ -1,6 +1,0 @@
-(declare-fun a () String)
-
-(assert (= (Concat "aa" (Concat a "bb")) "aaaabbbb"))
-
-(check-sat)
-(get-model)

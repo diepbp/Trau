@@ -1,7 +1,0 @@
-(declare-fun a () String)
-(declare-fun b () String)
-
-(assert (= (Concat a b) "" ) )
-
-(check-sat)
-(get-model)
