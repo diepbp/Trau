@@ -5881,10 +5881,11 @@ bool assignConcreteValue(Z3_theory t){
 
 	if (determindConcat(t, rootConcat, str_values, len_values)){
 		if (assignOtherValue(t, str_values, len_values)){
+			std::vector<Z3_ast> assertList;
 			for (const auto& s : str_values){
-				Z3_ast axiomToAdd01 = axiom_FinalValue(t, s.first, s.second);
-				addAxiom(t, axiomToAdd01, __LINE__, true);
+				assertList.emplace_back(axiom_FinalValue(t, s.first, s.second));
 			}
+			addAxiom(t, mk_and_fromVector(t, assertList), __LINE__, true);
 		}
 		else
 			return false;

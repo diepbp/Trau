@@ -884,24 +884,27 @@ public:
 
 		/*TODO: only hande 1 connected var here. Need to extend. Or re-write the alias step*/
 		int connectedVarPos = -1;
+		int connectedVarCnt = 0;
+		std::string constraint = "";
 		for (int i = currentPos - subElements.size() + 1; i <= currentPos; ++i)
 			if (connectedVariables.find(elementNames[i].first) != connectedVariables.end()) {
 				connectedVarPos = i;
-				break;
+				connectedVarCnt += 1;
+				constraint += connectedVar_atSpecificLocation(
+									a, /* const or regex */
+									elementNames, /* have connected var */
+									connectedVarPos,
+									subLength,
+									lhs, rhs,
+									connectedVariables);
 			}
 
-		/* have a connected var*/
-		if (connectedVarPos != -1)
-
-			return connectedVar_atSpecificLocation(
-					a, /* const or regex */
-					elementNames, /* have connected var */
-					connectedVarPos,
-					subLength,
-					lhs, rhs,
-					connectedVariables);
-		else
+		if (connectedVarCnt == 0 || constraint.length() < 3)
 			return "";
+		else if (connectedVarCnt == 1)
+			return constraint;
+		else
+			return "(and " + constraint + ")";
 	}
 
 	/*
@@ -1199,7 +1202,11 @@ public:
 		std::vector<std::string> addElements; addElements.emplace_back(generateFlatSize(elementNames[pos]));
 		unsigned int j = pos + 1;
 		for (j = pos + 1; j < elementNames.size(); ++j)
-			if (elementNames[j].second > elementNames[j - 1].second && elementNames[j].second > 0 && elementNames[j].second != REGEX_CODE) {
+			if (elementNames[j].second > elementNames[j - 1].second &&
+					elementNames[j].second > 0 &&
+					elementNames[j].first.compare(elementNames[j - 1].first) == 0 &&
+					elementNames[j].second % QMAX != 0 &&
+					elementNames[j].second != REGEX_CODE) {
 				partCnt++;
 				addElements.emplace_back(generateFlatSize(elementNames[j]));
 			}
