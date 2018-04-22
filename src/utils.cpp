@@ -335,7 +335,7 @@ std::vector<unsigned> sort_indexes(const std::vector<std::pair<std::string, int>
 
 	// sort indexes based on comparing values in v
 	sort(idx.begin(), idx.end(),
-			[&v](size_t i1, size_t i2) {return v[i1].second < v[i2].second;});
+			[&v](size_t i1, size_t i2) {return v[i1].second > v[i2].second;});
 
 	return idx;
 }

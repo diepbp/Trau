@@ -491,9 +491,10 @@ void syncConst(
 std::vector<int> createString(
 		std::string name,
 		std::string value,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> strValue,
-		bool &assigned);
+		bool &assigned,
+		bool assignAnyway);
 
 /*
  *
@@ -520,7 +521,7 @@ std::vector<int> getVarValue(
  */
 void backwardPropagarate(
 		std::string name,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
 /*
@@ -528,7 +529,7 @@ void backwardPropagarate(
  */
 void forwardPropagate(
 		std::string newlyUpdate,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
 
@@ -568,7 +569,7 @@ void formatConnectedVars(
 		std::vector<unsigned> indexes,
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
 /*

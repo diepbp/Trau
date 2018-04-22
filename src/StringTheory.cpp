@@ -27,6 +27,7 @@ int value_count = 0;
 Z3_ast emptyConstStr;
 
 int nondeterministicCounter = 0;
+bool lengthEnable = false;
 
 bool havingGrmConstraints = false;
 bool multiRegex = false;
@@ -37,6 +38,7 @@ std::map<Z3_ast, Z3_ast> toUpperMap;
 std::map<Z3_ast, Z3_ast> toLowerMap;
 
 std::map<StringOP, std::string> subStrStrMap;
+std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
@@ -4324,6 +4326,9 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		if (isVariable(t, node.first.first))
 			ret.emplace(node.first.first);
 	}
+
+	for (const auto& node : subStrNodeMap)
+		ret.emplace(node.second);
 	return ret;
 }
 
@@ -5439,6 +5444,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			startsWithStrMap.size() == 0 &&
 			replaceAllStrMap.size() == 0 &&
 			replaceStrMap.size() == 0 &&
+			lengthEnable == false &&
 			skipOverapprox == false) {
 			bool skipQuickSolver = false;
 			for (const auto& n : rewriterStrMap)

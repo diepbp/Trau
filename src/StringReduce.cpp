@@ -6,6 +6,7 @@ extern std::map<Z3_ast, Z3_ast> grm_astNode_map;
 extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
 extern std::map<StringOP, std::string> subStrStrMap;
+extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
@@ -27,6 +28,7 @@ extern std::map<Z3_ast, Z3_ast> toLowerMap;
 extern std::map<Z3_ast, Z3_ast> carryOn;
 
 extern int nondeterministicCounter;
+extern bool lengthEnable;
 
 //std::map<std::string, std::set<char>> charSet;
 //
@@ -1078,6 +1080,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 
 	int value_prefix = getConstIntValue(t, args[1]);
 
+
 	if (value_prefix != 0 ) {
 		Z3_ast and_item[3];
 		and_item[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts0, mk_concat(t, ts1, ts2, update), update));
@@ -1089,6 +1092,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		tmp = tmp + Z3_ast_to_string(ctx, args[1]) + ")";
 
 		subStrStrMap[StringOP(SUBSTRING, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = tmp;
+
 		breakdownAssert = Z3_mk_and(ctx, 3, and_item);
 	}
 	else {
@@ -1099,6 +1103,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[], Z3_ast & breakdownAssert)
 		subStrStrMap[StringOP(SUBSTRING, exportNodeName(t, args[0]), exportNodeName(t, args[1]), exportNodeName(t, args[2]))] = TRUESTR;
 		breakdownAssert = Z3_mk_and(ctx, 2, and_item);
 	}
+	subStrNodeMap[std::make_pair(args[0], std::make_pair(args[1], args[2]))] = ts1;
 	return ts1;
 }
 
@@ -1349,6 +1354,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 			return Z3_TRUE;
 		}
 		else {
+			lengthEnable = true;
 			__debugPrint(logFile, "%d not const\n\n", __LINE__);
 			if (convertedFlag == 1) {
 				*result = mk_length(t, convertedArgs[0]);
@@ -1952,6 +1958,11 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	std::string s1_str = customizeString(Z3_ast_to_string(ctx, s1));
 	std::string s2_str = customizeString(Z3_ast_to_string(ctx, s2));
+
+	if  (isLengthFunc(t, s1) || isLengthFunc(t, s2)){
+		lengthEnable = true;
+		__debugPrint(logFile, "%d LengthEnable: true\n", __LINE__);
+	}
 	__debugPrint(logFile, "\n%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, s1_str.c_str(), s2_str.c_str());
 	Z3_ast s1_new = s1;
 	Z3_ast s2_new = s2;
