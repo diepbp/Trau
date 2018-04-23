@@ -30,7 +30,7 @@ int nondeterministicCounter = 0;
 bool lengthEnable = false;
 
 bool havingGrmConstraints = false;
-bool multiRegex = false;
+bool unknownResult = false;
 
 clock_t timer;
 
@@ -5477,8 +5477,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
 			}
 
-			__debugPrint(logFile, "%d boolVars: %ld, orConstraints: %ld, multiRegex: %d\n", __LINE__, boolVars.size(), orConstraints.size(), multiRegex == true ? 1 : 0);
-			if (boolVars.size() == 0 && orConstraints.size() == 0 && multiRegex) {
+			__debugPrint(logFile, "%d boolVars: %ld, orConstraints: %ld, unknownResult: %d\n", __LINE__, boolVars.size(), orConstraints.size(), unknownResult == true ? 1 : 0);
+			if (boolVars.size() == 0 && orConstraints.size() == 0 && unknownResult) {
 				/* give up*/
 				__debugPrint(logFile, "%d %s gives up\n", __LINE__, __FUNCTION__);
 				return Z3_FALSE;

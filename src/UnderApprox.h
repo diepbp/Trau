@@ -49,7 +49,7 @@ static std::map<std::pair<int, int>, std::vector<Arrangment>> arrangements;
 static std::map<std::string, int> varPieces;
 
 static int noFlatVariables = 0;
-extern bool multiRegex;
+extern bool unknownResult;
 
 /*
  * get value from eq map

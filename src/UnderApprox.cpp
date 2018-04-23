@@ -1044,7 +1044,7 @@ std::string create_constraints_NOTEqual(
 
 		if (isRegexStr(str00)) {
 			// TODO not equal regex
-			multiRegex = true;
+			unknownResult = true;
 			return FALSETR;
 		}
 		else if (isUnionStr(str00)) {
@@ -1521,7 +1521,6 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			std::string lenTmp = lenVarName + "_" + std::to_string(i);
 			defines.emplace_back(createIntDefinition(lenTmp));
 			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
-			constraints.emplace_back("(assert (< " + lenVarName + "_" + std::to_string(i) + " " + maxLengthStr + "))");
 			lenX = lenX + lenTmp + " ";
 
 			if ((i + 1) % QMAX == 0) {
@@ -2047,7 +2046,7 @@ void sumConstString(){
 							/* assume that regexElements size is 1 */
 							assert(regexElements.size() >= 1);
 							if (regexElements.size() > 1)
-								multiRegex = true;
+								unknownResult = true;
 
 							unsigned int pos = 0;
 
@@ -2169,9 +2168,6 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	connectedVariables.clear();
 	/* collect from equality map */
 	for (const auto& eq : equalitiesMap) {
-		if (eq.second.size() <= 1)
-			continue;
-
 		if (eq.second.size() > 4) {
 			if (connectedVariables.find(eq.first) == connectedVariables.end())
 				connectedVarSet[eq.first] = CONNECTSIZE;
@@ -2203,6 +2199,9 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						}
 					}
 
+				if (eq.second.size() == 1)
+					continue;
+
 				/* push to map */
 				for (const auto& var : v)
 					if (var[0] != '\"') {
@@ -2232,7 +2231,8 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					}
 			}
 
-		usedComponents.insert(tmpUsedComponents.begin(), tmpUsedComponents.end());
+		if (eq.second.size() > 1)
+			usedComponents.insert(tmpUsedComponents.begin(), tmpUsedComponents.end());
 	}
 
 	/* from rewriterMap */
@@ -3407,7 +3407,6 @@ int getVarLength(
 	if (newlyUpdate[0] == '"'){
 		std::string tmp = newlyUpdate.substr(1, newlyUpdate.length() - 2);
 		tmp = constMap[tmp];
-		__debugPrint(logFile, "%d newlyUpdate = %s --> %s\n", __LINE__, newlyUpdate.c_str(), tmp.c_str());
 		assert(len.find(tmp) != len.end());
 		return len[tmp];
 	}
@@ -3509,7 +3508,6 @@ void forwardPropagate(
 				int pos = 0;
 				for (const auto& s : eq) {
 					int varLength = getVarLength(s, len);
-					__debugPrint(logFile, "%d varleng %s: %d\n", __LINE__, s.c_str(), varLength);
 					if (s.compare(newlyUpdate) == 0){
 						__debugPrint(logFile, "%d update %s by %s, value size = %ld\n", __LINE__, var.first.c_str(), newlyUpdate.c_str(), value.size());
 
@@ -3544,10 +3542,11 @@ void forwardPropagate(
 //				__debugPrint(logFile, ">> %d cannot find var: %s\n", __LINE__, var.first.c_str());
 //				return;
 //			}
-			__debugPrint(logFile, ">> %d done update peers\n", __LINE__);
+
 
 			/* update peers */
-			if (var.second.size() > 1)
+			if (var.second.size() > 1) {
+				__debugPrint(logFile, ">> %d update peers\n", __LINE__);
 				for (const auto& eq : var.second){
 					value = getVarValue(var.first, len, strValue);
 					int pos = 0;
@@ -3583,6 +3582,7 @@ void forwardPropagate(
 						}
 					}
 				}
+			}
 		}
 	}
 }
@@ -3878,9 +3878,7 @@ void formatOtherVars(
 				if (assigned) {
 					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
 					strValue[orgVarName] = tmp;
-					if (equalitiesMap.find(varName) != equalitiesMap.end())
-						backwardPropagarate(varName, len, strValue, completion);
-					else
+					if (equalitiesMap.find(varName) == equalitiesMap.end())
 						forwardPropagate(varName, len, strValue, completion);
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, varName.c_str());
@@ -4220,8 +4218,6 @@ bool Z3_run(
 							len_results[name] = tokens[0] + " " + tokens[1];
 						else
 							len_results[name] = tokens[0];
-
-						__debugPrint(logFile, "%d %s: %s\n", __LINE__, name.c_str(), len_results[name].c_str());
 					}
 				}
 			}
@@ -4244,7 +4240,12 @@ bool Z3_run(
 		bool completion = true;
 		std::map<std::string, std::string> results = formatResult(len_results, str_results, completion);
 		if (completion == false)
+#ifdef DEBUGLOG
 			assert(false);
+#else
+		unknownResult = true;
+		return false;
+#endif
 		printSatisfyingAssignments(decodeResultMap(results), len_results);
 		if (beReviewed) {
 			verifyOutput(lengthFile, _equalMap, len_results, results);
@@ -4360,7 +4361,7 @@ void reset(){
 	global_smtStatements.clear();
 	connectedVariables.clear();
 	trivialUnsat = false;
-	multiRegex = false;
+	unknownResult = false;
 }
 
 /*
@@ -4667,6 +4668,7 @@ bool underapproxController(
 		StringOP op = elem.first;
 		__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), elem.second.c_str());
 	}
+
 	for (const auto& c : connectedVariables) {
 		__debugPrint(logFile, "%d connectedVar: %s %d\n", __LINE__, c.first.c_str(), c.second);
 	}
