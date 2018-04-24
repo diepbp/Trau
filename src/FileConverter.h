@@ -74,6 +74,14 @@ void updateReplaceAll(
 /*
  *
  */
+void updateEquality(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap
+		);
+
+/*
+ *
+ */
 void updateNot(std::vector<std::pair<std::string, int>> &tokens);
 
 /*

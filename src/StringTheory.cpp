@@ -6611,76 +6611,6 @@ Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::string language){
 /*
  * Create concrete values
  */
-Z3_ast createValueAxiom(Z3_theory t, Z3_ast node, bool &success) {
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "@%d at %s Create Value Axiom: ", __LINE__, __FILE__);
-	printZ3Node(t, node);
-	__debugPrint(logFile, "\n");
-#endif
-	success = true;
-	Z3_context ctx = Z3_theory_get_context(t);
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-
-	Automaton ton_var = getPreCalculatedValue(t, node);
-	std::set<std::string> list;
-	int nodeLen = getLenValue(t, node);
-
-	if (nodeLen >= 0) {
-		list = ton_var.createStringFixedLength(nodeLen);
-	}
-	else
-		list = ton_var.createStringUpToLength(STR_LEN);
-
-	if (list.size() > 1) {
-		// prefix of automaton var
-		std::string prefix_var = "$$" + std::string(Z3_ast_to_string(ctx, node)) + "!!";
-
-		std::vector<Z3_ast> or_List;
-		std::vector<Z3_ast> and_List;
-
-		int pos = 1;
-		for (std::set<std::string>::iterator it = list.begin(); it != list.end(); ++it) {
-			Z3_ast valueNode = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, (prefix_var + *it).c_str()));
-			or_List.emplace_back(Z3_mk_eq(ctx, mk_int_var(ctx, (PRE_VALUE + std::string(Z3_ast_to_string(ctx, node))).c_str()), mk_int(ctx, pos)));
-
-#ifdef ARITH
-			std::vector<Z3_ast> parikh;
-#ifdef PARIKH1
-			parikh = createParikhConstraints_string(t, node, *it);
-#else
-			parikh.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, node), mk_int(ctx, ((std::string)*(it)).size())));
-#endif
-			assert(parikh.size() > 0);
-			and_List.emplace_back(Z3_mk_implies(ctx, or_List[or_List.size() - 1], mk_and_fromVector(t, parikh)));
-#endif
-			and_List.emplace_back(Z3_mk_eq(ctx, or_List[or_List.size() - 1], Z3_mk_eq(ctx, node, valueNode)));
-
-			pos++;
-		}
-
-		//		and_List.emplace_back(mk_or_fromVector(t, or_List));
-
-		// range for number of cases
-		and_List.emplace_back(Z3_mk_ge(ctx, mk_int_var(ctx, (PRE_VALUE + std::string(Z3_ast_to_string(ctx, node))).c_str()), mk_int(ctx, 1)));
-		and_List.emplace_back(Z3_mk_le(ctx, mk_int_var(ctx, (PRE_VALUE + std::string(Z3_ast_to_string(ctx, node))).c_str()), mk_int(ctx, list.size())));
-
-		assert(and_List.size() > 0);
-		return mk_and_fromVector(t, and_List);
-	}
-	else {
-		// TODO do not know the language or len = 0
-		// unsat
-
-		Z3_ast negated = negatedConstraint(t);
-		return negated;
-	}
-	success = false;
-	return NULL;
-}
-
-/*
- * Create concrete values
- */
 std::vector<Z3_ast> createValueAxiom(Z3_theory t, Z3_ast node) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "@%d at %s Create Value Axiom: ", __LINE__, __FILE__);
@@ -6926,29 +6856,6 @@ std::vector<Z3_ast> collectLanguageValue(Z3_theory t){
 	}
 
 	return ret;
-}
-
-/*
- *
- */
-Z3_ast collectSingleLanguageValue(Z3_theory t, Z3_ast node){
-	Z3_context ctx = Z3_theory_get_context(t);
-
-	std::string name = std::string(Z3_ast_to_string(ctx, node));
-	name = PRE_LANGUAGE + name;
-	Z3_ast cases = mk_int_var(ctx, name.c_str());
-	Z3_ast value = Z3_theory_get_value_of_len(t, mk_int_var(ctx, name.c_str()));
-
-	if (value != NULL) {
-		char * str = (char *) Z3_ast_to_string(ctx, value);
-
-		int value_int = atoi(str);
-		if (value_int > 0) {
-			return Z3_mk_eq(ctx, cases, mk_int(ctx, value_int));
-		}
-	}
-
-	return NULL;
 }
 
 /*

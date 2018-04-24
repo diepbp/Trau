@@ -616,7 +616,7 @@ void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap);
  */
 std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<StringOP, std::string> rewriterStrMap);
 
-void init(std::map<StringOP, std::string> &rewriterStrMap);
+void init(std::map<StringOP, std::string> rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 

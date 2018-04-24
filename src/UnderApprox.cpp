@@ -695,10 +695,10 @@ std::string create_constraints_StartsWith(
 
 	bool isConst_00 = false;
 	bool isConst_01 = false;
-	if (str00[0] == '\"' )
+	if (str00[0] == '"' )
 		isConst_00 = true;
 
-	if (str01[0] == '\"')
+	if (str01[0] == '"')
 		isConst_01 = true;
 
 	assert(isConst_00 || isConst_01);
@@ -710,7 +710,7 @@ std::string create_constraints_StartsWith(
 
 	if (isConst_00 == true) {
 		/* (length b = 0 && ...) || length b = 1 && ...*/
-		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
+		for (unsigned j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
 			andConstraints.emplace_back(createEqualConstraint(generateVarLength(str01), std::to_string(j)));
 			for (unsigned int i = 1; i < j + 1; ++i) {
@@ -737,7 +737,6 @@ std::string create_constraints_StartsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-
 		for (int j = 0; j <= std::min(CONNECTSIZE, 50); ++j) {
 			/* length b = j*/
 			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
@@ -999,9 +998,9 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 
 		for (unsigned k = 0; k < value.length() - 2; ++k) {
 			unsigned pos = k + i - value.length() + 2;
-			tmp.emplace_back("(not " + createEqualConstraint(
-								createSelectConstraint(arrName, std::to_string(pos)),
-								std::to_string(value[k + 1])) + ")");
+			tmp.emplace_back(createNotOperator(createEqualConstraint(
+											createSelectConstraint(arrName, std::to_string(pos)),
+											std::to_string(value[k + 1]))));
 		}
 		andConstraints.emplace_back(orConstraint(tmp));
 	}
@@ -1048,6 +1047,7 @@ std::string create_constraints_NOTEqual(
 			return FALSETR;
 		}
 		else if (isUnionStr(str00)) {
+			// TODO not equal union
 			return TRUESTR;
 		}
 
@@ -1055,12 +1055,14 @@ std::string create_constraints_NOTEqual(
 		std::string arr01 = generateVarArray(str01);
 
 		/* != "a" b */
-		orConstraints.emplace_back("(not (= " + len01 + " " + std::to_string((int)str00.length() - 2) + "))");
+		orConstraints.emplace_back(createNotOperator(createEqualConstraint(len01, std::to_string((int)str00.length() - 2))));
 
 		/* (length a != 0 && ...) || length b = 1 && ...*/
 		if (str00.length() > 2) {
 			for (unsigned int j = 1; j < str00.length() - 1; ++j) {
-				orConstraints.emplace_back("(not (= (select " + arr01 + " " + std::to_string(j - 1) + ") " + std::to_string((int)str00[j]) + "))");
+				orConstraints.emplace_back(createNotOperator(createEqualConstraint(
+						createSelectConstraint(arr01, std::to_string(j - 1)),
+						std::to_string((int)str00[j]))));
 			}
 		}
 
@@ -1078,7 +1080,7 @@ std::string create_constraints_NOTEqual(
 			std::string arr00 = generateVarArray(str00);
 			std::string arr01 = generateVarArray(str01);
 
-			/* != "a" b */
+			/* != a b */
 			orConstraints.emplace_back(createNotOperator(createEqualConstraint(len00, len01)));
 
 			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
@@ -1120,7 +1122,8 @@ std::string create_constraints_ToLower(std::string str00, std::string str01){
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
 		tmp += createLessConstraint(len00, std::to_string(i));
-		tmp = tmp + "(ite (and (<= 65 (select " + arr00 + " " + std::to_string(i - 1) + ")) (>= 90 (select " + arr00 + " " + std::to_string(i - 1) + ")))";
+		tmp = tmp + "(ite (and " + createLessEqualConstraint("65", createSelectConstraint(arr00, std::to_string(i - 1))) +
+				createLessEqualConstraint(createSelectConstraint(arr00, std::to_string(i - 1)), "90") + "))";
 
 		tmp += createEqualConstraint(
 				createSelectConstraint(arr01, std::to_string(i - 1)),
@@ -1151,10 +1154,17 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
-		tmp = tmp + "(< " + len00 + " " + std::to_string(i) + ") ";
-		tmp = tmp + "(ite (and (<= 97 (select " + arr00 + " " + std::to_string(i - 1) + ")) (>= 122 (select " + arr00 + " " + std::to_string(i - 1) + ")))";
-		tmp = tmp + " (= (- (select " + arr00 + " " + std::to_string(i - 1) + ") 32) (select " + arr01 + " " + std::to_string(i - 1) + "))";
-		tmp = tmp + " (= (select " + arr00 + " " + std::to_string(i - 1) + ") (select " + arr01 + " " + std::to_string(i - 1) + ")))";
+		tmp += createLessConstraint(len00, std::to_string(i));
+		tmp = tmp + "(ite (and " + createLessEqualConstraint("97", createSelectConstraint(arr00, std::to_string(i - 1))) +
+						createLessEqualConstraint(createSelectConstraint(arr00, std::to_string(i - 1)), "122") + "))";
+		tmp += createEqualConstraint(
+						createSelectConstraint(arr00, std::to_string(i - 1)),
+						createPlusOperator(
+									createSelectConstraint(arr01, std::to_string(i - 1)),
+									"32"));
+		tmp += createEqualConstraint(
+						createSelectConstraint(arr00, std::to_string(i - 1)),
+						createSelectConstraint(arr01, std::to_string(i - 1)));
 		tmp = "(or " + tmp + ")";
 		andConstraints.emplace_back(tmp);
 	}
@@ -2261,7 +2271,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					if (equalitiesMap.find(s.first.arg01) != equalitiesMap.end())
 						for (const auto _eq : equalitiesMap[s.first.arg01]) {
 							for (const auto e : _eq)
-								if (e[0] == '"' && !isRegexStr(e) && s.first.arg02.find(e) == std::string::npos) {
+								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg02.find(e) == std::string::npos) {
 									canSkip = true;
 									break;
 								}
@@ -2274,7 +2284,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					if (equalitiesMap.find(s.first.arg02) != equalitiesMap.end())
 					for (const auto _eq : equalitiesMap[s.first.arg02]) {
 						for (const auto e : _eq)
-							if (e[0] == '"' && !isRegexStr(e) && s.first.arg01.find(e) == std::string::npos) {
+							if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg01.find(e) == std::string::npos) {
 								canSkip = true;
 								break;
 							}
@@ -4482,7 +4492,7 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
 /*
  *
  */
-void init(std::map<StringOP, std::string> &rewriterStrMap){
+void init(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(SUBSTRING) == 0)
 			createAnyway = false;
@@ -4643,11 +4653,6 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir ) {
 	printf("\nRunning Under Approximation\n");
-	clock_t tx;
-	tx = clock();
-	//	std::vector<std::vector<std::string>> test = refineVectors(parseRegexComponents(underApproxRegex("( not )*a > 1a1 or ( not )*1a1 > a")));
-	//	for (unsigned int i = 0; i < test.size(); ++i)
-	//		displayListString(test[i], " parse regex ");
 
 	/* init varLength */
 	varLength.clear();
@@ -4662,6 +4667,7 @@ bool underapproxController(
 
 	std::set<std::string> allVars = collectAllVars();
 
+	std::map<StringOP, std::string> orgRewriterStrMap = rewriterStrMap;
 	updateRewriter(rewriterStrMap, allVars);
 
 	for (const auto& elem : rewriterStrMap){
@@ -4690,8 +4696,6 @@ bool underapproxController(
 		__debugPrint(logFile, "\n");
 	}
 
-	__debugPrint(logFile, "%d filedir: %s, orgInput: %s\n", __LINE__, fileDir.c_str(), orgInput.c_str());
-
 	toNonGRMFile(fileDir, NONGRM, equalitiesMap, constMap);
 
 	/* init regexCnt */
@@ -4700,7 +4704,7 @@ bool underapproxController(
 	bool result = false;
 
 	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
-		toLengthFile(NONGRM, true, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(NONGRM, true, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
 			return false;
@@ -4711,7 +4715,7 @@ bool underapproxController(
 		result = Z3_run(_equalMap, false);
 		if (result == false){
 			regexCnt = 0;
-			toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+			toLengthFile(NONGRM, false, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
 				printf(">> UNSAT\n");
 				return false;
@@ -4721,7 +4725,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		toLengthFile(NONGRM, false, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(NONGRM, false, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
@@ -4738,9 +4742,6 @@ bool underapproxController(
 	if (result == false) {
 		/* skip */
 	}
-	tx = clock() - tx;
-	__debugPrint(logFile, "%d Underapprox: %.3f seconds.\n\n", __LINE__, ((float)tx)/CLOCKS_PER_SEC);
-	__debugPrint(logFile, "%d *** %s ***\n%s\n", __LINE__, __FUNCTION__, result == true ? "true" : "false");
 	return result;
 }
 

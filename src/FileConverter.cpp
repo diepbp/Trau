@@ -132,6 +132,9 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 	return -1;
 }
 
+/*
+ *
+ */
 StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
 		std::string name,
@@ -240,6 +243,33 @@ StringOP findStringOP(
 /*
  *
  */
+void updateEquality(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap
+		){
+	int found = findTokens(tokens, 0, "=", 88);
+	while (found != -1) {
+		assert(tokens[found - 1].second == 92);
+		StringOP op(findStringOP(tokens, "=", 2, found));
+		__debugPrint(logFile, "%d stringOP: %s\n", __LINE__, op.toString().c_str());
+		bool foundOp = false;
+		for (const auto& _op : rewriterStrMap)
+			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
+				tokens = replaceTokens(tokens, found - 1, findCorrespondRightParentheses(found - 1, tokens), _op.second, 88);
+				foundOp = true;
+				break;
+			}
+
+		if (foundOp)
+			found = findTokens(tokens, 0, "=", 88);
+		else
+			found = findTokens(tokens, found + 1, "=", 88);
+	}
+}
+
+/*
+ *
+ */
 void updateNot(std::vector<std::pair<std::string, int>> &tokens){
 	int found = findTokens(tokens, 0, "not", 3);
 	while (found != -1) {
@@ -247,7 +277,7 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens){
 		__debugPrint(logFile, "%d token = %s %d\n", __LINE__, tokens[found - 1].first.c_str(), tokens[found - 1].second);
 		assert(tokens[found - 1].second == 92);
 		if (tokens[found + 1].second == 92)
-		endCond = findCorrespondRightParentheses(found - 1, tokens);
+			endCond = findCorrespondRightParentheses(found - 1, tokens);
 
 		bool foundConst = false;
 		for (int i = found; i < endCond; ++i)
@@ -1274,6 +1304,7 @@ void toLengthLine(
 		}
 
 	updateImplies(tokens);
+	updateEquality(tokens, rewriterStrMap);
 	updateNot(tokens);
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
@@ -1465,6 +1496,7 @@ void toLengthFile(
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::string> strVars;
 	std::set<std::string> constStr;
+
 	for (const auto& tokens : fileTokens) {
 		toLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 	}

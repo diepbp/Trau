@@ -835,7 +835,6 @@ typedef struct _AutomatonStringData
  Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::set<std::string> list);
  Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::string language);
 
- Z3_ast createValueAxiom(Z3_theory t, Z3_ast node, bool &success);
  std::vector<Z3_ast> createValueAxiom(Z3_theory t, Z3_ast node);
  int getConcreteValue_variable(Z3_theory t, Z3_ast node, Z3_ast value);
 
@@ -866,7 +865,6 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   		std::map<Z3_ast, bool> boolValues);
 
  std::vector<Z3_ast> collectLanguageValue(Z3_theory t);
- Z3_ast collectSingleLanguageValue(Z3_theory t, Z3_ast node);
  std::vector<Z3_ast> collectStringValue(Z3_theory t);
  int collectSingleLanguage_index(Z3_theory t, Z3_ast node);
 
