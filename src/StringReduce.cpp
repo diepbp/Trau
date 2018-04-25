@@ -1344,18 +1344,17 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #ifdef DEBUGLOG
 		__debugPrint(logFile, "Length( ");
 		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, " ) = ");
+		__debugPrint(logFile, " )");
 #endif
 		if (getNodeType(t, convertedArgs[0]) == my_Z3_ConstStr) {
 			int size = getConstStrValue(t, convertedArgs[0]).size();
 			*result = mk_int(ctx, size);
-			__debugPrint(logFile, "%d\n\n", size);
+			__debugPrint(logFile, " --> %d\n", size);
 			delete[] convertedArgs;
 			return Z3_TRUE;
 		}
 		else {
 			lengthEnable = true;
-			__debugPrint(logFile, "%d not const\n\n", __LINE__);
 			if (convertedFlag == 1) {
 				*result = mk_length(t, convertedArgs[0]);
 
@@ -1913,13 +1912,6 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		return Z3_TRUE;
 	}
 	else if (d == td->AutomataDef){
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "AutomataDef(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		__debugPrint(logFile, "  =>  nothing");
-#endif
-
 	}
 
 	if (convertedFlag == 1) {
@@ -1959,10 +1951,6 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	std::string s1_str = customizeString(Z3_ast_to_string(ctx, s1));
 	std::string s2_str = customizeString(Z3_ast_to_string(ctx, s2));
 
-	if  (isLengthFunc(t, s1) || isLengthFunc(t, s2)){
-		lengthEnable = true;
-		__debugPrint(logFile, "%d LengthEnable: true\n", __LINE__);
-	}
 	__debugPrint(logFile, "\n%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, s1_str.c_str(), s2_str.c_str());
 	Z3_ast s1_new = s1;
 	Z3_ast s2_new = s2;

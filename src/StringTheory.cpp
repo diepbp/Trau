@@ -1610,9 +1610,9 @@ void Th_init_search(Z3_theory t) {
  */
 void Th_push(Z3_theory t) {
 	sLevel++;
-//	__debugPrint(logFile, "\n*******************************************\n");
-//	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
-//	__debugPrint(logFile, "\n*******************************************\n");
+	__debugPrint(logFile, "\n*******************************************\n");
+	__debugPrint(logFile, "[PUSH]: Level = %d\n", sLevel);
+	__debugPrint(logFile, "\n*******************************************\n");
 	if (sLevel == 1) {
 		initLength = collectCurrentLength(t);
 	}
@@ -2063,27 +2063,6 @@ bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx) {
 	length_LanguageMap[std::make_pair(node, sLevel)] = value;
 	return change;
 }
-/*
- *
- */
-void updateLengthNode_fromSolver(Z3_theory t, Z3_ast node) {
-	int minLength;
-	int maxLength;
-	getBoundLenValue(t, node, minLength, maxLength);
-
-	printZ3Node(t, node);
-	// update the range from solver
-	std::pair<int, int> value = getLengthDomain(node);
-	__debugPrint(logFile, " %d getLengthDomain: (%d, %d)\n", __LINE__, value.first, value.second);
-	if (value.first < minLength)
-		value.first = minLength;
-	if ((value.second > maxLength && maxLength != -1) || value.second == -1)
-		value.second = maxLength;
-
-
-	__debugPrint(logFile, " %d Update --> (%d, %d) min = %d, max = %d\n", __LINE__, value.first, value.second, minLength, maxLength);
-	length_LanguageMap[std::make_pair(node, sLevel)] = value;
-}
 
 /*
  * Update the parent
@@ -2099,12 +2078,11 @@ void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList){
 	std::map<Z3_ast, bool>  visited;
 
 	// update from solver
-	for (unsigned int i = 0; i < nodeList.size(); ++i) {
-		updateLengthNode_fromSolver(t, nodeList[i]);
+	for (unsigned i = 0; i < nodeList.size(); ++i) {
 		checkingNode.emplace_back(nodeList[i]);
 	}
 
-	for (unsigned int i = 0; i < checkingNode.size(); ++i)
+	for (unsigned i = 0; i < checkingNode.size(); ++i)
 		visited[checkingNode[i]] = true;
 
 	unsigned int pos = 0;
@@ -2222,51 +2200,6 @@ bool collectBestDomain(std::vector<Z3_ast> eq_nodes, std::pair<int, int> &domain
 		}
 	}
 	return changed;
-}
-
-/*
- *
- */
-void handleArithmetic(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "\n%d ===================================Handle Arithmetic===================================\n", __LINE__);
-#endif
-	Z3_context ctx = Z3_theory_get_context(t);
-	//	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-
-	Z3_ast eq = Z3_mk_eq(ctx, nn1, nn2);
-
-	addAxiom(t, Z3_mk_implies(ctx, eq, Z3_mk_eq(ctx, getLengthAST(t, nn1), getLengthAST(t, nn2))), __LINE__, true);
-
-	//	if (isAutomatonFunc(t, nn1)) {
-	//		int size = calculateAutomatonSize(t, nn1);
-	//		if (size >= 0)
-	//			addAxiom(t, Z3_mk_eq(ctx, mk_length(t, nn1), mk_int(ctx, size)), __LINE__, true);
-	//	}
-	//
-	//	if (isAutomatonFunc(t, nn2)) {
-	//		int size = calculateAutomatonSize(t, nn2);
-	//		if (size >= 0)
-	//			addAxiom(t, Z3_mk_eq(ctx, mk_length(t, nn2), mk_int(ctx, size)), __LINE__, true);
-	//	}
-	//
-	//	checkConcatLenInEqc(t, nn1);
-	//	checkConcatLenInEqc(t, nn2);
-	//
-	//  int hasLenType = haveEQLength(t, nn1, nn2);
-	//  if (hasLenType == 1) {
-	//    __debugPrint(logFile, ">> length(nn1) = length(nn2) is already known. SKIP-1.\n\n");
-	//  } else if (hasLenType == 2) {
-	//    __debugPrint(logFile, ">> nn1Root = ");
-	//    printZ3Node(t, Z3_theory_getArithEqcRoot(t, mk_length(t, nn1)));
-	//    __debugPrint(logFile, "\n");
-	//    __debugPrint(logFile, ">> nn2Root = ");
-	//    printZ3Node(t, Z3_theory_getArithEqcRoot(t, mk_length(t, nn2)));
-	//    __debugPrint(logFile, "\n");
-	//    __debugPrint(logFile, ">> length(nn1) = length(nn2) is already known. SKIP-2.\n\n");
-	//  } else {
-	//    strEqLengthAxiom(t, nn1, nn2, __LINE__);
-	//  }
 }
 
 /*
@@ -5382,11 +5315,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 	//  ctxDepAnalysis(t, varAppearInAssign, freeVar_map, membership);
 
 	if (lengthDefined == false) {
-//		reduceVariableDomain(t);
 		findVariableDomain();
 		lengthDefined = true;
 	}
-	__debugPrint(logFile, " Pass level 1\n");
 
 	//**************************************************************
 	// Create language for all variables that do not have a language
@@ -5395,7 +5326,6 @@ Z3_bool Th_final_check(Z3_theory t) {
 	bool hasLanguage = true;
 	if (languageDefined == false) {
 		assignLanguage(t, hasLanguage);
-		__debugPrint(logFile, " Pass level 2\n");
 		languageDefined = true;
 	}
 
@@ -5437,6 +5367,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		}
 
 		skipUnderApprox = false;
+		__debugPrint(logFile, "%d lengthEnable: %d\n", __LINE__, lengthEnable? 1: 0);
 		if (containPairBoolMap.size() == 0 &&
 			indexOfStrMap.size() == 0 &&
 			lastIndexOfStrMap.size() == 0 &&
@@ -5450,7 +5381,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			for (const auto& n : rewriterStrMap)
 				if (n.first.name.compare("=") == 0 && n.second.compare(TRUESTR) != 0)
 					skipQuickSolver = true;
-
+			__debugPrint(logFile, "%d skipQuickSolver: %d\n", __LINE__, skipQuickSolver? 1: 0);
 			if (!skipQuickSolver) {
 				updateLength(t);
 
@@ -5551,37 +5482,6 @@ void updateLength(Z3_theory t) {
 	std::set<Z3_ast> tmpSet;
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	// collect value of int variable - length
-	for (std::map<Z3_ast, int>::iterator it = intInputVarMap.begin(); it != intInputVarMap.end(); ++it) {
-		int lowerBound01, upperBound01;
-
-		getBoundLenValue(t, it->first, lowerBound01, upperBound01);
-
-		if (lowerBound01 >= 0 || upperBound01 >= 0) {
-			Z3_ast arithRoot = Z3_theory_getArithEqcRoot(t, it->first);
-			if (arithRoot != NULL && isLengthFunc(t, arithRoot)) {
-				Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, arithRoot), 0);
-				tmpSet.insert(arg0);
-
-				updateLengthNode_withValue(t, arg0, lowerBound01, upperBound01);
-
-				printZ3Node(t, it->first);
-				__debugPrint(logFile, "(line %d) = (%d -- %d) ---> ", __LINE__, lowerBound01, upperBound01);
-				printZ3Node(t, arg0);
-				__debugPrint(logFile, "\n");
-			}
-		}
-	}
-
-	// update length for variable
-	for (std::map<Z3_ast, int>::iterator it = inputVarMap.begin(); it != inputVarMap.end(); ++it) {
-		int lowerBound, upperBound;
-		getBoundLenValue(t, it->first, lowerBound, upperBound);
-		if (lowerBound > 0 || upperBound >= 0) {
-			tmpSet.insert(it->first);
-		}
-	}
-
 	// update length for concat node
 	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
 		int len = getLenValue(t, it->second);
@@ -5589,43 +5489,20 @@ void updateLength(Z3_theory t) {
 			tmpSet.insert(it->second);
 			length_LanguageMap[std::make_pair(it->second, sLevel)] = std::make_pair(len, len);
 		}
-		else {
-			int lowerBound, upperBound;
-			getBoundLenValue(t, it->second, lowerBound, upperBound);
-			if (lowerBound > 0 || upperBound >= 0) {
-				tmpSet.insert(it->second);
-			}
-		}
 
 		// check their components
 		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, it->second), 0);
 		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, it->second), 1);
 		len = getLenValue(t, arg0);
 		if (len != -1) {
-
 			tmpSet.insert(arg0);
 			length_LanguageMap[std::make_pair(arg0, sLevel)] = std::make_pair(len, len);
-		}
-		else {
-			int lowerBound, upperBound;
-			getBoundLenValue(t, arg0, lowerBound, upperBound);
-			if (lowerBound > 0 || upperBound >= 0) {
-				tmpSet.insert(arg0);
-			}
 		}
 
 		len = getLenValue(t, arg1);
 		if (len != -1) {
-
 			tmpSet.insert(arg1);
 			length_LanguageMap[std::make_pair(arg1, sLevel)] = std::make_pair(len, len);
-		}
-		else {
-			int lowerBound, upperBound;
-			getBoundLenValue(t, arg1, lowerBound, upperBound);
-			if (lowerBound > 0 || upperBound >= 0) {
-				tmpSet.insert(arg1);
-			}
 		}
 	}
 
@@ -7996,31 +7873,6 @@ int getLenValue(Z3_theory t, Z3_ast node) {
 }
 
 /*
- * Query the integer theory.
- *   - If n has length value in integer theory, return the value.
- *   - Else, return -1.
- */
-int getBoundLenValue(Z3_theory t, Z3_ast node,  int& lowerBound, int& upperBound) {
-	T_TheoryType nodeType = getNodeType(t, node);
-	lowerBound = -1;
-	upperBound = -1;
-	if (nodeType == my_Z3_Str_Var) {
-		Z3_ast lenAst = getLengthAST(t, node);
-		lowerBound = -1;
-		upperBound = -1;
-		int lenBoundValueAst = Z3_theory_get_bound_strlen(t, lenAst, lowerBound, upperBound);
-		return lenBoundValueAst;
-	}
-	if (nodeType == my_Z3_Var) {
-		int lenBoundValueAst = Z3_theory_get_bound_strlen(t, node, lowerBound, upperBound);
-		return lenBoundValueAst;
-	}
-	return 0;
-}
-
-
-
-/*
  * Look for the equivalent constant for a node "n"
  * Iterate the equivalence class
  * If there is a constant,
@@ -8041,35 +7893,6 @@ Z3_ast get_eqc_value(Z3_theory t, Z3_ast n, bool & hasEqcValue) {
 	} while (curr != n);
 	hasEqcValue = false;
 	return n;
-}
-
-
-/*
- *
- */
-void printStrArgLen(Z3_theory t, Z3_ast node, int ll) {
-#ifdef DEBUGLOG
-	Z3_context ctx = Z3_theory_get_context(t);
-
-	int nnLen = getLenValue(t, node);
-
-	__debugPrint(logFile, "  ");
-	for (int i = 0; i < ll; i++) { __debugPrint(logFile, "   ");  }
-
-	__debugPrint(logFile, " ** |");
-	printZ3Node(t, node);
-	__debugPrint(logFile, "| = %d  (Root = ", nnLen);
-	printZ3Node(t, getLengthAST(t, node));
-	printZ3Node(t, Z3_theory_getArithEqcRoot(t, getLengthAST(t, node)));
-	__debugPrint(logFile, ")\n");
-
-	if (isConcatFunc(t, node)) {
-		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
-		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
-		printStrArgLen(t, arg0, ll + 1);
-		printStrArgLen(t, arg1, ll + 1);
-	}
-#endif
 }
 
 /**

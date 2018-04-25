@@ -389,6 +389,8 @@ typedef struct _AutomatonStringData
   */
  void Th_new_elem(Z3_theory t, Z3_ast n);
 
+ void cb_arith_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2);
+
  /**
    \brief Callback: invoked when Z3 starts the search for a satisfying assignment.
   */
@@ -437,11 +439,10 @@ typedef struct _AutomatonStringData
  std::vector<Z3_ast> initLengthPropagation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  bool updateLengthNode_withValue(Z3_theory t, Z3_ast node, int minn, int maxx);
- void updateLengthNode_fromSolver(Z3_theory t, Z3_ast node);
+
  void doLengthPropagation(Z3_theory t, std::vector<Z3_ast> nodeList);
  bool collectBestDomain(std::vector<Z3_ast> eq_nodes, std::pair<int, int> &domain);
 
- void handleArithmetic(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  int calculateAutomatonSize(Z3_theory t, Z3_ast node);
 
  /*
@@ -1051,7 +1052,6 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  int getLenValue(Z3_theory t, Z3_ast node);
 
- int getBoundLenValue(Z3_theory t, Z3_ast node,  int& lowerBound, int& upperBound);
  /**
    \brief If the equivalence class containing \c n contains a theory value, then return it.
    Otherwise, return 0.
@@ -1061,7 +1061,6 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  Z3_ast get_eqc_value(Z3_theory t, Z3_ast n, bool & hasEqcValue);
 
- void printStrArgLen(Z3_theory t, Z3_ast node, int ll);
  /**
    \brief Display equivalence class containing \c n.
   */

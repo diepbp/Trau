@@ -612,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -3375,6 +3375,8 @@ void syncConst(
 					}
 				}
 				pos += getVarLength(s, len);
+				__debugPrint(logFile, "%d %s: length = %d --> %d\n", __LINE__, s.c_str(), getVarLength(s, len), pos);
+
 			}
 		}
 		if (update == true) {

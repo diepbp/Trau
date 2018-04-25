@@ -2412,9 +2412,15 @@ public:
 
 				if (QCONSTMAX == 2){
 					/* a1 = b1 && a2 == b2 --> a = b */
-					if (checkLeft[i + 1] == false && lhs_elements[i].second % QMAX == 0 && i + 1 < lhs_elements.size()) {
-						if ((rhs_elements[left_arr[i]].second < 0 && rhs_elements[left_arr[i]].second % QCONSTMAX == -1 && rhs_elements[left_arr[i + 1]].second % QCONSTMAX == 0) ||
-								(rhs_elements[left_arr[i]].second >= 0 && rhs_elements[left_arr[i]].second % QMAX == 0 && rhs_elements[left_arr[i + 1]].second % QMAX == 1)){
+					if (checkLeft[i + 1] == false &&
+							((lhs_elements[i].second >= 0 && lhs_elements[i].second % QMAX == 0) || (lhs_elements[i].second < 0 && lhs_elements[i].second % QCONSTMAX == -1)) &&
+							i + 1 < lhs_elements.size()) {
+						if ((rhs_elements[left_arr[i]].second < 0 &&
+								rhs_elements[left_arr[i]].second % QCONSTMAX == -1 &&
+								rhs_elements[left_arr[i + 1]].second % QCONSTMAX == 0) ||
+								(rhs_elements[left_arr[i]].second >= 0 &&
+										rhs_elements[left_arr[i]].second % QMAX == 0 &&
+										rhs_elements[left_arr[i + 1]].second % QMAX == 1)){
 							std::string tmp = generateConstraint01_twoVar(lhs_str, rhs_str, lhs_elements[i], (std::pair<std::string, int>)rhs_elements[left_arr[i]], connectedVariables);
 							if (tmp.length() > 0)
 								constraint01 = constraint01 + tmp + " ";
