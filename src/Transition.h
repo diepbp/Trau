@@ -8,7 +8,7 @@
 #ifndef TRANSITION_H_
 #define TRANSITION_H_
 
-#include "utils.h"
+#include "Utils.h"
 
 struct Transition{
 	int in;

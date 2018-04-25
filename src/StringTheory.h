@@ -8,9 +8,9 @@
 #ifndef STRINGTHEORY_H_
 #define STRINGTHEORY_H_
 
+#include "Regex.h"
 #include "UnderApprox.h"
-#include "regex.h"
-#include "utils.h"
+#include "Utils.h"
 
 #define ARITH 0
 //#define PARIKH 1
@@ -429,8 +429,10 @@ typedef struct _AutomatonStringData
 
  /*
   * nn1 = nn2 => |nn1| = |nn2|
+  * |nn1| = 0 => nn1 = ""
+  * |nn2| = 0 => nn2 = ""
   */
- void addLengthEqualConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addLengthConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  void implyEqualityForConcatMember(Z3_theory t, Z3_ast lhs, Z3_ast rhs);
 
@@ -1007,8 +1009,8 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
  void collectBoolValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
- 		std::vector<Z3_ast> &boolVars
- 		);
+ 		std::vector<Z3_ast> &boolVars,
+ 		bool value);
 
  /*
   *

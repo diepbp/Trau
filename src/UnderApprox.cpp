@@ -1098,7 +1098,7 @@ std::string create_constraints_NOTEqual(
 		}
 		else {
 			// TODO not equal concat
-			ret = FALSETR;
+			ret = TRUESTR;
 		}
 	}
 
@@ -1225,9 +1225,12 @@ void handle_NOTEqual(
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0 &&
 				(connectedVariables.find(s.first.arg01) != connectedVariables.end() ||
-						connectedVariables.find(s.first.arg02) != connectedVariables.end())){
+						connectedVariables.find(s.first.arg02) != connectedVariables.end() ||
+						s.first.arg01.compare("\"\"") == 0 ||
+						s.first.arg02.compare("\"\"") == 0)){
 			global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
 		}
+
 	}
 }
 
@@ -1790,7 +1793,10 @@ void verifyOutput(std::string outFile,
 				additionalAssertions.emplace_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
 			}
 			else {
-				additionalAssertions.emplace_back("(assert (= " + tokens[1] + " " + value + "))\n");
+				if (value[0] != '-')
+					additionalAssertions.emplace_back("(assert (= " + tokens[1] + " " + value + "))\n");
+				else
+					additionalAssertions.emplace_back("(assert (= " + tokens[1] + " (- 0 " + value.substr(1) + ")))\n");
 			}
 		}
 	}
@@ -1839,7 +1845,6 @@ std::vector<std::string> equalityToSMT(
 void printEqualMap(std::map<std::string, std::vector<std::vector<std::string>>> equalMap) {
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	for (const auto _eq : equalMap) {
-//		if (_eq.second.size() > 1) {
 		if (_eq.second.size() > 0) {
 			__debugPrint(logFile, "%s = (%ld cases) \n", _eq.first.c_str(), _eq.second.size());
 			for (const auto vec : _eq.second) {
@@ -1954,12 +1959,12 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 			allVariables.insert(it->first);
 
 		std::vector<std::vector<std::string>> setOfEQ;
-		for (unsigned int i = 0 ; i < it->second.size(); ++i) {
+		for (unsigned i = 0 ; i < it->second.size(); ++i) {
 			std::vector<std::string> anEq;
-			for (unsigned int j = 0; j < it->second[i].size(); ++j) {
+			for (unsigned j = 0; j < it->second[i].size(); ++j) {
 				if (it->second[i][j][0] == '\"') { /* AutomataDef */
 					std::string constStr = collectConst(it->second[i][j]);
-					if (constStr.length() > 0)
+					if (constStr.length() > 2)
 						anEq.emplace_back(collectConst(it->second[i][j]));
 				}
 				else {/* skip const */
@@ -2435,7 +2440,7 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 			}
 
 			/* push to map */
-			for (unsigned int k = 0; k < _eq.size(); ++k) {
+			for (unsigned k = 0; k < _eq.size(); ++k) {
 				if (_eq[k][0] == '\"' /* const */ ||
 						connectedVariables.find(_eq[k]) != connectedVariables.end()) {
 
@@ -4086,7 +4091,9 @@ std::map<std::string, std::string> formatResult(
 	for (const auto& var : finalStrValue){
 		int varLength = getVarLength(var.first, lenInt);
 		if (varLength == 0) {
-			finalResult[var.first] = "";
+			if (allVariables.find(var.first) != allVariables.end())
+				finalResult[var.first] = "";
+			continue;
 		}
 
 		if (isInternalVar(var.first, lenInt))
@@ -4621,20 +4628,20 @@ bool isTrivialInequality(std::string x, std::string  y){
  *
  */
 void updateRewriter(
-		std::map<StringOP, std::string> &rewriterStrMap,
-		std::set<std::string> allVars){
+		std::map<StringOP, std::string> &rewriterStrMap){
 	std::map<StringOP, std::string> newRewriterStrMap;
 	for (const auto& op : rewriterStrMap){
 
 		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
-			if (isTrivialInequality(op.first.arg01, op.first.arg02)) {
-				continue;
+			if (!isTrivialInequality(op.first.arg01, op.first.arg02)) {
+				newRewriterStrMap[op.first] = op.second;
 			}
+			continue;
 		}
 
-		if (allVars.find(op.first.arg01) != allVars.end() ||
-				allVars.find(op.first.arg02) != allVars.end() ||
-				allVars.find(op.first.arg03) != allVars.end())
+		if (allVariables.find(op.first.arg01) != allVariables.end() ||
+				allVariables.find(op.first.arg02) != allVariables.end() ||
+				allVariables.find(op.first.arg03) != allVariables.end())
 			newRewriterStrMap[op.first] = op.second;
 		else {
 			StringOP tmp = op.first;
@@ -4643,6 +4650,18 @@ void updateRewriter(
 	}
 	rewriterStrMap.clear();
 	rewriterStrMap = newRewriterStrMap;
+}
+
+/*
+ *
+ */
+bool hasInequalities(std::map<StringOP, std::string> rewriterStrMap){
+	for (const auto& op : rewriterStrMap){
+		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
+			return true;
+		}
+	}
+	return false;
 }
 
 /*
@@ -4665,12 +4684,11 @@ bool underapproxController(
 
 	reset();
 
+	std::map<std::string, std::vector<std::vector<std::string>>> orgEqualitiesMap = equalitiesMap;
 	init(rewriterStrMap);
 
-	std::set<std::string> allVars = collectAllVars();
-
 	std::map<StringOP, std::string> orgRewriterStrMap = rewriterStrMap;
-	updateRewriter(rewriterStrMap, allVars);
+	updateRewriter(rewriterStrMap);
 
 	for (const auto& elem : rewriterStrMap){
 		StringOP op = elem.first;
@@ -4705,7 +4723,9 @@ bool underapproxController(
 
 	bool result = false;
 
-	if (connectedVariables.size() == 0 && equalitiesMap.size() == 0) {
+	if (connectedVariables.size() == 0 &&
+			equalitiesMap.size() == 0 &&
+			!hasInequalities(orgRewriterStrMap)) {
 		toLengthFile(NONGRM, true, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
@@ -4713,6 +4733,10 @@ bool underapproxController(
 		}
 
 		writeOutput_basic(OUTPUT);
+
+		/* re-assign equalityMap */
+		equalitiesMap.clear();
+		equalitiesMap = orgEqualitiesMap;
 
 		result = Z3_run(_equalMap, false);
 		if (result == false){
@@ -4737,6 +4761,10 @@ bool underapproxController(
 			printf(">> Generated SMT\n\n");
 			writeOutput02(OUTPUT);
 
+			/* re-assign equalityMap */
+			equalitiesMap.clear();
+			equalitiesMap = orgEqualitiesMap;
+			printEqualMap(equalitiesMap);
 			result =  Z3_run(_equalMap);
 		}
 	}

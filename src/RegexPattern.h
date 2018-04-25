@@ -1,7 +1,7 @@
 #ifndef _REGEX_PATTERN_H_
 #define _REGEX_PATTERN_H_
 
-#include "regexstate.h"
+#include "RegexState.h"
 
 class RegExPattern {
 public:

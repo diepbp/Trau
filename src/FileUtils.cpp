@@ -4,7 +4,7 @@
  *  Created on: Feb 1, 2017
  *      Author: diepbp
  */
-#include "fileutils.h"
+#include "FileUtils.h"
 
 bool isDirExist(const std::string& path)
 {

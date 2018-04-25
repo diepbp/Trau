@@ -8,8 +8,8 @@
 #ifndef REGEX_H_
 #define REGEX_H_
 
-#include "regexstate.h"
 #include "Automaton.h"
+#include "RegexState.h"
 
 class RegEx {
 public:

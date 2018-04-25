@@ -8,11 +8,11 @@
 
 #include <iomanip>
 
-#include "fileutils.h"
 #include "GrmOverApprox.h"
 #include "GrmUnderApprox.h"
 #include "StringTheory.h"
 #include "FileConverter.h"
+#include "FileUtils.h"
 
 std::string orgInput;
 std::string inputFile;

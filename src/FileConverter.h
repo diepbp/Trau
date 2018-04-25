@@ -8,9 +8,8 @@
 #ifndef FILECONVERTER_H_
 #define FILECONVERTER_H_
 
-#include "utils.h"
-
 #include <regex>
+#include "Utils.h"
 
 
 static std::map<char, char> ENCODEMAP;

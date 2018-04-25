@@ -8,8 +8,8 @@
 #ifndef ARRANGEMENT_H_
 #define ARRANGEMENT_H_
 
-#include "utils.h"
-#include "regex.h"
+#include "Regex.h"
+#include "Utils.h"
 
 #define ROUNDCHECK 1
 #define LOCALSPLITMAX 20

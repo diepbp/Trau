@@ -20,8 +20,9 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  *  THE SOFTWARE.
  ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** **/
+#include "RegexState.h"
+
 #include <sstream>
-#include "regexstate.h"
 
 RegExState::~RegExState() {
 	m_NFAStates.clear();

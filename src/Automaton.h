@@ -8,8 +8,8 @@
 #ifndef AUTOMATON_H_
 #define AUTOMATON_H_
 
-#include "z3utils.h"
 #include "Transition.h"
+#include "Z3Utils.h"
 
 
 #define UNKNOWN_AUTOMATON "uNkNoWn"

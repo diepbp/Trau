@@ -1,10 +1,12 @@
 (declare-fun a () String)
 (declare-fun b () String)
 (declare-fun x () String)
+(declare-fun y1 () String)
+(declare-fun y2 () String)
 
 (assert (= x "testhello"))
 (assert (= (Concat a b) x))
-(assert (= a "testhe"))
+(assert (= b "lo"))
 
 (check-sat)
 (get-model)

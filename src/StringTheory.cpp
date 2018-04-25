@@ -1746,7 +1746,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		return;
 	}
 
-	addLengthEqualConstraint(t, nn1, nn2);
+	addLengthConstraint(t, nn1, nn2);
 
 //	initLengthPropagation(t, nn1, nn2);
 
@@ -1830,12 +1830,22 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 
 /*
  * nn1 = nn2 => |nn1| = |nn2|
+ * |nn1| = 0 => nn1 = ""
+ * |nn2| = 0 => nn2 = ""
  */
-void addLengthEqualConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
+void addLengthConstraint(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	Z3_context ctx = Z3_theory_get_context(t);
+//	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
+
 	Z3_ast leng_nn1 = mk_length(t, nn1);
 	Z3_ast leng_nn2 = mk_length(t, nn2);
 	addAxiom(t, Z3_mk_eq(ctx, leng_nn1, leng_nn2), __LINE__, true);
+//	addAxiom(t, Z3_mk_implies(ctx,
+//			Z3_mk_eq(ctx, leng_nn1, mk_int(ctx, 0)),
+//			Z3_mk_eq(ctx, nn1, mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, "")))), __LINE__, true);
+//	addAxiom(t, Z3_mk_implies(ctx,
+//			Z3_mk_eq(ctx, leng_nn2, mk_int(ctx, 0)),
+//			Z3_mk_eq(ctx, nn2, mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, "")))), __LINE__, true);
 }
 
 /*
@@ -4123,23 +4133,24 @@ void extendVariableToFindAllPossibleEqualities(
 	 *
 	 * if both are false, keep original, print length
 	 */
-	__debugPrint(logFile, ">> %d before refine node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), result.size());
-	for (const auto& _eq: result){
-		bool added = false;
-		for (const auto _node : _eq) {
-			if (isAutomatonFunc(t, _node) ||
-					connectedVariables.find(_node) != connectedVariables.end()) {
-				refined_result.emplace_back(_eq);
-				added = true;
-				break;
-			}
-
-		}
-
-		/* do not need to print this case because it can be implied from SMT file */
-		if (added == false) {
-		}
-	}
+	refined_result = result;
+//	__debugPrint(logFile, ">> %d before refine node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), result.size());
+//	for (const auto& _eq: result){
+//		bool added = false;
+//		for (const auto _node : _eq) {
+//			if (isAutomatonFunc(t, _node) ||
+//					connectedVariables.find(_node) != connectedVariables.end()) {
+//				refined_result.emplace_back(_eq);
+//				added = true;
+//				break;
+//			}
+//
+//		}
+//
+//		/* do not need to print this case because it can be implied from SMT file */
+//		if (added == false) {
+//		}
+//	}
 
 	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), refined_result.size());
 
@@ -7576,15 +7587,24 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 void collectBoolValueInPositiveContext(
 		Z3_theory t,
 		Z3_ast boolNode,
-		std::vector<Z3_ast> &boolVars
-		) {
+		std::vector<Z3_ast> &boolVars,
+		bool value) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string astToString = Z3_ast_to_string(ctx, boolNode);
 	if (astToString.find("$$_bool") != std::string::npos &&
 			astToString.find("(ite") == std::string::npos &&
 			astToString.find("(let (") == std::string::npos &&
 			astToString.find("(or (") == std::string::npos ) {
-		boolVars.emplace_back(boolNode);
+		if (value)
+			boolVars.emplace_back(boolNode);
+		else
+			boolVars.emplace_back(Z3_mk_not(ctx, boolNode));
+	}
+	else if (isVariable(t, boolNode)) {
+		if (value)
+			boolVars.emplace_back(boolNode);
+		else
+			boolVars.emplace_back(Z3_mk_not(ctx, boolNode));
 	}
 }
 
@@ -7599,6 +7619,7 @@ void collectDataInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
+	printZ3Node(t, ctxAssign);
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
@@ -7635,7 +7656,7 @@ void collectDataInPositiveContext(
 			if (type == my_Z3_Var) {
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				if (astToString.find("$$_bool") != std::string::npos) {
-					collectBoolValueInPositiveContext(t, argAst, boolVars);
+					collectBoolValueInPositiveContext(t, argAst, boolVars, true);
 					found01 = collectContainValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
@@ -7645,12 +7666,15 @@ void collectDataInPositiveContext(
 					found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 				}
+				else {
+					collectBoolValueInPositiveContext(t, argAst, boolVars, true);
+				}
 			}
 
 			else if (type == my_Z3_Func && Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 1) {
 				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 				if (isVariable(t, boolNode)){
-					collectBoolValueInPositiveContext(t, argAst, boolVars);
+					collectBoolValueInPositiveContext(t, boolNode, boolVars, false);
 					std::string astToString = Z3_ast_to_string(ctx, boolNode);
 					if (astToString.find("$$_bool") != std::string::npos) {
 						found01 = collectContainValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);

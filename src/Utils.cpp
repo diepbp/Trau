@@ -4,7 +4,7 @@
  *  Created on: Feb 1, 2017
  *      Author: diepbp
  */
-#include "utils.h"
+#include "Utils.h"
 
 std::string longestCommonTail(std::string a, std::string b){
 	unsigned int posA = a.length() - 1;

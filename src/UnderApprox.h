@@ -8,9 +8,9 @@
 #ifndef UNDERAPPROX_H_
 #define UNDERAPPROX_H_
 
-#include "utils.h"
 #include "Arrangement.h"
 #include "FileConverter.h"
+#include "Utils.h"
 
 #define OUTPUT "/tmp/fat_str_convert/output.smt2"
 #define NONGRM "/tmp/fat_str_convert/_nogrm.smt2"
@@ -623,19 +623,19 @@ void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 /*
  *
  */
-std::set<std::string> collectAllVars();
-
-/*
- *
- */
 bool isTrivialInequality(std::string x, std::string  y);
 
 /*
  *
  */
 void updateRewriter(
-		std::map<StringOP, std::string> &rewriterStrMap,
-		std::set<std::string> allVars);
+		std::map<StringOP, std::string> &rewriterStrMap);
+
+/*
+ *
+ */
+bool hasInequalities(std::map<StringOP, std::string> rewriterStrMap);
+
 
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,

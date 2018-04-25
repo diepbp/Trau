@@ -5,7 +5,7 @@
  *      Author: diepbp
  */
 
-#include "z3utils.h"
+#include "Z3Utils.h"
 
 /**
    \brief Create a variable using the given name and type.
