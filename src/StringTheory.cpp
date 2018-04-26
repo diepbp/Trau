@@ -101,6 +101,8 @@ std::map<Z3_ast, Z3_ast> grm_astNode_map;
 std::map<std::string, Z3_ast> constStr_astNode_map;
 std::map<Z3_ast, int> basicStrVarAxiom_added;
 
+std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> disequalityList;
+
 const std::string escapeDict[] = { "\\x00", "\\x01", "\\x02", "\\x03", "\\x04", "\\x05", "\\x06", "\\x07", "\\x08", "\\t", "\\n", "\\x0b", "\\x0c",
 		"\\r", "\\x0e", "\\x0f", "\\x10", "\\x11", "\\x12", "\\x13", "\\x14", "\\x15", "\\x16", "\\x17", "\\x18", "\\x19", "\\x1a", "\\x1b", "\\x1c",
 		"\\x1d", "\\x1e", "\\x1f", " ", "!", "\\\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6",
@@ -1653,6 +1655,14 @@ void Th_pop(Z3_theory t) {
 		else
 			++it;
 	}
+
+	std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> _disequalityList;
+	for (const auto& dEq : disequalityList) {
+		if (dEq.second < sLevel){
+			_disequalityList.emplace_back(dEq);
+		}
+	}
+	disequalityList = _disequalityList;
 
 	sLevel--;
 	leavePos = 0;
@@ -3876,6 +3886,7 @@ void Th_new_diseq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 	Z3_context c = Z3_theory_get_context(t);
 	__debugPrint(logFile, "New disequality: %s ", Z3_ast_to_string(c, n1));
 	__debugPrint(logFile, "!= %s\n", Z3_ast_to_string(c, n2));
+	disequalityList.emplace_back(std::make_pair(std::make_pair(n1, n2), sLevel));
 }
 
 /**
@@ -4133,24 +4144,23 @@ void extendVariableToFindAllPossibleEqualities(
 	 *
 	 * if both are false, keep original, print length
 	 */
-	refined_result = result;
-//	__debugPrint(logFile, ">> %d before refine node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), result.size());
-//	for (const auto& _eq: result){
-//		bool added = false;
-//		for (const auto _node : _eq) {
-//			if (isAutomatonFunc(t, _node) ||
-//					connectedVariables.find(_node) != connectedVariables.end()) {
-//				refined_result.emplace_back(_eq);
-//				added = true;
-//				break;
-//			}
-//
-//		}
-//
-//		/* do not need to print this case because it can be implied from SMT file */
-//		if (added == false) {
-//		}
-//	}
+	__debugPrint(logFile, ">> %d before refine node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), result.size());
+	for (const auto& _eq: result){
+		bool added = false;
+		for (const auto _node : _eq) {
+			if (isAutomatonFunc(t, _node) ||
+					connectedVariables.find(_node) != connectedVariables.end()) {
+				refined_result.emplace_back(_eq);
+				added = true;
+				break;
+			}
+
+		}
+
+		/* do not need to print this case because it can be implied from SMT file */
+		if (added == false) {
+		}
+	}
 
 	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), refined_result.size());
 
@@ -4264,6 +4274,13 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 			ret.insert(concatNode.first.second);
 		else if (!isAutomatonFunc(t, concatNode.first.second))
 			inConcat[concatNode.first.second] = concatNode.second;
+	}
+
+	for (const auto& node : disequalityList){
+		if (isVariable(t, node.first.first))
+			ret.emplace(node.first.first);
+		if (isVariable(t, node.first.second))
+			ret.emplace(node.first.second);
 	}
 
 	for (const auto& node : containNodeMap){
@@ -5168,10 +5185,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 
 	__debugPrint(logFile, "%d Finish calculating\n", __LINE__);
 
-	displayListString(non_root, " --variableBelongToOthers-- ");
-
 	std::vector<Z3_ast> boolValues = collectBoolValueInPositiveContext(t);
-	displayListNode(t, boolValues, " boolValues xx ");
 	std::map<Z3_ast, bool> boolMapValues;
 	for (const auto& b : boolValues){
 		std::string tmp = Z3_ast_to_string(ctx, b);
@@ -7619,7 +7633,6 @@ void collectDataInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n%d *** %s ***\n", __LINE__, __FUNCTION__);
-	printZ3Node(t, ctxAssign);
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */

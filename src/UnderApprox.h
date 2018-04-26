@@ -26,6 +26,8 @@ extern bool getModel;
 extern bool beReviewed;
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
+static std::map<std::string, std::vector<std::vector<std::string>>> orgEqualitiesMap;
+static std::map<StringOP, std::string> orgRewriterStrMap;
 static std::map<std::string, int> global_smtVars;
 static std::vector<std::vector<std::string>> global_smtStatements;
 
@@ -541,13 +543,30 @@ bool needValue(std::string name,
 		std::map<std::string, std::vector<int>> strValue);
 
 /*
+ *
+ */
+bool isBlankValue(std::string name,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue);
+
+/*
+ *
+ */
+bool findExistsingValue(
+		std::string varName,
+		std::vector<StringOP> equalities,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue,
+		std::vector<std::string> eqVar);
+
+/*
  * create str values after running Z3
  */
 void formatOtherVars(
 		std::vector<unsigned> indexes,
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
 
@@ -558,7 +577,7 @@ void formatRegexes(
 		std::vector<unsigned> indexes,
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
 

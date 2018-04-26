@@ -289,6 +289,10 @@ std::string exportNodeName(Z3_theory t,  Z3_ast node){
 	if (isDetAutomatonFunc(t, node) || isConstStr(t, node) || isNonDetAutomatonFunc(t, node)) {
 		return "\"" + getConstString(t, node) + "\"";
 	}
+	else if (isConcatFunc(t, node)){
+		return "(" + std::string(CONCAT) + " " + exportNodeName(t, Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0)) + " " +
+								exportNodeName(t, Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1)) + ")";
+	}
 	else
 		return Z3_ast_to_string(ctx, node);
 }

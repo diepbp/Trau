@@ -2183,7 +2183,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	connectedVariables.clear();
 	/* collect from equality map */
 	for (const auto& eq : equalitiesMap) {
-		if (eq.second.size() > 4) {
+		if (eq.second.size() > 4 && eq.first[0] != '"') {
 			if (connectedVariables.find(eq.first) == connectedVariables.end())
 				connectedVarSet[eq.first] = CONNECTSIZE;
 			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
@@ -3335,6 +3335,7 @@ void syncConst(
 			__debugPrint(logFile, "%d varName = %s\n", __LINE__, var.first.c_str());
 			int pos = 0;
 			for (const auto& s : eq){
+				int lengthS = getVarLength(s, len);
 				if (s[0] == '"') {
 					if (!isRegexStr(s) && !isUnionStr(s)) {
 						/* assign value directly */
@@ -3358,7 +3359,7 @@ void syncConst(
 					else if (isRegexStr(s)) {
 						/* find value */
 						assert(constMap.find(s.substr(1, s.length() - 2)) != constMap.end());
-						std::string tmpRegex = getTrivialRegex(s, getVarLength(s, len));
+						std::string tmpRegex = getTrivialRegex(s, lengthS);
 						if (tmpRegex.compare(NOTFOUND) != 0) {
 							std::vector<int> tmpVector;
 							for (unsigned i = 0; i < tmpRegex.length(); ++i)
@@ -3379,8 +3380,7 @@ void syncConst(
 //						}
 					}
 				}
-				pos += getVarLength(s, len);
-				__debugPrint(logFile, "%d %s: length = %d --> %d\n", __LINE__, s.c_str(), getVarLength(s, len), pos);
+				pos += lengthS;
 
 			}
 		}
@@ -3390,7 +3390,6 @@ void syncConst(
 		}
 	}
 
-	displayListString(propagatingList, "List of propagating nodes ");
 	for (const auto& s : propagatingList) {
 		if (s[0] == '"')
 			forwardPropagate(s, len, strValue, completion);
@@ -3428,6 +3427,7 @@ int getVarLength(
 		return len[tmp];
 	}
 	else {
+//		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 		assert(len.find(newlyUpdate) != len.end());
 		return len[newlyUpdate];
 	}
@@ -3704,7 +3704,6 @@ void backwardPropagarate(
 
 	std::vector<int> value = getVarValue(newlyUpdate, len, strValue);
 	int length = getVarLength(newlyUpdate, len);
-	__debugPrint(logFile, "%d len = %d/%ld\n", __LINE__, length, value.size());
 
 	if (length == 0) {
 		return;
@@ -3718,7 +3717,7 @@ void backwardPropagarate(
 			__debugPrint(logFile, "%d", value[i]);
 		}
 	__debugPrint(logFile, "\n");
-
+	__debugPrint(logFile, "%d equal size: %ld\n", __LINE__, equalitiesMap[newlyUpdate].size());
 	for (const auto& eq : equalitiesMap[newlyUpdate]){
 		int pos = 0;
 		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
@@ -3848,6 +3847,231 @@ bool needValue(std::string name,
 	return false;
 }
 
+
+/*
+ *
+ */
+bool isBlankValue(std::string name,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> strValue){
+	std::vector<int> value = getVarValue(name, len, strValue);
+	for (const auto& v : value)
+		if (v != 0)
+			return false;
+	return true;
+}
+
+/*
+ *
+ */
+std::string findEqValueInConcat(
+		std::string concat,
+		std::map<std::string, int> len){
+	std::vector<std::pair<std::string, int>> tokens = parseTerm(concat);
+	std::string ret = "";
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, concat.c_str());
+	for (const auto& token : tokens){
+		if (token.first[0] == '"') {
+			if (token.first.length() > 2) {
+				if (ret.length() == 0)
+					ret = token.first;
+				else
+					return "";
+			}
+		}
+		else if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(CONCAT) != 0 &&
+				getVarLength(token.first, len) > 0) {
+			if (ret.length() == 0)
+				ret = token.first;
+			else
+				return "";
+		}
+	}
+	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
+	return ret;
+}
+
+std::map<std::string, int> createSimpleEqualMap(
+		std::vector<StringOP> equalities,
+		std::map<std::string, int> len){
+	std::map<std::string, int> index;
+	int maxIndex = 0;
+	for (const auto& op : equalities){
+		std::string arg01 = op.arg01;
+		std::string arg02 = op.arg02;
+		if (arg02.find("(" + std::string(CONCAT)) == 0){
+			arg02 = findEqValueInConcat(arg02, len);
+		}
+		if (arg02.length() > 0) {
+			if (index.find(arg01) != index.end()){
+				if (index.find(arg02) != index.end()) {
+					int num01 = index[arg01];
+					int num02 = index[arg02];
+					for (const auto& v : index)
+						if (v.second == num02)
+							index[v.first] = num01;
+				}
+				else {
+					index[arg02] = index[arg01];
+				}
+
+			}
+			else if (index.find(arg02) != index.end()){
+				index[arg01] = index[arg02];
+			}
+			else {
+				maxIndex++;
+				index[arg01] = maxIndex;
+				index[arg02] = maxIndex;
+			}
+		}
+		else {
+			if (index.find(arg01) == index.end()){
+				maxIndex++;
+				index[arg01] = maxIndex;
+			}
+		}
+	}
+	return index;
+}
+
+/*
+ *
+ */
+std::vector<std::string> findEqualVar(
+		std::string varName,
+		std::vector<StringOP> equalities,
+		std::map<std::string, int> len){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, varName.c_str());
+	std::vector<std::string> ret;
+	ret.emplace_back(varName);
+	unsigned pos = 0;
+	while (pos < ret.size()) {
+		varName = ret[pos++];
+		for (const auto& op : equalities) {
+			std::string arg01 = op.arg01;
+			std::string arg02 = op.arg02;
+			assert(arg01.find("(" + std::string(CONCAT)) != 0);
+
+			if (arg01.compare(varName) == 0) {
+				if (std::find(ret.begin(), ret.end(), arg02) == ret.end()) {
+					/* x = concat y z and |z| = 0 */
+					if (arg02.find("(" + std::string(CONCAT)) == 0){
+						__debugPrint(logFile, "%d varname: %s\n", __LINE__, varName.c_str());
+						std::string tmp = findEqValueInConcat(arg02, len);
+						if (tmp.length() > 0 && std::find(ret.begin(), ret.end(), tmp) == ret.end()) {
+							__debugPrint(logFile, "%d adding %s\n", __LINE__, tmp.c_str());
+							ret.emplace_back(tmp);
+						}
+					}
+					else /* x = y*/ {
+						__debugPrint(logFile, "%d adding %s\n", __LINE__, arg02.c_str());
+						ret.emplace_back(arg02);
+					}
+				}
+			}
+			else {
+				if (arg02.compare(varName) == 0) {
+					if (std::find(ret.begin(), ret.end(), arg01) == ret.end()) {
+						__debugPrint(logFile, "%d adding %s\n", __LINE__, arg01.c_str());
+						ret.emplace_back(arg01);
+					}
+				}
+				/* y = concat x z and |z| = 0 */
+				else if (std::find(ret.begin(), ret.end(), arg01) == ret.end() &&
+						arg02.find(varName) != std::string::npos) {
+					if (arg02.find("(" + std::string(CONCAT)) == 0){
+						std::string tmp = findEqValueInConcat(arg02, len);
+						if (tmp.compare(varName) == 0) {
+							__debugPrint(logFile, "%d adding %s\n", __LINE__, arg01.c_str());
+							ret.emplace_back(arg01);
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+/*
+ *
+ */
+bool findExistsingValue(
+		std::string varName,
+		std::vector<StringOP> equalities,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue,
+		std::vector<std::string> eqVar){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, varName.c_str());
+	bool foundValue = false;
+
+	displayListString(eqVar, "eq value");
+	std::vector<int> value;
+	for (const auto& var : eqVar){
+		if (var[0] == '"') {
+			for (unsigned i = 1; i < var.length() - 1; ++i)
+				value.emplace_back(var[i]);
+			foundValue = true;
+			break;
+		}
+		else if (!needValue(var, len, strValue)) {
+			foundValue = true;
+			value = strValue[var];
+			break;
+		}
+	}
+
+	if (!foundValue) {
+		/* find value from Concat */
+		for (const auto& op : equalities){
+			if (op.arg02.find("(" + std::string(CONCAT)) == 0 &&
+					std::find(eqVar.begin(), eqVar.end(), op.arg01) == eqVar.end()){
+				std::vector<std::pair<std::string, int>> tokens = parseTerm(op.arg02);
+				std::vector<std::string> tmpTokens;
+				for (const auto& token : tokens)
+					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(CONCAT) != 0)
+						tmpTokens.emplace_back(token.first);
+				unsigned pos = 0;
+				std::vector<int> tmpVal = getVarValue(op.arg01, len, strValue);
+				for (const auto& token : tmpTokens)
+					if (std::find(eqVar.begin(), eqVar.end(), token) != eqVar.end()){
+						int leng = getVarLength(varName, len);
+						value.clear();
+						for (unsigned i = pos; i < pos + leng; ++i)
+							value.emplace_back(tmpVal[i]);
+						foundValue = true;
+						break;
+					}
+					else {
+						if (token[0] == '"')
+							pos += token.length() - 2;
+						else if (needValue(token, len, strValue)){
+							std::vector<int> tmp01;
+							int leng = getVarLength(token, len);
+							for (unsigned i = pos; i < pos + leng; ++i)
+								tmp01.emplace_back(tmpVal[i]);
+							strValue[token] = tmp01;
+							pos += leng;
+						}
+						else
+							pos += getVarLength(token, len);
+					}
+			}
+		}
+	}
+
+
+	/* update for all */
+	if (foundValue) {
+		for (const auto& var : eqVar) {
+			__debugPrint(logFile, "%d update: %s, value = %ld\n", __LINE__, var.c_str(), value.size());
+			strValue[var] = value;
+		}
+	}
+	return foundValue;
+}
+
 /*
  * create str values after running Z3
  */
@@ -3855,34 +4079,39 @@ void formatOtherVars(
 		std::vector<unsigned> indexes,
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
-	/* collect all vars */
-	std::set<std::string> varList;
-	for (const auto& var : equalitiesMap) {
-		if (var.first[0] != '"')
-			varList.emplace(var.first);
-		for (const auto& v: var.second)
-			for (const auto& _v : v){
-				if (_v[0] != '"')
-					varList.emplace(_v);
+	/* get less important equalities */
+	std::vector<StringOP> equalities;
+	for (const auto& op : orgRewriterStrMap){
+		if (op.first.name.compare("=") == 0 &&
+				op.second.compare(TRUESTR) == 0 &&
+				op.first.arg02.find("\"") == std::string::npos &&
+				op.first.arg01.find("\"") == std::string::npos){
+			StringOP _op("=", op.first.arg01, op.first.arg02);
+			if (op.first.arg01.find("(" + std::string(CONCAT)) == 0) {
+				_op.arg01 = op.first.arg02;
+				_op.arg02 = op.first.arg01;
+			}
+			equalities.emplace_back(_op);
+			__debugPrint(logFile, "%d %s\n", __LINE__, _op.toString().c_str());
 		}
 	}
+
+	std::map<std::string, int> index = createSimpleEqualMap(equalities, len);
 
 	/* 3rd: handling other vars */
 	for (const auto& s : indexes) {
 		std::string varName = lenVector[s].first;
-		if (varList.find(varName) == varList.end() || isInternalVar(varName, len))
+		if (allVariables.find(varName) == allVariables.end() || isInternalVar(varName, len))
 			continue;
 		if (lenVector[s].second == 0) {
 		}
 		else {
 			bool assigned = true;
-			std::string orgVarName = varName;
-			std::string solverValue = solverValues[varName];
 
 			/* skip if it is a subvar: _1_2*/
 			if (varName.length()  == 0 )
@@ -3890,13 +4119,30 @@ void formatOtherVars(
 
 			if (needValue(varName, len, strValue)) {
 				__debugPrint(logFile, "%d consider var: %s\n", __LINE__, varName.c_str());
+
+				std::vector<std::string> eqVar;
+				if (index.find(varName) == index.end()) {
+					eqVar.emplace_back(varName);
+				}
+				else {
+					int num = index[varName];
+					for (const auto& v : index)
+						if (v.second == num)
+							eqVar.emplace_back(v.first);
+				}
+
+				if (isBlankValue(varName, len, strValue))
+					if (findExistsingValue(varName, equalities, len, strValue, eqVar))
+						continue;
+				std::string solverValue = solverValues[varName];
 				std::vector<int> tmp = createString(varName, solverValue, len, strValue, assigned, createAnyway);
 
 				if (assigned) {
 					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
-					strValue[orgVarName] = tmp;
-					if (equalitiesMap.find(varName) == equalitiesMap.end())
-						forwardPropagate(varName, len, strValue, completion);
+					for (const auto& var : eqVar) {
+						__debugPrint(logFile, "%d update: %s\n", __LINE__, var.c_str());
+						strValue[var] = tmp;
+					}
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, varName.c_str());
 					}
@@ -3916,7 +4162,7 @@ void formatRegexes(
 		std::vector<unsigned> indexes,
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
-		std::map<std::string, int> &len,
+		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
@@ -4300,8 +4546,10 @@ bool S3_reviews(std::string fileName){
 			std::string line = "";
 			if (fgets(buffer, 5000, in) != NULL) {
 				line = buffer;
-				if (line.substr(0, 8).compare(">> UNSAT") == 0)
+				if (line.substr(0, 8).compare(">> UNSAT") == 0) {
+					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
 					assert(false);
+				}
 				else if (line.find("unknown function/constant") != std::string::npos){
 					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
 					std::string funcName = "";
@@ -4506,6 +4754,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 		if (op.first.name.compare(SUBSTRING) == 0)
 			createAnyway = false;
 	createNotContainMap(rewriterStrMap);
+	sumConstString();
 
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap(rewriterStrMap);
@@ -4513,7 +4762,6 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
 	addConnectedVarToEQmap();
-	sumConstString();
 	createConstMap();
 	refineEqualMap(rewriterStrMap);
 }
@@ -4629,6 +4877,7 @@ bool isTrivialInequality(std::string x, std::string  y){
  */
 void updateRewriter(
 		std::map<StringOP, std::string> &rewriterStrMap){
+	orgRewriterStrMap = rewriterStrMap;
 	std::map<StringOP, std::string> newRewriterStrMap;
 	for (const auto& op : rewriterStrMap){
 
@@ -4681,13 +4930,8 @@ bool underapproxController(
 
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
-
 	reset();
-
-	std::map<std::string, std::vector<std::vector<std::string>>> orgEqualitiesMap = equalitiesMap;
 	init(rewriterStrMap);
-
-	std::map<StringOP, std::string> orgRewriterStrMap = rewriterStrMap;
 	updateRewriter(rewriterStrMap);
 
 	for (const auto& elem : rewriterStrMap){
@@ -4735,8 +4979,6 @@ bool underapproxController(
 		writeOutput_basic(OUTPUT);
 
 		/* re-assign equalityMap */
-		equalitiesMap.clear();
-		equalitiesMap = orgEqualitiesMap;
 
 		result = Z3_run(_equalMap, false);
 		if (result == false){
@@ -4760,11 +5002,6 @@ bool underapproxController(
 		else {
 			printf(">> Generated SMT\n\n");
 			writeOutput02(OUTPUT);
-
-			/* re-assign equalityMap */
-			equalitiesMap.clear();
-			equalitiesMap = orgEqualitiesMap;
-			printEqualMap(equalitiesMap);
 			result =  Z3_run(_equalMap);
 		}
 	}
