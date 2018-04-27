@@ -1014,6 +1014,71 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 /*
  *
  */
+std::string create_constraints_equal(
+	std::string str00,
+	std::string str01){
+	bool isConst_00 = false;
+	bool isConst_01 = false;
+	if (str00[0] == '\"' )
+		isConst_00 = true;
+
+	if (str01[0] == '\"')
+		isConst_01 = true;
+	if (isConst_00 || isConst_01) {
+		if (isConst_01) {
+			/* swap */
+			std::string tmp = str00;
+			str00 = str01;
+			str01 = tmp;
+		}
+
+		if (isRegexStr(str00)) {
+			return TRUESTR;
+		}
+		else if (isUnionStr(str00)) {
+			return TRUESTR;
+		}
+
+		std::string len01 = generateVarLength(str01);
+		/* != "a" b */
+		return createEqualConstraint(len01, std::to_string((int)str00.length() - 2));
+	}
+	else {
+		bool concat00 = str00.find("(" + std::string(CONCAT)) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(CONCAT)) != std::string::npos;
+		if (!concat00 && !concat01) {
+			/* x = y */
+
+			std::string len00 = generateVarLength(str00);
+			std::string len01 = generateVarLength(str01);
+
+			/* = a b */
+			return createEqualConstraint(len00, len01);
+		}
+		else {
+			if (concat00){
+				std::string tmp = str00;
+				str00 = str01;
+				str01 = tmp;
+			}
+			std::vector<std::pair<std::string, int>> tokens  = parseTerm(str01);
+			std::string tmp = "";
+			for (const auto& s : tokens)
+				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(CONCAT) != 0) {
+					if (s.first[0] != '"')
+						tmp = tmp + generateVarLength(s.first) + " ";
+					else
+						tmp = tmp + std::to_string(s.first.length() - 2) + " ";
+				}
+			return createEqualConstraint(generateVarLength(str00),
+					"(+ " + tmp + ")");
+		}
+
+	}
+}
+/*
+ *
+ */
 std::string create_constraints_NOTEqual(
 		std::string str00,
 		std::string str01){
@@ -1223,12 +1288,18 @@ void handle_NOTContains(
 void handle_NOTEqual(
 		std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0 &&
-				(connectedVariables.find(s.first.arg01) != connectedVariables.end() ||
+		if (s.first.name.compare("=") == 0){
+			if (s.second.compare(FALSETR) == 0) {
+				if ((connectedVariables.find(s.first.arg01) != connectedVariables.end() ||
 						connectedVariables.find(s.first.arg02) != connectedVariables.end() ||
 						s.first.arg01.compare("\"\"") == 0 ||
 						s.first.arg02.compare("\"\"") == 0)){
-			global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
+					global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
+				}
+			}
+			else {
+//				global_smtStatements.push_back({create_constraints_equal(s.first.arg01, s.first.arg02)});
+			}
 		}
 
 	}
@@ -4022,7 +4093,10 @@ bool findExistsingValue(
 		}
 	}
 
+
+
 	if (!foundValue) {
+		__debugPrint(logFile, "%d not found value %s yet\n", __LINE__, varName.c_str());
 		/* find value from Concat */
 		for (const auto& op : equalities){
 			if (op.arg02.find("(" + std::string(CONCAT)) == 0 &&
@@ -4034,6 +4108,7 @@ bool findExistsingValue(
 						tmpTokens.emplace_back(token.first);
 				unsigned pos = 0;
 				std::vector<int> tmpVal = getVarValue(op.arg01, len, strValue);
+				__debugPrint(logFile, "%d %s\n", __LINE__, op.arg02.c_str());
 				for (const auto& token : tmpTokens)
 					if (std::find(eqVar.begin(), eqVar.end(), token) != eqVar.end()){
 						int leng = getVarLength(varName, len);
@@ -4049,10 +4124,14 @@ bool findExistsingValue(
 						else if (needValue(token, len, strValue)){
 							std::vector<int> tmp01;
 							int leng = getVarLength(token, len);
-							for (unsigned i = pos; i < pos + leng; ++i)
-								tmp01.emplace_back(tmpVal[i]);
-							strValue[token] = tmp01;
+							if (pos + leng <= tmpVal.size()) {
+								/* weird case: some information from solver is not correct */
+								for (unsigned i = pos; i < pos + leng; ++i)
+									tmp01.emplace_back(tmpVal[i]);
+								strValue[token] = tmp01;
+							}
 							pos += leng;
+
 						}
 						else
 							pos += getVarLength(token, len);
