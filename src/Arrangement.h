@@ -213,7 +213,7 @@ public:
 	}
 
 	/*
-	 * (lhs)* = .* rhs .* where lhs starts at posLhs
+	 * (lhs)* = .* rhs .* where rhs starts at posLhs
 	 */
 	bool const_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs){
 
@@ -229,7 +229,7 @@ public:
 	}
 
 	/*
-	 * (lhs)* = .* rhs.-2 .* where lhs starts at posLHS
+	 * (lhs)* = .* rhs.-2 .* where rhs starts at posLHS
 	 */
 	std::vector<int> tail_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs){
 
@@ -462,7 +462,7 @@ public:
 	) {
 		/* reach end */
 		if (currentSplit.size() == elementNames.size() &&
-				pos == 0) {
+				(pos == 0 || pos == MINUSZERO)) {
 
 			allPossibleSplits.emplace_back(currentSplit);
 			return;
@@ -471,7 +471,7 @@ public:
 			return;
 		}
 
-		assert(!isUnionStr(elementNames[currentSplit.size()].first));
+		assert(!isUnionStr(elementNames[currentSplit.size()].first) || isRegexStr(elementNames[currentSplit.size()].first));
 
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {
@@ -488,7 +488,7 @@ public:
 				elementNames[currentSplit.size()].second < 0 &&
 				elementNames[currentSplit.size()].second > REGEX_CODE &&
 				currentSplit.size() > 0) /* tail, not the first */ {
-			assert (elementNames[currentSplit.size() - 1].second % QCONSTMAX == -1);
+			assert (elementNames[currentSplit.size() - 1].second - 1 == elementNames[currentSplit.size()].second);
 			int length = elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
 			currentSplit.emplace_back(length);
@@ -529,10 +529,13 @@ public:
 				currentSplit.size() + 1 < elementNames.size() &&
 				QCONSTMAX == 2) /* head, not the last element */ {
 			/* check full string */
-			if (elementNames[currentSplit.size() + 1].second % QCONSTMAX == 0 &&
-					elementNames[currentSplit.size() + 1].second < 0 &&
-					elementNames[currentSplit.size() + 1].second > REGEX_CODE){
-				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
+			bool canProcess;
+			if (isUnionStr(str))
+				canProcess = true;
+			else
+				canProcess = const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
+			if (elementNames[currentSplit.size() + 1].second == elementNames[currentSplit.size()].second - 1){
+				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
@@ -542,7 +545,7 @@ public:
 			}
 			else {
 				/* this const only has 1 part */
-				if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
+				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
 						collectAllPossibleSplits_regex((pos) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
