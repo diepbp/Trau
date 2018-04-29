@@ -2343,7 +2343,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					continue;
 
 				bool canSkip = false;
-				if (s.first.arg02[0] == '"') {
+				if (s.first.arg02[0] == '"' && !isRegexStr(s.first.arg02)) {
 					if (equalitiesMap.find(s.first.arg01) != equalitiesMap.end())
 						for (const auto _eq : equalitiesMap[s.first.arg01]) {
 							for (const auto e : _eq)
@@ -2356,17 +2356,17 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						}
 				}
 
-				if (s.first.arg01[0] == '"') {
+				if (s.first.arg01[0] == '"' && !isRegexStr(s.first.arg01)) {
 					if (equalitiesMap.find(s.first.arg02) != equalitiesMap.end())
-					for (const auto _eq : equalitiesMap[s.first.arg02]) {
-						for (const auto e : _eq)
-							if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg01.find(e) == std::string::npos) {
-								canSkip = true;
+						for (const auto _eq : equalitiesMap[s.first.arg02]) {
+							for (const auto e : _eq)
+								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg01.find(e) == std::string::npos) {
+									canSkip = true;
+									break;
+								}
+							if (canSkip)
 								break;
-							}
-						if (canSkip)
-							break;
-					}
+						}
 				}
 
 				if (canSkip) {

@@ -177,6 +177,15 @@ public:
 		/* extend string if it is short */
 		rhs = parse_regex_content(rhs);
 
+		if (isUnionStr(lhs) || isUnionStr(rhs)){
+			// TODO regex = regex
+			std::vector<int> ret;
+			for (unsigned i = 0; i < lhs.length(); ++i)
+				ret.emplace_back(i);
+			return ret;
+		}
+
+
 		std::string initialLhs = lhs;
 		while (rhs.length() + posLhs > initialLhs.length()) /* make sure that | initialLhs | > | rhs | */
 			initialLhs = initialLhs + lhs;
