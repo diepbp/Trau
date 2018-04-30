@@ -361,6 +361,11 @@ std::string createPlusOperator(std::string x, std::string y);
 /*
  *
  */
+std::string createPlusOperator(std::vector<std::string> list);
+
+/*
+ *
+ */
 std::string createSelectConstraint(std::string arr, std::string at);
 
 /*

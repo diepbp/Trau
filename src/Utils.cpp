@@ -421,6 +421,21 @@ std::string createPlusOperator(std::string x, std::string y){
 	return "(+ " + x + " " + y + ")";
 }
 
+/*
+ *
+ */
+std::string createPlusOperator(std::vector<std::string> list){
+	if (list.size() == 0)
+		return "0";
+	else if (list.size() == 1)
+		return list[0];
+
+	std::string ret = "(+";
+	for (const auto& s : list)
+		ret = ret + " " + s;
+	return ret + ")";
+}
+
 
 /*
  *

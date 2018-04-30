@@ -4112,11 +4112,15 @@ bool findExistsingValue(
 				for (const auto& token : tmpTokens)
 					if (std::find(eqVar.begin(), eqVar.end(), token) != eqVar.end()){
 						int leng = getVarLength(varName, len);
-						value.clear();
-						for (unsigned i = pos; i < pos + leng; ++i)
-							value.emplace_back(tmpVal[i]);
-						foundValue = true;
-						break;
+						if (pos + leng <= tmpVal.size()){
+							value.clear();
+							for (unsigned i = pos; i < pos + leng; ++i)
+								value.emplace_back(tmpVal[i]);
+							foundValue = true;
+							break;
+						}
+						else
+							break;
 					}
 					else {
 						if (token[0] == '"')
