@@ -2103,7 +2103,7 @@ void sumConstString(){
 			for (const auto& s : vt) {
 				if (s[0] == '\"') {
 					/* prevent the case: (abc)*  + def */
-					if (isRegexStr(s)) {
+					if (isRegexStr(s) || isUnionStr(s)) {
 						std::vector<std::string> localElements;
 						/* reuse the parse result */
 						if (parserMap.find(s) != parserMap.end())

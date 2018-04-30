@@ -11,7 +11,7 @@ template< typename T >
 std::string int_to_hex( T i )
 {
 	std::stringstream stream;
-	stream << "_x" << std::hex << i;
+	stream << "_x" << std::setfill('0') << std::setw(2) << std::hex << i;
 	return stream.str();
 }
 
@@ -1036,21 +1036,23 @@ bool prepareEncoderDecoderMap(std::string fileName){
 
 	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\'', '+', '%', '#', '*'};
 	std::set<char> encoded;
-	char buffer[5000];
 	bool used[255];
 	memset(used, sizeof used, false);
-	while (!feof(in)) {
-		/* read a line */
-		if (fgets(buffer, 5000, in) != NULL){
-			std::set<char> tmp = getUsedChars(buffer);
-			for (const auto& ch : tmp) {
-				used[(int)ch] = true;
-				if (tobeEncoded.find(ch) != tobeEncoded.end())
-					encoded.emplace(ch);
+
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(fileName);
+
+	for (const auto& tokens : fileTokens) {
+		for (const auto& token : tokens) {
+			if (token.second == 86) /* string */{
+				std::set<char> tmp = getUsedChars(token.first);
+				for (const auto& ch : tmp) {
+					used[(int)ch] = true;
+					if (tobeEncoded.find(ch) != tobeEncoded.end())
+						encoded.emplace(ch);
+				}
 			}
 		}
 	}
-	pclose(in);
 
 	std::vector<char> unused;
 	for (unsigned i = '0'; i <= '9'; ++i)
