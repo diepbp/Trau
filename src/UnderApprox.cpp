@@ -3821,6 +3821,7 @@ void backwardPropagarate(
 						strValue[getVarName(var)] = sValue;
 						__debugPrint(logFile, "%d var: %s --> len = %d\n", __LINE__, var.c_str(), lengthVar);
 						forwardPropagate(var, len, strValue, completion);
+						backwardPropagarate_simple(var, len, strValue, completion);
 						if (completion == false) {
 							__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, var.c_str());
 							return;
@@ -3866,6 +3867,7 @@ void backwardPropagarate(
 
 					strValue[getVarName(var)] = sValue;
 					forwardPropagate(var, len, strValue, completion);
+					backwardPropagarate_simple(var, len, strValue, completion);
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, var.c_str());
 						return;
@@ -3887,6 +3889,95 @@ void backwardPropagarate(
 					__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, var.c_str());
 					return;
 				}
+			}
+		}
+		__debugPrint(logFile, "%d %s: %d == %d\n", __LINE__, newlyUpdate.c_str(), pos, length);
+		assert(pos == length);
+	}
+}
+
+/*
+ * a = b . c. We know a, need to update b and c
+ */
+void backwardPropagarate_simple(
+		std::string newlyUpdate,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion){
+	__debugPrint(logFile, "%d *** %s ***: %s (completion: %d)\n", __LINE__, __FUNCTION__, newlyUpdate.c_str(), completion ? 1 : 0);
+	if (completion == false)
+		return;
+
+	std::vector<int> value = getVarValue(newlyUpdate, len, strValue);
+	int length = getVarLength(newlyUpdate, len);
+
+	if (length == 0) {
+		return;
+	}
+
+	for (unsigned i = 0; i < value.size(); ++i)
+		if (value[i] != 0) {
+			__debugPrint(logFile, "%c", value[i]);
+		}
+		else {
+			__debugPrint(logFile, "%d", value[i]);
+		}
+	__debugPrint(logFile, "\n");
+	__debugPrint(logFile, "%d equal size: %ld\n", __LINE__, equalitiesMap[newlyUpdate].size());
+	for (const auto& eq : equalitiesMap[newlyUpdate]){
+		int pos = 0;
+		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
+		for (const auto& var : eq) {
+			if (var[0] == '"') {
+				int lengthVar = getVarLength(var, len);
+				pos += lengthVar;
+			}
+			else if(strValue.find(var) != strValue.end()){
+				std::vector<int> sValue = getVarValue(var, len, strValue);
+				int lengthVar = getVarLength(var, len);
+				/* verify a determined value */
+
+				bool update = false;
+				for (int i = 0; i < lengthVar; ++i)
+					if (value[pos + i] != 0 && sValue[i] != 0 && value[pos + i] != sValue[i]) {
+						__debugPrint(logFile, "%d error at : %s\n", __LINE__, var.c_str());
+						completion = false;
+						return;
+					}
+					else if (value[pos + i] != 0 && sValue[i] == 0){
+						sValue[i] = value[pos + i];
+						update = true;
+					}
+					else if (value[pos + i] == 0 && sValue[i] != 0){
+					}
+
+				pos += lengthVar;
+
+				if (update == true) {
+					__debugPrint(logFile, "%d update existed value: %s\n", __LINE__, var.c_str());
+					for (unsigned i = 0; i < sValue.size(); ++i)
+						if (sValue[i] != 0) {
+							__debugPrint(logFile, "%c", sValue[i]);
+						}
+						else
+							__debugPrint(logFile, "%d", sValue[i]);
+					__debugPrint(logFile, "\n");
+
+					strValue[getVarName(var)] = sValue;
+					backwardPropagarate_simple(var, len, strValue, completion);
+				}
+			}
+			else {
+				__debugPrint(logFile, "%d assign a new value: %s\n", __LINE__, var.c_str());
+				assert(len.find(var) != len.end());
+				int lengthVar = getVarLength(var, len);
+				/* update a new value */
+				std::vector<int> sValue;
+				for (int i = 0; i < lengthVar; ++i)
+					sValue.emplace_back(value[pos + i]);
+				strValue[getVarName(var)] = sValue;
+				pos += lengthVar;
+				backwardPropagarate_simple(var, len, strValue, completion);
 			}
 		}
 		__debugPrint(logFile, "%d %s: %d == %d\n", __LINE__, newlyUpdate.c_str(), pos, length);
@@ -3974,6 +4065,17 @@ std::map<std::string, int> createSimpleEqualMap(
 			arg02 = findEqValueInConcat(arg02, len);
 		}
 		if (arg02.length() > 0) {
+			if (getVarLength(arg02, len) != getVarLength(arg01, len)) {
+				if (index.find(arg01) == index.end()){
+					maxIndex++;
+					index[arg01] = maxIndex;
+				}
+				if (index.find(arg02) == index.end()){
+					maxIndex++;
+					index[arg02] = maxIndex;
+				}
+				continue;
+			}
 			if (index.find(arg01) != index.end()){
 				if (index.find(arg02) != index.end()) {
 					int num01 = index[arg01];
@@ -4227,6 +4329,7 @@ void formatOtherVars(
 						if (needValue(var, len, strValue)){
 							__debugPrint(logFile, "%d update: %s\n", __LINE__, var.c_str());
 							strValue[var] = tmp;
+							backwardPropagarate_simple(var, len, strValue, completion);
 						}
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, varName.c_str());

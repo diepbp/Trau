@@ -526,6 +526,16 @@ void backwardPropagarate(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion);
+
+/*
+ * a = b . c. We know a, need to update b and c
+ */
+void backwardPropagarate_simple(
+		std::string newlyUpdate,
+		std::map<std::string, int> len,
+		std::map<std::string, std::vector<int>> &strValue,
+		bool &completion);
+
 /*
  *
  */
