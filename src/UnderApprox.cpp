@@ -4147,10 +4147,11 @@ bool findExistsingValue(
 
 	/* update for all */
 	if (foundValue) {
-		for (const auto& var : eqVar) {
-			__debugPrint(logFile, "%d update: %s, value = %ld\n", __LINE__, var.c_str(), value.size());
-			strValue[var] = value;
-		}
+		for (const auto& var : eqVar)
+			if (needValue(var, len, strValue)){
+				__debugPrint(logFile, "%d update: %s, value = %ld\n", __LINE__, var.c_str(), value.size());
+				strValue[var] = value;
+			}
 	}
 	return foundValue;
 }
@@ -4222,10 +4223,11 @@ void formatOtherVars(
 
 				if (assigned) {
 					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
-					for (const auto& var : eqVar) {
-						__debugPrint(logFile, "%d update: %s\n", __LINE__, var.c_str());
-						strValue[var] = tmp;
-					}
+					for (const auto& var : eqVar)
+						if (needValue(var, len, strValue)){
+							__debugPrint(logFile, "%d update: %s\n", __LINE__, var.c_str());
+							strValue[var] = tmp;
+						}
 					if (completion == false) {
 						__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, varName.c_str());
 					}

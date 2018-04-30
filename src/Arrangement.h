@@ -174,12 +174,11 @@ public:
 	 * (lhs)* = (rhs)* where lhs starts at posLHS
 	 */
 	std::vector<int> regex_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs) {
-		__debugPrint(logFile, "%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, lhs.c_str(), rhs.c_str());
+		__debugPrint(logFile, "%d *** %s ***: %s = %s at %d\n", __LINE__, __FUNCTION__, lhs.c_str(), rhs.c_str(), posLhs);
 		/* extend string if it is short */
 		rhs = parse_regex_content(rhs);
-
-		if (isUnionStr(lhs) || isUnionStr(rhs)){
-			std::vector<std::string> componentsRhs = collectAlternativeComponents(rhs);
+		std::vector<std::string> componentsRhs = collectAlternativeComponents(rhs);
+		if (isUnionStr(lhs)){
 			std::vector<std::string> componentsLhs = collectAlternativeComponents(lhs);
 			std::vector<int> ret;
 			for (const auto& r : componentsRhs)
@@ -197,28 +196,33 @@ public:
 		while (rhs.length() + posLhs > initialLhs.length()) /* make sure that | initialLhs | > | rhs | */
 			initialLhs = initialLhs + lhs;
 
-		// bool isloopExist = true;
-
 		std::vector<int> possibleCases;
 		possibleCases.emplace_back(0);
-		if (rhs.compare(initialLhs.substr(posLhs, rhs.length())) == 0) {
-			int pos_lhs = (posLhs + rhs.length()) % lhs.length();
+		int getIn = -1;
+		for (const auto& r : componentsRhs)
+			if (r.compare(initialLhs.substr(posLhs, r.length())) == 0) {
+				getIn = (int)r.length();
+				break;
+			}
+		if (getIn >= 0) {
+			int pos_lhs = (posLhs + getIn) % lhs.length();
 			int iterRhs = 1;
 
 			possibleCases.emplace_back(1);
 
 			std::string double_str = initialLhs + initialLhs;
 			while (pos_lhs != posLhs) {
-
-				/* loop until it goes back the inital possition */
-				if (rhs.compare(double_str.substr(pos_lhs, rhs.length())) == 0) {
-					possibleCases.emplace_back(++iterRhs);
-					pos_lhs = (pos_lhs + rhs.length()) % lhs.length();
-				}
-				else {
-					// isloopExist = false;
+				bool foundNextIter = false;
+				for (const auto& r : componentsRhs)
+					/* loop until it goes back the initial position */
+					if (r.compare(double_str.substr(pos_lhs, r.length())) == 0) {
+						possibleCases.emplace_back(++iterRhs);
+						pos_lhs = (pos_lhs + r.length()) % lhs.length();
+						foundNextIter = true;
+						break;
+					}
+				if (!foundNextIter)
 					break;
-				}
 			}
 		}
 		else /* cannot happens */ {
@@ -476,6 +480,7 @@ public:
 			std::vector<int> currentSplit,
 			std::vector<std::vector<int> > &allPossibleSplits
 	) {
+
 		/* reach end */
 		if (currentSplit.size() == elementNames.size() &&
 				(pos == 0 || pos == MINUSZERO)) {
@@ -564,7 +569,7 @@ public:
 				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
-						collectAllPossibleSplits_regex((pos) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
 				}
@@ -585,8 +590,10 @@ public:
 			/* loop ? */
 			bool loop = false;
 			if (regexPos.size() > 0 &&
-					regexPos[regexPos.size() - 1] * contentLength % str.length() == 0)
+					regexPos[regexPos.size() - 1] * contentLength % str.length() == 0) {
 				loop = true;
+			}
+			__debugPrint(logFile, "%d loop = %d, regexPos size = %ld, contentLength = %d\n", __LINE__, loop ? 1 : 0, regexPos.size(), contentLength);
 
 			if (regexPos.size() == 0) {
 				currentSplit.emplace_back(0);
@@ -1092,8 +1099,8 @@ public:
 			std::string lhs, std::string rhs){
 		__debugPrint(logFile, "%d const|regex = const + ...\n", __LINE__);
 		int totalLength = 0;
-		for (unsigned int j = 0; j < split.size(); ++j)
-			if (split[j] > 0)
+		for (unsigned j = 0; j < split.size(); ++j)
+			if (split[j] > 0 && split[j] != MINUSZERO)
 				totalLength = totalLength + split[j];
 			else {
 				totalLength = -1;
@@ -1815,7 +1822,7 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		int consideredSize = std::min(bound + 1, 199);
+		int consideredSize = std::min(bound + 1, CONNECTSIZE);
 
 		if (startLhs.compare(ZERO) != 0 && startRhs.compare(ZERO) != 0) {
 			for (int i = 1; i <= consideredSize; ++i){
