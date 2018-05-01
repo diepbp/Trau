@@ -3656,9 +3656,8 @@ void forwardPropagate(
 							if (updated == true) {
 
 								strValue[getVarName(s)] = sValue;
-								if (equalitiesMap.find(s) == equalitiesMap.end())
-									forwardPropagate(s, len, strValue, completion);
-								else
+								forwardPropagate(s, len, strValue, completion);
+								if (equalitiesMap.find(s) != equalitiesMap.end())
 									backwardPropagarate(s, len, strValue, completion);
 								if (completion == false) {
 									__debugPrint(logFile, ">> %d cannot find var: %s\n", __LINE__, s.c_str());
