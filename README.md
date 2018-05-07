@@ -2,11 +2,11 @@ This is the [Trau](http://dl.acm.org/citation.cfm?id=3062384) string solver
 
 Requirements
 ---------------------------------
-Before attempting to build Trau, you must have the following installed:
+Before attempting to build Trau, you need to have the following installed and in your PATH:
 - Ubuntu 64 bits 
-- python (must be on your PATH)
-- openfst (must be on your PATH). You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
-- ANTLR 4.0
+- python
+- openfst. You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
+- ANTLR 4 runtime [here](http://www.antlr.org/download.html)
 
 Getting & Building Trau
 ---------------------------------
