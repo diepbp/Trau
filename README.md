@@ -4,7 +4,7 @@ Requirements
 ---------------------------------
 Before attempting to build Trau, you need to have the following installed and in your PATH:  
 
-- openfst. You can find the lastest version of openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
+- openfst [here](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
 - ANTLR 4 runtime [here](http://www.antlr.org/download.html)
 
 Getting & Building Trau
