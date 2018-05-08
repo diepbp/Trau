@@ -256,24 +256,23 @@ std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name)
 	}
 
 	if (name == td->Concat)
-		return "(Concat " + node01 + " " + node02 + ")";
+		return "("  + std::string(CONCAT) + " " + node01 + " " + node02 + ")";
 	if (name == td->Contains)
-		return "(Contains " + node01 + " " + node02 + ")";
+		return "("  + std::string(CONTAINS) + " " + node01 + " " + node02 + ")";
 	else if (name == td->LastIndexof)
-		return "(LastIndexof " + node01 + " " + node02 + ")";
+		return "("  + std::string(LASTINDEXOF) + " " + node01 + " " + node02 + ")";
 	else if (name == td->Indexof)
-		return "(Indexof " + node01 + " " + node02 + ")";
+		return "("  + std::string(INDEXOF) + " " + node01 + " " + node02 + ")";
 	else if (name == td->StartsWith)
-		return "(StartsWith " + node01 + " " + node02 + ")";
+		return "("  + std::string(STARTSWITH) + " " + node01 + " " + node02 + ")";
 	else if (name == td->EndsWith)
-		return "(EndsWith " + node01 + " " + node02 + ")";
-	else if (name == td->Replace) {
-		return "(Replace " + node01 + " " + node02 + " " + node03 + ")";
-	}
+		return "("  + std::string(ENDSWITH) + " " + node01 + " " + node02 + ")";
+	else if (name == td->Replace)
+		return "("  + std::string(REPLACE) + " " + node01 + " " + node02 + " " + node03 + ")";
 	else if (name == td->ReplaceAll)
-		return "(ReplaceAll " + node01 + " " + node02 + " " + node03 + ")";
+		return "("  + std::string(REPLACEALL) + " " + node01 + " " + node02 + " " + node03 + ")";
 	else if (name == td->SubString)
-		return "(Substring " + node01 + " " + node02 + " " + node03 + ")";
+		return "("  + std::string(SUBSTRING) + " " + node01 + " " + node02 + " " + node03 + ")";
 	else {
 		assert(false);
 		return NULL;

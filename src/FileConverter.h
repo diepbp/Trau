@@ -15,6 +15,7 @@
 static std::map<char, char> ENCODEMAP;
 
 static std::map<char, char> DECODEMAP;
+extern bool getModel;
 
 template< typename T >
 std::string int_to_hex( T i );
@@ -196,6 +197,10 @@ void toLengthLine(
  */
 std::string encodeSpecialChars(std::string str);
 
+/*
+ * replace declare-variable by declare-fun
+ */
+std::vector<std::string> replaceVariableDefinition(std::vector<std::pair<std::string, int>> tokens);
 
 /*
  * read SMT file

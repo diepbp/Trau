@@ -26,6 +26,8 @@ std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
 std::map<std::string, std::vector<std::string>> ourGrm;
 
+const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5"};
+
 /*
  *
  */
@@ -191,6 +193,10 @@ void printHelp(){
 
 	printf("Input format:\n");
 	printf("\t -model 	\t\t print satisfying assignments if the result is SAT.\n");
+	printf("\t -language [..]	\t\t define the input language. Trau supports ");
+	for (const auto& s: supportedLanguage)
+		printf("%s ", s.c_str());
+	printf("!\n");
 	printf("\t -grm [..]\t\t\t specify the grammar file.\n");
 	printf("\t -doublecheck 	\t\t use the S3P string solver to double-check satisfying assignments.\n");
 
@@ -216,7 +222,21 @@ void parseUserInput(int argc, char* argv[]){
 			grammarFile = argv[i];
 			foundGrm = true;
 		}
+		else if (tmp.compare("-language") == 0){
+			i++;
+			std::string language = "";
+			if (std::find(supportedLanguage.begin(), supportedLanguage.end(), std::string(argv[i])) != supportedLanguage.end()) {
+				language = argv[i];
+			}
+			if (language.length() == 0) {
+				printf("Input language is not supported.\nTrau supports ");
+				for (const auto& s: supportedLanguage)
+					printf("%s ", s.c_str());
+				printf("!\n");
+			}
+		}
 		else if (tmp.compare("-doublecheck") == 0){
+			getModel = true;
 			beReviewed = true;
 		}
 		else if (tmp.compare("-model") == 0){

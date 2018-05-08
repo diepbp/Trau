@@ -1139,10 +1139,11 @@ void rewriteGRM(std::string s,
 					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (RegexIn " + constMap[content] + "_100 (RegexStar (Str2Reg \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(REGEXIN) + " " + constMap[content] + "_100 (" +
+													std::string(REGEXSTAR) + " (" + std::string(STR2REG) + " \"" + tmp + "\"))))\n");
 
 					if (result.length() > 0)
-						result = "(Concat " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(CONCAT) + " " + result + " " + constMap[content]+ "_100)";
 					else
 						result = constMap[content] + "_100";
 				}
@@ -1152,15 +1153,16 @@ void rewriteGRM(std::string s,
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (RegexIn " + constMap[content] + "_100 (RegexPlus (Str2Reg \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(REGEXIN) + " " + constMap[content] + "_100 (" +
+													std::string(REGEXSTAR) + " (" + std::string(STR2REG) + " \"" + tmp + "\"))))\n");
 					if (result.length() > 0)
-						result = "(Concat " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(CONCAT) + " " + result + " " + constMap[content]+ "_100)";
 					else
 						result = constMap[content] + "_100";
 				}
 				else {
 					if (result.length() > 0)
-						result = "(Concat " + result + " " + components[j] + ")";
+						result = "("  + std::string(CONCAT) + " " + result + " " + components[j] + ")";
 					else
 						result = components[j];
 				}
@@ -1380,6 +1382,33 @@ std::string encodeSpecialChars(std::string constStr){
 }
 
 /*
+ * replace declare-variable by declare-fun
+ */
+std::vector<std::string> replaceVariableDefinition(std::vector<std::pair<std::string, int>> tokens){
+	std::vector<std::string> ret;
+	bool found = false;
+	int pos = 0;
+	for (const auto& token : tokens) {
+		pos++;
+		if (pos == 2 && found == true)
+			ret.emplace_back("()");
+
+		if (token.first.compare("declare-variable") == 0) {
+			found = true;
+			ret.emplace_back("declare-fun");
+			pos = 0;
+		}
+		else
+			ret.emplace_back(token.first);
+	}
+
+	if (!found)
+		return {};
+	else
+		return ret;
+}
+
+/*
  * read SMT file
  */
 void encodeSpecialChars(std::string inputFile, std::string outFile){
@@ -1389,9 +1418,16 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 
 	for (const auto& tokens : fileTokens) {
 		bool add = true;
-		std::vector<std::string> listTokens;
+		std::vector<std::string> listTokens = replaceVariableDefinition(tokens);
+		if (listTokens.size() > 0) {
+			/* declare-variable */
+			newtokens.emplace_back(listTokens);
+			continue;
+		}
+
 		for (const auto& token : tokens) {
 			if (token.second == 81) { /* get model */
+				getModel = true;
 				add = false;
 				break;
 			}

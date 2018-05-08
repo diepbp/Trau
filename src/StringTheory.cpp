@@ -1043,7 +1043,7 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
 		std::string lhsTmp = node_to_string(t, leftArg);
 		std::string rhsTmp = node_to_string(t, rightArg);
-		return "(Concat " + lhsTmp + " " + rhsTmp + ")";
+		return "(" + std::string(CONCAT) + " " + lhsTmp + " " + rhsTmp + ")";
 	}
 }
 
@@ -7442,7 +7442,7 @@ void collectEqualValueInPositiveContext(
 
 	if (astToString.find("$$") == std::string::npos && /* not internal vars */
 			astToString.find("a!") == std::string::npos && /* not internal vars */
-			astToString.find("(Length ") == std::string::npos && /* not length constraints */
+			astToString.find("(" + std::string(LENGTH) + " ") == std::string::npos && /* not length constraints */
 			astToString.find("(= ") != std::string::npos) { /* equality */
 		/* add this constraint */
 		if (astToString.find("(not ") == 0){

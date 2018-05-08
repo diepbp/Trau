@@ -1135,8 +1135,8 @@ std::string create_constraints_NOTEqual(
 
 	}
 	else {
-		bool concat00 = str00.find("(Concat") != std::string::npos;
-		bool concat01 = str01.find("(Concat") != std::string::npos;
+		bool concat00 = str00.find("(" + std::string(CONCAT)) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(CONCAT)) != std::string::npos;
 		if (!concat00 && !concat01) {
 			/* x != y */
 
@@ -1861,7 +1861,7 @@ void verifyOutput(std::string outFile,
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
 			if (tokens[1].substr(0, 4).compare(LENPREFIX) == 0) {
 				std::string tmp = def.substr(4);
-				additionalAssertions.emplace_back("(assert (= (Length " + tokens[1].substr(4) +") " + value + "))\n");
+				additionalAssertions.emplace_back("(assert (= (" + std::string(LENGTH) + " " + tokens[1].substr(4) +") " + value + "))\n");
 			}
 			else {
 				if (value[0] != '-')
@@ -4827,7 +4827,7 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 	for (const auto& s : _carryOnConstraints){
 		std::string tmp = s;
 		while (true){
-			size_t pos = tmp.find("(Length ");
+			size_t pos = tmp.find("(" + std::string(LENGTH) + " ");
 			if (pos != std::string::npos){
 				std::string _tmp = tmp.substr(0, pos) + LENPREFIX;
 				for (unsigned int i = pos + 8; i < tmp.length(); ++i)
