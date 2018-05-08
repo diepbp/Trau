@@ -345,7 +345,7 @@ void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
 void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens){
 	int found = -1;
 	for (unsigned i = 0; i < tokens.size(); ++i)
-		if (tokens[i].second == 88 && tokens[i].first.compare(REGEXIN) == 0) {
+		if (tokens[i].second == 88 && tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
 			found = (int)i;
 			break;
 		}
@@ -358,7 +358,7 @@ void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens){
 
 		found = -1;
 		for (unsigned i = found + 1; i < tokens.size(); ++i)
-			if (tokens[i].second == 88 && tokens[i].first.compare(REGEXIN) == 0) {
+			if (tokens[i].second == 88 && tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
 				found = (int)i;
 				break;
 			}
@@ -372,12 +372,12 @@ void updateContain(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 
-	int found = findTokens(tokens, 0, CONTAINS, 88);
+	int found = findTokens(tokens, 0, languageMap[CONTAINS], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		StringOP op(findStringOP(tokens, CONTAINS, 2, found));
+		StringOP op(findStringOP(tokens, languageMap[CONTAINS], 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		if (rewriterStrMap[op].compare(TRUESTR) == 0)
 			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, 15);
@@ -385,7 +385,7 @@ void updateContain(
 			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, 7);
 		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
-		found = findTokens(tokens, 0, CONTAINS, 88);
+		found = findTokens(tokens, 0, languageMap[CONTAINS], 88);
 	}
 }
 
@@ -395,16 +395,16 @@ void updateContain(
 void updateIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, INDEXOF, 88);
+	int found = findTokens(tokens, 0, languageMap[INDEXOF], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, INDEXOF, 2, found));
+		StringOP op(findStringOP(tokens, languageMap[INDEXOF], 2, found));
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, 0, INDEXOF, 88);
+		found = findTokens(tokens, 0, languageMap[INDEXOF], 88);
 	}
 }
 
@@ -414,16 +414,16 @@ void updateIndexOf(
 void updateLastIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, LASTINDEXOF, 88);
+	int found = findTokens(tokens, 0, languageMap[LASTINDEXOF], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 //		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
-		StringOP op(findStringOP(tokens, LASTINDEXOF, 2, found));
+		StringOP op(findStringOP(tokens, languageMap[LASTINDEXOF], 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, 0, LASTINDEXOF, 88);
+		found = findTokens(tokens, 0, languageMap[LASTINDEXOF], 88);
 	}
 }
 
@@ -433,16 +433,16 @@ void updateLastIndexOf(
 void updateEndsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, ENDSWITH, 88);
+	int found = findTokens(tokens, 0, languageMap[ENDSWITH], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 //		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
-		StringOP op(findStringOP(tokens, ENDSWITH, 2, found));
+		StringOP op(findStringOP(tokens, languageMap[ENDSWITH], 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, 0, ENDSWITH, 88);
+		found = findTokens(tokens, 0, languageMap[ENDSWITH], 88);
 	}
 }
 
@@ -452,16 +452,16 @@ void updateEndsWith(
 void updateStartsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, STARTSWITH, 88);
+	int found = findTokens(tokens, 0, languageMap[STARTSWITH], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 //		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
-		StringOP op(findStringOP(tokens, STARTSWITH, 2, found));
+		StringOP op(findStringOP(tokens, languageMap[STARTSWITH], 2, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
-		found = findTokens(tokens, 0, STARTSWITH, 88);
+		found = findTokens(tokens, 0, languageMap[STARTSWITH], 88);
 	}
 }
 
@@ -471,7 +471,7 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, REPLACE, 88);
+	int found = findTokens(tokens, 0, languageMap[REPLACE], 88);
 	while (found != -1){
 		while (found >= 0) {
 			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
@@ -482,7 +482,7 @@ void updateReplace(
 			else
 				found = found - 1;
 		}
-		found = findTokens(tokens, found, REPLACE, 88);
+		found = findTokens(tokens, found, languageMap[REPLACE], 88);
 	}
 }
 
@@ -492,7 +492,7 @@ void updateReplace(
 void updateReplaceAll(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, REPLACEALL, 88);
+	int found = findTokens(tokens, 0, languageMap[REPLACEALL], 88);
 	while (found != -1){
 		while (found >= 0) {
 			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
@@ -503,7 +503,7 @@ void updateReplaceAll(
 			else
 				found = found - 1;
 		}
-		found = findTokens(tokens, found, REPLACEALL, 88);
+		found = findTokens(tokens, found, languageMap[REPLACEALL], 88);
 	}
 }
 
@@ -514,7 +514,7 @@ void updateSubstring(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap) {
 
-	int found = findTokens(tokens, 0, SUBSTRING, 88);
+	int found = findTokens(tokens, 0, languageMap[SUBSTRING], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
@@ -528,7 +528,7 @@ void updateSubstring(
 				startAssignment--;
 		}
 
-		StringOP op(findStringOP(tokens, SUBSTRING, 3, found));
+		StringOP op(findStringOP(tokens, languageMap[SUBSTRING], 3, found));
 		__debugPrint(logFile, "%d op = %s\n", __LINE__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
@@ -570,7 +570,7 @@ void updateSubstring(
 		tokens.clear();
 		tokens = tmp;
 
-		found = findTokens(tokens, pos, SUBSTRING, 88);
+		found = findTokens(tokens, pos, languageMap[SUBSTRING], 88);
 	}
 }
 
@@ -578,14 +578,14 @@ void updateSubstring(
  * ToUpper --> len = len
  */
 void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
-	int found = findTokens(tokens, 0, TOUPPER, 88);
+	int found = findTokens(tokens, 0, languageMap[TOUPPER], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, TOUPPER, 1, found));
+		StringOP op(findStringOP(tokens, languageMap[TOUPPER], 1, found));
 
 		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
-		found = findTokens(tokens, pos, TOUPPER, 88);
+		found = findTokens(tokens, pos, languageMap[TOUPPER], 88);
 	}
 }
 
@@ -593,14 +593,14 @@ void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
  * ToLower --> len = len
  */
 void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
-	int found = findTokens(tokens, 0, TOLOWER, 88);
+	int found = findTokens(tokens, 0, languageMap[TOLOWER], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, TOLOWER, 1, found));
+		StringOP op(findStringOP(tokens, languageMap[TOLOWER], 1, found));
 		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
 
-		found = findTokens(tokens, pos, TOLOWER, 88);
+		found = findTokens(tokens, pos, languageMap[TOLOWER], 88);
 	}
 }
 
@@ -610,10 +610,10 @@ void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
  */
 void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace concat --> +
-	int found = findTokens(tokens, 0, CONCAT, 88);
+	int found = findTokens(tokens, 0, languageMap[CONCAT], 88);
 	while (found != -1) {
 		tokens[found] = std::make_pair("+", 88);
-		found = findTokens(tokens, found, CONCAT, 88);
+		found = findTokens(tokens, found, languageMap[CONCAT], 88);
 	}
 }
 
@@ -622,7 +622,7 @@ void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
  */
 void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace Length --> ""
-	int found = findTokens(tokens, 0, LENGTH, 88);
+	int found = findTokens(tokens, 0, languageMap[LENGTH], 88);
 	while (found != -1) {
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < found; ++i)
@@ -633,7 +633,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
-		found = findTokens(tokens, found, LENGTH, 88);
+		found = findTokens(tokens, found, languageMap[LENGTH], 88);
 	}
 }
 
@@ -655,14 +655,14 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
  * (Str2Reg x)--> x
  */
 void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
-	int found = findTokens(tokens, 0, STR2REG, 88);
+	int found = findTokens(tokens, 0, languageMap[STR2REG], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, STR2REG, 1, found));
+		StringOP op(findStringOP(tokens, languageMap[STR2REG], 1, found));
 		tokens = replaceTokens(tokens, found - 1, pos, op.arg01, 88);
 
-		found = findTokens(tokens, pos, STR2REG, 88);
+		found = findTokens(tokens, pos, languageMap[STR2REG], 88);
 	}
 }
 
@@ -672,11 +672,11 @@ void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, REGEXSTAR, 88);
+	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, REGEXSTAR, 1, found));
+		StringOP op(findStringOP(tokens, languageMap[REGEXSTAR], 1, found));
 
 		std::vector<std::pair<std::string, int>> addingTokens;
 		addingTokens.push_back(std::make_pair("*", 88));
@@ -685,7 +685,7 @@ void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &rege
 		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), 88));
 
 		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
-		found = findTokens(tokens, pos, "RegexStar", 88);
+		found = findTokens(tokens, pos, languageMap[REGEXSTAR], 88);
 	}
 }
 
@@ -697,11 +697,11 @@ void updateRegexPlus(
 		int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, REGEXPLUS, 88);
+	int found = findTokens(tokens, 0, languageMap[REGEXPLUS], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		StringOP op(findStringOP(tokens, REGEXPLUS, 1, found));
+		StringOP op(findStringOP(tokens, languageMap[REGEXPLUS], 1, found));
 
 		std::vector<std::pair<std::string, int>> addingTokens;
 		addingTokens.push_back(std::make_pair("*", 88));
@@ -710,7 +710,7 @@ void updateRegexPlus(
 		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), 88));
 
 		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
-		found = findTokens(tokens, pos, REGEXPLUS, 88);
+		found = findTokens(tokens, pos, languageMap[REGEXPLUS], 88);
 	}
 }
 
@@ -719,7 +719,7 @@ void updateRegexPlus(
  */
 void updateCharAt(std::vector<std::pair<std::string, int>> &tokens){
 	// replace CharAt --> select
-	int found = findTokens(tokens, 0, CHARAT, 88);
+	int found = findTokens(tokens, 0, languageMap[CHARAT], 88);
 	while (found != -1) {
 		int pos = found - 1;
 		while (pos > 0)
@@ -733,7 +733,7 @@ void updateCharAt(std::vector<std::pair<std::string, int>> &tokens){
 		std::vector<std::pair<std::string, int>> addingTokens;
 		addingTokens.push_back(std::make_pair(TRUESTR, 15));
 		tokens = replaceTokens(tokens, pos - 1, tmp + 1, addingTokens);
-		found = findTokens(tokens, found, CHARAT, 88);
+		found = findTokens(tokens, found, languageMap[CHARAT], 88);
 	}
 }
 
@@ -1139,11 +1139,11 @@ void rewriteGRM(std::string s,
 					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (" + std::string(REGEXIN) + " " + constMap[content] + "_100 (" +
-													std::string(REGEXSTAR) + " (" + std::string(STR2REG) + " \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + "_100 (" +
+													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 
 					if (result.length() > 0)
-						result = "("  + std::string(CONCAT) + " " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content]+ "_100)";
 					else
 						result = constMap[content] + "_100";
 				}
@@ -1153,16 +1153,16 @@ void rewriteGRM(std::string s,
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (" + std::string(REGEXIN) + " " + constMap[content] + "_100 (" +
-													std::string(REGEXSTAR) + " (" + std::string(STR2REG) + " \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + "_100 (" +
+													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 					if (result.length() > 0)
-						result = "("  + std::string(CONCAT) + " " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content]+ "_100)";
 					else
 						result = constMap[content] + "_100";
 				}
 				else {
 					if (result.length() > 0)
-						result = "("  + std::string(CONCAT) + " " + result + " " + components[j] + ")";
+						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + components[j] + ")";
 					else
 						result = components[j];
 				}
@@ -1409,6 +1409,116 @@ std::vector<std::string> replaceVariableDefinition(std::vector<std::pair<std::st
 }
 
 /*
+ *
+ */
+bool isSetCommand(std::vector<std::pair<std::string, int>> tokens){
+	if (tokens.size() > 2)
+		if (tokens[1].first.find("set-") == 0){
+			return true;
+		}
+	return false;
+}
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> collectArgs(
+		unsigned pos,
+		unsigned &endPos,
+		std::vector<std::string> tokens){
+	std::vector<std::vector<std::string>> ret;
+	assert(pos < tokens.size());
+	assert(tokens[pos - 1][0] == '(');
+	int cntLevel = 1;
+	std::vector<std::string> arg;
+	for (unsigned i = pos + 1; i < tokens.size(); ++i){
+		if (tokens[i][0] == '(') {
+			cntLevel++;
+			arg.emplace_back(tokens[i]);
+		}
+		else if (tokens[i][0] == ')') {
+			cntLevel--;
+			if (cntLevel == 0) {
+				endPos = i;
+				return ret;
+			}
+			else {
+				arg.emplace_back(tokens[i]);
+				if (cntLevel == 1){
+					ret.emplace_back(arg);
+					arg.clear();
+				}
+			}
+		}
+		else {
+			arg.emplace_back(tokens[i]);
+			if (cntLevel == 1) {
+				ret.emplace_back(arg);
+				arg.clear();
+			}
+		}
+	}
+	assert(false);
+	return ret;
+}
+
+/*
+ *
+ */
+std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::string> tokens){
+	std::vector<std::string> ret;
+	bool found = true;
+	while (found) {
+		displayListString(tokens, "rewriteLeftAssociationConstraints");
+		ret.clear();
+		found = false;
+		unsigned i = 0;
+		while (i < tokens.size()) {
+			if (tokens[i].compare(languageMap[CONCAT]) == 0 ||
+					tokens[i].compare(languageMap[REGEXCONCAT]) == 0 ||
+					tokens[i].compare(languageMap[REGEXUNION]) == 0){
+				/* count the number of str */
+				unsigned endPos = 0;
+				std::vector<std::vector<std::string>> args = collectArgs(
+						i,
+						endPos,
+						tokens);
+
+				__debugPrint(logFile, "%d %s: %ld args\n", __LINE__, tokens[i].c_str(), args.size());
+				if (args.size() > 2) {
+					found = true;
+				}
+				else {
+					ret.emplace_back(tokens[i++]);
+					continue;
+				}
+
+				/* (concat a b c d) --> (concat a (concat b (concat c d))) */
+				for (unsigned j = 0; j < args.size() - 1; ++j) {
+					if (j > 0)
+						ret.emplace_back("(");
+					ret.emplace_back(tokens[i]);
+					for (const auto& s : args[j])
+						ret.emplace_back(s);
+				}
+				for (const auto& s : args[args.size() - 1])
+					ret.emplace_back(s);
+				for (unsigned j = 0; j < args.size() - 1; ++j) {
+					ret.emplace_back(")");
+				}
+				i = endPos;
+			}
+			else
+				ret.emplace_back(tokens[i]);
+			++i;
+		}
+		tokens = ret;
+	}
+	displayListString(tokens, "outputstr");
+	return ret;
+}
+
+/*
  * read SMT file
  */
 void encodeSpecialChars(std::string inputFile, std::string outFile){
@@ -1424,6 +1534,8 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 			newtokens.emplace_back(listTokens);
 			continue;
 		}
+		else if (isSetCommand(tokens))
+			continue;
 
 		for (const auto& token : tokens) {
 			if (token.second == 81) { /* get model */
@@ -1440,8 +1552,10 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 				listTokens.emplace_back(token.first);
 			}
 		}
-		if (add == true)
+		if (add == true) {
+			listTokens = rewriteLeftAssociationConstraints(listTokens);
 			newtokens.emplace_back(listTokens);
+		}
 	}
 
 	std::ofstream out;
@@ -1477,7 +1591,7 @@ std::string encodeHex(std::string constStr){
  * read SMT file
  */
 void encodeHex(std::string inputFile, std::string outFile){
-
+	__debugPrint(logFile, "%d *** %s ***: %s -> %s\n", __LINE__, __FUNCTION__, inputFile.c_str(), outFile.c_str());
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;

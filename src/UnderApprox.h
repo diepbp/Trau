@@ -12,8 +12,8 @@
 #include "FileConverter.h"
 #include "Utils.h"
 
-#define OUTPUT "/tmp/fat_str_convert/output.smt2"
-#define NONGRM "/tmp/fat_str_convert/_nogrm.smt2"
+#define OUTPUT "output.smt2"
+#define NONGRM "_nogrm.smt2"
 
 #define ALLVAR 0
 #define MAXP 6
@@ -52,6 +52,7 @@ static std::map<std::string, int> varPieces;
 
 static int noFlatVariables = 0;
 extern bool unknownResult;
+extern std::map<int, std::string> languageMap;
 
 /*
  * get value from eq map
@@ -313,7 +314,7 @@ void writeOutput_basic(std::string outFile);
 /*
  * write & verify to file output
  */
-void verifyOutput(std::string outFile,
+std::vector<std::string> createSatisfyingAssignments(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, std::string> lengthResultMap,
 		std::map<std::string, std::string> strValue);
@@ -613,7 +614,10 @@ std::map<std::string, std::string> formatResult(
 /*
  *
  */
-bool Z3_run(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap, bool finalCall);
+bool Z3_run(
+		std::string cmd,
+		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		bool finalCall);
 
 /*
  *

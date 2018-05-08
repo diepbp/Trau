@@ -1043,7 +1043,7 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
 		std::string lhsTmp = node_to_string(t, leftArg);
 		std::string rhsTmp = node_to_string(t, rightArg);
-		return "(" + std::string(CONCAT) + " " + lhsTmp + " " + rhsTmp + ")";
+		return "(" + std::string(languageMap[CONCAT]) + " " + lhsTmp + " " + rhsTmp + ")";
 	}
 }
 
@@ -1355,25 +1355,25 @@ Z3_theory mk_theory(Z3_context ctx) {
 	Z3_symbol grammarSort_name = Z3_mk_string_symbol(ctx, "Grammar");
 	td->Grammar = Z3_theory_mk_sort(ctx, Th, grammarSort_name);
 
-	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, CONCAT);
+	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, languageMap[CONCAT].c_str());
 	Z3_sort concat_domain[2];
 	concat_domain[0] = td->String;
 	concat_domain[1] = td->String;
 	td->Concat = Z3_theory_mk_func_decl(ctx, Th, concat_name, 2, concat_domain, td->String);
 	//---------------------------
-	Z3_symbol length_name = Z3_mk_string_symbol(ctx, LENGTH);
+	Z3_symbol length_name = Z3_mk_string_symbol(ctx, languageMap[LENGTH].c_str());
 	Z3_sort length_domain[1];
 	length_domain[0] = td->String;
 	td->Length = Z3_theory_mk_func_decl(ctx, Th, length_name, 1, length_domain, IntSort);
 	//---------------------------
-	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, SUBSTRING);
+	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, languageMap[SUBSTRING].c_str());
 	Z3_sort substring_domain[3];
 	substring_domain[0] = td->String;
 	substring_domain[1] = IntSort;
 	substring_domain[2] = IntSort;
 	td->SubString = Z3_theory_mk_func_decl(ctx, Th, substring_name, 3, substring_domain, td->String);
 	//---------------------------
-	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, INDEXOF);
+	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, languageMap[INDEXOF].c_str());
 	Z3_sort indexof_domain[2];
 	indexof_domain[0] = td->String;
 	indexof_domain[1] = td->String;
@@ -1386,32 +1386,32 @@ Z3_theory mk_theory(Z3_context ctx) {
 	indexof2_domain[2] = IntSort;
 	td->Indexof2 = Z3_theory_mk_func_decl(ctx, Th, indexof2_name, 3, indexof2_domain, IntSort);
 	//---------------------------
-	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, CONTAINS);
+	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, languageMap[CONTAINS].c_str());
 	Z3_sort contains_domain[2];
 	contains_domain[0] = td->String;
 	contains_domain[1] = td->String;
 	td->Contains = Z3_theory_mk_func_decl(ctx, Th, contains_name, 2, contains_domain, BoolSort);
 	//---------------------------
-	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, STARTSWITH);
+	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, languageMap[STARTSWITH].c_str());
 	Z3_sort startsWith_domain[2];
 	startsWith_domain[0] = td->String;
 	startsWith_domain[1] = td->String;
 	td->StartsWith = Z3_theory_mk_func_decl(ctx, Th, startsWith_name, 2, startsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, ENDSWITH);
+	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, languageMap[ENDSWITH].c_str());
 	Z3_sort endsWith_domain[2];
 	endsWith_domain[0] = td->String;
 	endsWith_domain[1] = td->String;
 	td->EndsWith = Z3_theory_mk_func_decl(ctx, Th, endsWith_name, 2, endsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, REPLACE);
+	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, languageMap[REPLACE].c_str());
 	Z3_sort replace_domain[3];
 	replace_domain[0] = td->String;
 	replace_domain[1] = td->String;
 	replace_domain[2] = td->String;
 	td->Replace = Z3_theory_mk_func_decl(ctx, Th, replace_name, 3, replace_domain, td->String);
 	//---------------------------
-	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, REPLACEALL);
+	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, languageMap[REPLACEALL].c_str());
 	Z3_sort replaceAll_domain[3];
 	replaceAll_domain[0] = td->String;
 	replaceAll_domain[1] = td->String;
@@ -1419,59 +1419,59 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->ReplaceAll = Z3_theory_mk_func_decl(ctx, Th, replaceAll_name, 3, replaceAll_domain, td->String);
 
 	//---------------------------
-	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, LASTINDEXOF);
+	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, languageMap[LASTINDEXOF].c_str());
 	Z3_sort lastIndexof_domain[2];
 	lastIndexof_domain[0] = td->String;
 	lastIndexof_domain[1] = td->String;
 	td->LastIndexof = Z3_theory_mk_func_decl(ctx, Th, lastIndexof_name, 2, lastIndexof_domain, IntSort);
 	//---------------------------
-	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, CHARAT);
+	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, languageMap[CHARAT].c_str());
 	Z3_sort charAt_domain[2];
 	charAt_domain[0] = td->String;
 	charAt_domain[1] = IntSort;
 	td->CharAt = Z3_theory_mk_func_decl(ctx, Th, charAt_name, 2, charAt_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, TOUPPER);
+	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, languageMap[TOUPPER].c_str());
 	Z3_sort toUpper_domain[1];
 	toUpper_domain[0] = td->String;
 	td->ToUpper = Z3_theory_mk_func_decl(ctx, Th, toUpper_name, 1, toUpper_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, TOLOWER);
+	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, languageMap[TOLOWER].c_str());
 	Z3_sort toLower_domain[1];
 	toLower_domain[0] = td->String;
 	td->ToLower = Z3_theory_mk_func_decl(ctx, Th, toLower_name, 1, toLower_domain, td->String);
 
 	//===========================
 	// Str2Reg := String --> Regex
-	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, STR2REG);
+	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, languageMap[STR2REG].c_str());
 	Z3_sort str2Reg_domain[1];
 	str2Reg_domain[0] = td->String;
 	td->Str2Reg = Z3_theory_mk_func_decl(ctx, Th, str2Reg_name, 1, str2Reg_domain, td->Regex);
 	//---------------------------
 	// RegexStar := Regex --> Regex
-	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, REGEXSTAR);
+	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, languageMap[REGEXSTAR].c_str());
 	Z3_sort regexStar_domain[1];
 	regexStar_domain[0] = td->Regex;
 	td->RegexStar = Z3_theory_mk_func_decl(ctx, Th, regexStar_name, 1, regexStar_domain, td->Regex);
 	//---------------------------
 	// RegexIn := String x Regex --> Bool
-	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, REGEXIN);
+	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, languageMap[REGEXIN].c_str());
 	Z3_sort regexIn_domain[2];
 	regexIn_domain[0] = td->String;
 	regexIn_domain[1] = td->Regex;
 	td->RegexIn = Z3_theory_mk_func_decl(ctx, Th, regexIn_name, 2, regexIn_domain, BoolSort);
 	//---------------------------
 	// RegexUnion := Regex x Regex --> Regex
-	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, REGEXUNION);
+	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, languageMap[REGEXUNION].c_str());
 	Z3_sort regexUnion_domain[2];
 	regexUnion_domain[0] = td->Regex;
 	regexUnion_domain[1] = td->Regex;
 	td->RegexUnion = Z3_theory_mk_func_decl(ctx, Th, regexUnion_name, 2, regexUnion_domain, td->Regex);
 	//---------------------------
 	// RegexConcat := Regex x Regex --> Regex
-	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, REGEXCONCAT);
+	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, languageMap[REGEXCONCAT].c_str());
 	Z3_sort regexConcat_domain[2];
 	regexConcat_domain[0] = td->Regex;
 	regexConcat_domain[1] = td->Regex;
@@ -1485,13 +1485,13 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->Unroll = Z3_theory_mk_func_decl(ctx, Th, unrollFunc_name, 2, unrollFunc_domain, td->String);
 	//---------------------------
 	// RegexPlus := Regex --> Regex
-	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, REGEXPLUS);
+	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, languageMap[REGEXPLUS].c_str());
 	Z3_sort regexPlus_domain[1];
 	regexPlus_domain[0] = td->Regex;
 	td->RegexPlus = Z3_theory_mk_func_decl(ctx, Th, regexPlus_name, 1, regexPlus_domain, td->Regex);
 	//---------------------------
 	// RegexCharRange := String x String --> Regex
-	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, REGEXCHARRANGE);
+	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, languageMap[REGEXCHARRANGE].c_str());
 	Z3_sort regexCharRange_domain[2];
 	regexCharRange_domain[0] = td->String;
 	regexCharRange_domain[1] = td->String;
@@ -7333,7 +7333,7 @@ bool collectContainValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP(CONTAINS, exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = value;
+			rewriterStrMap[StringOP(languageMap[CONTAINS], exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = value;
 			return true;
 		}
 	}
@@ -7442,7 +7442,7 @@ void collectEqualValueInPositiveContext(
 
 	if (astToString.find("$$") == std::string::npos && /* not internal vars */
 			astToString.find("a!") == std::string::npos && /* not internal vars */
-			astToString.find("(" + std::string(LENGTH) + " ") == std::string::npos && /* not length constraints */
+			astToString.find("(" + std::string(languageMap[LENGTH]) + " ") == std::string::npos && /* not length constraints */
 			astToString.find("(= ") != std::string::npos) { /* equality */
 		/* add this constraint */
 		if (astToString.find("(not ") == 0){

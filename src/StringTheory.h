@@ -49,9 +49,9 @@ extern std::map<Z3_ast, Z3_ast> final_value_Map;
 extern std::map<std::vector<Z3_ast>, int> lang_value_Map1;
 extern std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
 extern std::set<Z3_ast> inputVarInLen;
-// extern std::map<Z3_ast, std::vector<std::string>> eqMap;
 extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
 extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
+extern std::map<int, std::string> languageMap;
 
 static std::map<std::string, std::set<char>> charSet;
 

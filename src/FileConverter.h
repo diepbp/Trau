@@ -16,6 +16,7 @@ static std::map<char, char> ENCODEMAP;
 
 static std::map<char, char> DECODEMAP;
 extern bool getModel;
+extern std::map<int, std::string> languageMap;
 
 template< typename T >
 std::string int_to_hex( T i );
@@ -201,6 +202,24 @@ std::string encodeSpecialChars(std::string str);
  * replace declare-variable by declare-fun
  */
 std::vector<std::string> replaceVariableDefinition(std::vector<std::pair<std::string, int>> tokens);
+
+/*
+ *
+ */
+bool isSetCommand(std::vector<std::pair<std::string, int>> tokens);
+
+/*
+ *
+ */
+std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::string> tokens);
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> collectArgs(
+		int pos,
+		int &endPos,
+		std::vector<std::string> tokens);
 
 /*
  * read SMT file

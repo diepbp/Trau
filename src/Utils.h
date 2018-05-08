@@ -8,10 +8,6 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <memory.h>
 #include <unistd.h>
 #include <assert.h>
@@ -31,6 +27,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "FileUtils.h"
 #include "TimeLapse.h"
 #include "antlr4-runtime.h"
 #include "antlrParser/SMTLIB2Lexer.h"
@@ -53,8 +50,6 @@
 #define Z3_PATH "z3 "
 #define VERIFIER "verifier/run.py "
 
-#define TMPDIR "/tmp/fat_str_convert/"
-
 #ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
 #define __print(_format, ...) { fprintf( logfile, (_format), ##__VA_ARGS__); fflush( (_fp) ); }
@@ -67,26 +62,72 @@
 #define printZ3Node(t, n) {}
 #endif
 
-#define LENGTH "Length"
-#define CONCAT "Concat"
-#define SUBSTRING "Substring"
-#define INDEXOF "Indexof"
-#define LASTINDEXOF "LastIndexof"
-#define STARTSWITH "StartsWith"
-#define ENDSWITH "EndsWith"
-#define TOUPPER "ToUpper"
-#define TOLOWER "ToLower"
-#define REPLACE "Replace"
-#define REPLACEALL "ReplaceAll"
-#define CONTAINS "Contains"
-#define CHARAT "CharAt"
-#define STR2REG "Str2Reg"
-#define REGEXSTAR "RegexStar"
-#define REGEXPLUS "RegexPlus"
-#define REGEXCHARRANGE "RegexCharRange"
-#define REGEXIN "RegexIn"
-#define REGEXUNION "RegexUnion"
-#define REGEXCONCAT "RegexConcat"
+#define LENGTH 1
+#define CONCAT 2
+#define SUBSTRING 3
+#define INDEXOF 4
+#define LASTINDEXOF 5
+#define STARTSWITH 6
+#define ENDSWITH 7
+#define TOUPPER 8
+#define TOLOWER 9
+#define REPLACE 10
+#define REPLACEALL 11
+#define CONTAINS 12
+#define CHARAT 13
+#define STR2REG 14
+#define REGEXSTAR 15
+#define REGEXPLUS 16
+#define REGEXCHARRANGE 17
+#define REGEXIN 18
+#define REGEXUNION 19
+#define REGEXCONCAT 20
+
+const static std::map<int, std::string> languageMap20 = {
+	{LENGTH, "Length"},
+	{CONCAT, "Concat"},
+	{SUBSTRING, "Substring"},
+	{INDEXOF, "Indexof"},
+	{LASTINDEXOF, "LastIndexof"},
+	{STARTSWITH, "StartsWith"},
+	{ENDSWITH, "EndsWith"},
+	{TOUPPER, "ToUpper"},
+	{TOLOWER, "ToLower"},
+	{REPLACE, "Replace"},
+	{REPLACEALL, "ReplaceAll"},
+	{CONTAINS, "Contains"},
+	{CHARAT, "CharAt"},
+	{STR2REG, "Str2Reg"},
+	{REGEXSTAR, "RegexStar"},
+	{REGEXPLUS, "RegexPlus"},
+	{REGEXCHARRANGE, "RegexCharRange"},
+	{REGEXIN, "RegexIn"},
+	{REGEXUNION, "RegexUnion"},
+	{REGEXCONCAT, "RegexConcat"}
+};
+
+const static std::map<int, std::string> languageMap25 = {
+	{LENGTH, "str.len"},
+	{CONCAT, "str.++"},
+	{SUBSTRING, "str.substr"},
+	{INDEXOF, "str.indexof"},
+	{LASTINDEXOF, "LastIndexof"},
+	{STARTSWITH, "str.prefixof"},
+	{ENDSWITH, "str.suffixof"},
+	{TOUPPER, "ToUpper"},
+	{TOLOWER, "ToLower"},
+	{REPLACE, "str.replace"},
+	{REPLACEALL, "ReplaceAll"},
+	{CONTAINS, "str.contains"},
+	{CHARAT, "str.char"},
+	{STR2REG, "str.to-re"},
+	{REGEXSTAR, "re.*"},
+	{REGEXPLUS, "re.+"},
+	{REGEXCHARRANGE, "re.range"},
+	{REGEXIN, "str.in-re"},
+	{REGEXUNION, "re.union"},
+	{REGEXCONCAT, "re.++"}
+};
 
 #define TRUESTR "true"
 #define FALSETR "false"

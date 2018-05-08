@@ -12,7 +12,7 @@
 #include "GrmUnderApprox.h"
 #include "StringTheory.h"
 #include "FileConverter.h"
-#include "FileUtils.h"
+#include "Utils.h"
 
 std::string orgInput;
 std::string inputFile;
@@ -25,6 +25,7 @@ bool skipOverapprox;
 std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
 std::map<std::string, std::vector<std::string>> ourGrm;
+std::map<int, std::string> languageMap;
 
 const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5"};
 
@@ -154,7 +155,7 @@ std::string convertFileToReplaceConst(std::string fileDir) {
 	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, TMPDIR, success ? "OK" : "failed");
 
 	/* create file */
-	std::string outFile = std::string(TMPDIR) + "converted_" + fileName ;
+	std::string outFile = std::string(TMPDIR) + "/converted_" + fileName ;
 	encodeHex(fileDir, outFile);
 	return outFile;
 }
@@ -167,7 +168,7 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	std::string fileName = getFileNameFromFileDir(fileDir);
 
 	/* create dir */
-	std::string outFile = "/tmp/fat_str_convert/";
+	std::string outFile = std::string(TMPDIR) + "/";
 	bool success = makePath(outFile);
 	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, outFile.c_str(), success ? "OK" : "failed");
 
@@ -234,6 +235,12 @@ void parseUserInput(int argc, char* argv[]){
 					printf("%s ", s.c_str());
 				printf("!\n");
 			}
+			else if (language.compare("SMT2.5") == 0) {
+				languageMap = languageMap25;
+			}
+			else if (language.compare("SMT2.0") == 0) {
+				languageMap = languageMap20;
+			}
 		}
 		else if (tmp.compare("-doublecheck") == 0){
 			getModel = true;
@@ -284,7 +291,7 @@ int main(int argc, char* argv[])
 {
 	logFile = NULL;
 	logAxiom = NULL;
-
+	languageMap = languageMap20;
 	parseUserInput(argc, argv);
 	if (inputFile.length() > 0) {
 		inputFile = convertToRemoveSpecialConstCharacters(inputFile);
