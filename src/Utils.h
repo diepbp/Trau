@@ -82,6 +82,9 @@
 #define REGEXIN 18
 #define REGEXUNION 19
 #define REGEXCONCAT 20
+#define REGEXALL 21
+#define REGEXALLCHAR 22
+#define REGEXNONE 23
 
 const static std::map<int, std::string> languageMap20 = {
 	{LENGTH, "Length"},
@@ -103,7 +106,10 @@ const static std::map<int, std::string> languageMap20 = {
 	{REGEXCHARRANGE, "RegexCharRange"},
 	{REGEXIN, "RegexIn"},
 	{REGEXUNION, "RegexUnion"},
-	{REGEXCONCAT, "RegexConcat"}
+	{REGEXCONCAT, "RegexConcat"},
+	{REGEXALL, "re.all"},
+	{REGEXALLCHAR, "re.allchar"},
+	{REGEXNONE, "re.none"}
 };
 
 const static std::map<int, std::string> languageMap25 = {
@@ -120,13 +126,15 @@ const static std::map<int, std::string> languageMap25 = {
 	{REPLACEALL, "ReplaceAll"},
 	{CONTAINS, "str.contains"},
 	{CHARAT, "str.char"},
-	{STR2REG, "str.to-re"},
+	{STR2REG, "str.to.re"},
 	{REGEXSTAR, "re.*"},
 	{REGEXPLUS, "re.+"},
 	{REGEXCHARRANGE, "re.range"},
-	{REGEXIN, "str.in-re"},
+	{REGEXIN, "str.in.re"},
 	{REGEXUNION, "re.union"},
-	{REGEXCONCAT, "re.++"}
+	{REGEXALL, "re.all"},
+	{REGEXALLCHAR, "re.allchar"},
+	{REGEXNONE, "re.none"}
 };
 
 #define TRUESTR "true"

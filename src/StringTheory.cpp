@@ -1496,6 +1496,21 @@ Z3_theory mk_theory(Z3_context ctx) {
 	regexCharRange_domain[0] = td->String;
 	regexCharRange_domain[1] = td->String;
 	td->RegexCharRange = Z3_theory_mk_func_decl(ctx, Th, regexCharRange_name, 2, regexCharRange_domain, td->Regex);
+	//---------------------------
+	// RegexAll--> Regex
+	Z3_symbol regexAll_name = Z3_mk_string_symbol(ctx, languageMap[REGEXALL].c_str());
+	Z3_sort regexAll_domain[0];
+	td->RegexAll = Z3_theory_mk_func_decl(ctx, Th, regexAll_name, 0, regexAll_domain, td->Regex);
+	//---------------------------
+	// RegexAll--> Regex
+	Z3_symbol regexAllChar_name = Z3_mk_string_symbol(ctx, languageMap[REGEXALLCHAR].c_str());
+	Z3_sort regexAllChar_domain[0];
+	td->RegexAllChar = Z3_theory_mk_func_decl(ctx, Th, regexAllChar_name, 0, regexAllChar_domain, td->Regex);
+	//---------------------------
+	// RegexAll--> Regex
+	Z3_symbol regexNone_name = Z3_mk_string_symbol(ctx, languageMap[REGEXNONE].c_str());
+	Z3_sort regexNone_domain[0];
+	td->RegexNone = Z3_theory_mk_func_decl(ctx, Th, regexNone_name, 0, regexNone_domain, td->Regex);
 
 	//---------------------------
 	// AutomataDef := String --> String
@@ -4109,8 +4124,8 @@ void extendVariableToFindAllPossibleEqualities(
 			__debugPrint(logFile, ", ");
 			printZ3Node(t, arg1);
 			__debugPrint(logFile, "): size = %ld * %ld\n", arg0_eq.size(), arg1_eq.size());
-			for (unsigned int j = 0; j < arg0_eq.size(); ++j) {
-				for (unsigned int k = 0; k < arg1_eq.size(); ++k) {
+			for (unsigned j = 0; j < arg0_eq.size(); ++j) {
+				for (unsigned k = 0; k < arg1_eq.size(); ++k) {
 					std::vector<Z3_ast> tmp;
 					tmp.insert(tmp.end(), arg0_eq[j].begin(), arg0_eq[j].end());
 					tmp.insert(tmp.end(), arg1_eq[k].begin(), arg1_eq[k].end());
@@ -4150,6 +4165,8 @@ void extendVariableToFindAllPossibleEqualities(
 		for (const auto _node : _eq) {
 			if (isAutomatonFunc(t, _node) ||
 					connectedVariables.find(_node) != connectedVariables.end()) {
+				__debugPrint(logFile, "%d add because of %s\n", __LINE__, Z3_ast_to_string(ctx, _node));
+				displayListNode(t, _eq, "_Eq ");
 				refined_result.emplace_back(_eq);
 				added = true;
 				break;
@@ -4290,6 +4307,8 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 
 	for (const auto& node : subStrNodeMap)
 		ret.emplace(node.second);
+
+	displayListNode(t, ret,  "list of connectedVar");
 	return ret;
 }
 
@@ -8618,8 +8637,11 @@ T_TheoryType getNodeType(Z3_theory t, Z3_ast n) {
 							d == td->RegexPlus ||
 							d == td->RegexCharRange ||
 							d == td->RegexUnion ||
-							d == td->Str2Reg) // TODO update list of functions
-									return my_Z3_Func;
+							d == td->Str2Reg ||
+							d == td->RegexAll ||
+							d == td->RegexAllChar ||
+							d == td->RegexNone) // TODO update list of functions
+						return my_Z3_Func;
 					else
 						return my_Z3_Regex_Var;
 				}

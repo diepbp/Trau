@@ -168,9 +168,9 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	std::string fileName = getFileNameFromFileDir(fileDir);
 
 	/* create dir */
-	std::string outFile = std::string(TMPDIR) + "/";
+	std::string outFile = std::string(TMPDIR) + std::string("/");
 	bool success = makePath(outFile);
-	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, outFile.c_str(), success ? "OK" : "failed");
+
 
 	/* create file */
 	outFile = outFile + fileName;
@@ -181,6 +181,7 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 	else
 		skipOverapprox = false;
 
+	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, outFile.c_str(), success ? "OK" : "failed");
 	encodeSpecialChars(fileDir, outFile);
 
 	return outFile;

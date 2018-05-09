@@ -1038,8 +1038,9 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	std::set<char> encoded;
 	bool used[255];
 	memset(used, sizeof used, false);
-
+	__debugPrint(logFile, "%d *** %s ***: 01\n", __LINE__, __FUNCTION__);
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(fileName);
+	__debugPrint(logFile, "%d *** %s ***: 02\n", __LINE__, __FUNCTION__);
 
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
@@ -1463,13 +1464,13 @@ std::vector<std::vector<std::string>> collectArgs(
 }
 
 /*
- *
+ * (concat a b c d) --> (concat a (concat b (concat c d)))
+ * TODO: supporting intersection
  */
 std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::string> tokens){
 	std::vector<std::string> ret;
 	bool found = true;
 	while (found) {
-		displayListString(tokens, "rewriteLeftAssociationConstraints");
 		ret.clear();
 		found = false;
 		unsigned i = 0;
@@ -1484,7 +1485,6 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 						endPos,
 						tokens);
 
-				__debugPrint(logFile, "%d %s: %ld args\n", __LINE__, tokens[i].c_str(), args.size());
 				if (args.size() > 2) {
 					found = true;
 				}
@@ -1514,7 +1514,6 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 		}
 		tokens = ret;
 	}
-	displayListString(tokens, "outputstr");
 	return ret;
 }
 
@@ -1527,6 +1526,10 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 	std::set<std::string> constStr;
 
 	for (const auto& tokens : fileTokens) {
+		for (const auto& s : tokens)
+			__debugPrint(logFile, "%s ", s.first.c_str());
+		__debugPrint(logFile, "\n");
+
 		bool add = true;
 		std::vector<std::string> listTokens = replaceVariableDefinition(tokens);
 		if (listTokens.size() > 0) {

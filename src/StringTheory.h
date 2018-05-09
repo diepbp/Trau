@@ -91,6 +91,9 @@ typedef struct _AutomatonStringData
 	Z3_func_decl RegexUnion;
 	Z3_func_decl RegexConcat;
 	Z3_func_decl Unroll;
+	Z3_func_decl RegexAll;
+	Z3_func_decl RegexAllChar;
+	Z3_func_decl RegexNone;
 
 	Z3_func_decl AutomataDef;
 	Z3_func_decl NonDet_AutomataDef;

@@ -105,7 +105,6 @@ void removeFile(const std::string& fileName){
  */
 void rmTree(const char path[]){
     size_t path_len;
-    char *full_path;
     DIR *dir;
     struct stat stat_path, stat_entry;
     struct dirent *entry;
@@ -136,22 +135,19 @@ void rmTree(const char path[]){
             continue;
 
         // determinate a full path of an entry
-        full_path = (char *)calloc(path_len + strlen(entry->d_name) + 1, sizeof(char));
-        strcpy(full_path, path);
-        strcat(full_path, "/");
-        strcat(full_path, entry->d_name);
+        std::string full_path = std::string(path) + "/" + std::string(entry->d_name);
 
         // stat for the entry
-        stat(full_path, &stat_entry);
+        stat(full_path.c_str(), &stat_entry);
 
         // recursively remove a nested directory
         if (S_ISDIR(stat_entry.st_mode) != 0) {
-            rmTree(full_path);
+            rmTree(full_path.c_str());
             continue;
         }
 
         // remove a file object
-        unlink(full_path);
+        unlink(full_path.c_str());
     }
 
     // remove the devastated directory and close the object of it

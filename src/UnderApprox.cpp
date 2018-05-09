@@ -2332,8 +2332,8 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			StringOP op = s.first;
 			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.arg01.find(CONCAT) != std::string::npos ||
-					s.first.arg02.find(CONCAT) != std::string::npos ||
+			if (s.first.arg01.find(languageMap[CONCAT]) != std::string::npos ||
+					s.first.arg02.find(languageMap[CONCAT]) != std::string::npos ||
 					s.first.arg02.find("Automata ") != std::string::npos)
 				continue;
 

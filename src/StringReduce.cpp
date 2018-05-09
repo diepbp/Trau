@@ -1208,6 +1208,18 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 	if (funcDecl == td->Str2Reg) {
 		return Z3_mk_eq(ctx, args[0], Z3_get_app_arg(ctx, arg1_func_app, 0));
 	}
+	else if (funcDecl == td->RegexAll){
+		return Z3_mk_eq(ctx, args[0], mk_internal_string_var(t));
+	}
+	else if (funcDecl == td->RegexAllChar){
+		std::vector<Z3_ast> constraints;
+		constraints.emplace_back(Z3_mk_eq(ctx, args[0], mk_internal_string_var(t)));
+		constraints.emplace_back(Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 1)));
+		return mk_and_fromVector(t, constraints);
+	}
+	if (funcDecl == td->RegexNone){
+		return Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0));
+	}
 	// ----------------------------------------------------
 	else {
 		if (regexStr.find("__NotConstStr__") == std::string::npos && regexStr.find("__Contain_Vars__") == std::string::npos) {
@@ -1914,8 +1926,18 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 
 		return Z3_TRUE;
 	}
+	else if (d == td->RegexAll) {
+
+	}
+	else if (d == td->RegexAllChar) {
+
+	}
+	else if (d == td->RegexNone) {
+
+	}
 	else if (d == td->AutomataDef){
 	}
+
 
 	if (convertedFlag == 1) {
 		*result = Z3_mk_app(ctx, d, n, convertedArgs);
