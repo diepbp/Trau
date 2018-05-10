@@ -52,6 +52,7 @@ extern std::set<Z3_ast> inputVarInLen;
 extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
 extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 extern std::map<int, std::string> languageMap;
+extern char escapeChar;
 
 static std::map<std::string, std::set<char>> charSet;
 

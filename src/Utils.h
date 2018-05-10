@@ -36,6 +36,12 @@
 #include "antlrParser/SMTLIB2ParserBaseListener.h"
 #include "antlrParser/SMTLIB2ScriptListener.h"
 #include "antlrParser/SMTLIB2TermListener.h"
+#include "antlrParser/SMTLIB26Lexer.h"
+#include "antlrParser/SMTLIB26Parser.h"
+#include "antlrParser/SMTLIB26ParserBaseVisitor.h"
+#include "antlrParser/SMTLIB26ParserBaseListener.h"
+#include "antlrParser/SMTLIB26ScriptListener.h"
+#include "antlrParser/SMTLIB26TermListener.h"
 
 #define DEBUGLOG 1
 #define REMOVINGLOG 1
@@ -132,10 +138,14 @@ const static std::map<int, std::string> languageMap25 = {
 	{REGEXCHARRANGE, "re.range"},
 	{REGEXIN, "str.in.re"},
 	{REGEXUNION, "re.union"},
+	{REGEXCONCAT, "re.++"},
 	{REGEXALL, "re.all"},
 	{REGEXALLCHAR, "re.allchar"},
 	{REGEXNONE, "re.none"}
 };
+
+const static char ESCAPECHAR20 = '\\';
+const static char ESCAPECHAR25 = '"';
 
 #define TRUESTR "true"
 #define FALSETR "false"
@@ -349,12 +359,22 @@ std::string andConstraint(std::set<std::string> possibleCases);
 /*
  *
  */
-std::vector<std::pair<std::string, int>> parseTerm(std::string term);
+std::vector<std::pair<std::string, int>> parseTerm20(std::string term);
 
 /*
  *
  */
-std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file);
+std::vector<std::vector<std::pair<std::string, int>>> parseFile20(std::string file);
+
+/*
+ *
+ */
+std::vector<std::pair<std::string, int>> parseTerm26(std::string term);
+
+/*
+ *
+ */
+std::vector<std::vector<std::pair<std::string, int>>> parseFile26(std::string file);
 
 /*
  *

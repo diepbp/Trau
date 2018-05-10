@@ -551,7 +551,19 @@ void updateSubstring(
 
 		for (int i = startAssignment; i <= startAssignment + 4; ++i) {
 			if (i == found - 1){
-				std::vector<std::pair<std::string, int>> tmpx = parseTerm(tokens[i].first);
+				std::vector<std::pair<std::string, int>> tmpx;
+				switch (languageVersion) {
+				case 20:
+					tmpx = parseTerm20(tokens[i].first);
+					break;
+				case 25:
+					tmpx = parseTerm26(tokens[i].first);
+					break;
+				default:
+					assert(false);
+					break;
+				}
+
 				tmp.insert(tmp.end(), tmpx.begin(), tmpx.end());
 			}
 			else
@@ -645,6 +657,7 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
 
 	for (unsigned i = 0; i < tokens.size(); ++i){
 		if (tokens[i].second == 86){
+			assert(tokens[i].first.length() - 2 >= 0);
 			tokens[i].first = std::to_string(tokens[i].first.length() - 2);
 			tokens[i].second = 82;
 		}
@@ -982,43 +995,22 @@ bool hasNoVar(std::vector<std::string> list){
 std::set<char> getUsedChars(std::string str){
 	std::set<char> result;
 
-	int textState = 0; /* 1 -> "; 2 -> ""; 3 -> \; */
-
-	for (unsigned int i = 0; i < str.length(); ++i) {
-		if (str[i] == '"') {
-			switch (textState) {
-				case 1:
-					textState = 2;
-					break;
-				case 3:
-					textState = 1;
-					result.emplace(str[i]);
-					break;
-				default:
-					textState = 1;
-					break;
+	for (unsigned i = 1; i < str.length() - 1; ++i) {
+		if (str[i] == escapeChar) {
+			if (languageVersion == 25) {
+				result.emplace(str[i + 1]);
+				i++;
+			}
+			else if (languageVersion == 20){
+				if (str[i + 1] == 't')
+					result.emplace('\t');
+				else
+					result.emplace(str[i + 1]);
+				i++;
 			}
 		}
-		else if (str[i] == '\\') {
-			switch (textState) {
-				case 3:
-					result.emplace(str[i]);
-					textState = 1;
-					break;
-				default:
-					textState = 3;
-					break;
-			}
-		}
-		else if (textState == 1 || textState == 3) {
-
-			if (str[i] == 't' && textState == 3)
-				result.emplace('\t');
-			else
-				result.emplace(str[i]);
-
-			textState = 1;
-		}
+		else
+			result.emplace(str[i]);
 	}
 
 	return result;
@@ -1039,7 +1031,18 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	bool used[255];
 	memset(used, sizeof used, false);
 	__debugPrint(logFile, "%d *** %s ***: 01\n", __LINE__, __FUNCTION__);
-	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(fileName);
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(fileName);
+		break;
+	case 25:
+		fileTokens = parseFile26(fileName);
+		break;
+	default:
+		assert(false);
+		break;
+	}
 	__debugPrint(logFile, "%d *** %s ***: 02\n", __LINE__, __FUNCTION__);
 
 	for (const auto& tokens : fileTokens) {
@@ -1291,9 +1294,9 @@ void toLengthLine(
 	for (unsigned i = 0; i < tokens.size(); ++i)
 		if (tokens[i].second == 86){
 			std::string s = "";
-			for (unsigned j = 0; j < tokens[i].first.length(); ++j)
-				if (tokens[i].first[j] == '\\'){
-					if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't') {
+			for (unsigned j = 1; j < tokens[i].first.length() - 1; ++j)
+				if (tokens[i].first[j] == escapeChar){
+					if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't' && languageVersion == 20) {
 						s += '\t';
 						++j;
 					}
@@ -1304,7 +1307,7 @@ void toLengthLine(
 				}
 				else
 					s += tokens[i].first[j];
-			tokens[i].first = s;
+			tokens[i].first = "\"" + s + "\"";
 		}
 
 	updateImplies(tokens);
@@ -1346,37 +1349,50 @@ std::string encodeSpecialChars(std::string constStr){
 	std::string strTmp = "";
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
-		if (constStr[i] == '\\') {
-			if (i < constStr.length() - 1) {
-				if (constStr[i + 1] == 't'){
-					strTmp += ENCODEMAP['\t'];
-					i++;
-				}
-				else if (constStr[i + 1] == '"') {
-					strTmp += ENCODEMAP['"'];
-					i++;
-				}
-				else if (constStr[i + 1] == '\'') {
-					strTmp += ENCODEMAP['\''];
-					i++;
-				}
-				else if (constStr[i + 1] == '\\') {
-					strTmp += ENCODEMAP['\\'];
-					i++;
+		if (languageVersion == 20) {
+			if (constStr[i] == escapeChar) {
+				if (i < constStr.length() - 1) {
+					if (constStr[i + 1] == 't'){
+						strTmp += ENCODEMAP['\t'];
+						i++;
+					}
+					else if (constStr[i + 1] == '"' ||
+							constStr[i + 1] == '\'' ||
+							constStr[i + 1] == '\\') {
+						strTmp += ENCODEMAP[constStr[i + 1]];
+						i++;
+					}
+					else {
+						strTmp += constStr[i];
+						strTmp += constStr[i];
+					}
 				}
 				else {
 					strTmp += constStr[i];
+				}
+			}
+			else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
+				strTmp += ENCODEMAP[constStr[i]];
+			else
+				strTmp += constStr[i];
+		}
+		else if (languageVersion == 25) {
+			if (constStr[i] == escapeChar) {
+				if (i < constStr.length() - 1) {
+					if (constStr[i + 1] == '"'){
+						strTmp += ENCODEMAP['"'];
+						i++;
+					}
+				}
+				else {
 					strTmp += constStr[i];
 				}
 			}
-			else {
-				strTmp += constStr[i];
-			}
-		}
-		else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
+			else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
 				strTmp += ENCODEMAP[constStr[i]];
-		else
-			strTmp += constStr[i];
+			else
+				strTmp += constStr[i];
+		}
 	}
 
 	return '"' + strTmp + '"';
@@ -1521,7 +1537,18 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
  * read SMT file
  */
 void encodeSpecialChars(std::string inputFile, std::string outFile){
-	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;
 
@@ -1595,7 +1622,18 @@ std::string encodeHex(std::string constStr){
  */
 void encodeHex(std::string inputFile, std::string outFile){
 	__debugPrint(logFile, "%d *** %s ***: %s -> %s\n", __LINE__, __FUNCTION__, inputFile.c_str(), outFile.c_str());
-	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
 	std::vector<std::vector<std::string>> newtokens;
 	std::set<std::string> constStr;
 	for (const auto& tokens : fileTokens) {
@@ -1647,7 +1685,18 @@ void toLengthFile(
 	smtLenConstraints.clear();
 
 	std::vector<std::vector<std::string>> newtokens;
-	std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
 	std::vector<std::string> strVars;
 	std::set<std::string> constStr;
 
@@ -1664,13 +1713,13 @@ std::string decodeStr(std::string s){
 	std::string tmp = "";
 	for (unsigned i = 0 ; i < s.size(); ++i) {
 		tmp += s[i];
-		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\')
+		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\' && languageVersion == 20)
 			++i;
 	}
 	s = tmp;
 	tmp = "";
 
-	for (unsigned int i = 0; i < s.length(); ++i){
+	for (unsigned i = 0; i < s.length(); ++i){
 		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
 			if ((char)DECODEMAP[s[i]] != '\t')
 				tmp += (char)DECODEMAP[s[i]];

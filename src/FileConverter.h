@@ -17,7 +17,8 @@ static std::map<char, char> ENCODEMAP;
 static std::map<char, char> DECODEMAP;
 extern bool getModel;
 extern std::map<int, std::string> languageMap;
-
+extern int languageVersion;
+extern char escapeChar;
 template< typename T >
 std::string int_to_hex( T i );
 

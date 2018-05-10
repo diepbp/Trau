@@ -589,7 +589,7 @@ void OverApproxCFG::reformulateRegex(std::map<std::string, std::string> &regex) 
 		int state = 0; // 1: " ; 2: ""; 0: otherwise
 		std::string constStr = "";
 		std::string replaced = "";
-		for (unsigned int i = 0 ; i < varRegex.length(); ++i) {
+		for (unsigned i = 0 ; i < varRegex.length(); ++i) {
 			if (varRegex[i] == '"' && !(i > 0 && varRegex[i - 1] == '\\')) {
 				if (state == 0) {
 					state = 1;

@@ -26,6 +26,8 @@ std::map<std::string, int> variables;
 std::vector<std::vector<int>> graph;
 std::map<std::string, std::vector<std::string>> ourGrm;
 std::map<int, std::string> languageMap;
+char escapeChar = ESCAPECHAR20;
+int languageVersion = 20;
 
 const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5"};
 
@@ -98,48 +100,45 @@ void buildDependenceGraph(
  *
  */
 void initGraph(std::string inputFile){
-#ifdef DEBUGLOG
-  __debugPrint(logFile, "***********************************************\n");
-  __debugPrint(logFile, "*              initGraph             			*\n");
-  __debugPrint(logFile, "-----------------------------------------------\n");
-#endif
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
-  std::vector<std::vector<std::pair<std::string, int>>> fileTokens = parseFile(inputFile);
-  for (const auto& tokens : fileTokens) {
-	  buildDependenceGraph(tokens, cnt, variables, graph);
-  }
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+	for (const auto& tokens : fileTokens) {
+		buildDependenceGraph(tokens, cnt, variables, graph);
+	}
 }
 
 void loadGrammar(std::string grammarFile) {
-#ifdef DEBUGLOG
-  __debugPrint(logFile, "***********************************************\n");
-  __debugPrint(logFile, "*                 initGrammar                 *\n");
-  __debugPrint(logFile, "-----------------------------------------------\n");
-#endif
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 #if 0
-  ourGrm = OverApproxCFG::overapprox_CFG(grammarFile);
+	ourGrm = OverApproxCFG::overapprox_CFG(grammarFile);
 #else
-  ourGrm = UnderApproxCFG::underapprox_CFG(grammarFile);
+	ourGrm = UnderApproxCFG::underapprox_CFG(grammarFile);
 #endif
-#ifdef DEBUGLOG
-  for (std::map<std::string, std::vector<std::string>>::iterator it = ourGrm.begin(); it != ourGrm.end(); ++it) {
-	  __debugPrint(logFile, "%d %s: \n", __LINE__, it->first.c_str());
-	  for (unsigned int i = 0; i < it->second.size(); ++i)
-		  __debugPrint(logFile, "%d\t%s\n", __LINE__, it->second[i].c_str());
-  }
-#endif
+	for (const auto& s : ourGrm) {
+		__debugPrint(logFile, "%d %s: \n", __LINE__, s.first.c_str());
+		for (const auto& ss : s.second)
+			__debugPrint(logFile, "%d\t%s\n", __LINE__, ss.c_str());
+	}
 }
 
 /**
  * convert to
  */
 std::string convertFileToReplaceConst(std::string fileDir) {
-#ifdef DEBUGLOG
-  __debugPrint(logFile, "***********************************************\n");
-  __debugPrint(logFile, "*              convertFile             *\n");
-  __debugPrint(logFile, "-----------------------------------------------\n");
-#endif
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 	/*get fileName from fileDir */
 	std::string fileName = "";
@@ -238,9 +237,13 @@ void parseUserInput(int argc, char* argv[]){
 			}
 			else if (language.compare("SMT2.5") == 0) {
 				languageMap = languageMap25;
+				languageVersion = 25;
+				escapeChar = ESCAPECHAR25;
 			}
 			else if (language.compare("SMT2.0") == 0) {
 				languageMap = languageMap20;
+				languageVersion = 20;
+				escapeChar = ESCAPECHAR20;
 			}
 		}
 		else if (tmp.compare("-doublecheck") == 0){

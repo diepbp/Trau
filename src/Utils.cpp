@@ -296,7 +296,7 @@ std::string andConstraint(std::set<std::string> possibleCases){
 /*
  *
  */
-std::vector<std::pair<std::string, int>> parseTerm(std::string term){
+std::vector<std::pair<std::string, int>> parseTerm20(std::string term){
 	ANTLRInputStream input(term);
 	SMTLIB2Lexer lexer(&input);
 	CommonTokenStream tokens(&lexer);
@@ -311,7 +311,7 @@ std::vector<std::pair<std::string, int>> parseTerm(std::string term){
 /*
  *
  */
-std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file){
+std::vector<std::vector<std::pair<std::string, int>>> parseFile20(std::string file){
 	ANTLRFileStream input(file);
 	SMTLIB2Lexer lexer(&input);
 	CommonTokenStream tokens(&lexer);
@@ -319,6 +319,37 @@ std::vector<std::vector<std::pair<std::string, int>>> parseFile(std::string file
 	SMTLIB2Parser parser(&tokens);
 	tree::ParseTree *tree = parser.script();
 	SMTLIB2ScriptListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+	return listener.smtTokens;
+}
+
+/*
+ *
+ */
+std::vector<std::pair<std::string, int>> parseTerm26(std::string term){
+	ANTLRInputStream input(term);
+	SMTLIB26Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB26Parser parser(&tokens);
+	tree::ParseTree *tree = parser.term();
+	SMTLIB26TermListener listener;
+	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+	return listener.smtTokens[0];
+}
+
+/*
+ *
+ */
+std::vector<std::vector<std::pair<std::string, int>>> parseFile26(std::string file){
+	ANTLRFileStream input(file);
+	SMTLIB26Lexer lexer(&input);
+	CommonTokenStream tokens(&lexer);
+
+	SMTLIB26Parser parser(&tokens);
+	tree::ParseTree *tree = parser.script();
+	SMTLIB26ScriptListener listener;
 	tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
 	return listener.smtTokens;

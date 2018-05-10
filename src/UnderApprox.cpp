@@ -1061,7 +1061,18 @@ std::string create_constraints_equal(
 				str00 = str01;
 				str01 = tmp;
 			}
-			std::vector<std::pair<std::string, int>> tokens  = parseTerm(str01);
+			std::vector<std::pair<std::string, int>> tokens;
+			switch (languageVersion) {
+			case 20:
+				tokens = parseTerm20(str01);
+				break;
+			case 25:
+				tokens = parseTerm26(str01);
+				break;
+			default:
+				assert(false);
+				break;
+			}
 			std::string tmp = "";
 			for (const auto& s : tokens)
 				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(languageMap[CONCAT]) != 0) {
@@ -4027,7 +4038,19 @@ bool isBlankValue(std::string name,
 std::string findEqValueInConcat(
 		std::string concat,
 		std::map<std::string, int> len){
-	std::vector<std::pair<std::string, int>> tokens = parseTerm(concat);
+	std::vector<std::pair<std::string, int>> tokens;
+	switch (languageVersion) {
+	case 20:
+		tokens = parseTerm20(concat);
+		break;
+	case 25:
+		tokens = parseTerm26(concat);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
 	std::string ret = "";
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, concat.c_str());
 	for (const auto& token : tokens){
@@ -4204,7 +4227,18 @@ bool findExistsingValue(
 		for (const auto& op : equalities){
 			if (op.arg02.find("(" + std::string(languageMap[CONCAT])) == 0 &&
 					std::find(eqVar.begin(), eqVar.end(), op.arg01) == eqVar.end()){
-				std::vector<std::pair<std::string, int>> tokens = parseTerm(op.arg02);
+				std::vector<std::pair<std::string, int>> tokens;
+				switch (languageVersion) {
+				case 20:
+					tokens = parseTerm20(op.arg02);
+					break;
+				case 25:
+					tokens = parseTerm26(op.arg02);
+					break;
+				default:
+					assert(false);
+					break;
+				}
 				std::vector<std::string> tmpTokens;
 				for (const auto& token : tokens)
 					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0)
@@ -4551,16 +4585,26 @@ std::map<std::string, std::string> formatResult(
 		}
 		std::string tmp = "";
 		for (unsigned int i = 0; i < value.length(); ++i)
-			if (value[i] == '\"')
-				tmp = tmp + "\\\"";
-			else if (value[i] == '\\')
-				tmp = tmp + "\\\\";
-			else if (value[i] == 9) // tab
-				tmp = tmp + "\\t";
-			else if (value[i] < 32 || value[i] > 126)
-				tmp = tmp + 'a';
-			else
-				tmp = tmp + value[i];
+			if (languageVersion == 20) {
+				if (value[i] == '\"')
+					tmp = tmp + "\\\"";
+				else if (value[i] == '\\')
+					tmp = tmp + "\\\\";
+				else if (value[i] == 9) // tab
+					tmp = tmp + "\\t";
+				else if (value[i] < 32 || value[i] > 126)
+					tmp = tmp + 'a';
+				else
+					tmp = tmp + value[i];
+			}
+			else if (languageVersion == 25){
+				if (value[i] == '"')
+					tmp = tmp + """";
+				else if (value[i] < 32 || value[i] > 126)
+					tmp = tmp + 'a';
+				else
+					tmp = tmp + value[i];
+			}
 		finalResult[var.first] = tmp;
 	}
 

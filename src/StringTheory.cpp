@@ -589,7 +589,7 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\' && languageVersion == 20)
 				++i;
 		}
 		return s;
@@ -599,7 +599,7 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\' && languageVersion == 20)
 				++i;
 		}
 		return customizeString(s);
@@ -1305,7 +1305,7 @@ std::set<char> collectChars(std::vector<std::string> constStrs) {
 				componentChars.insert(constStrs[i][j]);
 				state = 1;
 			}
-			else if (constStrs[i][j] == '\\' && state == 1)  {
+			else if (constStrs[i][j] == escapeChar && state == 1)  {
 				state = 2;
 			}
 			else {

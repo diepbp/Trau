@@ -53,6 +53,7 @@ static std::map<std::string, int> varPieces;
 static int noFlatVariables = 0;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
+extern int languageVersion;
 
 /*
  * get value from eq map
