@@ -1206,7 +1206,7 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 	// quick path:
 	// >> if RegexIn(T4_4, (Str2Reg #)) --> "T4_4 = #" is enough
 	if (funcDecl == td->Str2Reg) {
-		return Z3_mk_eq(ctx, args[0], Z3_get_app_arg(ctx, arg1_func_app, 0));
+		return Z3_mk_eq(ctx, args[0], mk_unary_app(ctx, td->AutomataDef, Z3_get_app_arg(ctx, arg1_func_app, 0)));
 	}
 	else if (funcDecl == td->RegexAll){
 		return Z3_mk_eq(ctx, args[0], mk_internal_string_var(t));
@@ -1963,7 +1963,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)){
 		std::string tmp01 = Z3_ast_to_string(ctx, s1);
 		std::string tmp02 = Z3_ast_to_string(ctx, s2);
-		if (tmp01.find(CHARAT) != std::string::npos || tmp02.find(CHARAT) != std::string::npos){
+		if (tmp01.find(languageMap[CHARAT]) != std::string::npos || tmp02.find(languageMap[CHARAT]) != std::string::npos){
 			if (!isConstStr(t, s1) && isConstStr(t, s2)){
 				throw std::runtime_error("CharAt function accepts a const letter only!");
 			}

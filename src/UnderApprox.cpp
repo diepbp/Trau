@@ -1246,8 +1246,8 @@ void handle_NOTContains(
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
-				if (element.first.arg01.find(CONCAT) != std::string::npos ||
-						element.first.arg02.find(CONCAT) != std::string::npos ||
+				if (element.first.arg01.find(languageMap[CONCAT]) != std::string::npos ||
+						element.first.arg02.find(languageMap[CONCAT]) != std::string::npos ||
 						element.first.arg02.find("Automata ") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.arg01, element.first.arg02, rewriterStrMap)){
