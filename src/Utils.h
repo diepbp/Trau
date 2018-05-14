@@ -131,7 +131,7 @@ const static std::map<int, std::string> languageMap25 = {
 	{REPLACE, "str.replace"},
 	{REPLACEALL, "ReplaceAll"},
 	{CONTAINS, "str.contains"},
-	{CHARAT, "str.char"},
+	{CHARAT, "str.at"},
 	{STR2REG, "str.to.re"},
 	{REGEXSTAR, "re.*"},
 	{REGEXPLUS, "re.+"},

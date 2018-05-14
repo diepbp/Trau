@@ -2245,8 +2245,10 @@ void createConstMap(){
 //					if (isRegexStr(content)) {
 //						content = content + "__" + std::to_string(constCnt);
 //					}
-					__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
-					constMap[content] = "const_" + std::to_string(constCnt++);
+					if (constMap.find(content) == constMap.end()) {
+						__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
+						constMap[content] = "const_" + std::to_string(constCnt++);
+					}
 				}
 		}
 	}
@@ -3587,6 +3589,9 @@ void forwardPropagate(
 	__debugPrint(logFile, "\n");
 
 	for (const auto& var : equalitiesMap){
+		if (appearanceMap[newlyUpdate].find(var.first) == appearanceMap[newlyUpdate].end())
+			continue;
+
 		if (var.first[0] == '"' && !isRegexStr(var.first) && !isUnionStr(var.first))
 			continue;
 		std::vector<int> value = getVarValue(var.first, len, strValue);
@@ -3666,7 +3671,8 @@ void forwardPropagate(
 							if (updated == true) {
 
 								strValue[getVarName(s)] = sValue;
-								forwardPropagate(s, len, strValue, completion);
+								if (appearanceMap[s].size() > 1)
+									forwardPropagate(s, len, strValue, completion);
 								if (equalitiesMap.find(s) != equalitiesMap.end())
 									backwardPropagarate(s, len, strValue, completion);
 								if (completion == false) {
@@ -4088,6 +4094,7 @@ std::map<std::string, int> createSimpleEqualMap(
 		if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
 			arg02 = findEqValueInConcat(arg02, len);
 		}
+
 		if (arg02.length() > 0) {
 			if (getVarLength(arg02, len) != getVarLength(arg01, len)) {
 				if (index.find(arg01) == index.end()){
@@ -4499,6 +4506,8 @@ std::map<std::string, std::string> formatResult(
 	std::map<std::string, int> lenInt;
 	std::map<std::string, std::string> strValue;
 
+	equalitiesMap = orgEqualitiesMap; /* use the simplest version of eq map */
+
 	/* format lengths */
 	for (const auto& s : len)
 		if (s.first.find(LENPREFIX) == 0){
@@ -4860,6 +4869,7 @@ void reset(){
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
 	connectedVariables.clear();
+	appearanceMap.clear();
 	trivialUnsat = false;
 	unknownResult = false;
 }
@@ -4982,6 +4992,20 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
 /*
  *
  */
+void createAppearanceMap(){
+
+	for (const auto& var : equalitiesMap){
+		for (const auto& eq : var.second)
+			for (const auto& s: eq)
+				if (s[0] != '"'){
+					appearanceMap[s].emplace(var.first);
+				}
+	}
+}
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
@@ -4990,13 +5014,15 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	sumConstString();
 
 	collectConnectedVariables(rewriterStrMap);
-	refineEqualMap(rewriterStrMap);
+	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
+	orgEqualitiesMap = equalitiesMap;
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
 	addConnectedVarToEQmap();
 	createConstMap();
 	refineEqualMap(rewriterStrMap);
+	createAppearanceMap();
 }
 
 /*

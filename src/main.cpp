@@ -234,6 +234,7 @@ void parseUserInput(int argc, char* argv[]){
 				for (const auto& s: supportedLanguage)
 					printf("%s ", s.c_str());
 				printf("!\n");
+				throw std::runtime_error("Cannot recognize the input language!");
 			}
 			else if (language.compare("SMT2.5") == 0) {
 				languageMap = languageMap25;
@@ -261,10 +262,10 @@ void parseUserInput(int argc, char* argv[]){
 			return;
 		}
 		else if (tmp[0] == '-') {
-			printf("Arguments Errors.\n");
 			printHelp();
 			inputFile = "";
 			orgInput = "";
+			throw std::runtime_error("Arguments Errors.\n");
 			return;
 		}
 		else {
