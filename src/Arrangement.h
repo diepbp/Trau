@@ -16,7 +16,7 @@
 #define SUMFLAT 100000000
 #define EMPTYFLAT 9999999
 
-#define REGEX_CODE -100
+#define REGEX_CODE -10000
 #define MINUSZERO 999
 
 class Arrangment{
@@ -1818,6 +1818,8 @@ public:
 					lenRhs = lenRhs.substr(0, lenRhs.length() - 3);
 			else if (elementNames[pos + 1].second < 1000)
 				lenRhs = lenRhs.substr(0, lenRhs.length() - 4);
+			else if (elementNames[pos + 1].second < 10000)
+				lenRhs = lenRhs.substr(0, lenRhs.length() - 5);
 		}
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
@@ -2119,7 +2121,7 @@ public:
 			nameA += LENPREFIX;
 			nameA += constMap[a.first];
 			if (isRegexStr(a.first))
-				nameA += "_100";
+				nameA += REGEXSUFFIX;
 		}
 
 		if (b.second >= 0) {
@@ -2131,7 +2133,7 @@ public:
 			nameB += LENPREFIX;
 			nameB += constMap[b.first];
 			if (isRegexStr(b.first))
-				nameB += "_100";
+				nameB += REGEXSUFFIX;
 		}
 
 		std::string result = createEqualConstraint(nameA, nameB);

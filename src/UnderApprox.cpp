@@ -1579,7 +1579,7 @@ void create_constraints_const(std::vector<std::string> &defines, std::vector<std
 			}
 		}
 		else {
-			std::string lenName = std::string(LENPREFIX) + constNode.second + "_" + std::to_string(std::abs(REGEX_CODE));
+			std::string lenName = std::string(LENPREFIX) + constNode.second + REGEXSUFFIX;
 			defines.emplace_back(createIntDefinition(lenName));
 
 			if (constNode.first.find("+") != std::string::npos)
@@ -1649,7 +1649,7 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 		componentSizes.emplace(c.length());
 
 	int cnt = 0;
-	std::string constraint = "(assert (= " + std::string(LENPREFIX) + name + "_" + std::to_string(std::abs(REGEX_CODE)) + " (+ ";
+	std::string constraint = "(assert (= " + std::string(LENPREFIX) + name + std::string(REGEXSUFFIX) + " (+ ";
 	for (const auto& size : componentSizes){
 		std::string tmp = name + "__p" + std::to_string(cnt++);
 		defines.emplace_back(createIntDefinition(tmp));
@@ -1681,7 +1681,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 			else {
 				/* regex */
 				assert(constMap.find(component.substr(1, component.length() - 2)) != constMap.end());
-				lenX = lenX + " " + LENPREFIX + constMap[component.substr(1, component.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE));
+				lenX = lenX + " " + LENPREFIX + constMap[component.substr(1, component.length() - 2)] + REGEXSUFFIX;
 				cnt ++;
 			}
 		}
@@ -1698,7 +1698,7 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 		if(!isRegexStr(x) && !isUnionStr(x))
 			lenX = createEqualConstraint(std::to_string(x.length() - 2), lenX);
 		else if (isRegexStr(x)){
-			lenX = createEqualConstraint(lenX, LENPREFIX + constMap[x.substr(1, x.length() - 2)] + "_" + std::to_string(abs(REGEX_CODE)));
+			lenX = createEqualConstraint(lenX, LENPREFIX + constMap[x.substr(1, x.length() - 2)] + std::string(REGEXSUFFIX));
 			assert(constMap.find(x.substr(1, x.length() - 2)) != constMap.end());
 		}
 		else {
@@ -1829,7 +1829,7 @@ void printSatisfyingAssignments(
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
-			if (tokens[1].substr(0, 4).compare(LENPREFIX) == 0) {
+			if (tokens[1].substr(0, std::string(LENPREFIX).length()).compare(LENPREFIX) == 0) {
 			}
 			else {
 				printf("%s : %s\n", tokens[1].c_str(), value.c_str());
@@ -1870,9 +1870,9 @@ std::vector<std::string> createSatisfyingAssignments(
 		if (value.length() > 0 &&
 				tokens[1].find("$$") == std::string::npos &&
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
-			if (tokens[1].substr(0, 4).compare(LENPREFIX) == 0) {
-				std::string tmp = def.substr(4);
-				additionalAssertions.emplace_back("(assert (= (" + std::string(languageMap[LENGTH]) + " " + tokens[1].substr(4) +") " + value + "))\n");
+			if (tokens[1].substr(0, std::string(LENPREFIX).length()).compare(LENPREFIX) == 0) {
+				std::string tmp = def.substr(std::string(LENPREFIX).length());
+				additionalAssertions.emplace_back("(assert (= (" + std::string(languageMap[LENGTH]) + " " + tokens[1].substr(std::string(LENPREFIX).length()) +") " + value + "))\n");
 			}
 			else {
 				if (value[0] != '-')
@@ -3510,7 +3510,6 @@ int getVarLength(
 		return len[tmp];
 	}
 	else {
-//		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 		assert(len.find(newlyUpdate) != len.end());
 		return len[newlyUpdate];
 	}
@@ -3639,13 +3638,6 @@ void forwardPropagate(
 					__debugPrint(logFile, "%d", value[i]);
 			__debugPrint(logFile, "\n");
 			strValue[getVarName(var.first)] = value;
-			/* update it parents */
-//			forwardPropagate(var.first, len, strValue, completion);
-//			if (completion == false) {
-//				__debugPrint(logFile, ">> %d cannot find var: %s\n", __LINE__, var.first.c_str());
-//				return;
-//			}
-
 
 			/* update peers */
 			if (var.second.size() > 1) {
@@ -3803,15 +3795,13 @@ void backwardPropagarate(
 			__debugPrint(logFile, "%d", value[i]);
 		}
 	__debugPrint(logFile, "\n");
-	__debugPrint(logFile, "%d equal size: %ld\n", __LINE__, equalitiesMap[newlyUpdate].size());
 	for (const auto& eq : equalitiesMap[newlyUpdate]){
 		int pos = 0;
 		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
 		for (const auto& var : eq) {
-			__debugPrint(logFile, "%d step 0.1: var = %s\n", __LINE__, var.c_str());
+			int lengthVar = getVarLength(var, len);
+			__debugPrint(logFile, "%d step 0.1: var = %s (len = %d @ %d) \n", __LINE__, var.c_str(), lengthVar, lengthVar + pos);
 			if (var[0] == '"') {
-				int lengthVar = getVarLength(var, len);
-				__debugPrint(logFile, "%d length = %d\n", __LINE__, lengthVar);
 				if (isRegexStr(var) || isUnionStr(var)) {
 					bool update = false;
 					std::vector<int> sValue = getVarValue(var, len, strValue);
@@ -3824,9 +3814,6 @@ void backwardPropagarate(
 						else if (value[pos + i] != 0 && sValue[i] == 0){
 							sValue[i] = value[pos + i];
 							update = true;
-						}
-						else if (value[pos + i] == 0 && sValue[i] != 0){
-							__debugPrint(logFile, "%d weird case at i = %d, %d\n", __LINE__, i, sValue[i]);
 						}
 						else {
 							__debugPrint(logFile, "%d weird case at i %d = %d, pos + i: %d vs %d\n", __LINE__, i, sValue[i], pos + i, value[pos + i]);
@@ -3846,15 +3833,10 @@ void backwardPropagarate(
 						__debugPrint(logFile, ">> %d no update for var: %s\n", __LINE__, var.c_str());
 					}
 				}
-
-				pos += lengthVar;
 			}
 			else if(strValue.find(var) != strValue.end()){
 				std::vector<int> sValue = getVarValue(var, len, strValue);
-				int lengthVar = getVarLength(var, len);
 				/* verify a determined value */
-
-
 				bool update = false;
 				for (int i = 0; i < lengthVar; ++i)
 					if (value[pos + i] != 0 && sValue[i] != 0 && value[pos + i] != sValue[i]) {
@@ -3865,10 +3847,6 @@ void backwardPropagarate(
 						sValue[i] = value[pos + i];
 						update = true;
 					}
-					else if (value[pos + i] == 0 && sValue[i] != 0){
-					}
-
-				pos += lengthVar;
 
 				if (update == true) {
 					__debugPrint(logFile, "%d update existed value\n", __LINE__);
@@ -3892,21 +3870,20 @@ void backwardPropagarate(
 			else {
 				__debugPrint(logFile, "%d assign a new value\n", __LINE__);
 				assert(len.find(var) != len.end());
-				int lengthVar = getVarLength(var, len);
 				/* update a new value */
 				std::vector<int> sValue;
 				for (int i = 0; i < lengthVar; ++i)
 					sValue.emplace_back(value[pos + i]);
 				strValue[getVarName(var)] = sValue;
-				pos += lengthVar;
+
 				forwardPropagate(var, len, strValue, completion);
 				if (completion == false) {
 					__debugPrint(logFile, ">> %d cannot find value for var: %s\n", __LINE__, var.c_str());
 					return;
 				}
 			}
+			pos += lengthVar;
 		}
-		__debugPrint(logFile, "%d %s: %d == %d\n", __LINE__, newlyUpdate.c_str(), pos, length);
 		assert(pos == length);
 	}
 }
@@ -3938,7 +3915,6 @@ void backwardPropagarate_simple(
 			__debugPrint(logFile, "%d", value[i]);
 		}
 	__debugPrint(logFile, "\n");
-	__debugPrint(logFile, "%d equal size: %ld\n", __LINE__, equalitiesMap[newlyUpdate].size());
 	for (const auto& eq : equalitiesMap[newlyUpdate]){
 		int pos = 0;
 		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
@@ -3995,7 +3971,6 @@ void backwardPropagarate_simple(
 				backwardPropagarate_simple(var, len, strValue, completion);
 			}
 		}
-		__debugPrint(logFile, "%d %s: %d == %d\n", __LINE__, newlyUpdate.c_str(), pos, length);
 		assert(pos == length);
 	}
 }
@@ -4401,8 +4376,8 @@ void formatRegexes(
 		std::string varName = lenVector[s].first;
 		if (varName.find("const") != std::string::npos){
 
-			if (varName.length() > 4 && varName.substr(varName.length() - 4).compare("_100") == 0)
-				varName = varName.substr(0, varName.length() - 4);
+			if (varName.length() > std::string(REGEXSUFFIX).length() && varName.substr(varName.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0)
+				varName = varName.substr(0, varName.length() - std::string(REGEXSUFFIX).length());
 			std::string orgVarName = varName;
 
 			std::string solverValue = solverValues[varName];
@@ -4457,8 +4432,9 @@ void formatConnectedVars(
 		}
 		else {
 
-			if (varName.length() > 4 && varName.substr(varName.length() - 4).compare("_100") == 0)
-				varName = varName.substr(0, varName.length() - 4);
+			if (varName.length() > std::string(REGEXSUFFIX).length() &&
+					varName.substr(varName.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0)
+				varName = varName.substr(0, varName.length() - std::string(REGEXSUFFIX).length());
 			std::string orgVarName = varName;
 
 			if (connectedVariables.find(varName) != connectedVariables.end()) {
@@ -4511,12 +4487,12 @@ std::map<std::string, std::string> formatResult(
 	/* format lengths */
 	for (const auto& s : len)
 		if (s.first.find(LENPREFIX) == 0){
-			std::string name = s.first.substr(4);
+			std::string name = s.first.substr(std::string(LENPREFIX).length());
 			lenVector.push_back(std::make_pair(name, atoi(s.second.c_str())));
 			lenInt[name] = atoi(s.second.c_str());
-			if (name.length() > 4 && name.substr(name.length() - 4).compare("_100") == 0) {
-				lenInt[name.substr(0, name.length() - 4)] = atoi(s.second.c_str());
-				__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.substr(0, name.length() - 4).c_str(), s.second.c_str(), atoi(s.second.c_str()));
+			if (name.length() > std::string(REGEXSUFFIX).length() && name.substr(name.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0) {
+				lenInt[name.substr(0, name.length() - std::string(REGEXSUFFIX).length())] = atoi(s.second.c_str());
+				__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.substr(0, name.length() - std::string(REGEXSUFFIX).length()).c_str(), s.second.c_str(), atoi(s.second.c_str()));
 			}
 			__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.c_str(), s.second.c_str(), atoi(s.second.c_str()));
 		}
@@ -4528,7 +4504,7 @@ std::map<std::string, std::string> formatResult(
 	/* format values */
 	for (const auto& s : _strValue)
 		if (s.first.find(ARRPREFIX) == 0){
-			std::string name = s.first.substr(4);
+			std::string name = s.first.substr(std::string(ARRPREFIX).length());
 			strValue[name] = s.second;
 		}
 		else
@@ -4546,8 +4522,8 @@ std::map<std::string, std::string> formatResult(
 	}
 
 	for (const auto& var : lenInt) {
-			__debugPrint(logFile, "%d: len %s = %d\n", __LINE__, var.first.c_str(), var.second);
-			}
+		__debugPrint(logFile, "%d: len %s = %d\n", __LINE__, var.first.c_str(), var.second);
+	}
 
 	syncConst(strValue, lenInt, finalStrValue, completion);
 	formatConnectedVars(indexes, strValue, lenVector, lenInt, finalStrValue, completion);
@@ -4997,9 +4973,7 @@ void createAppearanceMap(){
 	for (const auto& var : equalitiesMap){
 		for (const auto& eq : var.second)
 			for (const auto& s: eq)
-				if (s[0] != '"'){
-					appearanceMap[s].emplace(var.first);
-				}
+				appearanceMap[s].emplace(var.first);
 	}
 }
 

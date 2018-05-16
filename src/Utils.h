@@ -152,7 +152,7 @@ const static char ESCAPECHAR25 = '"';
 #define LENPREFIX "len_"
 #define ARRPREFIX "arr_"
 #define ZERO "0"
-#define REGEXSUFFIX "_100"
+#define REGEXSUFFIX "_10000"
 
 struct TokenElement{
     TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}

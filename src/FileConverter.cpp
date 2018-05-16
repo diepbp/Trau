@@ -1142,27 +1142,27 @@ void rewriteGRM(std::string s,
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
-					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + "_100 (" +
+					definitions.emplace_back("(declare-fun " + constMap[content] + std::string(REGEXSUFFIX) + " () String)\n");
+					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
 													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 
 					if (result.length() > 0)
-						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
 					else
-						result = constMap[content] + "_100";
+						result = constMap[content] + std::string(REGEXSUFFIX);
 				}
 				else if (components[j].find('+') != std::string::npos) {
 					unsigned int leftParentheses = components[j].find('(');
 					unsigned int rightParentheses = components[j].find(')');
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
-					definitions.emplace_back("(declare-fun " + constMap[content] + "_100 () String)\n");
-					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + "_100 (" +
+					definitions.emplace_back("(declare-fun " + constMap[content] + std::string(REGEXSUFFIX) + " () String)\n");
+					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
 													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 					if (result.length() > 0)
-						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content]+ "_100)";
+						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
 					else
-						result = constMap[content] + "_100";
+						result = constMap[content] + std::string(REGEXSUFFIX);
 				}
 				else {
 					if (result.length() > 0)
