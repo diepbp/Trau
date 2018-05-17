@@ -1,0 +1,18 @@
+File name,Result,Running time
+../benchmarks/transducer/Z3STR/t20.smt2,sat,25.8061599731
+../benchmarks/transducer/Z3STR/t22.smt2,timeout,100.017101049
+../benchmarks/transducer/Z3STR/t16.smt2,sat,9.35475516319
+../benchmarks/transducer/Z3STR/t10.smt2,sat,1.07202410698
+../benchmarks/transducer/Z3STR/t17.smt2,unsat,2.12621998787
+../benchmarks/transducer/Z3STR/t12.smt2,sat,2.36404800415
+../benchmarks/transducer/Z3STR/t09.smt2,sat,7.01845097542
+../benchmarks/transducer/Z3STR/t07.smt2,sat,0.43062710762
+../benchmarks/transducer/Z3STR/t08.smt2,sat,36.0561449528
+../benchmarks/transducer/Z3STR/t06.smt2,sat,0.0359389781952
+../benchmarks/transducer/Z3STR/t11.smt2,timeout,100.004686832
+../benchmarks/transducer/Z3STR/t15.smt2,timeout,100.017093182
+../benchmarks/transducer/Z3STR/t13.smt2,unsat,2.32424521446
+../benchmarks/transducer/Z3STR/t18.smt2,sat,9.54331803322
+../benchmarks/transducer/Z3STR/t19.smt2,sat,6.29110598564
+../benchmarks/transducer/Z3STR/t14.smt2,sat,11.8202021122
+../benchmarks/transducer/Z3STR/t21.smt2,timeout,100.005225897
