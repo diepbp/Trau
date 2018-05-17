@@ -1,0 +1,6 @@
+stringfuzz suite,,,,,
+, CVC4, Z3-str3, S3P, Trau-pre, Trau
+sat,619,605,0,-,723
+unsat,160,190,0,-,261
+timeout,246,207,0,-,0
+unkown/error,0,23,0,-,41
