@@ -1,9 +1,0 @@
-File name,Result,Running time
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t02.smt2,sat,0.0887479782104
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t05.smt2,sat,1.53245306015
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t07.smt2,sat,0.125920057297
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t08.smt2,sat,0.139464139938
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t03.smt2,sat,0.87029504776
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t06.smt2,sat,2.85885000229
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t04.smt2,sat,8.60185217857
-/home/osboxes/Desktop/evaluation/benchmarks/appscan/Z3STR/t01.smt2,sat,1.51068687439

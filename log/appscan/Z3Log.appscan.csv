@@ -1,0 +1,9 @@
+File name,Result,Running time
+../benchmarks/appscan/SMTLIB/t02.smt2,sat,0.098562002182
+../benchmarks/appscan/SMTLIB/t05.smt2,sat,0.629684925079
+../benchmarks/appscan/SMTLIB/t07.smt2,sat,3.20623803139
+../benchmarks/appscan/SMTLIB/t08.smt2,sat,0.0208580493927
+../benchmarks/appscan/SMTLIB/t03.smt2,sat,0.266551017761
+../benchmarks/appscan/SMTLIB/t06.smt2,sat,0.0250940322876
+../benchmarks/appscan/SMTLIB/t04.smt2,sat,0.459428071976
+../benchmarks/appscan/SMTLIB/t01.smt2,sat,0.117419958115

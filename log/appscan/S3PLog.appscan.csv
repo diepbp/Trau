@@ -1,0 +1,9 @@
+File name,Result,Running time
+../benchmarks/appscan/Z3STR/t02.smt2,unknown/error,0.0616068840027
+../benchmarks/appscan/Z3STR/t05.smt2,sat,0.142514944077
+../benchmarks/appscan/Z3STR/t07.smt2,sat,0.0478239059448
+../benchmarks/appscan/Z3STR/t08.smt2,sat,0.0383269786835
+../benchmarks/appscan/Z3STR/t03.smt2,sat,0.100269079208
+../benchmarks/appscan/Z3STR/t06.smt2,sat,0.0711779594421
+../benchmarks/appscan/Z3STR/t04.smt2,timeout,20.0023591518
+../benchmarks/appscan/Z3STR/t01.smt2,sat,0.132040977478
