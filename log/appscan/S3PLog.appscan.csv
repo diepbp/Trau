@@ -1,9 +1,9 @@
 File name,Result,Running time
-../benchmarks/appscan/Z3STR/t02.smt2,unknown/error,0.0749208927155
-../benchmarks/appscan/Z3STR/t05.smt2,sat,0.141586780548
-../benchmarks/appscan/Z3STR/t07.smt2,sat,0.0519149303436
-../benchmarks/appscan/Z3STR/t08.smt2,sat,0.0435690879822
-../benchmarks/appscan/Z3STR/t03.smt2,sat,0.104994058609
-../benchmarks/appscan/Z3STR/t06.smt2,sat,0.0814049243927
-../benchmarks/appscan/Z3STR/t04.smt2,timeout,20.0032949448
-../benchmarks/appscan/Z3STR/t01.smt2,sat,0.149431943893
+../benchmarks/appscan/Z3STR/t02.smt2,unknown/error,0.0674531459808
+../benchmarks/appscan/Z3STR/t05.smt2,sat,0.145623922348
+../benchmarks/appscan/Z3STR/t07.smt2,sat,0.0510549545288
+../benchmarks/appscan/Z3STR/t08.smt2,sat,0.0465240478516
+../benchmarks/appscan/Z3STR/t03.smt2,sat,0.0949850082397
+../benchmarks/appscan/Z3STR/t06.smt2,sat,0.0686419010162
+../benchmarks/appscan/Z3STR/t04.smt2,timeout,20.0023779869
+../benchmarks/appscan/Z3STR/t01.smt2,sat,0.125769853592

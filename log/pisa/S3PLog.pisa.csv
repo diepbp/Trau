@@ -1,0 +1,13 @@
+File name,Result,Running time
+../benchmarks/pisa/Z3STR/pisa-000.smt2,sat,0.106687784195
+../benchmarks/pisa/Z3STR/pisa-004.smt2,timeout,20.0028760433
+../benchmarks/pisa/Z3STR/pisa-008.smt2,timeout,20.0068750381
+../benchmarks/pisa/Z3STR/pisa-003.smt2,unsat,0.0292499065399
+../benchmarks/pisa/Z3STR/pisa-010.smt2,sat,0.0383200645447
+../benchmarks/pisa/Z3STR/pisa-009.smt2,timeout,20.0024359226
+../benchmarks/pisa/Z3STR/pisa-001.smt2,sat,0.092129945755
+../benchmarks/pisa/Z3STR/pisa-007.smt2,timeout,20.0117280483
+../benchmarks/pisa/Z3STR/pisa-011.smt2,sat,0.0324289798737
+../benchmarks/pisa/Z3STR/pisa-006.smt2,timeout,20.0033099651
+../benchmarks/pisa/Z3STR/pisa-002.smt2,sat,0.0670399665833
+../benchmarks/pisa/Z3STR/pisa-005.smt2,sat,0.941100120544
