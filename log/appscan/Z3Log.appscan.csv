@@ -1,9 +1,9 @@
 File name,Result,Running time
-../benchmarks/appscan/SMTLIB/t02.smt2,sat,0.098562002182
-../benchmarks/appscan/SMTLIB/t05.smt2,sat,0.629684925079
-../benchmarks/appscan/SMTLIB/t07.smt2,sat,3.20623803139
-../benchmarks/appscan/SMTLIB/t08.smt2,sat,0.0208580493927
-../benchmarks/appscan/SMTLIB/t03.smt2,sat,0.266551017761
-../benchmarks/appscan/SMTLIB/t06.smt2,sat,0.0250940322876
-../benchmarks/appscan/SMTLIB/t04.smt2,sat,0.459428071976
-../benchmarks/appscan/SMTLIB/t01.smt2,sat,0.117419958115
+../benchmarks/appscan/SMTLIB/t02.smt2,sat,0.102744102478
+../benchmarks/appscan/SMTLIB/t05.smt2,sat,0.607010126114
+../benchmarks/appscan/SMTLIB/t07.smt2,sat,3.146504879
+../benchmarks/appscan/SMTLIB/t08.smt2,sat,0.0193860530853
+../benchmarks/appscan/SMTLIB/t03.smt2,sat,0.243097066879
+../benchmarks/appscan/SMTLIB/t06.smt2,sat,0.0270340442657
+../benchmarks/appscan/SMTLIB/t04.smt2,sat,0.432310819626
+../benchmarks/appscan/SMTLIB/t01.smt2,sat,0.119277954102

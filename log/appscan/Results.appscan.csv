@@ -1,6 +1,6 @@
 ,,appscan suite
-,,,,,
-,,,,,
-,,,,,
-,,,,,
-,,,,,
+, CVC4, Z3-str3, S3P, Trau-pre, Trau
+sat,7,8,6,-,8
+unsat,0,0,0,-,0
+timeout,1,0,1,-,0
+unkown/error,0,0,1,-,0
