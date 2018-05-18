@@ -1,0 +1,10 @@
+(declare-fun x () String)
+(declare-fun y () String)
+(declare-fun z () String)
+
+
+(assert (= z (Concat x (Concat x x) ) ) )
+(assert (= x (Concat y "c")))
+(assert (not (Contains z "b" ) ))
+(assert (= (Length z) 222 ) ) 
+(check-sat) 
