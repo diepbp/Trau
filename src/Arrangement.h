@@ -26,10 +26,12 @@ public:
 	std::vector<int> right_arr;
 
 	std::map<std::string, std::string> constMap; // extra info for all Arrangement
+	int connectingSize; // extra info for all Arrangement
 
 	Arrangment(std::vector<int> _left_arr,
 			std::vector<int> _right_arr,
-			std::map<std::string, std::string> _constMap){
+			std::map<std::string, std::string> _constMap,
+			int _connectingSize){
 
 		constMap.clear();
 
@@ -38,7 +40,7 @@ public:
 
 		/* extra info */
 		constMap.insert(_constMap.begin(), _constMap.end());
-
+		connectingSize = _connectingSize;
 	}
 
 	void addLeft(int number) {
@@ -1306,7 +1308,7 @@ public:
 							std::string prefix = leng_prefix_rhs(elementNames[i], rhs);
 
 							std::vector<std::string> cases;
-							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
+							for (unsigned iter = 0; iter < connectingSize / content.length(); ++iter) {
 								std::vector<std::string> subcase;
 								subcase.emplace_back(createEqualConstraint(subLen, std::to_string(iter * content.length())));
 								for (unsigned int j = 0; j < iter * content.length(); ++j)
@@ -1329,7 +1331,7 @@ public:
 							conditions.emplace_back(createEqualConstraint(ZERO, createModOperator(subLen, std::to_string(content.length()))));
 
 							std::string arrName = generateFlatArray(elementNames[i], rhs);
-							for (unsigned iter = 0; iter < CONNECTSIZE / content.length(); ++iter) {
+							for (unsigned iter = 0; iter < connectingSize / content.length(); ++iter) {
 								for (unsigned int j = 0; j < content.length(); ++j)
 									conditions.emplace_back(createEqualConstraint(createSelectConstraint(arrName, std::to_string(j + iter * content.length())), std::to_string(content[j])));
 							}
@@ -1490,8 +1492,8 @@ public:
 					content.length());
 			resultParts.emplace_back(strTmp);
 #else
-			resultParts.emplace_back(createLessConstraint(subLen, std::to_string(CONNECTSIZE)));
-			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
+			resultParts.emplace_back(createLessEqualConstraint(subLen, std::to_string(connectedVariables[elementNames[connectedVarPos].first])));
+			for (int i = 0; i < std::min(connectingSize, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 									arrayRhs.c_str(),
 									i,
@@ -1679,10 +1681,10 @@ public:
 
 #else
 		std::vector<std::string> andConstraints;
-		andConstraints.emplace_back(createLessConstraint(regex_length, std::to_string(CONNECTSIZE)));
+		andConstraints.emplace_back(createLessEqualConstraint(regex_length, std::to_string(connectingSize)));
 		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
 		if (charRange.first != -1) {
-			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
+			for (int i = 0; i < std::min(connectingSize, 50); ++i) {
 				sprintf(strTmp, "(or (and (>= (select %s (+ %d %s)) %d) (<= (select %s (+ %d %s)) %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1701,7 +1703,7 @@ public:
 		}
 		else {
 			unsigned int tmpNum = parse_regex_content(elementNames[regexPos].first).length();
-			for (int i = 0; i < std::min(CONNECTSIZE, 50); ++i) {
+			for (int i = 0; i < std::min(connectingSize, 50); ++i) {
 				sprintf(strTmp, "(or (= (select %s (+ %d %s)) (select %s %d)) (> %d %s))",
 						lhs_array.c_str(),
 						i,
@@ -1824,7 +1826,7 @@ public:
 		else
 			lenRhs = generateFlatSize(elementNames[pos], rhs_str);
 
-		int consideredSize = std::min(bound + 1, CONNECTSIZE);
+		int consideredSize = bound + 1;
 
 		if (startLhs.compare(ZERO) != 0 && startRhs.compare(ZERO) != 0) {
 			for (int i = 1; i <= consideredSize; ++i){
@@ -1866,7 +1868,7 @@ public:
 				andConstraints.emplace_back(orConstraint(orConstraints));
 			}
 		}
-		andConstraints.emplace_back(createLessConstraint(lenRhs, std::to_string(CONNECTSIZE)));
+		andConstraints.emplace_back(createLessConstraint(lenRhs, std::to_string(consideredSize)));
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;
 	}

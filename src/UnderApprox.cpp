@@ -150,7 +150,7 @@ void handleCase_0_0(
 	/* left = right */
 	tmpLeft.emplace_back(0);
 	tmpRight.emplace_back(0);
-	arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+	arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 }
 
 /*
@@ -164,7 +164,7 @@ void handleCase_0_0_general(){
 		/* left = right */
 		tmpLeft.emplace_back(0);
 		tmpRight.emplace_back(0);
-		arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+		arrangements[std::make_pair(0, 0)].emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 	}
 }
 
@@ -188,7 +188,7 @@ void handleCase_n_0(
 		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 
 		/* update */
 		if (usingFilter == true) {
@@ -223,7 +223,7 @@ void handleCase_n_0_general(
 		tmpLeft.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 
 		/* add directly without checking */
 		if (arrangements[std::make_pair(i, 0)].size() == 0) {
@@ -252,7 +252,7 @@ void handleCase_0_n(
 		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 
 		/* update */
 		if (usingFilter == true) {
@@ -286,7 +286,7 @@ void handleCase_0_n_general(
 		tmpRight.emplace_back(0);
 
 		std::vector<Arrangment> tmp04;
-		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+		tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 
 		/* update */
 		/* add directly without checking */
@@ -320,7 +320,7 @@ void handleCase_n_n(
 					std::vector<int> tmpRight;
 					for (unsigned int k = 0 ; k <= j; ++k)
 						tmpRight.emplace_back(i);
-					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 				}
 
 				/* [i] = sum (k..j) */
@@ -360,7 +360,7 @@ void handleCase_n_n(
 					for (unsigned int k = 0; k < j; ++k)
 						tmpRight.emplace_back(EMPTYFLAT);
 					tmpRight.emplace_back(SUMFLAT);
-					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 				}
 
 				/* fourth case: left = right */
@@ -428,7 +428,7 @@ void handleCase_n_n_general(
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+					tmp03.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 				}
 
 				/* [i] = sum (k..j) */
@@ -479,7 +479,7 @@ void handleCase_n_n_general(
 
 					assert ((int)tmpLeft.size() == i + 1);
 					assert ((int)tmpRight.size() == j + 1);
-					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap));
+					tmp04.emplace_back(Arrangment(tmpLeft, tmpRight, constMap, connectingSize));
 				}
 
 				/* fourth case: left = right */
@@ -525,7 +525,7 @@ Arrangment manuallyCreate_arrangment(
  		for (unsigned i = 0; i < rhs_elements.size(); ++i)
  			right_arr.emplace_back(1);
  	}
-	return Arrangment(left_arr, right_arr, constMap);
+	return Arrangment(left_arr, right_arr, constMap, connectingSize);
 }
 
 /*
@@ -737,7 +737,7 @@ std::string create_constraints_StartsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		for (int j = 0; j <= std::min(CONNECTSIZE, 50); ++j) {
+		for (int j = 0; j <= std::min(connectingSize, 50); ++j) {
 			/* length b = j*/
 			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
 			for (int i = 0; i < j; ++i) {
@@ -760,7 +760,7 @@ std::string create_constraints_StartsWith(
 	}
 
 	ret = "(and \t(not " + ret + ")" +
-				"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(CONNECTSIZE, 50)) + "))";
+				"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(connectingSize, 50)) + "))";
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
 }
@@ -991,8 +991,22 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	 * 		..
 	 * )
 	 * */
-	int maxSize = findVariableSize(var) * MAXQ;
-	for (unsigned i = value.length() - 2; i <= (unsigned)std::min(CONNECTSIZE, maxSize); ++i){
+#if 0
+	char strTmp[1000];
+	sprintf(strTmp, "(exists ((%s Int)) (implies (and (< %s %d) (< %s %d))) (forall ((i Int)) (and (< i %s) (= (select %s i) (select %s i)))))",
+			subLen.c_str(),
+			subLen.c_str(),
+			LOCALSPLITMAX,
+			a.first.length(),
+			subLen.c_str(),
+			arrayLhs.c_str(),
+			arrayRhs.c_str());
+	__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
+#endif
+	assert(connectedVariables.find(var) != connectedVariables.end());
+
+	int size = std::max(findVariableSize(var) * MAXQ, connectedVariables[var]);
+	for (unsigned i = value.length() - 2; i <= (unsigned)size; ++i){
 		std::vector<std::string> tmp;
 		tmp.emplace_back(createLessConstraint(lenName, std::to_string(i)));
 
@@ -1005,7 +1019,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 		andConstraints.emplace_back(orConstraint(tmp));
 	}
 
-	andConstraints.emplace_back(createLessConstraint(lenName, std::to_string(std::min(CONNECTSIZE, maxSize))));
+	andConstraints.emplace_back(createLessEqualConstraint(lenName, std::to_string(size)));
 	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
@@ -1159,7 +1173,7 @@ std::string create_constraints_NOTEqual(
 			/* != a b */
 			orConstraints.emplace_back(createNotOperator(createEqualConstraint(len00, len01)));
 
-			for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+			for (unsigned int i = 1; i < connectingSize; ++i){
 				/*len a = len b <= i || a[i - 1] == b [i-1] */
 				std::string tmp = "";
 				tmp += createLessConstraint(len00, std::to_string(i));
@@ -1193,7 +1207,7 @@ std::string create_constraints_ToLower(std::string str00, std::string str01){
 
 	std::vector<std::string> andConstraints;
 
-	for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+	for (unsigned int i = 1; i < connectingSize; ++i){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
@@ -1226,7 +1240,7 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 
 	std::vector<std::string> andConstraints;
 
-	for (unsigned int i = 1; i < CONNECTSIZE; ++i){
+	for (unsigned int i = 1; i < connectingSize; ++i){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
@@ -2268,7 +2282,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& eq : equalitiesMap) {
 		if (eq.second.size() > 4 && eq.first[0] != '"') {
 			if (connectedVariables.find(eq.first) == connectedVariables.end())
-				connectedVarSet[eq.first] = CONNECTSIZE;
+				connectedVarSet[eq.first] = connectingSize;
 			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
 		}
 
@@ -2283,7 +2297,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 								if (_eq.size() == 1 && _eq[0][0] != '"' && _eq[0].compare(var) != 0){
 									variableCounting[_eq[0]]++;
 									if (variableCounting[_eq[0]] > 1){
-										connectedVarSet[_eq[0]] = CONNECTSIZE;
+										connectedVarSet[_eq[0]] = connectingSize;
 										__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, _eq[0].c_str());
 									}
 								}
@@ -2292,7 +2306,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						variableCounting[var]++;
 						if (variableCounting[var] > 1){
 
-							connectedVarSet[var] = CONNECTSIZE;
+							connectedVarSet[var] = connectingSize;
 							__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 						}
 					}
@@ -2306,7 +2320,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						/* check if component is already in the map*/
 						if (usedComponents.find(var) != usedComponents.end()) {
 							if (!equalVector(v, usedComponents[var])){
-								connectedVarSet[var] = CONNECTSIZE;
+								connectedVarSet[var] = connectingSize;
 								__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 							}
 						}
@@ -2318,7 +2332,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 								optimizeEquality(v1, v, lhs, rhs);
 								if (std::find(rhs.begin(), rhs.end(), var) != rhs.end() &&
 										std::find(lhs.begin(), lhs.end(), var) != lhs.end()){
-									connectedVarSet[var] = CONNECTSIZE;
+									connectedVarSet[var] = connectingSize;
 									__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 									break;
 								}
@@ -2390,7 +2404,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			if (s.first.name.compare(languageMap[CHARAT]) == 0){
 				if (s.first.arg01[0] != '\"') {
 					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
-					connectedVarSet[s.first.arg01] = CONNECTSIZE;
+					connectedVarSet[s.first.arg01] = connectingSize;
 				}
 			}
 
@@ -2404,10 +2418,10 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 							connectedVarSet[s.first.arg01] = std::max((int)s.first.arg02.length() - 2, connectedVarSet[s.first.arg01]);
 					}
 					else
-						connectedVarSet[s.first.arg01] = CONNECTSIZE;
+						connectedVarSet[s.first.arg01] = connectingSize;
 				}
 				else
-					connectedVarSet[s.first.arg01] = CONNECTSIZE;
+					connectedVarSet[s.first.arg01] = connectingSize;
 				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
 			}
 
@@ -2420,10 +2434,10 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 							connectedVarSet[s.first.arg02] = std::max((int)s.first.arg01.length() - 2, connectedVarSet[s.first.arg02]);
 					}
 					else
-						connectedVarSet[s.first.arg02] = CONNECTSIZE;
+						connectedVarSet[s.first.arg02] = connectingSize;
 				}
 				else
-					connectedVarSet[s.first.arg02] = CONNECTSIZE;
+					connectedVarSet[s.first.arg02] = connectingSize;
 				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg02.c_str());
 			}
 		}
@@ -2983,7 +2997,7 @@ std::vector<std::string> createSetOfFlatVariables(int flatP) {
 	for (int i = 0 ; i < flatP; ++i) {
 		std::string varName = FLATPREFIX + std::to_string(noFlatVariables + i);
 		result.emplace_back(varName);
-		connectedVariables[varName] = CONNECTSIZE;
+		connectedVariables[varName] = connectingSize;
 		allVariables.insert(varName);
 	}
 	noFlatVariables = noFlatVariables + flatP;
@@ -4848,6 +4862,7 @@ void reset(){
 	appearanceMap.clear();
 	trivialUnsat = false;
 	unknownResult = false;
+	connectingSize = CONNECTINGSIZE;
 }
 
 /*
@@ -4984,6 +4999,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
 			createAnyway = false;
+
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
 
@@ -5165,6 +5181,12 @@ bool underapproxController(
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
 	reset();
+
+	for (const auto& v : varLength) {
+		connectingSize = std::max(connectingSize, v.second + 1);
+		__debugPrint(logFile, "%d var length: %s %d\n", __LINE__, v.first.c_str(), v.second);
+	}
+
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);
 
@@ -5176,6 +5198,8 @@ bool underapproxController(
 	for (const auto& c : connectedVariables) {
 		__debugPrint(logFile, "%d connectedVar: %s %d\n", __LINE__, c.first.c_str(), c.second);
 	}
+
+
 
 
 	additionalHandling(rewriterStrMap);

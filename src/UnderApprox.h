@@ -52,6 +52,7 @@ static std::map<std::string, int> varPieces;
 static std::map<std::string, std::set<std::string>> appearanceMap;
 
 static int noFlatVariables = 0;
+static int connectingSize;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;

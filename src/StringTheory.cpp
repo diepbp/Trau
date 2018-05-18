@@ -8873,6 +8873,8 @@ void check(Z3_theory t)
 
 	Z3_model m      = 0;
 	Z3_lbool result = Z3_check_and_get_model(ctx, &m);
+	if (unknownResult == true && result == Z3_L_FALSE)
+		result = Z3_L_UNDEF;
 
 	switch (result) {
 	case Z3_L_FALSE:

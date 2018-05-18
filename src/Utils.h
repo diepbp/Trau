@@ -51,7 +51,7 @@
 #define QMAX 2 // number of flats
 #define QCONSTMAX 2 // number of flats for const
 #define SPLIT_LOWER_BOUND 3
-#define CONNECTSIZE 300
+#define CONNECTINGSIZE 300
 
 #define Z3_PATH "z3 "
 #define VERIFIER "verifier/run.py "
