@@ -1,0 +1,6 @@
+kaluza suite,,,,,
+, CVC4, Z3-str3, S3P, Trau-pre, Trau
+sat,35235,34495,35264,-,35264
+unsat,12014,11799,12014,-,12014
+timeout,35,350,6,-,6
+unkown/error,0,640,0,-,0
