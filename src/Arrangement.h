@@ -1868,7 +1868,7 @@ public:
 				andConstraints.emplace_back(orConstraint(orConstraints));
 			}
 		}
-		andConstraints.emplace_back(createLessConstraint(lenRhs, std::to_string(consideredSize)));
+		andConstraints.emplace_back(createLessEqualConstraint(lenRhs, std::to_string(connectingSize)));
 		std::string result = andConstraint(andConstraints) + "\n";
 		return result;
 	}
