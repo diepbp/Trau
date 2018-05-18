@@ -5184,7 +5184,6 @@ bool underapproxController(
 
 	for (const auto& v : varLength) {
 		connectingSize = std::max(connectingSize, v.second + 1);
-		__debugPrint(logFile, "%d var length: %s %d\n", __LINE__, v.first.c_str(), v.second);
 	}
 
 	init(rewriterStrMap);
