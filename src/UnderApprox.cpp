@@ -5198,9 +5198,6 @@ bool underapproxController(
 		__debugPrint(logFile, "%d connectedVar: %s %d\n", __LINE__, c.first.c_str(), c.second);
 	}
 
-
-
-
 	additionalHandling(rewriterStrMap);
 
 	std::set<std::string> carryOnConstraints = reformatCarryOnConstraints(_carryOnConstraints);
