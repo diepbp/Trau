@@ -5206,13 +5206,13 @@ bool underapproxController(
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);
-	if (constMap.size() > 0) {
-		/* print test const map */
-		__debugPrint(logFile, "%d Const map:\n", __LINE__);
-		for (const auto& element : constMap)
-			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
-		__debugPrint(logFile, "\n");
-	}
+//	if (constMap.size() > 0) {
+//		/* print test const map */
+//		__debugPrint(logFile, "%d Const map:\n", __LINE__);
+//		for (const auto& element : constMap)
+//			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
+//		__debugPrint(logFile, "\n");
+//	}
 
 	toNonGRMFile(fileDir, nonGrm, equalitiesMap, constMap);
 
