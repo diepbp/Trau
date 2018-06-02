@@ -1533,6 +1533,34 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 	return ret;
 }
 
+
+/*
+ * read SMT file and get maxInt number
+ */
+int getMaxInt(std::string inputFile){
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+	int ret = 0;
+	for (const auto& tokens : fileTokens) {
+		for (const auto& token : tokens) {
+			if (token.second == 82)
+				ret = std::max(ret, std::stoi(token.first.c_str()));
+		}
+	}
+	return ret;
+}
+
 /*
  * read SMT file
  */

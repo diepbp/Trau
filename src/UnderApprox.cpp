@@ -3078,13 +3078,13 @@ unsigned findMaxP(std::vector<std::vector<std::string>> v){
 
 			unsigned cnt = 0;
 			for (const auto& s : lhs)
-				if (s[0] == '\"' || s.length() > 3)
+				if ((s[0] == '\"' && s.length() > 3) || s[0] != '\"')
 					cnt++;
 			maxLocal = cnt > maxLocal ? cnt : maxLocal;
 
 			cnt = 0;
 			for (const auto& s : rhs)
-				if (s[0] == '\"' || s.length() > 3)
+				if ((s[0] == '\"' && s.length() > 3) || s[0] != '\"')
 					cnt++;
 			maxLocal = cnt > maxLocal ? cnt : maxLocal;
 		}
@@ -4862,7 +4862,7 @@ void reset(){
 	appearanceMap.clear();
 	trivialUnsat = false;
 	unknownResult = false;
-	connectingSize = CONNECTINGSIZE;
+	connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
 }
 
 /*
@@ -4984,11 +4984,19 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
  *
  */
 void createAppearanceMap(){
-
 	for (const auto& var : equalitiesMap){
 		for (const auto& eq : var.second)
 			for (const auto& s: eq)
 				appearanceMap[s].emplace(var.first);
+	}
+}
+
+/*
+ * */
+void analysisMaxInt(std::string fileName){
+	if (maxInt == -1) {
+		maxInt = getMaxInt(fileName);
+		__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, maxInt);
 	}
 }
 
@@ -5180,11 +5188,13 @@ bool underapproxController(
 
 	/* init equalMap */
 	parseEqualityMap(_equalMap);
+	analysisMaxInt(fileDir);
 	reset();
 
 	for (const auto& v : varLength) {
 		connectingSize = std::max(connectingSize, v.second + 1);
 	}
+
 
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);
@@ -5206,13 +5216,13 @@ bool underapproxController(
 
 	/* rewrite the CFG constraint */
 	printEqualMap(equalitiesMap);
-//	if (constMap.size() > 0) {
-//		/* print test const map */
-//		__debugPrint(logFile, "%d Const map:\n", __LINE__);
-//		for (const auto& element : constMap)
-//			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
-//		__debugPrint(logFile, "\n");
-//	}
+	if (constMap.size() > 0) {
+		/* print test const map */
+		__debugPrint(logFile, "%d Const map:\n", __LINE__);
+		for (const auto& element : constMap)
+			__debugPrint(logFile, "%s: %s\n", element.first.c_str(), element.second.c_str());
+		__debugPrint(logFile, "\n");
+	}
 
 	toNonGRMFile(fileDir, nonGrm, equalitiesMap, constMap);
 

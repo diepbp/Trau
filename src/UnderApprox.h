@@ -53,6 +53,7 @@ static std::map<std::string, std::set<std::string>> appearanceMap;
 
 static int noFlatVariables = 0;
 static int connectingSize;
+static int maxInt = -1;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
@@ -660,6 +661,13 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
  */
 void createAppearanceMap();
 
+/*
+ * */
+void analysisMaxInt(std::string fileName);
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);

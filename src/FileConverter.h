@@ -19,6 +19,7 @@ extern bool getModel;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
 extern char escapeChar;
+
 template< typename T >
 std::string int_to_hex( T i );
 
@@ -221,6 +222,11 @@ std::vector<std::vector<std::string>> collectArgs(
 		int pos,
 		int &endPos,
 		std::vector<std::string> tokens);
+
+/*
+ * read SMT file and get maxInt number
+ */
+int getMaxInt(std::string inputFile);
 
 /*
  * read SMT file
