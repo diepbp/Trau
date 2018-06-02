@@ -4821,9 +4821,6 @@ void pthreadController(){
 //	/* create threads */
 //	for(int t = 0; t < NUM_THREADS; t++) {
 //		tids[t] = t;
-//#ifdef DEBUGLOG
-//		// printf("Controller: creating thread %d\n", t);
-//#endif
 //		rc = pthread_create(&thread[t], &attr, convertEqualities, (void *) &tids[t]);
 //		if (rc) {
 //			printf("ERROR; return code from pthread_create() is %d\n", rc);
