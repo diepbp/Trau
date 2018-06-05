@@ -4916,8 +4916,8 @@ void addConnectedVarToEQmap(){
 	for (const auto& varEq00: equalitiesMap) {
 		if (connectedVariables.find(varEq00.first) != connectedVariables.end() && varEq00.second[0].size() > 1){
 			for (const auto& varEq: equalitiesMap) {
-				std::vector<std::vector<std::string>> tmpVector = varEq.second;
-				if (varEq.first.compare(varEq00.first) != 0){
+				if (varEq.first.compare(varEq00.first) != 0 &&
+						varEq.second.size() > 1){
 
 					for (const auto eq00: varEq.second) {
 						for (const auto eq01: varEq00.second)
@@ -5070,9 +5070,12 @@ bool isTrivialInequality(std::string x, std::string  y){
 		/* check if y inside x */
 		for (const auto& v : equalitiesMap[x]){
 			if (std::find(v.begin(), v.end(), y) != v.end()) {
+				int cnt = 0;
 				for (const auto& s : v)
 					if (isConstStr(s)) /* x = "a" + y */
-						return true;
+						cnt++;
+				if (cnt > 1)
+					return true;
 			}
 			if (isConstStr(y)) {
 				for (const auto& s : v)
@@ -5086,9 +5089,12 @@ bool isTrivialInequality(std::string x, std::string  y){
 		/* check if x inside y */
 		for (const auto& v : equalitiesMap[y]){
 			if (std::find(v.begin(), v.end(), x) != v.end()) {
+				int cnt = 0;
 				for (const auto& s : v)
 					if (isConstStr(s)) /* y = "a" + x */
-						return true;
+						cnt++;
+				if (cnt > 1)
+					return true;
 			}
 			if (isConstStr(x)) {
 				for (const auto& s : v)
