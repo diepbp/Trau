@@ -30,6 +30,8 @@ extern std::map<Z3_ast, Z3_ast> carryOn;
 extern int nondeterministicCounter;
 extern bool lengthEnable;
 
+std::set<std::string> setOfEqualities;
+
 //std::map<std::string, std::set<char>> charSet;
 //
 //std::map<Z3_ast, std::vector<std::string>> eqMap;
@@ -55,78 +57,78 @@ extern bool lengthEnable;
 // *
 // */
 //
-////void setAlphabet() {
-////  if (defaultCharSet) {
-////    // a string in C notion cannot contain a char '\0'
-////    charSetSize = 255;
-////    charSet = new char[charSetSize];
-////    int idx = 0;
-////    // small letters
-////    for (int i = 97; i < 123; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // caps
-////    for (int i = 65; i < 91; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // numbers
-////    for (int i = 48; i < 58; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // printable marks - 1
-////    for (int i = 32; i < 48; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // printable marks - 2
-////    for (int i = 58; i < 65; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // printable marks - 3
-////    for (int i = 91; i < 97; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // printable marks - 4
-////    for (int i = 123; i < 127; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // non-printable - 1
-////    for (int i = 1; i < 32; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////    // non-printable - 2
-////    for (int i = 127; i < 256; i++) {
-////      charSet[idx] = (char) i;
-////      charSetLookupTable[charSet[idx]] = idx;
-////      idx++;
-////    }
-////  } else {
-////    const char setset[] = { 'a', 'b', 'c' };
-////    int fSize = sizeof(setset) / sizeof(char);
-////
-////    charSet = new char[fSize];
-////    charSetSize = fSize;
-////    for (int i = 0; i < charSetSize; i++) {
-////      charSet[i] = setset[i];
-////      charSetLookupTable[setset[i]] = i;
-////    }
-////  }
-////}
+//void setAlphabet() {
+//  if (defaultCharSet) {
+//    // a string in C notion cannot contain a char '\0'
+//    charSetSize = 255;
+//    charSet = new char[charSetSize];
+//    int idx = 0;
+//    // small letters
+//    for (int i = 97; i < 123; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // caps
+//    for (int i = 65; i < 91; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // numbers
+//    for (int i = 48; i < 58; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // printable marks - 1
+//    for (int i = 32; i < 48; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // printable marks - 2
+//    for (int i = 58; i < 65; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // printable marks - 3
+//    for (int i = 91; i < 97; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // printable marks - 4
+//    for (int i = 123; i < 127; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // non-printable - 1
+//    for (int i = 1; i < 32; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//    // non-printable - 2
+//    for (int i = 127; i < 256; i++) {
+//      charSet[idx] = (char) i;
+//      charSetLookupTable[charSet[idx]] = idx;
+//      idx++;
+//    }
+//  } else {
+//    const char setset[] = { 'a', 'b', 'c' };
+//    int fSize = sizeof(setset) / sizeof(char);
+//
+//    charSet = new char[fSize];
+//    charSetSize = fSize;
+//    for (int i = 0; i < charSetSize; i++) {
+//      charSet[i] = setset[i];
+//      charSetLookupTable[setset[i]] = i;
+//    }
+//  }
+//}
 //
 //
 //
@@ -219,6 +221,16 @@ bool canSkipExt(Z3_theory t, Z3_ast node){
 		}
 	}
 	return false;
+}
+
+/*
+ *
+ */
+void appendToFile(std::string s){
+	/* write to file */
+	FILE* eqFile = fopen("eqFile.txt", "a");
+	fprintf(eqFile, "%s\n", s.c_str());
+	fclose(eqFile);
 }
 
 /*
@@ -1186,6 +1198,8 @@ Z3_ast reduce_regexConcat(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert
  *
  */
 Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
+	appendToFile("(RegexIn " + exportNodeName(t, args[0]) + " " + exportNodeName(t, args[1]) + ")");
+
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_app arg1_func_app = Z3_to_app(ctx, args[1]);
@@ -1202,6 +1216,7 @@ Z3_ast reduce_regexIn(Z3_theory t, Z3_ast const args[], Z3_ast & extraAssert) {
 	printZ3Node(t, args[0]);
 	__debugPrint(logFile, "  \\in  %s\n\n", regexStr.c_str());
 #endif
+
 
 	// quick path:
 	// >> if RegexIn(T4_4, (Str2Reg #)) --> "T4_4 = #" is enough
@@ -1960,6 +1975,16 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
  */
 Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	Z3_context ctx = Z3_theory_get_context(t);
+	/* write to file */
+	std::string tmp = "(= " + exportNodeName(t, s1) + " " + exportNodeName(t, s2) + ")";
+	if (tmp.find("__cOnStStR_") == std::string::npos &&
+			setOfEqualities.find(tmp) == setOfEqualities.end() &&
+			!isNonDetAutomatonFunc(t, s1) &&
+			!isNonDetAutomatonFunc(t, s2)){
+		appendToFile(tmp);
+		setOfEqualities.emplace(tmp);
+	}
+
 	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)){
 		std::string tmp01 = Z3_ast_to_string(ctx, s1);
 		std::string tmp02 = Z3_ast_to_string(ctx, s2);

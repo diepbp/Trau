@@ -151,6 +151,7 @@ const static char ESCAPECHAR25 = '"';
 #define FALSETR "false"
 #define LENPREFIX "len_"
 #define ARRPREFIX "arr_"
+#define ITERSUFFIX "__iter"
 #define ZERO "0"
 #define REGEXSUFFIX "_10000"
 

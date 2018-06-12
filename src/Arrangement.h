@@ -664,6 +664,33 @@ public:
 	}
 
 	/*
+	 *
+	 */
+	std::string generateFlatIter(std::pair<std::string, int> a){
+		std::string result = "";
+		if (a.second >= 0) {
+			/* simpler version */
+			result += a.first;
+			result += "_";
+			result += std::to_string(a.second);
+			result += ITERSUFFIX;
+		}
+		else {
+			/* const string */
+			assert (constMap.find(a.first) != constMap.end());
+			if (isRegexStr(a.first) || isUnionStr(a.first)){
+				result += constMap[a.first];
+				result += "_";
+				result += std::to_string(std::abs(a.second));
+				result += ITERSUFFIX;
+			}
+			else
+				result = "1";
+		}
+		return result;
+	}
+
+	/*
 	 * Given a flat,
 	 * generate its array name
 	 */
@@ -2139,9 +2166,18 @@ public:
 		}
 
 		std::string result = createEqualConstraint(nameA, nameB);
-		result += createEqualConstraint( generateFlatSize(a, lhs_str), generateFlatSize(b, rhs_str));
+		result += createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(b, rhs_str));
+		result += createEqualConstraint(generateFlatIter(a), generateFlatIter(b));
 
 		if (!isConstA && !isConstB) {
+			/* iter constraints */
+			for (int i = 1; i < QMAX; ++i){
+				std::pair<std::string, int> new_a = std::make_pair(a.first, a.second + i);
+				std::pair<std::string, int> new_b = std::make_pair(b.first, b.second + i);
+				result += createEqualConstraint(generateFlatIter(new_a), generateFlatIter(new_b));
+				result += createEqualConstraint(generateFlatSize(new_a, lhs_str), generateFlatSize(new_b, rhs_str));
+			}
+
 			if (connectedVariables.find(b.first) != connectedVariables.end() &&
 					connectedVariables.find(a.first) != connectedVariables.end()){
 				int bound = std::max(connectedVariables[b.first], connectedVariables[a.first]);
@@ -2208,6 +2244,7 @@ public:
 
 		/* do not need AND */
 		std::string result = createEqualConstraint(nameA, nameB);
+		result += createEqualConstraint(generateFlatIter(a), generateFlatIter(b));
 
 		if (!isConstA && !isConstB) {
 			/* size = size && it = it */
@@ -2522,6 +2559,14 @@ public:
 			/* handle const for connected variables*/
 			if (connectedVariables.find(a.first) != connectedVariables.end())
 				result = result + unrollConnectedVariable(a, elementNames, lhs_str, rhs_str, connectedVariables);
+
+//			/* case 2 */
+//			std::string tmp = "(= " + generateFlatIter(a) + " (+ ";
+//			for (const auto& s : elementNames){
+//				result = result + createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(s, rhs_str)) + " ";
+//				tmp = tmp + generateFlatIter(s) + " ";
+//			}
+//			tmp = tmp + ")) ";
 		}
 
 

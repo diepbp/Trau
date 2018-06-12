@@ -229,6 +229,11 @@ std::vector<std::vector<std::string>> collectArgs(
 int getMaxInt(std::string inputFile);
 
 /*
+ * print constraints
+ */
+void printConstraints(std::string inputFile);
+
+/*
  * read SMT file
  */
 void encodeSpecialChars(std::string inputFile, std::string outFile);

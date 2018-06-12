@@ -1551,6 +1551,7 @@ int getMaxInt(std::string inputFile){
 		assert(false);
 		break;
 	}
+
 	int ret = 0;
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
@@ -1559,6 +1560,131 @@ int getMaxInt(std::string inputFile){
 		}
 	}
 	return ret;
+}
+
+/*
+ *
+ */
+std::pair<std::string, std::string> getParameters(std::vector<std::pair<std::string, int>> tokens, int pos){
+	std::string first = "";
+	std::string second = "";
+	if (tokens[pos].second != 92){
+		first = tokens[pos++].first;
+	}
+	else {
+		int cnt = 1;
+		first = "(";
+		pos++;
+		while (cnt != 0){
+			if (tokens[pos].second == 92)
+				cnt ++;
+			else if (tokens[pos].second == 93)
+				cnt --;
+			first = first + " " + tokens[pos].first;
+			pos++;
+		}
+	}
+
+	if (tokens[pos].second != 92){
+		second = tokens[pos++].first;
+	}
+	else {
+		int cnt = 1;
+		second = "(";
+		pos++;
+		while (cnt != 0){
+			if (tokens[pos].second == 92)
+				cnt ++;
+			else if (tokens[pos].second == 93)
+				cnt --;
+			second = second + " " + tokens[pos].first;
+			pos++;
+		}
+	}
+
+	return std::make_pair(first, second);
+}
+
+/*
+ * print constraints
+ */
+void printConstraints(std::string inputFile){
+	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
+
+	switch (languageVersion) {
+	case 20:
+		fileTokens = parseFile20(inputFile);
+		break;
+	case 25:
+		fileTokens = parseFile26(inputFile);
+		break;
+	default:
+		assert(false);
+		break;
+	}
+
+	std::set<std::string> arithmeticConstraints;
+	std::set<std::string> stringConstraints;
+	std::set<std::string> regularConstraints;
+	std::set<std::string> intVars;
+	for (const auto& tokens : fileTokens) {
+		/* collect all int var */
+		if (tokens.size() > 1 && tokens[1].second >= 64 && tokens[1].second <= 67) {
+			if (tokens[tokens.size() - 2].first.compare("Int") == 0 ||
+					tokens[tokens.size() - 2].first.compare("Bool") == 0)
+				intVars.emplace(tokens[2].first);
+		}
+		else {
+			for (unsigned i = 0; i < tokens.size(); ++i) {
+				if (tokens[i].second == 92){
+					if (tokens[i + 1].first.compare("=") == 0 ||
+							tokens[i + 1].first.compare(">") == 0 ||
+							tokens[i + 1].first.compare("<") == 0 ||
+							tokens[i + 1].first.compare("<=") == 0 ||
+							tokens[i + 1].first.compare(">=") == 0) {
+						std::pair<std::string, std::string> eqArgs = getParameters(tokens, i + 2);
+
+						if (intVars.find(eqArgs.first) != intVars.end() ||
+								intVars.find(eqArgs.second) != intVars.end() ||
+								eqArgs.first.find("( " + languageMap[LENGTH]) == 0 ||
+								eqArgs.second.find("( " + languageMap[LENGTH]) == 0 ||
+								(eqArgs.first[0] >= '1' && eqArgs.first[0] <= '9') ||
+								(eqArgs.second[0] >= '1' && eqArgs.second[0] <= '9') ||
+								eqArgs.first.find("( +") == 0 ||
+								eqArgs.first.find("( *") == 0 ||
+								eqArgs.first.find("( /") == 0 ||
+								eqArgs.first.find("( -") == 0 ||
+								eqArgs.second.find("( +") == 0 ||
+								eqArgs.second.find("( *") == 0 ||
+								eqArgs.second.find("( /") == 0 ||
+								eqArgs.second.find("( -") == 0){
+							arithmeticConstraints.emplace("(" + tokens[i + 1].first + " " + eqArgs.first + " " + eqArgs.second + ")");
+						}
+						else {
+							stringConstraints.emplace("(" + tokens[i + 1].first + " " + eqArgs.first + " " + eqArgs.second + ")");
+						}
+					}
+					else {
+						/* regex */
+						if (i + 2 < tokens.size() && tokens[i + 1].first.compare(languageMap[REGEXIN]) == 0){
+							std::pair<std::string, std::string> eqArgs = getParameters(tokens, i + 2);
+							regularConstraints.emplace("(" + languageMap[REGEXIN] + " " + eqArgs.first + " " + eqArgs.second + ")");
+						}
+					}
+				}
+			}
+		}
+	}
+
+	printf(">> Arithmetic Constraints\n");
+	for (const auto& s : arithmeticConstraints)
+		printf("%s\n", s.c_str());
+	printf(">> String Constraints\n");
+	for (const auto& s : stringConstraints)
+		printf("%s\n", s.c_str());
+	printf(">> Regular Constraints\n");
+	for (const auto& s : regularConstraints)
+		printf("%s\n", s.c_str());
 }
 
 /*

@@ -20,6 +20,7 @@ std::string inputFile_converted;
 bool getModel = false;
 bool beReviewed = false;
 bool cleanLog = true;
+bool printingConstraints = false;
 int cnt = 0;
 bool skipOverapprox;
 std::map<std::string, int> variables;
@@ -182,7 +183,6 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
 
 	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, outFile.c_str(), success ? "OK" : "failed");
 	encodeSpecialChars(fileDir, outFile);
-
 	return outFile;
 }
 /**
@@ -202,6 +202,13 @@ void printHelp(){
 	printf("\t -doublecheck 	\t\t use the S3P string solver to double-check satisfying assignments.\n");
 
 	printf("\n");
+}
+
+/*
+ *
+ */
+void printAllConstraints(){
+	printConstraints(inputFile);
 }
 
 /*
@@ -261,6 +268,9 @@ void parseUserInput(int argc, char* argv[]){
 			printHelp();
 			return;
 		}
+		else if (tmp.compare("-printConstraints") == 0){
+			printingConstraints = true;
+		}
 		else if (tmp[0] == '-') {
 			printHelp();
 			inputFile = "";
@@ -298,6 +308,11 @@ int main(int argc, char* argv[])
 	logAxiom = NULL;
 	languageMap = languageMap20;
 	parseUserInput(argc, argv);
+	if (printingConstraints){
+		printAllConstraints();
+		return 0;
+	}
+
 	if (inputFile.length() > 0) {
 		inputFile = convertToRemoveSpecialConstCharacters(inputFile);
 		initGraph(inputFile);

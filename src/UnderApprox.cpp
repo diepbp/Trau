@@ -1628,9 +1628,13 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 		std::string lenVarName = generateVarLength(var);
 		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
 			std::string lenTmp = lenVarName + "_" + std::to_string(i);
+			std::string iterTmp = lenTmp.substr(std::string(LENPREFIX).length()) + ITERSUFFIX;
 			defines.emplace_back(createIntDefinition(lenTmp));
+			defines.emplace_back(createIntDefinition(iterTmp));
 			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
-			lenX = lenX + lenTmp + " ";
+//			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
+			constraints.emplace_back(createAssert(createEqualConstraint("1", iterTmp)));
+			lenX = lenX + "(* "+ lenTmp + " " + iterTmp + ") ";
 
 			if ((i + 1) % QMAX == 0) {
 				/* (+ sum(len_x_i) */
@@ -1640,6 +1644,28 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 				lenX = "";
 			}
 		}
+
+		std::string tmp01 = "";
+		/* part 1 = part 3 = part 5 ...; part 2 = part 4 = part 6*/
+		for (int i = 0; i < QMAX; ++i) {
+			int lastIndex = i + QMAX;
+			while (lastIndex < std::max(QMAX, varPieces[var])){
+				tmp01 = tmp01 + "(= " + lenVarName + "_" + std::to_string(lastIndex) + " " + lenVarName + "_" + std::to_string(lastIndex - QMAX) + ") ";
+				lastIndex += QMAX;
+			}
+		}
+		if (tmp01.length() > 1)
+			tmp01 = "(and " + tmp01 + ")";
+
+		std::string tmp02 = "";
+		/* all iter = 1 */
+		for (int i = 0; i < std::max(QMAX, varPieces[var]); ++i) {
+			std::string iterTmp = lenVarName.substr(std::string(LENPREFIX).length()) + "_" + std::to_string(i) + ITERSUFFIX;
+			tmp02 = tmp02 + "(= 1 " + iterTmp + ") ";
+		}
+		tmp02 = "(and " + tmp02 + ")";
+		constraints.emplace_back(createAssert("(or " + tmp01 + " " + tmp02 +")"));
+
 
 		if (var.find(FLATPREFIX) != std::string::npos || var.substr(0, 6).compare("$$_str") == 0) {
 			/* they are internal variables */
