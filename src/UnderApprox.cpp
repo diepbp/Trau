@@ -1173,7 +1173,7 @@ std::string create_constraints_NOTEqual(
 			/* != a b */
 			orConstraints.emplace_back(createNotOperator(createEqualConstraint(len00, len01)));
 
-			for (unsigned int i = 1; i < connectingSize; ++i){
+			for (int i = 1; i < connectingSize; ++i){
 				/*len a = len b <= i || a[i - 1] == b [i-1] */
 				std::string tmp = "";
 				tmp += createLessConstraint(len00, std::to_string(i));
@@ -1207,7 +1207,7 @@ std::string create_constraints_ToLower(std::string str00, std::string str01){
 
 	std::vector<std::string> andConstraints;
 
-	for (unsigned int i = 1; i < connectingSize; ++i){
+	for (int i = 1; i < connectingSize; ++i){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
@@ -1240,7 +1240,7 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 
 	std::vector<std::string> andConstraints;
 
-	for (unsigned int i = 1; i < connectingSize; ++i){
+	for (int i = 1; i < connectingSize; ++i){
 		/*len a <= i || a[i - 1] == b [i-1] */
 		/*len a = len b <= i || a[i - 1] == b [i-1] */
 		std::string tmp = "";
@@ -1634,7 +1634,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
 //			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
 			constraints.emplace_back(createAssert(createEqualConstraint("1", iterTmp)));
-			lenX = lenX + "(* "+ lenTmp + " " + iterTmp + ") ";
+			lenX = lenX + createMultiplyOperator(lenTmp, iterTmp) + " ";
 
 			if ((i + 1) % QMAX == 0) {
 				/* (+ sum(len_x_i) */
@@ -1693,7 +1693,7 @@ void create_constraints_regex(std::vector<std::string> &defines, std::vector<std
 	for (const auto& size : componentSizes){
 		std::string tmp = name + "__p" + std::to_string(cnt++);
 		defines.emplace_back(createIntDefinition(tmp));
-		constraint = constraint + "(* " + tmp + " " + std::to_string(size) + ") ";
+		constraint = constraint + createMultiplyOperator(tmp, std::to_string(size)) + " ";
 	}
 	constraint += ") ) )";
 	constraints.emplace_back(constraint);
@@ -3151,7 +3151,7 @@ void convertEqualities(){
 			for (const auto& element: it->second) {
 				std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
 				t = clock();
-				std::vector<std::string> result = equalityToSMT(	sumStringVector({it->first}),
+				std::vector<std::string> result = equalityToSMT(sumStringVector({it->first}),
 						sumStringVector(element),
 						lhs_elements,
 						rhs_elements
@@ -3415,7 +3415,6 @@ bool isInternalVar(std::string name,
  *
  */
 void syncConst(
-		std::map<std::string, std::string> solverValues,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
@@ -3730,6 +3729,7 @@ std::vector<int> createString(
 		std::string value,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> strValue,
+		std::vector<std::pair<int, int>> iters,
 		bool &assigned,
 		bool assignAnyway = false){
 	int lenVar = getVarLength(name, len);
@@ -3746,34 +3746,19 @@ std::vector<int> createString(
 			__debugPrint(logFile, "%d", val[i]);
 	__debugPrint(logFile, "\n");
 
-	/* update based on previous values */
-//	if (assignAnyway)
-//		for (const auto& eq : equalitiesMap[name]){
-//			int pos = 0;
-//			for (const auto& var : eq) {
-//				int tmpLen = getVarLength(var, len);
-//				if (var[0] == '"') {
-//				}
-//				else {
-//					std::vector<int> tmpValue = getVarValue(var, len, strValue);
-//					/* add an evaluated value */
-//					for (int i = 0; i < tmpLen; ++i)
-//						if (val[pos + i] == 0)
-//							val[pos + i] = tmpValue[i];
-//						else {
-//							if (val[pos + i] != 0 && tmpValue[i] != 0 && val[pos + i] != tmpValue[i]) {
-//								len[name] = -10001;
-//								return val;
-//							}
-//						}
-//				}
-//				pos += tmpLen;
-//			}
-//			__debugPrint(logFile, "%d pos = %d and lenVar = %d\n", __LINE__, pos, lenVar);
-//			assert(pos == lenVar);
-//		}
-
 	/* update values found by the solver & previous iterations */
+	/* collect iter */
+	assert(iters.size() == QMAX);
+	int pos = 0;
+	for (int i = 0; i < QMAX; ++i){
+		/* part i */
+		for (int j = 0; j < iters[i].second; ++j)
+			for (int k = 0; k < iters[i].first; ++k)
+				if (val[pos + j * iters[i].first + k] == 0)
+					val[pos + j * iters[i].first + k] = value[pos + k];
+		pos += iters[i].first;
+	}
+
 	for (int i = 0; i < lenVar; ++i)
 		if (val[i] == 0)
 			if (i < (int)value.length())
@@ -4323,6 +4308,7 @@ void formatOtherVars(
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
 		std::map<std::string, int> len,
+		std::map<std::string, int> iterInt,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
@@ -4377,8 +4363,15 @@ void formatOtherVars(
 				if (isBlankValue(varName, len, strValue))
 					if (findExistsingValue(varName, equalities, len, strValue, eqVar))
 						continue;
+
 				std::string solverValue = solverValues[varName];
-				std::vector<int> tmp = createString(varName, solverValue, len, strValue, assigned, createAnyway);
+				std::vector<std::pair<int, int>> iters;
+				for (unsigned i = 0; i < QMAX; ++i){
+					assert(iterInt.find(varName + "_" + std::to_string(i)) != iterInt.end());
+					iters.emplace_back(std::make_pair(len[varName + "_" + std::to_string(i)], iterInt[varName + "_" + std::to_string(i)]));
+				}
+
+				std::vector<int> tmp = createString(varName, solverValue, len, strValue, iters, assigned, createAnyway);
 
 				if (assigned) {
 					__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
@@ -4405,7 +4398,6 @@ void formatOtherVars(
  */
 void formatRegexes(
 		std::vector<unsigned> indexes,
-		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
@@ -4419,8 +4411,6 @@ void formatRegexes(
 			if (varName.length() > std::string(REGEXSUFFIX).length() && varName.substr(varName.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0)
 				varName = varName.substr(0, varName.length() - std::string(REGEXSUFFIX).length());
 			std::string orgVarName = varName;
-
-			std::string solverValue = solverValues[varName];
 			varName = getNameFromConst(varName);
 
 			/* skip if it is a subvar: _1_2*/
@@ -4459,6 +4449,7 @@ void formatConnectedVars(
 		std::map<std::string, std::string> solverValues,
 		std::vector<std::pair<std::string, int>> lenVector,
 		std::map<std::string, int> len,
+		std::map<std::string, int> iterInt,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
 	/* 1st: handling connected vars */
@@ -4479,7 +4470,7 @@ void formatConnectedVars(
 
 			if (connectedVariables.find(varName) != connectedVariables.end()) {
 				__debugPrint(logFile, "%d varname = %s\n", __LINE__, varName.c_str());
-				std::string solverValue = solverValues[varName];
+
 				if (varName.find("const") != std::string::npos)
 					varName = getNameFromConst(varName);
 
@@ -4490,7 +4481,15 @@ void formatConnectedVars(
 				if (needValue(varName, len, strValue)) {
 					__debugPrint(logFile, "%d consider var: %s\n", __LINE__, varName.c_str());
 					bool assigned = true;
-					std::vector<int> tmp = createString(varName, solverValue, len, strValue, assigned);
+
+					std::string solverValue = solverValues[varName];
+					std::vector<std::pair<int, int>> iters;
+					for (unsigned i = 0; i < QMAX; ++i){
+						assert(iterInt.find(varName + "_" + std::to_string(i)) != iterInt.end());
+						iters.emplace_back(std::make_pair(len[varName + "_" + std::to_string(i)], iterInt[varName + "_" + std::to_string(i)]));
+					}
+
+					std::vector<int> tmp = createString(varName, solverValue, len, strValue, iters, assigned);
 					if (assigned) {
 						__debugPrint(logFile, "%d assign: %s\n", __LINE__, varName.c_str());
 						strValue[orgVarName] = tmp;
@@ -4519,7 +4518,9 @@ std::map<std::string, std::string> formatResult(
 		bool &completion){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::vector<std::pair<std::string, int>> lenVector;
+	std::vector<std::pair<std::string, int>> iterVector;
 	std::map<std::string, int> lenInt;
+	std::map<std::string, int> iterInt;
 	std::map<std::string, std::string> strValue;
 
 	equalitiesMap = orgEqualitiesMap; /* use the simplest version of eq map */
@@ -4530,11 +4531,17 @@ std::map<std::string, std::string> formatResult(
 			std::string name = s.first.substr(std::string(LENPREFIX).length());
 			lenVector.push_back(std::make_pair(name, atoi(s.second.c_str())));
 			lenInt[name] = atoi(s.second.c_str());
-			if (name.length() > std::string(REGEXSUFFIX).length() && name.substr(name.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0) {
+			if (name.length() > std::string(REGEXSUFFIX).length() &&
+					name.substr(name.length() - std::string(REGEXSUFFIX).length()).compare(REGEXSUFFIX) == 0) {
 				lenInt[name.substr(0, name.length() - std::string(REGEXSUFFIX).length())] = atoi(s.second.c_str());
 				__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.substr(0, name.length() - std::string(REGEXSUFFIX).length()).c_str(), s.second.c_str(), atoi(s.second.c_str()));
 			}
 			__debugPrint(logFile, "%d %s : %s -> %d\n", __LINE__, name.c_str(), s.second.c_str(), atoi(s.second.c_str()));
+		}
+		else if (s.first.find(ITERSUFFIX) == s.first.length() - std::string(ITERSUFFIX).length()){
+			std::string name = s.first.substr(0, s.first.length() - std::string(ITERSUFFIX).length());
+			iterVector.push_back(std::make_pair(name, atoi(s.second.c_str())));
+			iterInt[name] = atoi(s.second.c_str());
 		}
 		else {
 			lenVector.push_back(std::make_pair(s.first, atoi(s.second.c_str())));
@@ -4552,6 +4559,9 @@ std::map<std::string, std::string> formatResult(
 
 	for (const auto& s : strValue)
 		__debugPrint(logFile, "%d %s : %s\n", __LINE__, s.first.c_str(), s.second.c_str());
+	for (const auto& s : iterInt)
+			__debugPrint(logFile, "%d %s : %d\n", __LINE__, s.first.c_str(), s.second);
+
 	std::vector<unsigned> indexes = sort_indexes(lenVector);
 	std::map<std::string, std::vector<int>> finalStrValue;
 	for (const auto& var : lenVector) {
@@ -4565,8 +4575,8 @@ std::map<std::string, std::string> formatResult(
 		__debugPrint(logFile, "%d: len %s = %d\n", __LINE__, var.first.c_str(), var.second);
 	}
 
-	syncConst(strValue, lenInt, finalStrValue, completion);
-	formatConnectedVars(indexes, strValue, lenVector, lenInt, finalStrValue, completion);
+	syncConst(lenInt, finalStrValue, completion);
+	formatConnectedVars(indexes, strValue, lenVector, lenInt, iterInt, finalStrValue, completion);
 
 	for (const auto& s: finalStrValue) {
 		__debugPrint(logFile, ">> %d: len = %d, %s", __LINE__, lenInt[s.first], s.first.c_str());
@@ -4579,8 +4589,8 @@ std::map<std::string, std::string> formatResult(
 		__debugPrint(logFile, "\n");
 	}
 
-	formatRegexes(indexes, strValue, lenVector, lenInt, finalStrValue, completion);
-	formatOtherVars(indexes, strValue, lenVector, lenInt, finalStrValue, completion);
+	formatRegexes(indexes, lenVector, lenInt, finalStrValue, completion);
+	formatOtherVars(indexes, strValue, lenVector, lenInt, iterInt, finalStrValue, completion);
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
 		int varLength = getVarLength(var.first, lenInt);

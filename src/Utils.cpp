@@ -485,6 +485,13 @@ std::string createModOperator(std::string x, std::string y){
 /*
  *
  */
+std::string createMultiplyOperator(std::string x, std::string y){
+	return "(* " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
 std::string createNotOperator(std::string x){
 	return "(not " + x + ")";
 }

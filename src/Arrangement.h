@@ -678,13 +678,13 @@ public:
 		else {
 			/* const string */
 			assert (constMap.find(a.first) != constMap.end());
-			if (isRegexStr(a.first) || isUnionStr(a.first)){
-				result += constMap[a.first];
-				result += "_";
-				result += std::to_string(std::abs(a.second));
-				result += ITERSUFFIX;
-			}
-			else
+//			if (isRegexStr(a.first) || isUnionStr(a.first)){
+//				result += constMap[a.first];
+//				result += "_";
+//				result += std::to_string(std::abs(a.second));
+//				result += ITERSUFFIX;
+//			}
+//			else
 				result = "1";
 		}
 		return result;
@@ -747,7 +747,7 @@ public:
 			return elements[0];
 		if (elements.size() > 1) {
 			result = "(+ ";
-			for (unsigned int i = 0; i < elements.size(); ++i)
+			for (unsigned i = 0; i < elements.size(); ++i)
 				result = result + elements[i] + " ";
 			result = result + ")";
 		}
@@ -849,14 +849,14 @@ public:
 		if (a.second != REGEX_CODE) {
 			if (a.second % QCONSTMAX != -1)
 				for (int i = a.second + 1; i < 0; ++i){ /* prefix of a - const */
-					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+					addElements.emplace_back(createMultiplyOperator(generateFlatSize(std::make_pair(a.first, i), lhs), generateFlatIter(std::make_pair(a.first, i))));
 					if (i % QCONSTMAX == -1)
 						break;
 				}
 
 			if (a.second % QMAX != 0)
 				for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), lhs));
+					addElements.emplace_back(createMultiplyOperator(generateFlatSize(std::make_pair(a.first, i), lhs), generateFlatIter(std::make_pair(a.first, i))));
 					if (i % QMAX == 0)
 						break;
 				}
@@ -866,7 +866,7 @@ public:
 		}
 
 		for (int i = pos - 1; i >= 0; --i) { /* pre-elements */
-			addElements.emplace_back(generateFlatSize(elementNames[i], rhs));
+			addElements.emplace_back(createMultiplyOperator(generateFlatSize(elementNames[i], rhs), generateFlatIter(elementNames[i])));
 		}
 
 		return addConstraint_half(addElements);
@@ -881,14 +881,14 @@ public:
 		if (a.second != REGEX_CODE) {
 			if (a.second % QCONSTMAX != -1)
 				for (int i = a.second + 1; i < 0; ++i){ /* a is const */
-					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+					addElements.emplace_back(createMultiplyOperator(generateFlatSize(std::make_pair(a.first, i), rhs), generateFlatIter(std::make_pair(a.first, i))));
 					if (i % QCONSTMAX == -1)
 						break;
 				}
 
 			if (a.second % QMAX != 0)
 				for (int i = a.second - 1; i >= 0; --i){ /* a is var */
-					addElements.emplace_back(generateFlatSize(std::make_pair(a.first, i), rhs));
+					addElements.emplace_back(createMultiplyOperator(generateFlatSize(std::make_pair(a.first, i), rhs), generateFlatIter(std::make_pair(a.first, i))));
 					if (i % QMAX == 0)
 						break;
 				}
@@ -1144,8 +1144,8 @@ public:
 
 		/* simple case: check if size of all consts = 0 */
 		bool sumConst_0 = true, metVar = false;
-		unsigned int splitPos = 0;
-		for (unsigned int i = 0; i < elementNames.size(); ++i) {
+		unsigned splitPos = 0;
+		for (unsigned i = 0; i < elementNames.size(); ++i) {
 			if (elementNames[i].second < 0) {
 				if (metVar)
 					splitPos++;
@@ -1266,7 +1266,8 @@ public:
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string &subLen){
 		int partCnt = 1;
-		std::vector<std::string> addElements; addElements.emplace_back(generateFlatSize(elementNames[pos]));
+		std::vector<std::string> addElements;
+		addElements.emplace_back(generateFlatSize(elementNames[pos]));
 		unsigned int j = pos + 1;
 		for (j = pos + 1; j < elementNames.size(); ++j)
 			if (elementNames[j].second > elementNames[j - 1].second &&
@@ -2470,28 +2471,11 @@ public:
 			/* collect */
 			/* only handle the case of splitting const string into two parts*/
 			std::vector<std::string> addElements;
-			for (unsigned i = 0 ; i < elementNames.size(); ++i)
-				addElements.emplace_back(generateFlatSize(elementNames[i], rhs_str));
+			for (unsigned i = 0 ; i < elementNames.size(); ++i){
+				addElements.emplace_back(createMultiplyOperator(generateFlatSize(elementNames[i], rhs_str), generateFlatIter(elementNames[i])));
+			}
 
 			result += createEqualConstraint(generateFlatSize(a, lhs_str), addConstraint_full(addElements));
-
-//			/* check regex union */
-//			bool foundGeneralCase = a.second != REGEX_CODE || !isUnionStr(a.first);
-//			if (!foundGeneralCase)
-//				for (const auto& e : elementNames)
-//					if (e.second == REGEX_CODE && isUnionStr(e.first)) {
-//						foundGeneralCase = true;
-//					}
-//
-//			if (foundGeneralCase) {
-//				if (a.second == REGEX_CODE)
-//					result += unrollRegex(a, elementNames, lhs_str, rhs_str, connectedVariables);
-//				else {
-//					assert(false);
-//					result += unrollConst(a, elementNames, lhs_str, rhs_str, connectedVariables);
-//				}
-//				return result;
-//			}
 
 			int splitType = checkTheBestSplitType(elementNames, connectedVariables);
 			__debugPrint(logFile, "%d const = sum(flats), splitType = %d\n", __LINE__, splitType);
@@ -2546,7 +2530,7 @@ public:
 			/* result = sum (length) */
 			result = result + "(= " + generateFlatSize(a, lhs_str) + " (+ ";
 			for (unsigned i = 0; i < elementNames.size(); ++i) {
-				result = result + generateFlatSize(elementNames[i], rhs_str) + " ";
+				result = result + createMultiplyOperator(generateFlatSize(elementNames[i], rhs_str), generateFlatIter(elementNames[i])) + " ";
 			}
 
 			if (elementNames.size() == 1)
@@ -2560,13 +2544,14 @@ public:
 			if (connectedVariables.find(a.first) != connectedVariables.end())
 				result = result + unrollConnectedVariable(a, elementNames, lhs_str, rhs_str, connectedVariables);
 
-//			/* case 2 */
-//			std::string tmp = "(= " + generateFlatIter(a) + " (+ ";
-//			for (const auto& s : elementNames){
-//				result = result + createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(s, rhs_str)) + " ";
-//				tmp = tmp + generateFlatIter(s) + " ";
-//			}
-//			tmp = tmp + ")) ";
+			/* case 2 */
+			std::string constraints01 = "(= " + generateFlatIter(a) + " (+ ";
+			std::string constraints02 = "";
+			for (const auto& s : elementNames){
+				constraints02 = constraints02 + createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(s, rhs_str)) + " ";
+				constraints01 = constraints01 + generateFlatIter(s) + " ";
+			}
+			constraints01 = constraints01 + ")) ";
 		}
 
 
@@ -2590,13 +2575,13 @@ public:
 		memset(checkRight, 0, sizeof checkRight);
 
 		/* do the left */
-		for (unsigned int i = 0; i < left_arr.size(); ++i)
+		for (unsigned i = 0; i < left_arr.size(); ++i)
 			if (left_arr[i] == SUMFLAT) { /* a = bx + cy */
 
 				checkLeft[i] = true;
 
 				std::vector<std::pair<std::string, int>> elements;
-				for (unsigned int j = 0; j < right_arr.size(); ++j)
+				for (unsigned j = 0; j < right_arr.size(); ++j)
 					if (right_arr[j] == (int)i) {
 						elements.emplace_back(rhs_elements[j]);
 						checkRight[j] = true;
