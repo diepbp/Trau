@@ -229,9 +229,19 @@ std::vector<std::vector<std::string>> collectArgs(
 int getMaxInt(std::string inputFile);
 
 /*
+ *
+ */
+std::pair<std::string, std::string> getParameters(std::vector<std::pair<std::string, int>> tokens, unsigned pos);
+
+/*
+ *
+ */
+std::vector<std::string> getParameters(std::vector<std::vector<std::pair<std::string, int>>> fileTokens, unsigned pos, unsigned line);
+
+/*
  * print constraints
  */
-void printConstraints(std::string inputFile);
+ConstraintSet getConstraints(std::string inputFile);
 
 /*
  * read SMT file

@@ -30,6 +30,8 @@ std::map<int, std::string> languageMap;
 char escapeChar = ESCAPECHAR20;
 int languageVersion = 20;
 
+ConstraintSet constraintSet;
+
 const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5"};
 
 /*
@@ -207,8 +209,8 @@ void printHelp(){
 /*
  *
  */
-void printAllConstraints(){
-	printConstraints(inputFile);
+void getAllConstraints(){
+	constraintSet = getConstraints(inputFile);
 }
 
 /*
@@ -309,8 +311,7 @@ int main(int argc, char* argv[])
 	languageMap = languageMap20;
 	parseUserInput(argc, argv);
 	if (printingConstraints){
-		printAllConstraints();
-		return 0;
+		getAllConstraints();
 	}
 
 	if (inputFile.length() > 0) {

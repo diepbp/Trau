@@ -155,6 +155,13 @@ const static char ESCAPECHAR25 = '"';
 #define ZERO "0"
 #define REGEXSUFFIX "_10000"
 
+struct ConstraintSet{
+	std::set<std::string> arithmeticConstraints;
+	std::set<std::string> stringConstraints;
+	std::set<std::string> regularConstraints;
+	std::set<std::string> otherConstraints;
+};
+
 struct TokenElement{
     TokenElement(int _lineNo, std::string _content, std::string _type) : lineNo(_lineNo), content(_content), type(_type){}
 
@@ -467,5 +474,21 @@ std::string createArrayDefinition(std::string x);
  *
  */
 std::string createIntDefinition(std::string x);
+
+/*
+ *
+ */
+std::string createContainConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createStartsWithConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+std::string createEndsWithConstraint(std::string x, std::string y);
+
 
 #endif /* UTILS_H_ */

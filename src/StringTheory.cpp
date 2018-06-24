@@ -102,6 +102,8 @@ std::map<std::string, Z3_ast> constStr_astNode_map;
 std::map<Z3_ast, int> basicStrVarAxiom_added;
 
 std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> disequalityList;
+extern ConstraintSet constraintSet;
+extern bool printingConstraints;
 
 const std::string escapeDict[] = { "\\x00", "\\x01", "\\x02", "\\x03", "\\x04", "\\x05", "\\x06", "\\x07", "\\x08", "\\t", "\\n", "\\x0b", "\\x0c",
 		"\\r", "\\x0e", "\\x0f", "\\x10", "\\x11", "\\x12", "\\x13", "\\x14", "\\x15", "\\x16", "\\x17", "\\x18", "\\x19", "\\x1a", "\\x1b", "\\x1c",
@@ -728,6 +730,9 @@ Z3_ast registerStartsWith(Z3_theory t, Z3_ast str, Z3_ast subStr){
 #endif
 
 	addStartsWithRelation(t, str, subStr, startsWithPairBoolMap[key]);
+	constraintSet.otherConstraints.emplace(createEqualConstraint(
+																	node_to_string(t, startsWithPairBoolMap[key]),
+																	createStartsWithConstraint(node_to_string(t, tmpStr), node_to_string(t, tmpSubStr))));
 	return startsWithPairBoolMap[key];
 }
 
@@ -839,6 +844,9 @@ Z3_ast registerEndsWith(Z3_theory t, Z3_ast str, Z3_ast subStr) {
 #endif
 
 	addEndsWithRelation(t, str, subStr, endsWithPairBoolMap[key]);
+	constraintSet.otherConstraints.emplace(createEqualConstraint(
+																		node_to_string(t, endsWithPairBoolMap[key]),
+																		createEndsWithConstraint(node_to_string(t, tmpStr), node_to_string(t, tmpSubStr))));
 	return endsWithPairBoolMap[key];
 }
 
@@ -925,6 +933,8 @@ Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr) {
 #endif
 
 	addContainRelation(t, str, subStr, containPairBoolMap[key]);
+	if (printingConstraints)
+		constraintSet.otherConstraints.emplace(createEqualConstraint(node_to_string(t, containPairBoolMap[key]), createContainConstraint(node_to_string(t, tmpStr), node_to_string(t, tmpSubStr))));
 	return containPairBoolMap[key];
 }
 
@@ -1019,25 +1029,83 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
  * only collect leaf, string format
  */
 std::string node_to_string(Z3_theory t, Z3_ast node) {
-
-	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 	Z3_context ctx = Z3_theory_get_context(t);
-	if (getNodeType(t, node) != my_Z3_Func || (getNodeType(t, node) == my_Z3_Func && Z3_get_app_decl(ctx, Z3_to_app(ctx, node)) != td->Concat)) {
+	if (getNodeType(t, node) != my_Z3_Func || (getNodeType(t, node) == my_Z3_Func && !isConcatFunc(t, node) && !isLengthFunc(t, node))) {
 		if (isAutomatonFunc(t, node)) {
 			return "\"" + getConstString(t, node) + "\"";
 		}
-		else if (Z3_get_app_num_args(ctx, Z3_to_app(ctx, node)) == 2){
-			/* equality */
-			Z3_ast lhsNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
-			Z3_ast rhsNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
-			std::string lhsTmp = node_to_string(t, lhsNode);
-			std::string rhsTmp = node_to_string(t, rhsNode);
-			return "(= " + lhsTmp + " " + rhsTmp + ")";
-		}
 		else {
-			return Z3_ast_to_string(ctx, node);
+			__debugPrint(logFile, "%d node: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+			Z3_ast funcType = Z3_func_decl_to_ast(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, node)));
+			std::string typeStr = Z3_ast_to_string(ctx, funcType);
+			__debugPrint(logFile, "%d function type %s \n", __LINE__, typeStr.c_str());
+			int args = Z3_get_app_num_args(ctx, Z3_to_app(ctx, node));
+			std::vector<std::string> elements;
+			for (int i = 0; i < args; ++i) {
+				Z3_ast n = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), i);
+				elements.emplace_back(node_to_string(t, n));
+			}
+			std::string ret = "";
+			for (const auto& s : elements)
+				ret = ret + " " + s;
+
+
+			if (typeStr.find("declare-fun +") != std::string::npos){
+				ret = "(+" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun *") != std::string::npos){
+				ret = "(*" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun =") != std::string::npos){
+				ret = "(=" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun >=") != std::string::npos){
+				ret = "(>=" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun <=") != std::string::npos){
+				ret = "(<=" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun >") != std::string::npos){
+				ret = "(>" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun <") != std::string::npos){
+				ret = "(<" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun ite") != std::string::npos){
+				ret = "(ite" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun and") != std::string::npos){
+				ret = "(or" + ret + ")";
+				return ret;
+			}
+			else if (typeStr.find("declare-fun or") != std::string::npos){
+				ret = "(or" + ret + ")";
+				return ret;
+			}
+			else {
+				std::string tmp = Z3_ast_to_string(ctx, node);
+				if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
+					tmp = tmp.substr(1, tmp.length() - 2);
+					tmp = "\"" + tmp + "\"";
+				}
+				return tmp;
+			}
 		}
-	} else {
+	}
+	else if (isLengthFunc(t, node)){
+		/* Length */
+		Z3_ast arg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
+		return "(" + std::string(languageMap[LENGTH]) + " " + node_to_string(t, arg) + ")";
+	}
+	else {
 		/* concat */
 		Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
 		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
@@ -1590,7 +1658,15 @@ void Th_new_elem(Z3_theory t, Z3_ast n) {
 }
 
 void cb_arith_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
+	__debugPrint(logFile, "%d *** %s@%d ***: = ", __LINE__, __FUNCTION__, sLevel);
+	printZ3Node(t, n1);
+	__debugPrint(logFile, " ");
+	printZ3Node(t, n2);
+	__debugPrint(logFile, " \n");
 
+	if (sLevel == 0){
+		constraintSet.arithmeticConstraints.emplace(createEqualConstraint(node_to_string(t, n1), node_to_string(t, n2)));
+	}
 }
 
 /**
@@ -1599,16 +1675,15 @@ void cb_arith_new_eq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 void Th_init_search(Z3_theory t) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	timer = clock();
+
 #ifdef DEBUGLOG
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
 	__debugPrint(logFile, "\n\n");
 
-	__debugPrint(logFile, "Var In Length = {");
-	for (std::set<Z3_ast>::iterator itor = inputVarInLen.begin(); itor != inputVarInLen.end(); itor++) {
-		printZ3Node(t, *itor);
+	for (const auto& var : inputVarInLen) {
+		printZ3Node(t, var);
 		__debugPrint(logFile, ", ");
 	}
-	__debugPrint(logFile, "}\n");
 
 	__debugPrint(logFile, "***********************************************\n");
 	__debugPrint(logFile, "*               Starting Search               *\n");
@@ -5340,7 +5415,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 	__debugPrint(logFile, "                cb_final_check @ Level [%d] \n", sLevel);
 	__debugPrint(logFile, "=============================================================\n");
 #endif
-	printf(".");
+
+	if (printingConstraints)
+		done = true;
+
 	calculateConcatLength(t);
 
 	if (done) {
@@ -5351,6 +5429,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 	if (checkDone(t))
 		return Z3_TRUE;
 
+	printf(".");
 	//----------------------------------------------------------------------------------
 	//run dependence analysis, find free string vars
 	std::map<Z3_ast, int> varAppearInAssign;
@@ -5488,21 +5567,21 @@ Z3_bool Th_final_check(Z3_theory t) {
  * - Know values  of all variables
  */
 bool checkDone(Z3_theory t) {
-	for (std::map<Z3_ast, int>::iterator it = inputVarMap.begin(); it != inputVarMap.end(); ++it) {
-		int length = getLenValue(t, it->first);
+	for (const auto& var : inputVarMap) {
+		int length = getLenValue(t, var.first);
 		if (length == -1) {
 			__debugPrint(logFile, "Not done because of %d = ", length);
-			printZ3Node(t, it->first);
+			printZ3Node(t, var.first);
 			__debugPrint(logFile, "\n");
 			return false;
 		}
 	}
 
-	for (std::map<Z3_ast, int>::iterator it = inputVarMap.begin(); it != inputVarMap.end(); ++it) {
-		std::string value = getConstStrValue(t, it->first);
-		std::vector<Z3_ast> eq = collect_eqc(t, it->first);
+	for (const auto& var : inputVarMap) {
+		std::string value = getConstStrValue(t, var.first);
+		std::vector<Z3_ast> eq = collect_eqc(t, var.first);
 		bool haveConst = false;
-		for (unsigned int i = 0 ; i < eq.size(); ++i)
+		for (unsigned i = 0 ; i < eq.size(); ++i)
 			if (isConstStr(t, eq[i])) {
 				haveConst = true;
 				break;
@@ -5527,16 +5606,16 @@ void updateLength(Z3_theory t) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	// update length for concat node
-	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
-		int len = getLenValue(t, it->second);
+	for (const auto& node : concat_astNode_map){
+		int len = getLenValue(t, node.second);
 		if (len != -1) {
-			tmpSet.insert(it->second);
-			length_LanguageMap[std::make_pair(it->second, sLevel)] = std::make_pair(len, len);
+			tmpSet.insert(node.second);
+			length_LanguageMap[std::make_pair(node.second, sLevel)] = std::make_pair(len, len);
 		}
 
 		// check their components
-		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, it->second), 0);
-		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, it->second), 1);
+		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node.second), 0);
+		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, node.second), 1);
 		len = getLenValue(t, arg0);
 		if (len != -1) {
 			tmpSet.insert(arg0);
@@ -5567,19 +5646,19 @@ void calculateConcatLength(Z3_theory t){
 #endif
 	Z3_context ctx = Z3_theory_get_context(t);
 #ifdef ARITH
-	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
-		int len01 = getLenValue(t, it->first.first);
-		int len02 = getLenValue(t, it->first.second);
-		int len = getLenValue(t, it->second);
+	for (const auto& node : concat_astNode_map){
+		int len01 = getLenValue(t, node.first.first);
+		int len02 = getLenValue(t, node.first.second);
+		int len = getLenValue(t, node.second);
 
 		/*
 		 * known values of components -> value of contat
 		 */
 		if (len01 != -1 && len02 != -1 && len == -1) {
 			Z3_ast* and_items = new Z3_ast[2];
-			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, it->first.first), mk_int(ctx, len01));
-			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, it->first.second), mk_int(ctx, len02));
-			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, it->second), mk_int(ctx, len01 + len02))), __LINE__, true);
+			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, node.first.first), mk_int(ctx, len01));
+			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, node.first.second), mk_int(ctx, len02));
+			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, node.second), mk_int(ctx, len01 + len02))), __LINE__, true);
 		}
 
 		/*
@@ -5587,17 +5666,17 @@ void calculateConcatLength(Z3_theory t){
 		 */
 		if (len01 == -1 && len02 != -1 && len != -1) {
 			Z3_ast* and_items = new Z3_ast[2];
-			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, it->first.second), mk_int(ctx, len02));
-			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, it->second), mk_int(ctx, len));
-			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, it->first.first), mk_int(ctx, len - len02))), __LINE__, true);
+			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, node.first.second), mk_int(ctx, len02));
+			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, node.second), mk_int(ctx, len));
+			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, node.first.first), mk_int(ctx, len - len02))), __LINE__, true);
 		}
 
 
 		if (len01 != -1 && len02 == -1 && len != -1) {
 			Z3_ast* and_items = new Z3_ast[2];
-			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, it->first.first), mk_int(ctx, len01));
-			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, it->second), mk_int(ctx, len));
-			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, it->first.second), mk_int(ctx, len - len01))), __LINE__, true);
+			and_items[0] = Z3_mk_eq(ctx, getLengthAST(t, node.first.first), mk_int(ctx, len01));
+			and_items[1] = Z3_mk_eq(ctx, getLengthAST(t, node.second), mk_int(ctx, len));
+			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_and(ctx, 2, and_items), Z3_mk_eq(ctx, getLengthAST(t, node.first.second), mk_int(ctx, len - len01))), __LINE__, true);
 		}
 	}
 #endif
@@ -5618,9 +5697,9 @@ bool hasLanguageConstraints(Z3_theory t, Z3_ast node) {
 	std::set<Z3_ast> parents = collectAllParents(t, node);
 	parents.insert(node);
 	std::vector<Z3_ast> checkingNode;
-	for (std::set<Z3_ast>::iterator it = parents.begin(); it != parents.end(); ++it)
-		if (!isLengthFunc(t, *it))
-			checkingNode.emplace_back(*it);
+	for (const auto& node : parents)
+		if (!isLengthFunc(t, node))
+			checkingNode.emplace_back(node);
 
 	std::map<Z3_ast, bool>  visited;
 	for (unsigned int i = 0; i < checkingNode.size(); ++i)
@@ -5766,16 +5845,16 @@ bool assignConcreteValue(Z3_theory t){
 
 	// 1. Collect all children
 	std::set<Z3_ast> allChildren;
-	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it)
-		if (allChildren.find(it->second) == allChildren.end()){
+	for (const auto& node : concat_astNode_map)
+		if (allChildren.find(node.second) == allChildren.end()){
 			std::set<Z3_ast> list;
 
-			getNodesInConcat_extended(t, it->second, list);
+			getNodesInConcat_extended(t, node.second, list);
 			for (const auto& n : list)
-				if (n != it->second)
+				if (n != node.second)
 					allChildren.insert(n);
 
-			assert(allChildren.find(it->second) == allChildren.end());
+			assert(allChildren.find(node.second) == allChildren.end());
 		}
 
 	for (const auto& n : concat_astNode_map) {
@@ -6245,14 +6324,13 @@ bool determindConcat(
  */
 bool initialize(Z3_theory t, std::map<Z3_ast, std::string> &str_values,  std::map<Z3_ast, int> &len_values) {
 	std::map<Z3_ast, bool> handled;
-	for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it =  concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it) {
-
-		initializeNode(t, it->second, str_values, len_values, handled);
+	for (const auto& node : concat_astNode_map){
+		initializeNode(t, node.second, str_values, len_values, handled);
 		std::vector<Z3_ast> children;
-		getAllNodesInConcat(t, it->second, children);
+		getAllNodesInConcat(t, node.second, children);
 
 
-		for (unsigned int i = 0; i < children.size(); ++i) {
+		for (unsigned i = 0; i < children.size(); ++i) {
 			if (handled[children[i]] == false){
 				initializeNode(t, children[i], str_values, len_values, handled);
 			}
@@ -6269,20 +6347,21 @@ bool initializeNode(Z3_theory t, Z3_ast node, std::map<Z3_ast, std::string> &str
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, node));
 
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
-	for (unsigned int i = 0; i < eq.size(); ++i) {
+	for (unsigned i = 0; i < eq.size(); ++i) {
 		handled[eq[i]] = true;
 	}
+
 	Automaton ton = getPreCalculatedValue(t, node);
 	if (ton.isConst()) {
 		std::string tmp = ton.getConst();
-		for (unsigned int i = 0; i < eq.size(); ++i) {
+		for (unsigned i = 0; i < eq.size(); ++i) {
 			str_values[eq[i]] = tmp;
 			len_values[eq[i]] = tmp.length();
 		}
 	}
 	else {
 		int len = -1;
-		for (unsigned int i = 0; i < eq.size(); ++i) {
+		for (unsigned i = 0; i < eq.size(); ++i) {
 			int tmpLen = getLenValue(t, eq[i]);
 			if (tmpLen != -1) {
 				if (tmpLen != len && len != -1)
@@ -6293,7 +6372,7 @@ bool initializeNode(Z3_theory t, Z3_ast node, std::map<Z3_ast, std::string> &str
 		}
 
 		if (len != -1)
-			for (unsigned int i = 0; i < eq.size(); ++i) {
+			for (unsigned i = 0; i < eq.size(); ++i) {
 				len_values[eq[i]] = len;
 			}
 	}
@@ -6313,11 +6392,11 @@ void update_constValue(Z3_theory t,
 	__debugPrint(logFile, ": update value from %d: \"%s\"\n\n", line, value.c_str());
 	std::vector<Z3_ast> eq = collect_eqc(t, node);
 	// 1. update values for all equals nodes
-	for (unsigned int i = 0; i < eq.size(); ++i)
+	for (unsigned i = 0; i < eq.size(); ++i)
 		str_values[eq[i]] = value;
 
 	// 2. update length for all equals nodes
-	for (unsigned int i = 0; i < eq.size(); ++i)
+	for (unsigned i = 0; i < eq.size(); ++i)
 		len_values[eq[i]] = value.length();
 }
 
@@ -6345,13 +6424,13 @@ std::pair<int, int> getLengthRange(Z3_theory t, Z3_ast node, std::map<Z3_ast, in
 
 	// do not get the const result
 	int minLen = -1, maxLen = -1;
-	for (unsigned int k = 0; k < eq.size(); ++k)
+	for (unsigned k = 0; k < eq.size(); ++k)
 		if (isConcatFunc(t, eq[k])){
 			int tmpMinLen = 0, tmpMaxLen = 0;
 
 			std::vector<Z3_ast> concat_children;
 			getNodesInConcat(t, eq[k], concat_children);
-			for (unsigned int j = 0; j < concat_children.size(); ++j)
+			for (unsigned j = 0; j < concat_children.size(); ++j)
 				if (concat_children[j] != eq[k]) {
 					std::pair<int, int> tmpLen = getLengthRange(t, concat_children[j], len_values);
 
@@ -6395,15 +6474,15 @@ void assignFinalValues(Z3_theory t, std::map<Z3_ast, std::string> str_values, st
 	Z3_context ctx = Z3_theory_get_context(t);
 	int cnt = 0;
 	std::vector<Z3_ast> andAxiomToAdd;
-	for (std::map<Z3_ast, int>::iterator itor = inputVarMap.begin(); itor != inputVarMap.end(); itor++)	{
+	for (const auto& node : inputVarMap){
 		cnt++;
-		if (str_values.find(itor->first) != str_values.end()) {
+		if (str_values.find(node.first) != str_values.end()) {
 			std::string prefix_var;// = std::string(Z3_ast_to_string(ctx, itor->first)) + "_FiNaL_";
-			std::string value = prefix_var + str_values[itor->first];
+			std::string value = prefix_var + str_values[node.first];
 
-			Z3_ast axiomToAdd01 = axiom_FinalValue(t, itor->first, value);
+			Z3_ast axiomToAdd01 = axiom_FinalValue(t, node.first, value);
 			andAxiomToAdd.emplace_back(axiomToAdd01);
-			andAxiomToAdd.emplace_back(Z3_mk_eq(ctx, mk_length(t, itor->first), mk_int(ctx, value.length())));
+			andAxiomToAdd.emplace_back(Z3_mk_eq(ctx, mk_length(t, node.first), mk_int(ctx, value.length())));
 		}
 	}
 	if (andAxiomToAdd.size() > 0)
@@ -6419,14 +6498,14 @@ void assignFinalValues(Z3_theory t) {
 	__debugPrint(logFile, "@%d Assign final value: %s", __LINE__, __FILE__);
 	__debugPrint(logFile, "\n");
 #endif
-	for (std::map<Z3_ast, int>::iterator itor = inputVarMap.begin(); itor != inputVarMap.end(); itor++) {
-		if (final_value_Map.find(itor->first) != final_value_Map.end()) {
-			std::string prefix_var = "$$" + std::string(Z3_ast_to_string(ctx, itor->first)) + "_" + std::to_string(sLevel) + "!!";
-			std::string value = prefix_var + std::string(Z3_ast_to_string(ctx, final_value_Map[itor->first]));
+	for (const auto& var : inputVarMap){
+		if (final_value_Map.find(var.first) != final_value_Map.end()) {
+			std::string prefix_var = "$$" + std::string(Z3_ast_to_string(ctx, var.first)) + "_" + std::to_string(sLevel) + "!!";
+			std::string value = prefix_var + std::string(Z3_ast_to_string(ctx, final_value_Map[var.first]));
 			value = customizeString(value);
 			if (value[value.size() - 1] == ')')
 				value = value.substr(0, value.length() - 1);
-			addAxiom(t, Z3_mk_eq(ctx, itor->first, mk_str_value(t, value.c_str())), __LINE__, true);
+			addAxiom(t, Z3_mk_eq(ctx, var.first, mk_str_value(t, value.c_str())), __LINE__, true);
 		}
 	}
 }
@@ -6450,16 +6529,16 @@ Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::set<std::string> list)
 	std::vector<Z3_ast> and_List;
 
 
-	for (std::set<std::string>::iterator it = list.begin(); it != list.end(); ++it) {
-		Z3_ast langNode = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, (prefix_var + *it).c_str()));
+	for (const auto& str : list) {
+		Z3_ast langNode = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, (prefix_var + str).c_str()));
 
-		if (string_automaton_Map.find(*it) == string_automaton_Map.end()) {
+		if (string_automaton_Map.find(str) == string_automaton_Map.end()) {
 			// create automata
 			RegEx re;
-			re.Compile(*it);
-			string_automaton_Map[*it] = re.CreateAutomaton("known");
+			re.Compile(str);
+			string_automaton_Map[str] = re.CreateAutomaton("known");
 		}
-		internalVarMap[std::make_pair(langNode, 0)] = string_automaton_Map[*it];
+		internalVarMap[std::make_pair(langNode, 0)] = string_automaton_Map[str];
 
 		or_List.emplace_back(Z3_mk_eq(ctx, mk_int_var(ctx, (PRE_LANGUAGE + std::string(Z3_ast_to_string(ctx, node))).c_str()), mk_int(ctx, pos)));
 
@@ -6595,7 +6674,7 @@ std::vector<Z3_ast> createValueAxiom(Z3_theory t, Z3_ast node) {
  */
 int getConcreteValue_variable(Z3_theory t, Z3_ast node, Z3_ast value){
 	std::vector<Z3_ast> values = concrete_value_Map[node];
-	for (unsigned int i = 0; i < values.size(); ++i){
+	for (unsigned i = 0; i < values.size(); ++i){
 		if (values[i] == value)
 			return i + 1;
 	}
@@ -6628,7 +6707,7 @@ Z3_ast negatedConstraint(Z3_theory t) {
 		std::vector<Z3_ast> langTmp;
 		int preLanguage_size = std::string(PRE_LANGUAGE).size();
 
-		for (unsigned int i = 0; i < lang.size(); ++i) {
+		for (unsigned i = 0; i < lang.size(); ++i) {
 			std::string name = std::string(Z3_ast_to_string(ctx, lang[i]));
 			std::string nameLang;
 			int pos = name.find(PRE_LANGUAGE) + preLanguage_size;
@@ -6641,7 +6720,7 @@ Z3_ast negatedConstraint(Z3_theory t) {
 				}
 
 			bool found = false;
-			for (unsigned int j = 0; j < str.size(); ++j) {
+			for (unsigned j = 0; j < str.size(); ++j) {
 				std::string nameVal = std::string(Z3_ast_to_string(ctx, str[j]));
 				if (nameVal.find(nameLang) != std::string::npos) {
 					found = true;
@@ -8875,8 +8954,22 @@ void check(Z3_theory t)
 	Z3_lbool result = Z3_check_and_get_model(ctx, &m);
 	if (unknownResult == true && result == Z3_L_FALSE)
 		result = Z3_L_UNDEF;
+	if (printingConstraints){
+		printf(">> Arithmetic Constraints\n");
+		for (const auto& s : constraintSet.arithmeticConstraints)
+			printf("%s\n", s.c_str());
+		printf(">> String Constraints\n");
+		for (const auto& s : constraintSet.stringConstraints)
+			printf("%s\n", s.c_str());
+		printf(">> Regular Constraints\n");
+		for (const auto& s : constraintSet.regularConstraints)
+			printf("%s\n", s.c_str());
+		printf(">> Other Constraints\n");
+		for (const auto& s : constraintSet.otherConstraints)
+			printf("%s\n", s.c_str());
+	}
 
-	switch (result) {
+	else switch (result) {
 	case Z3_L_FALSE:
 		printf("================================================\n");
 		printf(">> UNSAT\n");
@@ -8923,7 +9016,8 @@ void check(Z3_theory t)
 }
 
 void overApproxController() {
-	printf("Running Over Approximation\n");
+	if (!printingConstraints)
+		printf("Running Over Approximation\n");
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "***********************************************\n");
 	__debugPrint(logFile, "*              Trau_theory                     *\n");

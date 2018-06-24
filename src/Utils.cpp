@@ -516,3 +516,25 @@ std::string createArrayDefinition(std::string x){
 std::string createIntDefinition(std::string x){
 	return "(declare-const " + x + " Int)";
 }
+
+/*
+ *
+ */
+std::string createContainConstraint(std::string x, std::string y){
+	return "(Contains " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createStartsWithConstraint(std::string x, std::string y){
+	return "(StartsWith " + x + " " + y + ")";
+}
+
+/*
+ *
+ */
+std::string createEndsWithConstraint(std::string x, std::string y){
+	return "(EndsWith " + x + " " + y + ")";
+}
+
