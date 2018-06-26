@@ -2424,6 +2424,10 @@ public:
 		return result;
 	}
 
+	std::string generateCase02Constraint02(){
+
+	}
+
 	/*
 	 * Flat = sum (flats)
 	 */
@@ -2545,6 +2549,7 @@ public:
 				result = result + unrollConnectedVariable(a, elementNames, lhs_str, rhs_str, connectedVariables);
 
 			/* case 2 */
+
 			std::string constraints01 = "(= " + generateFlatIter(a) + " (+ ";
 			std::string constraints02 = "";
 			for (const auto& s : elementNames){
