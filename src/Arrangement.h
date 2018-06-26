@@ -2548,10 +2548,12 @@ public:
 			std::string constraints01 = "(= " + generateFlatIter(a) + " (+ ";
 			std::string constraints02 = "";
 			for (const auto& s : elementNames){
-				constraints02 = constraints02 + createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(s, rhs_str)) + " ";
-				constraints01 = constraints01 + generateFlatIter(s) + " ";
+				constraints02 = constraints02 + createEqualConstraint(generateFlatSize(a, lhs_str), generateFlatSize(s, rhs_str)) + " "; /* size = size */
+				constraints01 = constraints01 + generateFlatIter(s) + " "; /* iter = sum iter*/
 			}
 			constraints01 = constraints01 + ")) ";
+			constraints01 = "(and " + constraints01 + " " + constraints02 + ")";
+			result = "(or (and (" + result + +")) " + constraints01 + ")";
 		}
 
 

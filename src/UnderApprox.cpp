@@ -1419,8 +1419,9 @@ void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
  * define array for connected variable
  */
 void create_constraints_array(std::vector<std::string> &defines, std::vector<std::string> &constraints){
-	for (const auto& s : connectedVariables){
-		defines.emplace_back(createArrayDefinition(ARRPREFIX + s.first));
+//	for (const auto& s : connectedVariables){
+	for (const auto& s : allVariables){
+		defines.emplace_back(createArrayDefinition(ARRPREFIX + s));
 	}
 }
 
@@ -2075,31 +2076,31 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
 void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap){
 	equalitiesMap.clear();
 
-	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = _equalMap.begin(); it != _equalMap.end(); ++it) {
-		if (it->first[0] != '\"')
-			allVariables.insert(it->first);
+	for (const auto& eqVar : _equalMap) {
+		if (eqVar.first[0] != '\"')
+			allVariables.insert(eqVar.first);
 
 		std::vector<std::vector<std::string>> setOfEQ;
-		for (unsigned i = 0 ; i < it->second.size(); ++i) {
+		for (unsigned i = 0 ; i < eqVar.second.size(); ++i) {
 			std::vector<std::string> anEq;
-			for (unsigned j = 0; j < it->second[i].size(); ++j) {
-				if (it->second[i][j][0] == '\"') { /* AutomataDef */
-					std::string constStr = collectConst(it->second[i][j]);
+			for (unsigned j = 0; j < eqVar.second[i].size(); ++j) {
+				if (eqVar.second[i][j][0] == '\"') { /* AutomataDef */
+					std::string constStr = collectConst(eqVar.second[i][j]);
 					if (constStr.length() > 2)
-						anEq.emplace_back(collectConst(it->second[i][j]));
+						anEq.emplace_back(collectConst(eqVar.second[i][j]));
 				}
 				else {/* skip const */
-					if (varLength.find(it->second[i][j]) == varLength.end() || /* does not know its length */
-							(varLength.find(it->second[i][j]) != varLength.end() && varLength[it->second[i][j]] > 0)) /* or length > 0 */ {
+					if (varLength.find(eqVar.second[i][j]) == varLength.end() || /* does not know its length */
+							(varLength.find(eqVar.second[i][j]) != varLength.end() && varLength[eqVar.second[i][j]] > 0)) /* or length > 0 */ {
 
-						anEq.emplace_back(it->second[i][j]);
-						allVariables.insert(it->second[i][j]);
+						anEq.emplace_back(eqVar.second[i][j]);
+						allVariables.insert(eqVar.second[i][j]);
 					}
 				}
 			}
 			setOfEQ.emplace_back(anEq);
 		}
-		equalitiesMap[it->first] = setOfEQ;
+		equalitiesMap[eqVar.first] = setOfEQ;
 	}
 
 #ifdef PRINTTEST_UNDERAPPROX
@@ -2113,7 +2114,7 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 std::string sumStringVector(std::vector<std::string> list){
 	std::string value = "";
 	/* create a general value that the component belongs to */
-	for (unsigned int k = 0; k < list.size(); ++k)
+	for (unsigned k = 0; k < list.size(); ++k)
 		value = value + list[k] + " ";
 	return value;
 }
