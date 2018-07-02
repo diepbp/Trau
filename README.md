@@ -22,15 +22,18 @@ Extract z3-4.4.1.0.tar.gz and follow its README to install the custom Z3.
 	CUSTOM_Z3_INCLUDE_PATH := /path/to/custom/Z3/include
 	ANTLR_RUNTIME_PATH := /path/to/ANTLR/include/antlr4-runtime
 ``` 
-
-- Then,
-```
-	export LD_LIBRARY_PATH="/path/to/custom/Z3/lib" 
-```	
+	
 - Download the latest release of Z3 [here](https://github.com/Z3Prover/z3/releases), and install it. Checking whether Z3 was successfully installed:
 ```
 	z3 -version
 ```
+
+- Replace the Z3 library by the custom Z3 library,
+```
+	cp /path/to/custom/Z3/lib /usr/local/lib   # replace the library
+	export LD_LIBRARY_PATH="/usr/local/lib"    # export it
+```
+
 - Build Trau
 ```
 	cd build; make 
