@@ -16,7 +16,7 @@ Getting & Building Trau
 - Install a custom Z3-4.4.1.0.
 Extract z3-4.4.1.0.tar.gz and follow its README to install the custom Z3.
 
-- Edit the file config.mk. You need to update the path for custom z3 and ANTLR:
+- Edit the file build/config.mk. You need to update the path for custom z3 and ANTLR:
 ```
 	CUSTOM_Z3_LIB_PATH := /path/to/custom/Z3/lib
 	CUSTOM_Z3_INCLUDE_PATH := /path/to/custom/Z3/include
