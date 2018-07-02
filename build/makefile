@@ -4,9 +4,11 @@
 
 -include ../makefile.init
 
+
 RM := rm -rf
 
 # All of the sources participating in the build are defined here
+-include config.mk
 -include sources.mk
 -include src/antlrParser/subdir.mk
 -include src/subdir.mk
@@ -35,7 +37,7 @@ endif
 endif
 
 -include ../makefile.defs
-
+ 
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
@@ -45,7 +47,7 @@ all: Trau
 Trau: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross G++ Linker'
-	g++ -fopenmp -L/home/osboxes/Downloads/z3-z3-4.4.1.0/build -L/usr/local/lib -o "Trau" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ $(FOPENMP) -L$(CUSTOM_Z3_LIB_PATH) -L/usr/local/lib -o "Trau" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
