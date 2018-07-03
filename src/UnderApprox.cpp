@@ -2073,7 +2073,8 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
 /**
  * collect all variables we need to handle
  */
-void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap){
+void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> _fullEqualMap){
 	equalitiesMap.clear();
 
 	for (const auto& eqVar : _equalMap) {
@@ -2101,6 +2102,16 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 			setOfEQ.emplace_back(anEq);
 		}
 		equalitiesMap[eqVar.first] = setOfEQ;
+	}
+
+	/* collect var from full equal map */
+	for (const auto& eqVar : _fullEqualMap) {
+		if (eqVar.first[0] != '\"')
+			allVariables.insert(eqVar.first);
+		for (const auto& eq : eqVar.second)
+			for (const auto& s : eq)
+				if (s[0] != '\"')
+					allVariables.insert(s);
 	}
 
 #ifdef PRINTTEST_UNDERAPPROX
@@ -3126,6 +3137,18 @@ unsigned findMaxP(std::vector<std::vector<std::string>> v){
 void convertEqualities(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
+	for (const auto& eqVar : fullEqualitiesMap)
+		for (const auto& eq : eqVar.second) {
+			bool willConvert = true;
+			for (const auto& s : eq)
+				if (s[0] == '"') {
+					willConvert = false;
+					break;
+				}
+			if (willConvert)
+				global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
+		}
+
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
 			it != equalitiesMap.end();
 			++it) {
@@ -3419,10 +3442,10 @@ void syncConst(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
+	printEqualMap(equalitiesMap);
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::set<std::string> propagatingList;
 	for (const auto& var : equalitiesMap){
-
 		/* init value */
 		if (var.first[0] == '"') {
 			if (!isRegexStr(var.first) && !isUnionStr(var.first)){
@@ -3514,6 +3537,7 @@ void syncConst(
 	}
 
 	for (const auto& s : propagatingList) {
+		__debugPrint(logFile, "%d propagating %s\n", __LINE__, s.c_str())
 		if (s[0] == '"')
 			forwardPropagate(s, len, strValue, completion);
 		if (s[0] == '"' || equalitiesMap[s].size() > 1)
@@ -3749,16 +3773,17 @@ std::vector<int> createString(
 
 	/* update values found by the solver & previous iterations */
 	/* collect iter */
-	assert(iters.size() == QMAX);
-	int pos = 0;
-	for (int i = 0; i < QMAX; ++i){
+//	assert(iters.size() == QMAX);
+//	int pos = 0;
+//	for (int i = 0; i < QMAX; ++i){
+//		__debugPrint(logFile, "%d iter_%d : %d %d\n", __LINE__, i, iters[i].first, iters[i].second);
 		/* part i */
-		for (int j = 0; j < iters[i].second; ++j)
-			for (int k = 0; k < iters[i].first; ++k)
-				if (val[pos + j * iters[i].first + k] == 0)
-					val[pos + j * iters[i].first + k] = value[pos + k];
-		pos += iters[i].first;
-	}
+//		for (int j = 0; j < iters[i].second; ++j)
+//			for (int k = 0; k < iters[i].first; ++k)
+//				if (val[pos + j * iters[i].first + k] == 0)
+//					val[pos + j * iters[i].first + k] = value[pos + k];
+//		pos += iters[i].first;
+//	}
 
 	for (int i = 0; i < lenVar; ++i)
 		if (val[i] == 0)
@@ -4367,10 +4392,10 @@ void formatOtherVars(
 
 				std::string solverValue = solverValues[varName];
 				std::vector<std::pair<int, int>> iters;
-				for (unsigned i = 0; i < QMAX; ++i){
-					assert(iterInt.find(varName + "_" + std::to_string(i)) != iterInt.end());
-					iters.emplace_back(std::make_pair(len[varName + "_" + std::to_string(i)], iterInt[varName + "_" + std::to_string(i)]));
-				}
+//				for (unsigned i = 0; i < QMAX; ++i){
+//					assert(iterInt.find(varName + "_" + std::to_string(i)) != iterInt.end());
+//					iters.emplace_back(std::make_pair(len[varName + "_" + std::to_string(i)], iterInt[varName + "_" + std::to_string(i)]));
+//				}
 
 				std::vector<int> tmp = createString(varName, solverValue, len, strValue, iters, assigned, createAnyway);
 
@@ -4524,7 +4549,7 @@ std::map<std::string, std::string> formatResult(
 	std::map<std::string, int> iterInt;
 	std::map<std::string, std::string> strValue;
 
-	equalitiesMap = orgEqualitiesMap; /* use the simplest version of eq map */
+	equalitiesMap = fullEqualitiesMap; /* use the simplest version of eq map */
 
 	/* format lengths */
 	for (const auto& s : len)
@@ -4894,6 +4919,7 @@ void reset(){
 	global_smtStatements.clear();
 	connectedVariables.clear();
 	appearanceMap.clear();
+	fullEqualitiesMap.clear();
 	trivialUnsat = false;
 	unknownResult = false;
 	connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
@@ -5026,6 +5052,38 @@ void createAppearanceMap(){
 }
 
 /*
+ *
+ * */
+void updateFullEqualMap(){
+	std::map<std::string, std::vector<std::vector<std::string>>> tmpMap;
+	for (const auto& eqVar : fullEqualitiesMap)
+		for (const auto& eq : eqVar.second) {
+			bool willAdd = true;
+			for (const auto& s : eq)
+				if (s[0] == '"') {
+					willAdd = false;
+					break;
+				}
+			if (willAdd)
+				tmpMap[eqVar.first].emplace_back(eq);
+		}
+
+	for (const auto& eqVar : equalitiesMap)
+		for (const auto& eq : eqVar.second) {
+			bool willAdd = false;
+			for (const auto& s : eq)
+				if (s[0] == '"') {
+					willAdd = true;
+					break;
+				}
+			if (willAdd)
+				tmpMap[eqVar.first].emplace_back(eq);
+		}
+	fullEqualitiesMap.clear();
+	fullEqualitiesMap = tmpMap;
+}
+
+/*
  * */
 void analysisMaxInt(std::string fileName){
 	if (maxInt == -1) {
@@ -5047,7 +5105,6 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
-	orgEqualitiesMap = equalitiesMap;
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
@@ -5055,6 +5112,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	createConstMap();
 	refineEqualMap(rewriterStrMap);
 	createAppearanceMap();
+	updateFullEqualMap();
 }
 
 /*
@@ -5215,6 +5273,7 @@ bool hasInequalities(std::map<StringOP, std::string> rewriterStrMap){
  */
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> _fullEqualMap,
 		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
@@ -5227,9 +5286,11 @@ bool underapproxController(
 	varLength.insert(_currentLength.begin(), _currentLength.end());
 
 	/* init equalMap */
-	parseEqualityMap(_equalMap);
+
+	parseEqualityMap(_equalMap, _fullEqualMap);
 	analysisMaxInt(fileDir);
 	reset();
+	fullEqualitiesMap = _fullEqualMap;
 
 	for (const auto& v : varLength) {
 		connectingSize = std::max(connectingSize, v.second + 1);
@@ -5255,6 +5316,8 @@ bool underapproxController(
 		global_smtStatements.push_back({s});
 
 	/* rewrite the CFG constraint */
+	__debugPrint(logFile, "%d Full Equal map:\n", __LINE__);
+	printEqualMap(fullEqualitiesMap);
 	printEqualMap(equalitiesMap);
 	if (constMap.size() > 0) {
 		/* print test const map */
@@ -5282,7 +5345,7 @@ bool underapproxController(
 
 		writeOutput_basic(output);
 
-		result = Z3_run(cmd, _equalMap, false);
+		result = Z3_run(cmd, _fullEqualMap, false);
 		if (result == false){
 			regexCnt = 0;
 			toLengthFile(nonGrm, false, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
@@ -5291,7 +5354,7 @@ bool underapproxController(
 				return false;
 			}
 			writeOutput_basic(output);
-			result = Z3_run(cmd, _equalMap);
+			result = Z3_run(cmd, _fullEqualMap);
 		}
 	}
 	else {
@@ -5304,7 +5367,7 @@ bool underapproxController(
 		else {
 			printf(">> Generated SMT\n\n");
 			writeOutput02(output);
-			result =  Z3_run(cmd, _equalMap);
+			result =  Z3_run(cmd, _fullEqualMap);
 		}
 	}
 

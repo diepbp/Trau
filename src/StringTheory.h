@@ -591,6 +591,7 @@ typedef struct _AutomatonStringData
 		 std::set<Z3_ast> connectedVariables,
 		 std::set<std::string> &variableBelongToOthers,
 		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
+		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &fullEqPossibilities,
 		 std::map<Z3_ast, int> &levelMap);
 
  /*
@@ -741,7 +742,9 @@ typedef struct _AutomatonStringData
  /**
   *
   */
- std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationOverVariables(Z3_theory t);
+ void collectCombinationOverVariables(Z3_theory t,
+ 		std::map<std::string, std::vector<std::vector<std::string>>> &combinationOverVariables,
+ 		std::map<std::string, std::vector<std::vector<std::string>>> &fullCombinationOverVariables);
 
  /**
   * collect lengths of string variables

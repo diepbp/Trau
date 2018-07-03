@@ -2424,8 +2424,14 @@ public:
 		return result;
 	}
 
-	std::string generateCase02Constraint02(){
-
+	/*
+	 *
+	 */
+	std::string generateCase02Constraint02(
+			std::pair<std::string, int> a,
+			std::vector<std::pair<std::string, int>> elementNames,
+			std::string lhs_str, std::string rhs_str){
+		return "";
 	}
 
 	/*
@@ -2558,7 +2564,7 @@ public:
 			}
 			constraints01 = constraints01 + ")) ";
 			constraints01 = "(and " + constraints01 + " " + constraints02 + ")";
-			result = "(or (and (" + result + +")) " + constraints01 + ")";
+			result = "(or (and " + result + + ") " + constraints01 + ")";
 		}
 
 

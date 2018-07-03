@@ -26,7 +26,7 @@ extern bool getModel;
 extern bool beReviewed;
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
-static std::map<std::string, std::vector<std::vector<std::string>>> orgEqualitiesMap;
+static std::map<std::string, std::vector<std::vector<std::string>>> fullEqualitiesMap;
 static std::map<StringOP, std::string> orgRewriterStrMap;
 static std::map<std::string, int> global_smtVars;
 static std::vector<std::vector<std::string>> global_smtStatements;
@@ -349,7 +349,8 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
 /**
  * collect all variables we need to handle
  */
-void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap);
+void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> _fullEqualMap);
 
 /*
  * Create a general value that the component belongs to
@@ -693,6 +694,7 @@ bool hasInequalities(std::map<StringOP, std::string> rewriterStrMap);
 
 bool underapproxController(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> _fullEqualMap,
 		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> carryOnConstraints,
 		std::map<std::string, int> _currentLength,

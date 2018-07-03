@@ -4040,6 +4040,7 @@ void extendVariableToFindAllPossibleEqualities(
 		std::set<Z3_ast> connectedVariables,
 		std::set<std::string> &non_root,
 		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
+		std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &fullEqPossibilities,
 		std::map<Z3_ast, int> &levelMap) {
 	Z3_context ctx = Z3_theory_get_context(t);
 
@@ -4062,6 +4063,16 @@ void extendVariableToFindAllPossibleEqualities(
 			/* const has been evaluated */
 			/* --> update: he = const */
 			allEqPossibilities[node].push_back({constNode});
+			for (const auto& _node : eqNode)
+				if (_node != node){
+					if (isStrVariable(t, _node) || isAutomatonFunc(t, _node))
+						fullEqPossibilities[node].push_back({_node});
+					else if (isConcatFunc(t, _node)) {
+						std::vector<Z3_ast> nodes;
+						collect_node_in_concat(t, node, nodes);
+						fullEqPossibilities[node].push_back(nodes);
+					}
+				}
 			return;
 		}
 	}
@@ -4156,6 +4167,7 @@ void extendVariableToFindAllPossibleEqualities(
 								connectedVariables,
 								non_root,
 								allEqPossibilities,
+								fullEqPossibilities,
 								levelMap);
 					}
 					else
@@ -4177,6 +4189,7 @@ void extendVariableToFindAllPossibleEqualities(
 								connectedVariables,
 								non_root,
 								allEqPossibilities,
+								fullEqPossibilities,
 								levelMap);
 					}
 					else
@@ -4226,7 +4239,7 @@ void extendVariableToFindAllPossibleEqualities(
 				__debugPrint(logFile, "%d skipped\n", __LINE__);
 		}
 
-
+	fullEqPossibilities[node] = result;
 	std::vector<std::vector<Z3_ast>> refined_result;
 	/* check
 	 * 1. contain const or not
@@ -4263,9 +4276,11 @@ void extendVariableToFindAllPossibleEqualities(
 		if (refined_result.size() > 0) {
 			refined_result.push_back({constNode});
 			allEqPossibilities[constNode] = refined_result;
+			fullEqPossibilities[constNode] = result;
 		}
 
 		/* --> update: he = const */
+		fullEqPossibilities[node].push_back({constNode});
 		allEqPossibilities[node].push_back({constNode});
 	}
 	else {
@@ -5240,16 +5255,19 @@ bool parikh_check_replaceall(
 /**
  *
  */
-std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationOverVariables(Z3_theory t){
+void collectCombinationOverVariables(Z3_theory t,
+		std::map<std::string, std::vector<std::vector<std::string>>> &combinationOverVariables,
+		std::map<std::string, std::vector<std::vector<std::string>>> &fullCombinationOverVariables){
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::set<std::string> non_root;
 
 	std::set<Z3_ast> connectedVariables = collectConnectedVars(t);
 
-	std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables;
+
 
 	/* find all equal possibilities*/
 	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> allEqPossibilities;
+	std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> fullEqPossibilities;
 	std::map<Z3_ast, int> levelMap;
 	for (const auto& var: inputVarMap) {
 		std::string currentVarName = Z3_ast_to_string(ctx, var.first);
@@ -5260,6 +5278,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 					connectedVariables,
 					non_root,
 					allEqPossibilities,
+					fullEqPossibilities,
 					levelMap);
 		}
 	}
@@ -5273,6 +5292,7 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 					connectedVariables,
 					non_root,
 					allEqPossibilities,
+					fullEqPossibilities,
 					levelMap);
 		}
 	}
@@ -5293,60 +5313,108 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 	}
 
 	/* collect all equal possibilities of root variables */
-	for (std::map<Z3_ast, std::vector<std::vector<Z3_ast>>>::iterator itor = allEqPossibilities.begin(); itor != allEqPossibilities.end(); itor++) {
-		std::string varName = std::string(Z3_ast_to_string(ctx, itor->first));
+	for (const auto& eqVar : allEqPossibilities) {
+		std::string varName = std::string(Z3_ast_to_string(ctx, eqVar.first));
 		__debugPrint(logFile, "%d before parikh_check_replaceall: var = %s\n", __LINE__, varName.c_str());
-		bool fine_replace = parikh_check_replaceall(t, itor->second, boolMapValues);
-		bool substr_basic = parikh_check_substr_basic(t, itor->first, itor->second);
+		bool fine_replace = parikh_check_replaceall(t, eqVar.second, boolMapValues);
+		bool substr_basic = parikh_check_substr_basic(t, eqVar.first, eqVar.second);
 
 		if (!fine_replace || !substr_basic) {
 			__debugPrint(logFile, "%d * %s * replaceall does not work\n", __LINE__, __FUNCTION__);
-			Z3_ast assertion = negatePositiveEquality(t, itor->first, itor->second, boolMapValues);
+			Z3_ast assertion = negatePositiveEquality(t, eqVar.first, eqVar.second, boolMapValues);
 			if (assertion != NULL)
 				addAxiom(t, assertion, __LINE__, true);
 			else {
 				assert(false);
 				addAxiom(t, negatePositiveContext(t), __LINE__, true);
 			}
-			return {};
+
+			combinationOverVariables.clear();
+			fullCombinationOverVariables.clear();
+			return;
 		}
 
-		if (isAutomatonFunc(t, itor->first)) {
-			varName = getConstString(t, itor->first);
-			varName = "\"" + varName + "\"";
-		}
-		else if (isConcatFunc(t, itor->first))
+		if (isAutomatonFunc(t, eqVar.first) || isStrVariable(t, eqVar.first))
+			varName = node_to_string(t, eqVar.first);
+		else if (isConcatFunc(t, eqVar.first))
 			continue;
 
 		/* update eq for itself */
 		if (non_root.find(varName) == non_root.end() ||
-				grm_astNode_map.find(itor->first) != grm_astNode_map.end()){
+				grm_astNode_map.find(eqVar.first) != grm_astNode_map.end()){
 			/* add them to the result set */
 
-			for (const auto& _eq : itor->second)
+			for (const auto& _eq : eqVar.second)
 				combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, _eq));
 
 			/* add all equal nodes of itor->first to repeated list */
-			std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
+			std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);
 			for (const auto& _node : eqNode)
-				if (isStrVariable(t, _node) && _node != itor->first) {
+				if (isStrVariable(t, _node) && _node != eqVar.first) {
 					non_root.insert(std::string(Z3_ast_to_string(ctx, _node)));
 				}
 		}
 		else if (non_root.find(varName) != non_root.end()){
 			/* keep one eq to export length constraint */
-			assert(itor->second.size() > 0);
+			assert(eqVar.second.size() > 0);
+			bool found = false;
 
-			combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, itor->second[0]));
+			/* prefer to add a combination with const string */
+			for (const auto& v : eqVar.second) {
+				for (const auto& s : v)
+					if (isAutomatonFunc(t, s)) {
+						found = true;
+						combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, v));
+						break;
+					}
+				if (found)
+					break;
+			}
+			/* then prefer to add a combination with connected var */
+			if (!found)
+				for (const auto& v : eqVar.second) {
+					for (const auto& s : v)
+						if (connectedVariables.find(s) != connectedVariables.end()) {
+							found = true;
+							combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, v));
+							break;
+						}
+					if (found)
+						break;
+				}
+			/* then add the first constraints */
+			if (!found)
+				combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, eqVar.second[0]));
 		}
 
 		/* update eq for its friends */
-		std::vector<Z3_ast> eqNode = collect_eqc(t, itor->first);
+		std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);
 		for (const auto& n : eqNode)
-			if (isStrVariable(t, n) && n != itor->first) {
+			if (isStrVariable(t, n) && n != eqVar.first) {
 				std::string name = std::string(Z3_ast_to_string(ctx, n));
 				assert(combinationOverVariables[varName].size() > 0);
 				combinationOverVariables[name].emplace_back(combinationOverVariables[varName][0]);
+			}
+	}
+
+	/* update fullCombinationOverVariables */
+	for (const auto& eqVar : fullEqPossibilities) {
+		std::string varName = "";
+		if (isAutomatonFunc(t, eqVar.first) || isStrVariable(t, eqVar.first))
+			varName = node_to_string(t, eqVar.first);
+		else if (isConcatFunc(t, eqVar.first))
+			continue;
+
+		for (const auto& _eq : eqVar.second)
+			fullCombinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, _eq));
+
+		/* update eq for its friends */
+		std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);
+		for (const auto& n : eqNode)
+			if (isStrVariable(t, n) && n != eqVar.first) {
+				std::string name = node_to_string(t, n);
+				assert(combinationOverVariables[varName].size() > 0);
+				fullCombinationOverVariables[name] = fullCombinationOverVariables[varName];
 			}
 	}
 
@@ -5361,7 +5429,9 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
-			return {};
+			combinationOverVariables.clear();
+			fullCombinationOverVariables.clear();
+			return;
 		}
 	}
 
@@ -5370,11 +5440,11 @@ std::map<std::string, std::vector<std::vector<std::string>>> collectCombinationO
 		if (!fine_regex) {
 			__debugPrint(logFile, "%d * %s * regex does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
-			return {};
+			combinationOverVariables.clear();
+			fullCombinationOverVariables.clear();
+			return;
 		}
 	}
-
-	return combinationOverVariables;
 }
 
 /**
@@ -5465,9 +5535,11 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "\n");
 		}
 
-		std::map<std::string, std::vector<std::vector<std::string>>> combination = collectCombinationOverVariables(t);
+		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables;
+		std::map<std::string, std::vector<std::vector<std::string>>> fullCombinationOverVariables;
+		collectCombinationOverVariables(t, combinationOverVariables, fullCombinationOverVariables);
 
-		if (combination.size() == 0)
+		if (combinationOverVariables.size() == 0)
 			return Z3_TRUE;
 
 		std::map<StringOP, std::string> rewriterStrMap;
@@ -5517,13 +5589,18 @@ Z3_bool Th_final_check(Z3_theory t) {
 		}
 
 
-		if (!underapproxController(combination, rewriterStrMap, carryOnConstraints, initLength, inputFile)) {
+		if (!underapproxController(combinationOverVariables,
+				fullCombinationOverVariables,
+				rewriterStrMap,
+				carryOnConstraints,
+				initLength,
+				inputFile)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
 			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
 				std::string grm2str = Z3_ast_to_string(ctx, it->first);
-				assert (combination.find(grm2str) != combination.end());
+				assert (combinationOverVariables.find(grm2str) != combinationOverVariables.end());
 				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
 				displayListNode(t, eq_grm, " ccc ");
 				for (unsigned int i = 0; i < eq_grm.size(); ++i)
