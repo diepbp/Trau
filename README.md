@@ -45,9 +45,9 @@ Command-line Usage
 	./Trau [option] fileName
 ```	
 The folllowing options are avaiable:
+- -language: specify the input langauge. Trau officially supports SMT2.0 (default input language). SMT2.5 is under the development. 
 - -model: print satisfying assignments if the result is SAT
 - -doublecheck: use the S3P string solver to cross-check satisfying assignments produced by Trau. This option is available only on Ubuntu.
-- -language: specify the input langauge. Trau officially supports SMT2.0. SMT2.5 is under the development. 
 - -grm grammarFile: specify a grammar file
 
 Running Example(s)
