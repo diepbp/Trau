@@ -46,7 +46,8 @@ Command-line Usage
 ```	
 The folllowing options are avaiable:
 - -model: print satisfying assignments if the result is SAT
-- -doublecheck: use the S3P string solver to cross-check satisfying assignments produced by Trau
+- -doublecheck: use the S3P string solver to cross-check satisfying assignments produced by Trau. This option is available only on Ubuntu.
+- -language: specify the input langauge. Trau officially supports SMT2.0. SMT2.5 is under the development. 
 - -grm grammarFile: specify a grammar file
 
 Running Example(s)
