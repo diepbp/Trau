@@ -7,7 +7,7 @@ Before attempting to build Trau, you need to have the following installed and in
 - [openfst](http://www.openfst.org/twiki/bin/view/FST/FstDownload)
 - [ANTLR 4 runtime](http://www.antlr.org/download.html)
 
-Getting & Building Trau
+Getting & Building Trau on MacOS and Linux
 ---------------------------------
 ```
 	git clone https://github.com/diepbp/FAT.git
