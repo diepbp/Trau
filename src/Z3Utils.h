@@ -51,5 +51,10 @@ Z3_ast mk_unary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x);
 */
 Z3_ast mk_binary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y);
 
+/**
+   \brief Create the ternary function application: <tt>(f x y z)</tt>.
+*/
+Z3_ast mk_ternary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y, Z3_ast z);
+
 
 #endif /* Z3UTILS_H_ */

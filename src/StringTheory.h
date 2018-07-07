@@ -751,6 +751,11 @@ typedef struct _AutomatonStringData
   */
  std::map<std::string, int> collectCurrentLength(Z3_theory t);
 
+ /*
+  * change each internal variable by corresponding function
+  */
+ void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap);
+
  /**
    \brief Callback: invoked before Z3 starts building a model.
    This callback can be used to perform expensive operations lazily.

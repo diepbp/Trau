@@ -31,6 +31,7 @@ extern int nondeterministicCounter;
 extern bool lengthEnable;
 extern bool printingConstraints;
 extern ConstraintSet constraintSet;
+extern std::map<std::string, std::string> internalVarFunctionMap;
 
 std::set<std::string> setOfEqualities;
 
@@ -1492,6 +1493,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		children_Map[tmp].push_back(convertedArgs[1]);
 
 		*result = tmp;
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, tmp);
 #ifdef DEBUGLOG
 		__debugPrint(logFile, "\n convert to: ");
 		printZ3Node(t, *result);
@@ -1756,7 +1758,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_subStr(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_ternary_app(ctx, td->SubString, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		__debugPrint(logFile, "\n-- ADD(@%d, Level %d):\n", __LINE__, sLevel);
@@ -1783,7 +1785,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		__debugPrint(logFile, "  =>  ");
 #endif
 		*result = reduce_contains(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->Contains, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if( breakDownAst != NULL )
@@ -1816,7 +1818,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_charAt(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->CharAt, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if( breakDownAst != NULL )
@@ -1849,7 +1851,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_indexof(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->Indexof, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if( breakDownAst != NULL )
@@ -1882,7 +1884,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_lastindexof(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->LastIndexof, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if( breakDownAst != NULL )
@@ -1915,7 +1917,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_endswith(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->EndsWith, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if (breakDownAst != NULL) {
@@ -1947,7 +1949,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_startswith(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_binary_app(ctx, td->StartsWith, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if ( breakDownAst != NULL ){
@@ -1980,7 +1982,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_replace(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_ternary_app(ctx, td->Replace, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if ( breakDownAst != NULL ){
@@ -2013,7 +2015,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 #endif
 
 		*result = reduce_replaceAll(t, convertedArgs, breakDownAst);
-
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_ternary_app(ctx, td->ReplaceAll, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if ( breakDownAst != NULL ){
@@ -2038,6 +2040,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		__debugPrint(logFile, "  =>  ");
 #endif
 		*result = reduce_toLower(t, convertedArgs, breakDownAst);
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_unary_app(ctx, td->ToLower, convertedArgs[0]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if ( breakDownAst != NULL ){
@@ -2061,6 +2064,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[], 
 		__debugPrint(logFile, "  =>  ");
 #endif
 		*result = reduce_toUpper(t, convertedArgs, breakDownAst);
+		internalVarFunctionMap[node_to_string(t, *result)] = node_to_string(t, mk_unary_app(ctx, td->ToUpper, convertedArgs[0]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
 		if ( breakDownAst != NULL ){
@@ -2136,7 +2140,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 				throw std::runtime_error("CharAt function accepts a const letter only!");
 			}
 		}
-		else
+		else if (isConcatFunc(t, s1) && isConcatFunc(t, s2))
 			throw std::runtime_error("One side of equality must be a string variable! The error is at:" + tmp01 + " = " + tmp02);
 	}
 

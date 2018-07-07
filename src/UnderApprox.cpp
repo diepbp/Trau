@@ -708,7 +708,7 @@ std::string create_constraints_StartsWith(
 
 	std::string ret = "";
 
-	if (isConst_00 == true) {
+	if (isConst_00) {
 		/* (length b = 0 && ...) || length b = 1 && ...*/
 		for (unsigned j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
@@ -723,7 +723,6 @@ std::string create_constraints_StartsWith(
 		}
 
 		ret = orConstraint(orConstraints);
-
 	}
 	else if (isConst_01){
 		/* (length a >= ... && ...) */
@@ -758,9 +757,11 @@ std::string create_constraints_StartsWith(
 
 		ret = andConstraint(andConstraints);
 	}
-
-	ret = "(and \t(not " + ret + ")" +
-				"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(connectingSize, 50)) + "))";
+	if (!isConst_00)
+		ret = "(and \t(not " + ret + ")" +
+					"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(connectingSize, 50)) + "))";
+	else
+		ret = "(and \t(not " + ret + "))";
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
 }
@@ -793,10 +794,10 @@ std::string create_constraints_EndsWith(
 	if (isConst_00 == true) {
 		/* endswith "a" b */
 		/* (length b = 0 && ...) || length b = 1 && ...*/
-		for (unsigned int j = 0; j < str00.length() - 2; ++j) {
+		for (unsigned j = 0; j < str00.length() - 2; ++j) {
 			/* length = j*/
 			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (unsigned int i = str00.length() - 1 - j; i < str00.length() - 1; ++i) {
+			for (unsigned i = str00.length() - 1 - j; i < str00.length() - 1; ++i) {
 				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str01) + " " +
 						std::to_string(i - str00.length() + 1 + j) + ") " +
@@ -813,7 +814,7 @@ std::string create_constraints_EndsWith(
 		/* endswith a "b" */
 		/* (length a >= ... && ...) */
 		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
-		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
+		for (unsigned i = 1; i < str01.length() - 1; ++i) {
 			andConstraints.emplace_back("(= (select " +
 					generateVarArray(str00) + " " +
 					"(+ (- " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ") " + std::to_string(i - 1) + ")) " +

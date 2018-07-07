@@ -97,5 +97,13 @@ Z3_ast mk_binary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y){
     return Z3_mk_app(ctx, f, 2, args);
 }
 
+/**
+   \brief Create the ternary function application: <tt>(f x y z)</tt>.
+*/
+Z3_ast mk_ternary_app(Z3_context ctx, Z3_func_decl f, Z3_ast x, Z3_ast y, Z3_ast z){
+    Z3_ast args[3] = {x, y, z};
+    return Z3_mk_app(ctx, f, 3, args);
+}
+
 
 

@@ -101,6 +101,8 @@ std::map<Z3_ast, Z3_ast> grm_astNode_map;
 std::map<std::string, Z3_ast> constStr_astNode_map;
 std::map<Z3_ast, int> basicStrVarAxiom_added;
 
+std::map<std::string, std::string> internalVarFunctionMap;
+
 std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> disequalityList;
 extern ConstraintSet constraintSet;
 extern bool printingConstraints;
@@ -5474,6 +5476,55 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
 	return results;
 }
 
+/*
+ * change each internal variable by corresponding function
+ */
+void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	std::map<StringOP, std::string> ret;
+	for (const auto& op : rewriterMap){
+		StringOP tmp = op.first;
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
+		if (op.first.name.compare("=") != 0){
+			std::string arg01 = op.first.arg01;
+			std::string arg02 = op.first.arg02;
+			std::string arg03 = op.first.arg03;
+			if (arg01.find("$$_") != std::string::npos){
+				std::vector<std::string> tokens = parse_string_language(arg01, " ()");
+				for (const auto& s : tokens)
+					if (s.find("$$_") == 0){
+						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
+							arg01.replace(arg01.find(s), s.length(), internalVarFunctionMap[s]);
+						}
+					}
+			}
+			if (arg02.find("$$_") != std::string::npos){
+				std::vector<std::string> tokens = parse_string_language(arg02, " ()");
+				for (const auto& s : tokens)
+					if (s.find("$$_") == 0){
+						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
+							arg02.replace(arg02.find(s), s.length(), internalVarFunctionMap[s]);
+						}
+					}
+			}
+			if (arg03.find("$$_") != std::string::npos){
+				std::vector<std::string> tokens = parse_string_language(arg03, " ()");
+				for (const auto& s : tokens)
+					if (s.find("$$_") == 0){
+						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
+							arg03.replace(arg03.find(s), s.length(), internalVarFunctionMap[s]);
+						}
+					}
+			}
+			ret[StringOP(op.first.name, arg01, arg02, arg03)] = op.second;
+		}
+		else
+			ret[op.first] = op.second;
+	}
+	rewriterMap.clear();
+	rewriterMap = ret;
+}
+
 /**
    \brief Callback: invoked before Z3 starts building a model.
    This callback can be used to perform expensive operations lazily.
@@ -5547,6 +5598,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		std::vector<Z3_ast> boolVars;
 
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
+		reformatRewriterMap(rewriterStrMap);
 
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
@@ -8916,19 +8968,19 @@ void addAxiom(Z3_theory t, Z3_ast toAssert, int line, bool display) {
 #ifdef DEBUGLOG
 	if (display) {
 		if (searchStart == 1) {
-			__debugPrint(logFile, "---------------------\nAxiom Add(@%d, Level %d):\n", line, sLevel);
+			__debugPrint(logFile, "\n---------------------\nAxiom Add(@%d, Level %d):\n", line, sLevel);
 			printZ3Node(t, toAssert);
 			__debugPrint(logFile, "\n---------------------\n\n");
 
-			__debugPrint(logAxiom, "---------------------\nAxiom Add(@%d, Level %d):\n", line, sLevel);
+			__debugPrint(logAxiom, "\n---------------------\nAxiom Add(@%d, Level %d):\n", line, sLevel);
 			printZ3NodeAxiom(t, toAssert);
 			__debugPrint(logAxiom, "\n---------------------\n\n");
 		} else {
-			__debugPrint(logFile, "---------------------\nAssertion Add(@%d, Level %d):\n", line, sLevel);
+			__debugPrint(logFile, "\n---------------------\nAssertion Add(@%d, Level %d):\n", line, sLevel);
 			printZ3Node(t, toAssert);
 			__debugPrint(logFile, "\n---------------------\n\n");
 
-			__debugPrint(logAxiom, "---------------------\nAssertion Add(@%d, Level %d):\n", line, sLevel);
+			__debugPrint(logAxiom, "\n---------------------\nAssertion Add(@%d, Level %d):\n", line, sLevel);
 			printZ3NodeAxiom(t, toAssert);
 			__debugPrint(logAxiom, "\n---------------------\n\n");
 		}
@@ -8955,19 +9007,19 @@ void addAxiom_Theory(Z3_theory t, Z3_ast toAssert, int line, bool display) {
 #ifdef DEBUGLOG
 	if (display) {
 		if (searchStart == 1) {
-			__debugPrint(logFile, "---------------------\nAxiom Add(@%d, Level %d):\n", line, 0);
+			__debugPrint(logFile, "\n---------------------\nAxiom Add(@%d, Level %d):\n", line, 0);
 			printZ3Node(t, toAssert);
 			__debugPrint(logFile, "\n---------------------\n\n");
 
-			__debugPrint(logAxiom, "---------------------\nAxiom Add(@%d, Level %d):\n", line, 0);
+			__debugPrint(logAxiom, "\n---------------------\nAxiom Add(@%d, Level %d):\n", line, 0);
 			printZ3NodeAxiom(t, toAssert);
 			__debugPrint(logAxiom, "\n---------------------\n\n");
 		} else {
-			__debugPrint(logFile, "---------------------\nAssertion Add(@%d, Level %d):\n", line, 0);
+			__debugPrint(logFile, "\n---------------------\nAssertion Add(@%d, Level %d):\n", line, 0);
 			printZ3Node(t, toAssert);
 			__debugPrint(logFile, "\n---------------------\n\n");
 
-			__debugPrint(logAxiom, "---------------------\nAssertion Add(@%d, Level %d):\n", line, 0);
+			__debugPrint(logAxiom, "\n---------------------\nAssertion Add(@%d, Level %d):\n", line, 0);
 			printZ3NodeAxiom(t, toAssert);
 			__debugPrint(logAxiom, "\n---------------------\n\n");
 		}
