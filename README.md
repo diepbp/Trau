@@ -9,10 +9,7 @@ Before attempting to build Trau, you need to have the following installed and in
 
 Getting & Building Trau on MacOS and Linux
 ---------------------------------
-```
-	git clone https://github.com/diepbp/FAT.git
-	cd FAT	
-```	
+- Download the latest release of Trau. The git version can be unstable at some point.
 - Install a custom Z3-4.4.1.0.
 Extract z3-4.4.1.0.tar.gz and follow its README to install the custom Z3.
 
