@@ -1029,8 +1029,22 @@ std::set<char> getUsedChars(std::string str){
 				i++;
 			}
 			else if (languageVersion == 20){
-				if (str[i + 1] == 't')
+				if (str[i + 1] == 'a')
+					result.emplace('\a');
+				else if (str[i + 1] == 'b')
+					result.emplace('\b');
+				else if (str[i + 1] == 'e')
+					result.emplace('\e');
+				else if (str[i + 1] == 'f')
+					result.emplace('\f');
+				else if (str[i + 1] == 'n')
+					result.emplace('\n');
+				else if (str[i + 1] == 'r')
+					result.emplace('\r');
+				else if (str[i + 1] == 't')
 					result.emplace('\t');
+				else if (str[i + 1] == 'v')
+					result.emplace('\v');
 				else
 					result.emplace(str[i + 1]);
 				i++;
@@ -1053,7 +1067,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 		throw std::runtime_error("Cannot open input file!");
 	}
 
-	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\t', '\'', '+', '%', '#', '*'};
+	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v', '\'', '+', '%', '#', '*'};
 	std::set<char> encoded;
 	bool used[255];
 	memset(used, sizeof used, false);
@@ -1379,8 +1393,29 @@ std::string encodeSpecialChars(std::string constStr){
 		if (languageVersion == 20) {
 			if (constStr[i] == escapeChar) {
 				if (i < constStr.length() - 1) {
-					if (constStr[i + 1] == 't'){
+					if (constStr[i + 1] == 'a') {
+						strTmp += ENCODEMAP['\a'];
+						i++;
+					} else if (constStr[i + 1] == 'b') {
+						strTmp += ENCODEMAP['\b'];
+						i++;
+					} else if (constStr[i + 1] == 'e') {
+						strTmp += ENCODEMAP['\e'];
+						i++;
+					} else if (constStr[i + 1] == 'f') {
+						strTmp += ENCODEMAP['\f'];
+						i++;
+					} else if (constStr[i + 1] == 'n') {
+						strTmp += ENCODEMAP['\n'];
+						i++;
+					} else if (constStr[i + 1] == 'r') {
+						strTmp += ENCODEMAP['\r'];
+						i++;
+					} else if (constStr[i + 1] == 't') {
 						strTmp += ENCODEMAP['\t'];
+						i++;
+					} else if (constStr[i + 1] == 'v') {
+						strTmp += ENCODEMAP['\v'];
 						i++;
 					}
 					else if (constStr[i + 1] == '"' ||
