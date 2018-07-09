@@ -135,49 +135,36 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 /*
  *
  */
-StringOP findStringOP(
+std::string findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
-		std::string name,
-		int argsNum,
-		int startPos){
+				int &startPos){
+	std::string ret = "";
+	if (tokens[startPos].second == 92) {
+		int tmp = findCorrespondRightParentheses(startPos, tokens);
 
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
-	StringOP op(name);
-
-	if (argsNum > 0) {
-		/* get the first arg */
-		startPos++;
-		if (tokens[startPos].second == 92) {
-			int tmp = findCorrespondRightParentheses(startPos, tokens);
-			op.setArg01(sumTokens(tokens, startPos, tmp));
-			startPos = tmp;
-		}
-		else {
-			op.setArg01(tokens[startPos].first);
-		}
-	}
-	else
-		return op;
-
-	if (argsNum > 1) {
-		/* get the 2nd arg */
-		startPos++;
-		if (tokens[startPos].second == 92) {
-			int tmp = findCorrespondRightParentheses(startPos, tokens);
-
-			/* convert - --> + */
-			if  (tokens[startPos + 1].first.compare("-") == 0){
-				StringOP opx = findStringOP(tokens, "-", 2, startPos + 1);
+		/* convert - --> + */
+		if  (tokens[startPos + 1].first.compare("-") == 0){
+			StringOP opx = findStringOP(tokens, "-", 2, startPos + 1);
+			if (opx.arg02.compare("0") == 0)
+				ret = opx.arg01;
+			else {
 				opx.name = "+";
-				std::string tmp = "(* (- 1) " + opx.arg02 + ")";
+//				std::string tmp = "(* (- 1) " + opx.arg02 + ")";
+				std::string tmp = "(- " + opx.arg02 + ")";
 				opx.arg02 = opx.arg01;
 				opx.arg01 = tmp;
 
-				op.setArg02(opx.toString());
+				ret = opx.toString();
 			}
-			else if  (tokens[startPos + 1].first.compare("+") == 0){
-				StringOP opx = findStringOP(tokens, "+", 2, startPos + 1);
+		}
+		else if  (tokens[startPos + 1].first.compare("+") == 0){
+			StringOP opx = findStringOP(tokens, "+", 2, startPos + 1);
 
+			if (opx.arg02.compare("0") == 0)
+				ret = opx.arg01;
+			else if (opx.arg01.compare("0") == 0)
+				ret = opx.arg02;
+			else {
 				/* swap 1 vs 2 */
 				if (opx.arg02[0] >= '0' && opx.arg02[0] <= '9' && (!(opx.arg01[0] >= '0' && opx.arg01[0] <= '9'))) {
 					std::string tmp = opx.arg02;
@@ -185,15 +172,82 @@ StringOP findStringOP(
 					opx.arg01 = tmp;
 				}
 
-				op.setArg02(opx.toString());
+				ret = opx.toString();
 			}
-			else
-				op.setArg02(sumTokens(tokens, startPos, tmp));
-			startPos = tmp;
 		}
-		else {
-			op.setArg02(tokens[startPos].first);
+		else if (tokens[startPos + 1].first.compare(languageMap[LENGTH]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[LENGTH], 1, startPos + 1);
+			ret = opx.toString();
 		}
+		else if (tokens[startPos + 1].first.compare(languageMap[CONCAT]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[CONCAT], 2, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[SUBSTRING]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[SUBSTRING], 3, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[INDEXOF]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[INDEXOF], 2, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[LASTINDEXOF]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[LASTINDEXOF], 2, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[TOUPPER]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[TOUPPER], 1, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[TOLOWER]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[TOLOWER], 1, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[REPLACE]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[REPLACE], 3, startPos + 1);
+			ret = opx.toString();
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[REPLACEALL]) == 0) {
+			StringOP opx = findStringOP(tokens, languageMap[REPLACEALL], 3, startPos + 1);
+			ret = opx.toString();
+		}
+		else
+			ret = sumTokens(tokens, startPos, tmp);
+		startPos = tmp;
+	}
+	else {
+		ret = tokens[startPos].first;
+	}
+	return ret;
+}
+
+/*
+ *
+ */
+StringOP findStringOP(
+		std::vector<std::pair<std::string, int>> tokens,
+		std::string name,
+		int argsNum,
+		int startPos){
+
+//	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
+	StringOP op(name);
+
+	if (argsNum > 0) {
+		/* get the first arg */
+		startPos++;
+		op.setArg01(findOpArg(tokens, startPos));
+	}
+	else
+		return op;
+	if (argsNum > 1) {
+		/* get the 2nd arg */
+		startPos++;
+		if (tokens[startPos].second == 93 && name.compare("-") == 0){
+			op.setArg02(op.arg01);
+			op.setArg01("0");
+		}
+		else op.setArg02(findOpArg(tokens, startPos));
 	}
 	else
 		return op;
@@ -201,38 +255,7 @@ StringOP findStringOP(
 	if (argsNum > 2) {
 		/* get the 3rd arg */
 		startPos++;
-		if (tokens[startPos].second == 92) {
-			int tmp = findCorrespondRightParentheses(startPos, tokens);
-			/* convert - --> + */
-			if  (tokens[startPos + 1].first.compare("-") == 0){
-				StringOP opx = findStringOP(tokens, "-", 2, startPos + 1);
-				opx.name = "+";
-				std::string tmp = "(* (- 1) " + opx.arg02 + ")";
-				opx.arg02 = opx.arg01;
-				opx.arg01 = tmp;
-
-				op.setArg03(opx.toString());
-			}
-			else if  (tokens[startPos + 1].first.compare("+") == 0){
-				StringOP opx = findStringOP(tokens, "+", 2, startPos + 1);
-
-				/* swap 1 vs 2 */
-				if (opx.arg02[0] >= '0' && opx.arg02[0] <= '9' && (!(opx.arg01[0] >= '0' && opx.arg01[0] <= '9'))) {
-					std::string tmp = opx.arg02;
-					opx.arg02 = opx.arg01;
-					opx.arg01 = tmp;
-				}
-
-				op.setArg03(opx.toString());
-			}
-			else
-				op.setArg03(sumTokens(tokens, startPos, tmp));
-
-			startPos = tmp;
-		}
-		else {
-			op.setArg03(tokens[startPos].first);
-		}
+		op.setArg03(findOpArg(tokens, startPos));
 	}
 	else
 		return op;
@@ -549,7 +572,9 @@ void updateSubstring(
 		tmp.push_back(std::make_pair("and", 88));
 		tmp.push_back(std::make_pair(rewriterStrMap[op], 88));
 
-		for (int i = startAssignment; i <= startAssignment + 4; ++i) {
+		int cnt = 0;
+		bool added = false;
+		for (int i = startAssignment; i < (int)tokens.size(); ++i){
 			if (i == found - 1){
 				std::vector<std::pair<std::string, int>> tmpx;
 				switch (languageVersion) {
@@ -568,21 +593,23 @@ void updateSubstring(
 			}
 			else
 				tmp.emplace_back(tokens[i]);
+
+			if (tokens[i].second == 92)
+				++cnt;
+			else if (tokens[i].second == 93) {
+				--cnt;
+				if (cnt == 0 && added == false) {
+					tmp.push_back(std::make_pair(")", 93));
+					added = true; /* add only once */
+				}
+			}
 		}
-
-		tmp.push_back(std::make_pair(")", 93));
-
-		__debugPrint(logFile, "%d *** added rewrite ***: s = %s\n", __LINE__, sumTokens(tmp, 0, tmp.size() - 1).c_str());
-
-
-		for (int i = startAssignment + 5; i < (int)tokens.size(); ++i)
-			tmp.emplace_back(tokens[i]);
 
 		__debugPrint(logFile, "%d *** FINAL ***: s = %s\n", __LINE__, sumTokens(tmp, 0, tmp.size() - 1).c_str());
 		tokens.clear();
 		tokens = tmp;
 
-		found = findTokens(tokens, pos, languageMap[SUBSTRING], 88);
+		found = findTokens(tokens, 0, languageMap[SUBSTRING], 88);
 	}
 }
 

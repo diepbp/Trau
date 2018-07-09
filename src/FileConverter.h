@@ -77,6 +77,22 @@ void updateReplaceAll(
 /*
  *
  */
+std::string findOpArg(
+		std::vector<std::pair<std::string, int>> tokens,
+				int &startPos);
+
+/*
+ *
+ */
+StringOP findStringOP(
+		std::vector<std::pair<std::string, int>> tokens,
+		std::string name,
+		int argsNum,
+		int startPos);
+
+/*
+ *
+ */
 void updateEquality(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap
