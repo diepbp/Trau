@@ -5521,8 +5521,10 @@ void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
 		else
 			ret[op.first] = op.second;
 	}
-	rewriterMap.clear();
-	rewriterMap = ret;
+//	rewriterMap.clear();
+//	rewriterMap = ret;
+	for (const auto& s : ret)
+		rewriterMap[s.first] = s.second;
 }
 
 /**
