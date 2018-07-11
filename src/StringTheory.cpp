@@ -41,10 +41,12 @@ std::map<StringOP, std::string> subStrStrMap;
 std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
+std::map<std::pair<std::pair<Z3_ast, Z3_ast>, Z3_ast>, std::vector<Z3_ast>> indexOf2_toAstMap;
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
 
 std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
 std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
+std::map<StringOP, std::pair<std::string, std::string>> indexOf2StrMap;
 
 std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
 std::map<StringOP, std::string> endsWithStrMap;

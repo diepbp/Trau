@@ -91,6 +91,7 @@
 #define REGEXALL 21
 #define REGEXALLCHAR 22
 #define REGEXNONE 23
+#define INDEXOF2 24
 
 const static std::map<int, std::string> languageMap20 = {
 	{LENGTH, "Length"},
@@ -115,7 +116,8 @@ const static std::map<int, std::string> languageMap20 = {
 	{REGEXCONCAT, "RegexConcat"},
 	{REGEXALL, "re.all"},
 	{REGEXALLCHAR, "re.allchar"},
-	{REGEXNONE, "re.none"}
+	{REGEXNONE, "re.none"},
+	{INDEXOF2, "Indexof2"}
 };
 
 const static std::map<int, std::string> languageMap25 = {
@@ -141,7 +143,8 @@ const static std::map<int, std::string> languageMap25 = {
 	{REGEXCONCAT, "re.++"},
 	{REGEXALL, "re.all"},
 	{REGEXALLCHAR, "re.allchar"},
-	{REGEXNONE, "re.none"}
+	{REGEXNONE, "re.none"},
+	{INDEXOF2, "str.indexof2"},
 };
 
 const static char ESCAPECHAR20 = '\\';
