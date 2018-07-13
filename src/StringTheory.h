@@ -188,6 +188,8 @@ typedef struct _AutomatonStringData
   */
  void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
 
+ StringOP node_to_stringOP(Z3_theory t, Z3_ast node);
+
  std::string node_to_string(Z3_theory t, Z3_ast node);
 
  /*
@@ -234,12 +236,6 @@ typedef struct _AutomatonStringData
   * check if leng = 1 --> skip generate new constraints in indexof, lastindexof...
   */
  bool canSkipExt(Z3_theory t, Z3_ast node);
-
- /*
-  * convert a node to string
-  */
- std::string exportNodeName(Z3_theory t,  Z3_ast const args[], Z3_func_decl name);
-
 
  /*
   * convert a node to string
@@ -754,6 +750,11 @@ typedef struct _AutomatonStringData
  /*
   * change each internal variable by corresponding function
   */
+ void reformatInternalVarFunctionMap();
+
+ /*
+  * change each internal variable by corresponding function
+  */
  void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap);
 
  /**
@@ -949,6 +950,16 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   *
   */
  bool collectIndexOfValueInPositiveContext(
+ 		Z3_theory t,
+ 		Z3_ast boolNode,
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+ 		std::set<std::string> &carryOnConstraints);
+
+ /*
+  *
+  */
+ bool collectIndexOf2ValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
  		bool boolValue,

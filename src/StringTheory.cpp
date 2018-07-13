@@ -103,7 +103,7 @@ std::map<Z3_ast, Z3_ast> grm_astNode_map;
 std::map<std::string, Z3_ast> constStr_astNode_map;
 std::map<Z3_ast, int> basicStrVarAxiom_added;
 
-std::map<std::string, std::string> internalVarFunctionMap;
+std::map<StringOP, StringOP> internalVarFunctionMap;
 
 std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> disequalityList;
 extern ConstraintSet constraintSet;
@@ -1032,90 +1032,289 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
 /*
  * only collect leaf, string format
  */
+StringOP node_to_stringOP(Z3_theory t, Z3_ast node) {
+	Z3_context ctx = Z3_theory_get_context(t);
+	if (isAutomatonFunc(t, node)) {
+		return StringOP("\"" + getConstString(t, node) + "\"");
+	}
+	else if (isConstStr(t, node)){
+		std::string tmp = Z3_ast_to_string(ctx, node);
+		if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
+			tmp = tmp.substr(1, tmp.length() - 2);
+		}
+		return StringOP("\"" + tmp + "\"");
+	}
+	else if (isVariable(t, node))
+		return StringOP(Z3_ast_to_string(ctx, node));
+	else {
+//		__debugPrint(logFile, "%d node: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+		Z3_ast funcType = Z3_func_decl_to_ast(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, node)));
+		std::string typeStr = Z3_ast_to_string(ctx, funcType);
+		int args = Z3_get_app_num_args(ctx, Z3_to_app(ctx, node));
+		std::vector<StringOP> elements;
+		for (int i = 0; i < args; ++i) {
+			Z3_ast n = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), i);
+			elements.emplace_back(node_to_stringOP(t, n));
+		}
+		StringOP ret;
+		ret.setArgs(elements);
+
+
+		if (typeStr.find("declare-fun +") != std::string::npos){
+			ret.setName("+");
+			formatPlusOP(ret);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun -") != std::string::npos){
+			ret.setName("-");
+			formatMinusOP(ret);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun *") != std::string::npos){
+			ret.setName("*");
+			formatMultiplyOP(ret);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun =") != std::string::npos){
+			ret.setName("=");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun >=") != std::string::npos){
+			ret.setName(">=");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun <=") != std::string::npos){
+			ret.setName("<=");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun >") != std::string::npos){
+			ret.setName(">");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun <") != std::string::npos){
+			ret.setName("<");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun ite") != std::string::npos){
+			ret.setName("ite");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun and") != std::string::npos){
+			ret.setName("and");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun or") != std::string::npos){
+			ret.setName("or");
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CONCAT]) != std::string::npos) {
+			ret.setName(languageMap[CONCAT]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[INDEXOF2]) != std::string::npos) {
+			ret.setName(languageMap[INDEXOF2]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[INDEXOF]) != std::string::npos) {
+			ret.setName(languageMap[INDEXOF]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CONTAINS]) != std::string::npos) {
+			ret.setName(languageMap[CONTAINS]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[SUBSTRING]) != std::string::npos) {
+			ret.setName(languageMap[SUBSTRING]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[LASTINDEXOF]) != std::string::npos) {
+			ret.setName(languageMap[LASTINDEXOF]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[STARTSWITH]) != std::string::npos) {
+			ret.setName(languageMap[STARTSWITH]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[ENDSWITH]) != std::string::npos) {
+			ret.setName(languageMap[ENDSWITH]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[REPLACEALL]) != std::string::npos) {
+			ret.setName(languageMap[REPLACEALL]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[REPLACE]) != std::string::npos) {
+			ret.setName(languageMap[REPLACE]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[TOLOWER]) != std::string::npos) {
+			ret.setName(languageMap[TOLOWER]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[TOUPPER]) != std::string::npos) {
+			ret.setName(languageMap[TOUPPER]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CHARAT]) != std::string::npos) {
+			ret.setName(languageMap[CHARAT]);
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[LENGTH]) != std::string::npos) {
+			ret.setName(languageMap[LENGTH]);
+			return ret;
+		}
+
+
+		else {
+			std::string tmp = Z3_ast_to_string(ctx, node);
+			if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
+				tmp = tmp.substr(1, tmp.length() - 2);
+				tmp = "\"" + tmp + "\"";
+			}
+			return StringOP(tmp);
+		}
+	}
+}
+
+/*
+ * only collect leaf, string format
+ */
 std::string node_to_string(Z3_theory t, Z3_ast node) {
 	Z3_context ctx = Z3_theory_get_context(t);
-	if (getNodeType(t, node) != my_Z3_Func || (getNodeType(t, node) == my_Z3_Func && !isConcatFunc(t, node) && !isLengthFunc(t, node))) {
-		if (isAutomatonFunc(t, node)) {
-			return "\"" + getConstString(t, node) + "\"";
-		}
-		else {
-			__debugPrint(logFile, "%d node: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
-			Z3_ast funcType = Z3_func_decl_to_ast(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, node)));
-			std::string typeStr = Z3_ast_to_string(ctx, funcType);
-			__debugPrint(logFile, "%d function type %s \n", __LINE__, typeStr.c_str());
-			int args = Z3_get_app_num_args(ctx, Z3_to_app(ctx, node));
-			std::vector<std::string> elements;
-			for (int i = 0; i < args; ++i) {
-				Z3_ast n = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), i);
-				elements.emplace_back(node_to_string(t, n));
-			}
-			std::string ret = "";
-			for (const auto& s : elements)
-				ret = ret + " " + s;
-
-
-			if (typeStr.find("declare-fun +") != std::string::npos){
-				ret = "(+" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun *") != std::string::npos){
-				ret = "(*" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun =") != std::string::npos){
-				ret = "(=" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun >=") != std::string::npos){
-				ret = "(>=" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun <=") != std::string::npos){
-				ret = "(<=" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun >") != std::string::npos){
-				ret = "(>" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun <") != std::string::npos){
-				ret = "(<" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun ite") != std::string::npos){
-				ret = "(ite" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun and") != std::string::npos){
-				ret = "(or" + ret + ")";
-				return ret;
-			}
-			else if (typeStr.find("declare-fun or") != std::string::npos){
-				ret = "(or" + ret + ")";
-				return ret;
-			}
-			else {
-				std::string tmp = Z3_ast_to_string(ctx, node);
-				if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
-					tmp = tmp.substr(1, tmp.length() - 2);
-					tmp = "\"" + tmp + "\"";
-				}
-				return tmp;
-			}
-		}
+	if (isAutomatonFunc(t, node)) {
+		return "\"" + getConstString(t, node) + "\"";
 	}
-	else if (isLengthFunc(t, node)){
-		/* Length */
-		Z3_ast arg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
-		return "(" + std::string(languageMap[LENGTH]) + " " + node_to_string(t, arg) + ")";
+	else if (isConstStr(t, node)){
+		std::string tmp = Z3_ast_to_string(ctx, node);
+		if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
+			tmp = tmp.substr(1, tmp.length() - 2);
+		}
+		tmp = "\"" + tmp + "\"";
+		return tmp;
 	}
+	else if (isVariable(t, node))
+		return Z3_ast_to_string(ctx, node);
 	else {
-		/* concat */
-		Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0);
-		Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 1);
-		std::string lhsTmp = node_to_string(t, leftArg);
-		std::string rhsTmp = node_to_string(t, rightArg);
-		return "(" + std::string(languageMap[CONCAT]) + " " + lhsTmp + " " + rhsTmp + ")";
+//		__debugPrint(logFile, "%d node: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
+		Z3_ast funcType = Z3_func_decl_to_ast(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, node)));
+		std::string typeStr = Z3_ast_to_string(ctx, funcType);
+		int args = Z3_get_app_num_args(ctx, Z3_to_app(ctx, node));
+		std::vector<std::string> elements;
+		for (int i = 0; i < args; ++i) {
+			Z3_ast n = Z3_get_app_arg(ctx, Z3_to_app(ctx, node), i);
+			elements.emplace_back(node_to_string(t, n));
+		}
+		std::string ret = "";
+		for (const auto& s : elements)
+			ret = ret + " " + s;
+
+
+		if (typeStr.find("declare-fun +") != std::string::npos){
+			ret = "(+" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun *") != std::string::npos){
+			ret = "(*" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun =") != std::string::npos){
+			ret = "(=" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun >=") != std::string::npos){
+			ret = "(>=" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun <=") != std::string::npos){
+			ret = "(<=" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun >") != std::string::npos){
+			ret = "(>" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun <") != std::string::npos){
+			ret = "(<" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun ite") != std::string::npos){
+			ret = "(ite" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun and") != std::string::npos){
+			ret = "(and" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun or") != std::string::npos){
+			ret = "(or" + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CONCAT]) != std::string::npos) {
+			ret = "(" + languageMap[CONCAT] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[INDEXOF2]) != std::string::npos) {
+			ret = "(" + languageMap[INDEXOF2] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[INDEXOF]) != std::string::npos) {
+			ret = "(" + languageMap[INDEXOF] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CONTAINS]) != std::string::npos) {
+			ret = "(" + languageMap[CONTAINS] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[SUBSTRING]) != std::string::npos) {
+			ret = "(" + languageMap[SUBSTRING] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[LASTINDEXOF]) != std::string::npos) {
+			ret = "(" + languageMap[LASTINDEXOF] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[STARTSWITH]) != std::string::npos) {
+			ret = "(" + languageMap[STARTSWITH] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[ENDSWITH]) != std::string::npos) {
+			ret = "(" + languageMap[ENDSWITH] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[REPLACEALL]) != std::string::npos) {
+			ret = "(" + languageMap[REPLACEALL] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[REPLACE]) != std::string::npos) {
+			ret = "(" + languageMap[REPLACE] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[TOLOWER]) != std::string::npos) {
+			ret = "(" + languageMap[TOLOWER] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[TOUPPER]) != std::string::npos) {
+			ret = "(" + languageMap[TOUPPER] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[CHARAT]) != std::string::npos) {
+			ret = "(" + languageMap[CHARAT] + ret + ")";
+			return ret;
+		}
+		else if (typeStr.find("declare-fun " + languageMap[LENGTH]) != std::string::npos) {
+			ret = "(" + languageMap[LENGTH] + ret + ")";
+			return ret;
+		}
+
+
+		else {
+			std::string tmp = Z3_ast_to_string(ctx, node);
+			if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
+				tmp = tmp.substr(1, tmp.length() - 2);
+				tmp = "\"" + tmp + "\"";
+			}
+			return tmp;
+		}
 	}
 }
 
@@ -1451,7 +1650,7 @@ Z3_theory mk_theory(Z3_context ctx) {
 	indexof_domain[1] = td->String;
 	td->Indexof = Z3_theory_mk_func_decl(ctx, Th, indexof_name, 2, indexof_domain, IntSort);
 	//---------------------------
-	Z3_symbol indexof2_name = Z3_mk_string_symbol(ctx, "Indexof2");
+	Z3_symbol indexof2_name = Z3_mk_string_symbol(ctx, languageMap[INDEXOF2].c_str());
 	Z3_sort indexof2_domain[3];
 	indexof2_domain[0] = td->String;
 	indexof2_domain[1] = td->String;
@@ -5479,52 +5678,67 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
 }
 
 /*
+ *
+ */
+bool formatOPInternal(StringOP &op){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+	if (op.name.find("$$_") == 0){
+		if (internalVarFunctionMap.find(op) != internalVarFunctionMap.end()){
+			op = internalVarFunctionMap[op];
+			return true;
+		}
+		else
+			return false;
+	}
+	else {
+		bool update = false;
+		for (unsigned i = 0; i < op.args.size(); ++i) {
+			update = update || formatOPInternal(op.args[i]);
+		}
+		formatOP(op);
+		return update;
+	}
+}
+
+/*
+ * change each internal variable by corresponding function
+ */
+void reformatInternalVarFunctionMap(){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	bool found = true;
+	while (found){
+		found = false;
+		std::map<StringOP, StringOP> tmp = internalVarFunctionMap;
+		for (const auto& var: tmp){
+			StringOP tmpVar = var.second;
+			found = found || formatOPInternal(tmpVar);
+			internalVarFunctionMap[var.first] = tmpVar;
+		}
+		if (!found)
+			break;
+	}
+}
+
+/*
  * change each internal variable by corresponding function
  */
 void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+
+	reformatInternalVarFunctionMap();
 	std::map<StringOP, std::string> ret;
 	for (const auto& op : rewriterMap){
 		StringOP tmp = op.first;
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
 		if (op.first.name.compare("=") != 0){
-			std::string arg01 = op.first.arg01;
-			std::string arg02 = op.first.arg02;
-			std::string arg03 = op.first.arg03;
-			if (arg01.find("$$_") != std::string::npos){
-				std::vector<std::string> tokens = parse_string_language(arg01, " ()");
-				for (const auto& s : tokens)
-					if (s.find("$$_") == 0){
-						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
-							arg01.replace(arg01.find(s), s.length(), internalVarFunctionMap[s]);
-						}
-					}
-			}
-			if (arg02.find("$$_") != std::string::npos){
-				std::vector<std::string> tokens = parse_string_language(arg02, " ()");
-				for (const auto& s : tokens)
-					if (s.find("$$_") == 0){
-						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
-							arg02.replace(arg02.find(s), s.length(), internalVarFunctionMap[s]);
-						}
-					}
-			}
-			if (arg03.find("$$_") != std::string::npos){
-				std::vector<std::string> tokens = parse_string_language(arg03, " ()");
-				for (const auto& s : tokens)
-					if (s.find("$$_") == 0){
-						if (internalVarFunctionMap.find(s) != internalVarFunctionMap.end()){
-							arg03.replace(arg03.find(s), s.length(), internalVarFunctionMap[s]);
-						}
-					}
-			}
-			ret[StringOP(op.first.name, arg01, arg02, arg03)] = op.second;
+			std::vector<StringOP> args = op.first.args;
+			for (unsigned i = 0; i < args.size(); ++i)
+				formatOPInternal(args[i]);
+			ret[StringOP(op.first.name, args)] = op.second;
 		}
 		else
 			ret[op.first] = op.second;
 	}
-//	rewriterMap.clear();
-//	rewriterMap = ret;
 	for (const auto& s : ret)
 		rewriterMap[s.first] = s.second;
 }
@@ -5604,6 +5818,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
 		reformatRewriterMap(rewriterStrMap);
 
+		for (const auto& elem : internalVarFunctionMap){
+					__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
+				}
+
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
 			__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), elem.second.c_str());
@@ -5621,6 +5839,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		__debugPrint(logFile, "%d lengthEnable: %d\n", __LINE__, lengthEnable? 1: 0);
 		if (containPairBoolMap.size() == 0 &&
 			indexOfStrMap.size() == 0 &&
+			indexOf2StrMap.size() == 0 &&
 			lastIndexOfStrMap.size() == 0 &&
 			endsWithStrMap.size() == 0 &&
 			startsWithStrMap.size() == 0 &&
@@ -7564,7 +7783,7 @@ bool collectContainValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP(languageMap[CONTAINS], exportNodeName(t, it.first.first), exportNodeName(t, it.first.second))] = value;
+			rewriterStrMap[StringOP(languageMap[CONTAINS], node_to_string(t, it.first.first), node_to_string(t, it.first.second))] = value;
 			return true;
 		}
 	}
@@ -7601,7 +7820,33 @@ bool collectIndexOfValueInPositiveContext(
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = "-1";
+				rewriterStrMap[it.first] = it.second.second;
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ *
+ */
+bool collectIndexOf2ValueInPositiveContext(
+		Z3_theory t,
+		Z3_ast boolNode,
+		bool boolValue,
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
+	for (const auto& it : indexOf2StrMap) {
+		if (boolStr.compare(it.second.first) == 0) {
+			if (boolValue) {
+				rewriterStrMap[it.first] = it.second.second;
+				if (carryOn.find(boolNode) != carryOn.end())
+					carryOnConstraints.emplace(
+							Z3_ast_to_string(ctx, carryOn[boolNode]));
+			} else
+				rewriterStrMap[it.first] = it.second.second;
 			return true;
 		}
 	}
@@ -7627,14 +7872,14 @@ bool collectLastIndexOfValueInPositiveContext(
 	for (const auto& it : lastIndexOfStrMap) {
 
 		if (boolStr.compare(it.second.first) == 0){
-			__debugPrint(logFile, "%d %s: %s %s\n", __LINE__, it.first.arg01.c_str(), it.second.first.c_str(), it.second.second.c_str());
+//			__debugPrint(logFile, "%d %s: %s %s\n", __LINE__, it.first.arg01.c_str(), it.second.first.c_str(), it.second.second.c_str());
 			if (boolValue) {
 				rewriterStrMap[it.first] = it.second.second;
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = "-1";
+				rewriterStrMap[it.first] = it.second.second;
 			return true;
 		}
 	}
@@ -7681,13 +7926,13 @@ void collectEqualValueInPositiveContext(
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 1);
 			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = FALSETR;
+				rewriterStrMap[StringOP("=", node_to_string(t, arg0), node_to_string(t, arg1))] = FALSETR;
 		}
 		else {
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", exportNodeName(t, arg0), exportNodeName(t, arg1))] = TRUESTR;
+				rewriterStrMap[StringOP("=", node_to_string(t, arg0), node_to_string(t, arg1))] = TRUESTR;
 		}
 	}
 	else if (astToString.find("(= ") != std::string::npos &&
@@ -7696,16 +7941,16 @@ void collectEqualValueInPositiveContext(
 		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 		if (toUpperMap.find(arg0) != toUpperMap.end()) {
-			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg0]), exportNodeName(t, arg1))] = TOUPPER;
+			rewriterStrMap[StringOP("=", node_to_string(t, toUpperMap[arg0]), node_to_string(t, arg1))] = TOUPPER;
 		}
 		else if (toUpperMap.find(arg1) != toUpperMap.end()){
-			rewriterStrMap[StringOP("=", exportNodeName(t, toUpperMap[arg1]), exportNodeName(t, arg0))] = TOUPPER;
+			rewriterStrMap[StringOP("=", node_to_string(t, toUpperMap[arg1]), node_to_string(t, arg0))] = TOUPPER;
 		}
 		else if (toLowerMap.find(arg1) != toLowerMap.end()){
-			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg1]), exportNodeName(t, arg0))] = TOLOWER;
+			rewriterStrMap[StringOP("=", node_to_string(t, toLowerMap[arg1]), node_to_string(t, arg0))] = TOLOWER;
 		}
 		else if (toLowerMap.find(arg0) != toLowerMap.end()) {
-			rewriterStrMap[StringOP("=", exportNodeName(t, toLowerMap[arg0]), exportNodeName(t, arg1))] = TOLOWER;
+			rewriterStrMap[StringOP("=", node_to_string(t, toLowerMap[arg0]), node_to_string(t, arg1))] = TOLOWER;
 		}
 	}
 }
@@ -7869,6 +8114,10 @@ void collectDataInPositiveContext(
 		if (s.second.first.length() == 0) /* evaluated */
 			rewriterStrMap[s.first] = s.second.second;
 
+	for (const auto& s : indexOf2StrMap)
+		if (s.second.first.length() == 0) /* evaluated */
+			rewriterStrMap[s.first] = s.second.second;
+
 	for (const auto& s: lastIndexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
 			rewriterStrMap[s.first] = s.second.second;
@@ -7896,13 +8145,14 @@ void collectDataInPositiveContext(
 
 			T_TheoryType type = getNodeType(t, argAst);
 
-			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false, found08 = false;
+			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false, found08 = false, found09 = false;
 			if (type == my_Z3_Var) {
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				if (astToString.find("$$_bool") != std::string::npos) {
 					collectBoolValueInPositiveContext(t, argAst, boolVars, true);
 					found01 = collectContainValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+					found09 = collectIndexOf2ValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found04 = collectEndsWithValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found05 = collectStartsWithValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
@@ -7923,6 +8173,7 @@ void collectDataInPositiveContext(
 					if (astToString.find("$$_bool") != std::string::npos) {
 						found01 = collectContainValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
+						found09 = collectIndexOf2ValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 						found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found04 = collectEndsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found05 = collectStartsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
@@ -7933,7 +8184,7 @@ void collectDataInPositiveContext(
 				}
 			}
 
-			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07 || found08)){
+			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07 || found08 || found09)){
 				collectEqualValueInPositiveContext(t, argAst, rewriterStrMap);
 			}
 		}

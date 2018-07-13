@@ -175,47 +175,55 @@ struct TokenElement{
 
 struct StringOP{
 	std::string name = "";
-	std::string arg01 = "";
-	std::string arg02 = "";
-	std::string arg03 = "";
+	std::vector<StringOP> args;
 
 	StringOP(const StringOP& a){
 		name = a.name;
-		arg01 = a.arg01;
-		arg02 = a.arg02;
-		arg03 = a.arg03;
+		args = a.args;
+	};
+
+	StringOP(){
+
 	};
 
 	StringOP(std::string _name): name(_name){
 
 	};
 
-	StringOP(std::string _name, std::string _arg01): name(_name), arg01(_arg01) {
-
+	StringOP(std::string _name, StringOP arg01): name(_name){
+		args.emplace_back(arg01);
 	};
 
-	StringOP(std::string _name, std::string _arg01, std::string _arg02): name(_name), arg01(_arg01), arg02(_arg02){
-
+	StringOP(std::string _name, StringOP arg01, StringOP arg02): name(_name){
+		args.emplace_back(arg01);
+		args.emplace_back(arg02);
 	};
 
-	StringOP(std::string _name, std::string _arg01, std::string _arg02, std::string _arg03): name(_name), arg01(_arg01), arg02(_arg02), arg03(_arg03){
-
+	StringOP(std::string _name, StringOP arg01, StringOP arg02, StringOP arg03): name(_name){
+		args.emplace_back(arg01);
+		args.emplace_back(arg02);
+		args.emplace_back(arg03);
 	};
+
+	StringOP(std::string _name, std::vector<StringOP> _args): name(_name), args(_args) {
+
+	}
 
 	void setName(std::string _name){
 		name = _name;
 	}
 
-	void setArg01(std::string _arg01){
-		arg01 = _arg01;
+	void addArg(StringOP _arg){
+		args.emplace_back(_arg);
 	}
 
-	void setArg02(std::string _arg02){
-		arg02 = _arg02;
+	void setArgs(std::vector<StringOP> _args){
+		args = _args;
 	}
 
-	void setArg03(std::string _arg03){
-		arg03 = _arg03;
+	void setArg(int pos, StringOP _arg){
+		assert((int)args.size() > pos);
+		args[pos] = _arg;
 	}
 
 	bool operator()(const StringOP& a) const{
@@ -223,12 +231,11 @@ struct StringOP{
 			if (name.compare(a.name) != 0)
 				return false;
 
-		if (arg01.length() > 0)
-			if (arg01.compare(a.arg01) != 0)
-				return false;
+		if (args.size() != a.args.size())
+			return false;
 
-		if (arg02.length() > 0)
-			if (arg02.compare(a.arg02) != 0)
+		for (unsigned i = 0 ; i < args.size(); ++i)
+			if (args[i].toString().compare(a.args[i].toString()) != 0)
 				return false;
 
 //		if (arg03.length() > 0)
@@ -243,12 +250,11 @@ struct StringOP{
 			if (name.compare(a.name) != 0)
 				return false;
 
-		if (arg01.length() > 0)
-			if (arg01.compare(a.arg01) != 0)
-				return false;
+		if (args.size() != a.args.size())
+			return false;
 
-		if (arg02.length() > 0)
-			if (arg02.compare(a.arg02) != 0)
+		for (unsigned i = 0 ; i < args.size(); ++i)
+			if (args[i].toString().compare(a.args[i].toString()) != 0)
 				return false;
 
 //		if (arg03.length() > 0)
@@ -261,15 +267,27 @@ struct StringOP{
 	/*
 	 *
 	 */
-	std::string toString(){
-		if (arg03.length() > 0)
-			return "(" + name + " " + arg01 + " " + arg02 + " " + arg03 + ")";
-		else if (arg02.length() > 0)
-			return "(" + name + " " + arg01 + " " + arg02 + ")";
-		else if (arg01.length() > 0)
-			return "(" + name + " " + arg01 + ")";
+	StringOP& operator=(StringOP const& copy){
+		name = copy.name;
+		args = copy.args;
+		return *this;
+	}
+
+	/*
+	 *
+	 */
+	std::string toString() const{
+		if (args.size() == 0)
+			return name;
+		else if (name.length() > 0){
+			std::string tmp = "(" + name;
+			for (unsigned i = 0 ; i < args.size(); ++i)
+				tmp = tmp + " " + args[i].toString();
+			tmp = tmp + ")";
+			return tmp;
+		}
 		else
-			return "(" + name + ")";
+			return "";
 	}
 
 //	friend bool operator <(const StringOP& x, const StringOP& y);
@@ -280,16 +298,20 @@ inline bool operator <(StringOP const& x, StringOP const& y) {
 
 	if (b0 != 0)
 		return b0 < 0;
+	if (x.args.size() > 0) {
+		std::string tmp01 = x.args[0].toString();
+		int b1 = x.args[0].toString().compare(y.args[0].toString());
 
-	int b1 = x.arg01.compare(y.arg01);
+		if (b1 != 0)
+			return b1 < 0;
 
-	if (b1 != 0)
-		return b1 < 0;
+		if (x.args.size() > 1) {
+			int b2 = x.args[1].toString().compare(y.args[1].toString());
 
-	int b2 = x.arg02.compare(y.arg02);
-
-	if (b2 != 0)
-		return b2 < 0;
+			if (b2 != 0)
+				return b2 < 0;
+		}
+	}
 
 //	int b3 = x.arg03.compare(y.arg03);
 //
@@ -492,6 +514,26 @@ std::string createStartsWithConstraint(std::string x, std::string y);
  *
  */
 std::string createEndsWithConstraint(std::string x, std::string y);
+
+/*
+ *
+ */
+void formatOP(StringOP &opx);
+
+/*
+ *
+ */
+void formatMinusOP(StringOP &opx);
+
+/*
+ *
+ */
+void formatPlusOP(StringOP &opx);
+
+/*
+ *
+ */
+void formatMultiplyOP(StringOP &opx);
 
 
 #endif /* UTILS_H_ */

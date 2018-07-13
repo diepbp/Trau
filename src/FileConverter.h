@@ -74,10 +74,22 @@ void updateReplaceAll(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap);
 
+
 /*
  *
  */
-std::string findOpArg(
+std::string sumTokens(std::vector<std::pair<std::string, int>> tokens,
+		int start, int finish);
+
+/*
+ *
+ */
+int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, std::string s, int type);
+
+/*
+ *
+ */
+StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
 				int &startPos);
 
@@ -86,8 +98,6 @@ std::string findOpArg(
  */
 StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
-		std::string name,
-		int argsNum,
 		int startPos);
 
 /*

@@ -538,3 +538,119 @@ std::string createEndsWithConstraint(std::string x, std::string y){
 	return "(EndsWith " + x + " " + y + ")";
 }
 
+/*
+ *
+ */
+void formatMinusOP(StringOP &opx){
+	if (opx.args.size() == 2) {
+		if (opx.args[0].name.compare("0") == 0) {
+			if (opx.args[1].name.compare("+") == 0){
+				std::vector<StringOP> tmp;
+				for (unsigned i = 0; i < opx.args[1].args.size(); ++i)
+					tmp.push_back(StringOP("-", opx.args[1].args[i]));
+				opx = StringOP("+", tmp);
+			}
+			else
+				opx = StringOP("-", opx.args[1]);
+		}
+		else /* convert - --> + */ {
+			std::vector<StringOP> tmp;
+			if (opx.args[1].name.compare("+") == 0){
+				for (unsigned i = 0; i < opx.args[1].args.size(); ++i)
+					tmp.push_back(StringOP("-", opx.args[1].args[i]));
+			}
+			else
+				tmp.push_back(StringOP("-", opx.args[1]));
+
+			if (opx.args[0].name.compare("+") == 0)
+				for (unsigned i = 0; i < opx.args[0].args.size(); ++i)
+					tmp.emplace_back(opx.args[0].args[i]);
+			else
+				tmp.emplace_back(opx.args[0]);
+			opx = StringOP("+", tmp);
+			formatPlusOP(opx);
+		}
+	}
+}
+
+
+/*
+ *
+ */
+void formatOP(StringOP &opx){
+	if (opx.name.compare("-") == 0)
+		formatMinusOP(opx);
+	else if (opx.name.compare("+") == 0)
+		formatPlusOP(opx);
+	else if (opx.name.compare("*") == 0)
+		formatMultiplyOP(opx);
+}
+/*
+ *
+ */
+void formatPlusOP(StringOP &opx){
+	/* remove 0 */
+	std::vector<StringOP> tmpVector;
+	for (unsigned i = 0 ; i < opx.args.size(); ++i){
+		std::string tmp = opx.args[i].toString();
+		if (tmp.size() == 0 || tmp.compare("0") == 0){
+		}
+		else
+			tmpVector.emplace_back(opx.args[i]);
+
+	}
+	opx.setArgs(tmpVector);
+
+	/* reorder args */
+	for (unsigned i = 0 ; i < opx.args.size(); ++i)
+		for (unsigned j = i + 1 ; j < opx.args.size(); ++j)
+			if (opx.args[i].toString().compare(opx.args[j].toString()) > 0) {
+				StringOP tmp = opx.args[i];
+				opx.args[i] = opx.args[j];
+				opx.args[j] = tmp;
+			}
+}
+
+/*
+ *
+ */
+void formatMultiplyOP(StringOP &opx){
+	/* remove 0 */
+	std::vector<StringOP> tmpVector;
+	bool remember = false;
+	for (unsigned i = 0 ; i < opx.args.size(); ++i){
+		std::string tmp = opx.args[i].toString();
+		if (tmp.size() == 0 || tmp.compare("1") == 0){
+		}
+		else if (tmp.compare("(- 1)") == 0){
+			remember = !remember;
+		}
+		else
+			tmpVector.emplace_back(opx.args[i]);
+
+	}
+	if (remember && tmpVector.size() > 0)
+		tmpVector[0] = StringOP("-", tmpVector[0]);
+	else
+		tmpVector.push_back(StringOP("-", StringOP("1")));
+
+	if (tmpVector.size() == 0){
+		opx = StringOP("1");
+	}
+	else if (tmpVector.size() == 1){
+		opx = tmpVector[0];
+	}
+	else {
+		opx.setArgs(tmpVector);
+
+		/* reorder args */
+		for (unsigned i = 0 ; i < opx.args.size(); ++i)
+			for (unsigned j = i + 1 ; j < opx.args.size(); ++j)
+				if (opx.args[i].toString().compare(opx.args[j].toString()) > 0) {
+					StringOP tmp = opx.args[i];
+					opx.args[i] = opx.args[j];
+					opx.args[j] = tmp;
+				}
+	}
+}
+

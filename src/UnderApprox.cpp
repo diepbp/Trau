@@ -1272,25 +1272,25 @@ void handle_NOTContains(
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
-				if (element.first.arg01.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.arg02.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.arg02.find("Automata ") != std::string::npos)
+				if (element.first.name.find(languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[1].name.find("Automata") != std::string::npos)
 					continue;
-				if (canSkipNotContain(element.first.arg01, element.first.arg02, rewriterStrMap)){
+				if (canSkipNotContain(element.first.args[0].toString(), element.first.args[1].toString(), rewriterStrMap)){
 					continue;
 				}
-				std::string value02 = getPossibleValue(element.first.arg02);
-				std::string value01 = getPossibleValue(element.first.arg01);
+				std::string value02 = getPossibleValue(element.first.args[1].name);
+				std::string value01 = getPossibleValue(element.first.args[0].name);
 				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
 				if (value02.compare(NOTFOUND) != 0 && value01.compare(NOTFOUND) == 0 &&
-						done.find(std::make_pair(element.first.arg01, value02)) == done.end()) {
+						done.find(std::make_pair(element.first.args[0].name, value02)) == done.end()) {
 
-					global_smtStatements.push_back({create_constraints_NOTContain(element.first.arg01, value02)});
+					global_smtStatements.push_back({create_constraints_NOTContain(element.first.args[0].name, value02)});
 
-					done[std::make_pair(element.first.arg01, value02)] = true;
+					done[std::make_pair(element.first.args[0].name, value02)] = true;
 				}
 				else if (value02.compare(NOTFOUND) == 0 && value01.compare(NOTFOUND) != 0 &&
-						done.find(std::make_pair(value01, element.first.arg02)) == done.end()) {
+						done.find(std::make_pair(value01, element.first.args[1].name)) == done.end()) {
 					// TODO handle_NOTContains
 				}
 				else if (value02.compare(NOTFOUND) != 0 && value01.compare(NOTFOUND) != 0) {
@@ -1316,11 +1316,11 @@ void handle_NOTEqual(
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare("=") == 0){
 			if (s.second.compare(FALSETR) == 0) {
-				if ((connectedVariables.find(s.first.arg01) != connectedVariables.end() ||
-						connectedVariables.find(s.first.arg02) != connectedVariables.end() ||
-						s.first.arg01.compare("\"\"") == 0 ||
-						s.first.arg02.compare("\"\"") == 0)){
-					global_smtStatements.push_back({create_constraints_NOTEqual(s.first.arg01, s.first.arg02)});
+				if ((connectedVariables.find(s.first.args[0].toString()) != connectedVariables.end() ||
+						connectedVariables.find(s.first.args[1].toString()) != connectedVariables.end() ||
+						s.first.args[0].toString().compare("\"\"") == 0 ||
+						s.first.args[1].toString().compare("\"\"") == 0)){
+					global_smtStatements.push_back({create_constraints_NOTEqual(s.first.args[0].toString(), s.first.args[1].toString())});
 				}
 			}
 			else {
@@ -1339,7 +1339,7 @@ void handle_StartsWith(
 
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
-			global_smtStatements.push_back({create_constraints_StartsWith(s.first.arg01, s.first.arg02, s.second)});
+			global_smtStatements.push_back({create_constraints_StartsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
 }
@@ -1352,7 +1352,7 @@ void handle_EndsWith(
 
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
-			global_smtStatements.push_back({create_constraints_EndsWith(s.first.arg01, s.first.arg02, s.second)});
+			global_smtStatements.push_back({create_constraints_EndsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
 }
@@ -1389,7 +1389,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare(languageMap[REPLACEALL]) == 0){
-			std::vector<std::string> args = {s.first.arg01, s.first.arg02, s.first.arg03};
+			std::vector<std::string> args = {s.first.args[0].toString(), s.first.args[1].toString(), s.first.args[2].toString()};
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
 	}
@@ -1400,7 +1400,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.second.compare(languageMap[TOUPPER]) == 0){
-			global_smtStatements.push_back({create_constraints_ToUpper(s.first.arg01, s.first.arg02)});
+			global_smtStatements.push_back({create_constraints_ToUpper(s.first.args[0].toString(), s.first.args[1].toString())});
 		}
 	}
 }
@@ -1411,7 +1411,7 @@ void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.second.compare(languageMap[TOLOWER]) == 0){
-			global_smtStatements.push_back({create_constraints_ToLower(s.first.arg01, s.first.arg02)});
+			global_smtStatements.push_back({create_constraints_ToLower(s.first.args[0].name, s.first.args[1].name)});
 		}
 	}
 }
@@ -2396,23 +2396,23 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				(s.first.name.compare(languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
 				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(languageMap[TOUPPER]) == 0 || s.second.compare(languageMap[TOLOWER]) == 0))){
 			StringOP op = s.first;
-			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
+//			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.arg01.find(languageMap[CONCAT]) != std::string::npos ||
-					s.first.arg02.find(languageMap[CONCAT]) != std::string::npos ||
-					s.first.arg02.find("Automata ") != std::string::npos)
+			if (s.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
+					s.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
+					s.first.args[1].name.find("Automata ") != std::string::npos)
 				continue;
 
 			if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0) {
-				if (s.first.arg01.compare("\"\"") == 0 || s.first.arg02.compare("\"\"") == 0)
+				if (s.first.args[0].name.compare("\"\"") == 0 || s.first.args[1].name.compare("\"\"") == 0)
 					continue;
 
 				bool canSkip = false;
-				if (s.first.arg02[0] == '"' && !isRegexStr(s.first.arg02)) {
-					if (equalitiesMap.find(s.first.arg01) != equalitiesMap.end())
-						for (const auto _eq : equalitiesMap[s.first.arg01]) {
+				if (s.first.args[1].name[0] == '"' && !isRegexStr(s.first.args[1].name)) {
+					if (equalitiesMap.find(s.first.args[0].name) != equalitiesMap.end())
+						for (const auto _eq : equalitiesMap[s.first.args[0].name]) {
 							for (const auto e : _eq)
-								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg02.find(e) == std::string::npos) {
+								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.args[1].name.find(e) == std::string::npos) {
 									canSkip = true;
 									break;
 								}
@@ -2421,11 +2421,11 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 						}
 				}
 
-				if (s.first.arg01[0] == '"' && !isRegexStr(s.first.arg01)) {
-					if (equalitiesMap.find(s.first.arg02) != equalitiesMap.end())
-						for (const auto _eq : equalitiesMap[s.first.arg02]) {
+				if (s.first.args[0].name[0] == '"' && !isRegexStr(s.first.args[0].name)) {
+					if (equalitiesMap.find(s.first.args[1].name) != equalitiesMap.end())
+						for (const auto _eq : equalitiesMap[s.first.args[1].name]) {
 							for (const auto e : _eq)
-								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.arg01.find(e) == std::string::npos) {
+								if (e[0] == '"' && !isRegexStr(e) && !isUnionStr(e) && s.first.args[0].name.find(e) == std::string::npos) {
 									canSkip = true;
 									break;
 								}
@@ -2435,49 +2435,49 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				}
 
 				if (canSkip) {
-					__debugPrint(logFile, "%d skip %s != %s\n", __LINE__, s.first.arg01.c_str(), s.first.arg02.c_str());
+					__debugPrint(logFile, "%d skip %s != %s\n", __LINE__, s.first.args[0].name.c_str(), s.first.args[1].name.c_str());
 					continue;
 				}
 			}
 
 			if (s.first.name.compare(languageMap[CHARAT]) == 0){
-				if (s.first.arg01[0] != '\"') {
-					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
-					connectedVarSet[s.first.arg01] = connectingSize;
+				if (s.first.args[0].name[0] != '\"') {
+					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
+					connectedVarSet[s.first.args[0].name] = connectingSize;
 				}
 			}
 
 			/* add all of variables to the connected var set*/
-			if (s.first.arg01[0] != '\"') {
+			if (s.first.args[0].name[0] != '\"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
-					if (s.first.arg02[0] == '"') {
-						if (connectedVarSet.find(s.first.arg01) == connectedVarSet.end())
-							connectedVarSet[s.first.arg01] = s.first.arg02.length() - 2;
+					if (s.first.args[1].name[0] == '"') {
+						if (connectedVarSet.find(s.first.args[0].name) == connectedVarSet.end())
+							connectedVarSet[s.first.args[0].name] = s.first.args[1].name.length() - 2;
 						else
-							connectedVarSet[s.first.arg01] = std::max((int)s.first.arg02.length() - 2, connectedVarSet[s.first.arg01]);
+							connectedVarSet[s.first.args[0].name] = std::max((int)s.first.args[1].name.length() - 2, connectedVarSet[s.first.args[0].name]);
 					}
 					else
-						connectedVarSet[s.first.arg01] = connectingSize;
+						connectedVarSet[s.first.args[0].name] = connectingSize;
 				}
 				else
-					connectedVarSet[s.first.arg01] = connectingSize;
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg01.c_str());
+					connectedVarSet[s.first.args[0].name] = connectingSize;
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
 			}
 
-			if (s.first.arg02[0] != '"') {
+			if (s.first.args[1].name[0] != '"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
-					if (s.first.arg01[0] == '"') {
-						if (connectedVarSet.find(s.first.arg02) == connectedVarSet.end())
-							connectedVarSet[s.first.arg02] = s.first.arg01.length() - 2;
+					if (s.first.args[0].name[0] == '"') {
+						if (connectedVarSet.find(s.first.args[1].name) == connectedVarSet.end())
+							connectedVarSet[s.first.args[1].name] = s.first.args[0].name.length() - 2;
 						else
-							connectedVarSet[s.first.arg02] = std::max((int)s.first.arg01.length() - 2, connectedVarSet[s.first.arg02]);
+							connectedVarSet[s.first.args[1].name] = std::max((int)s.first.args[0].name.length() - 2, connectedVarSet[s.first.args[1].name]);
 					}
 					else
-						connectedVarSet[s.first.arg02] = connectingSize;
+						connectedVarSet[s.first.args[1].name] = connectingSize;
 				}
 				else
-					connectedVarSet[s.first.arg02] = connectingSize;
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.arg02.c_str());
+					connectedVarSet[s.first.args[1].name] = connectingSize;
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[1].name.c_str());
 			}
 		}
 	}
@@ -2619,6 +2619,7 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 	equalitiesMap.clear();
 	equalitiesMap = new_eqMap;
 
+	__debugPrint(logFile, "%d finish %s\n", __LINE__, __FUNCTION__);
 	printEqualMap(equalitiesMap);
 }
 
@@ -4116,8 +4117,8 @@ std::map<std::string, int> createSimpleEqualMap(
 	std::map<std::string, int> index;
 	int maxIndex = 0;
 	for (const auto& op : equalities){
-		std::string arg01 = op.arg01;
-		std::string arg02 = op.arg02;
+		std::string arg01 = op.args[0].toString();
+		std::string arg02 = op.args[1].toString();
 		if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
 			arg02 = findEqValueInConcat(arg02, len);
 		}
@@ -4180,8 +4181,8 @@ std::vector<std::string> findEqualVar(
 	while (pos < ret.size()) {
 		varName = ret[pos++];
 		for (const auto& op : equalities) {
-			std::string arg01 = op.arg01;
-			std::string arg02 = op.arg02;
+			std::string arg01 = op.args[0].toString();
+			std::string arg02 = op.args[1].toString();
 			assert(arg01.find("(" + std::string(languageMap[CONCAT])) != 0);
 
 			if (arg01.compare(varName) == 0) {
@@ -4259,15 +4260,15 @@ bool findExistsingValue(
 		__debugPrint(logFile, "%d not found value %s yet\n", __LINE__, varName.c_str());
 		/* find value from Concat */
 		for (const auto& op : equalities){
-			if (op.arg02.find("(" + std::string(languageMap[CONCAT])) == 0 &&
-					std::find(eqVar.begin(), eqVar.end(), op.arg01) == eqVar.end()){
+			if (op.args[1].name.find(std::string(languageMap[CONCAT])) == 0 &&
+					std::find(eqVar.begin(), eqVar.end(), op.args[0].toString()) == eqVar.end()){
 				std::vector<std::pair<std::string, int>> tokens;
 				switch (languageVersion) {
 				case 20:
-					tokens = parseTerm20(op.arg02);
+					tokens = parseTerm20(op.args[1].toString());
 					break;
 				case 25:
-					tokens = parseTerm26(op.arg02);
+					tokens = parseTerm26(op.args[1].toString());
 					break;
 				default:
 					assert(false);
@@ -4278,8 +4279,7 @@ bool findExistsingValue(
 					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0)
 						tmpTokens.emplace_back(token.first);
 				unsigned pos = 0;
-				std::vector<int> tmpVal = getVarValue(op.arg01, len, strValue);
-				__debugPrint(logFile, "%d %s\n", __LINE__, op.arg02.c_str());
+				std::vector<int> tmpVal = getVarValue(op.args[0].toString(), len, strValue);
 				for (const auto& token : tmpTokens)
 					if (std::find(eqVar.begin(), eqVar.end(), token) != eqVar.end()){
 						int leng = getVarLength(varName, len);
@@ -4345,12 +4345,11 @@ void formatOtherVars(
 	for (const auto& op : orgRewriterStrMap){
 		if (op.first.name.compare("=") == 0 &&
 				op.second.compare(TRUESTR) == 0 &&
-				op.first.arg02.find("\"") == std::string::npos &&
-				op.first.arg01.find("\"") == std::string::npos){
-			StringOP _op("=", op.first.arg01, op.first.arg02);
-			if (op.first.arg01.find("(" + std::string(languageMap[CONCAT])) == 0) {
-				_op.arg01 = op.first.arg02;
-				_op.arg02 = op.first.arg01;
+				op.first.args[1].name.find("\"") == std::string::npos &&
+				op.first.args[0].name.find("\"") == std::string::npos){
+			StringOP _op("=", op.first.args[0], op.first.args[1]);
+			if (op.first.args[0].name.find(std::string(languageMap[CONCAT])) == 0) {
+				_op.setArgs({op.first.args[1], op.first.args[0]});
 			}
 			equalities.emplace_back(_op);
 			__debugPrint(logFile, "%d %s\n", __LINE__, _op.toString().c_str());
@@ -5018,8 +5017,9 @@ void addConnectedVarToEQmap(){
 void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
 		if (op.first.name.compare(languageMap[CONTAINS]) == 0 && op.second.compare(FALSETR) == 0){
-			if (op.first.arg02[0] == '"') {
-				notContainMap[std::make_pair(op.first.arg01, op.first.arg02.substr(1, op.first.arg02.length() - 2))] = false;
+			std::string arg02 = op.first.args[1].name;
+			if (arg02[0] == '"') {
+				notContainMap[std::make_pair(op.first.args[0].toString(), arg02.substr(1, arg02.length() - 2))] = false;
 			}
 		}
 }
@@ -5031,11 +5031,13 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
 	std::map<std::string, std::vector<std::string>> ret;
 	for (const auto op : rewriterStrMap)
 		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
-			if (op.first.arg02[0] == '"') {
-				if (ret.find(op.first.arg01) == ret.end())
-					ret[op.first.arg01] = {op.first.arg02.substr(1, op.first.arg02.length() - 2)};
+			std::string arg02 = op.first.args[1].name;
+			if (arg02[0] == '"') {
+				std::string arg02 = op.first.args[1].name;
+				if (ret.find(op.first.args[0].toString()) == ret.end())
+					ret[op.first.args[0].toString()] = {arg02.substr(1, arg02.length() - 2)};
 				else
-					ret[op.first.arg01].emplace_back(op.first.arg02.substr(1, op.first.arg02.length() - 2));
+					ret[op.first.args[0].toString()].emplace_back(arg02.substr(1, arg02.length() - 2));
 			}
 		}
 	return ret;
@@ -5114,6 +5116,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	refineEqualMap(rewriterStrMap);
 	createAppearanceMap();
 	updateFullEqualMap();
+	__debugPrint(logFile, "%d finish %s\n", __LINE__, __FUNCTION__);
 }
 
 /*
@@ -5236,17 +5239,24 @@ void updateRewriter(
 	orgRewriterStrMap = rewriterStrMap;
 	std::map<StringOP, std::string> newRewriterStrMap;
 	for (const auto& op : rewriterStrMap){
+		if (op.first.args.size() < 2){
+			newRewriterStrMap[op.first] = op.second;
+			continue;
+		}
 
 		if (op.first.name.compare("=") == 0 && op.second.compare(FALSETR) == 0){
-			if (!isTrivialInequality(op.first.arg01, op.first.arg02)) {
+			if (!isTrivialInequality(op.first.args[0].toString(), op.first.args[1].toString())) {
 				newRewriterStrMap[op.first] = op.second;
 			}
 			continue;
 		}
 
-		if (allVariables.find(op.first.arg01) != allVariables.end() ||
-				allVariables.find(op.first.arg02) != allVariables.end() ||
-				allVariables.find(op.first.arg03) != allVariables.end())
+		if (allVariables.find(op.first.args[0].toString()) != allVariables.end() ||
+				allVariables.find(op.first.args[1].toString()) != allVariables.end() ||
+				(op.first.args.size() < 3 || allVariables.find(op.first.args[2].toString()) != allVariables.end()) ||
+				op.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+				op.first.args[0].name.find(languageMap[INDEXOF]) != std::string::npos ||
+				op.first.args[1].name.find(languageMap[INDEXOF]) != std::string::npos)
 			newRewriterStrMap[op.first] = op.second;
 		else {
 			StringOP tmp = op.first;
