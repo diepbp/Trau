@@ -138,7 +138,7 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
 				int &startPos){
-	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP ret;
 	if (tokens[startPos].second == 92) {
 		int tmp = findCorrespondRightParentheses(startPos, tokens);
@@ -202,7 +202,7 @@ StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
 		int startPos){
 
-	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP op(tokens[startPos].first);
 
 	while (true){
@@ -1926,6 +1926,30 @@ void encodeHex(std::string inputFile, std::string outFile){
 }
 
 /*
+ *
+ */
+void defineIntVars(
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition){
+	std::set<std::string> intVars;
+	for (const auto& opx : rewriterStrMap){
+		if (opx.second.find("$$_int") != std::string::npos){
+			std::vector<std::string> tokens = parse_string_language(opx.second, " ()");
+			for (const auto& token : tokens)
+				if (token.find("$$_int") == 0) {
+					intVars.emplace(token);
+				}
+		}
+	}
+
+	for (const auto& s: intVars){
+		smtVarDefinition.emplace_back(createIntDefinition(s));
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, smtVarDefinition[smtVarDefinition.size() - 1].c_str());
+	}
+
+}
+
+/*
  * read SMT file
  * convert the file to length file & store it
  */
@@ -1938,6 +1962,7 @@ void toLengthFile(
 	smtVarDefinition.clear();
 	smtLenConstraints.clear();
 
+	defineIntVars(rewriterStrMap, smtVarDefinition);
 	std::vector<std::vector<std::string>> newtokens;
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {

@@ -5681,7 +5681,7 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
  *
  */
 bool formatOPInternal(StringOP &op){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 	if (op.name.find("$$_") == 0){
 		if (internalVarFunctionMap.find(op) != internalVarFunctionMap.end()){
 			op = internalVarFunctionMap[op];

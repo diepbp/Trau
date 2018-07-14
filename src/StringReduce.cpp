@@ -2517,10 +2517,18 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 				throw std::runtime_error(
 						"CharAt function accepts a const letter only!");
 			}
-		} else if (isConcatFunc(t, s1) && isConcatFunc(t, s2))
+		} else if (isConcatFunc(t, s1) && isConcatFunc(t, s2)) {
+			std::vector<Z3_ast> list;
+			Z3_ast tmp = mk_internal_string_var(t);
+			list.emplace_back(Z3_mk_eq(ctx, tmp, s1));
+			list.emplace_back(Z3_mk_eq(ctx, tmp, s2));
+			*r = mk_and_fromVector(t, list);
+			return Z3_TRUE;
 			throw std::runtime_error(
-					"One side of equality must be a string variable! The error is at:"
-							+ tmp01 + " = " + tmp02);
+								"One side of equality must be a string variable! The error is at:"
+										+ tmp01 + " = " + tmp02);
+		}
+
 	}
 
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);

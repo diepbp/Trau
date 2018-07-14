@@ -303,6 +303,13 @@ void toNonGRMFile(
 		std::map<std::string, std::string> constMap);
 
 /*
+ *
+ */
+void defineIntVars(
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition);
+
+/*
  * read SMT file
  * convert the file to length file & store it
  */

@@ -1272,8 +1272,10 @@ void handle_NOTContains(
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
-				if (element.first.name.find(languageMap[CONCAT]) != std::string::npos ||
+				if (element.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
 						element.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
 						element.first.args[1].name.find("Automata") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.args[0].toString(), element.first.args[1].toString(), rewriterStrMap)){
@@ -1281,6 +1283,7 @@ void handle_NOTContains(
 				}
 				std::string value02 = getPossibleValue(element.first.args[1].name);
 				std::string value01 = getPossibleValue(element.first.args[0].name);
+				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, element.first.args[0].toString().c_str(), element.first.args[1].toString().c_str());
 				__debugPrint(logFile, "%d *** %s ***: %s -- %s\n", __LINE__, __FUNCTION__, value01.c_str(), value02.c_str());
 				if (value02.compare(NOTFOUND) != 0 && value01.compare(NOTFOUND) == 0 &&
 						done.find(std::make_pair(element.first.args[0].name, value02)) == done.end()) {
@@ -2396,11 +2399,14 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				(s.first.name.compare(languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
 				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(languageMap[TOUPPER]) == 0 || s.second.compare(languageMap[TOLOWER]) == 0))){
 			StringOP op = s.first;
+
 //			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
 			if (s.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
 					s.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
-					s.first.args[1].name.find("Automata ") != std::string::npos)
+					s.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+					s.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+					s.first.args[1].name.find("Automata") != std::string::npos )
 				continue;
 
 			if (s.first.name.compare("=") == 0 && s.second.compare(FALSETR) == 0) {
@@ -2445,6 +2451,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
 					connectedVarSet[s.first.args[0].name] = connectingSize;
 				}
+				continue;
 			}
 
 			/* add all of variables to the connected var set*/

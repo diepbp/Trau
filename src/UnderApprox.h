@@ -678,6 +678,11 @@ void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 /*
  *
  */
+void defineIntVars(std::map<StringOP, std::string> rewriterStrMap);
+
+/*
+ *
+ */
 bool isTrivialInequality(std::string x, std::string  y);
 
 /*
