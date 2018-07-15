@@ -89,6 +89,12 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 /*
  *
  */
+void formatOPByRewriter(StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap);
+
+/*
+ *
+ */
 StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
 				int &startPos);

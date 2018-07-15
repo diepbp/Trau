@@ -748,6 +748,11 @@ typedef struct _AutomatonStringData
  std::map<std::string, int> collectCurrentLength(Z3_theory t);
 
  /*
+  *
+  */
+ bool formatOPInternal(StringOP &op);
+
+ /*
   * change each internal variable by corresponding function
   */
  void reformatInternalVarFunctionMap();

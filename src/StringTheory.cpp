@@ -5682,29 +5682,38 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
  */
 bool formatOPInternal(StringOP &op){
 //	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
-	if (op.name.find("$$_") == 0){
-		if (internalVarFunctionMap.find(op) != internalVarFunctionMap.end()){
-			op = internalVarFunctionMap[op];
-			return true;
+	bool update = false;
+	if (op.args.size() == 0){
+		if (op.name.find("$$_") == 0) {
+			if (internalVarFunctionMap.find(op) != internalVarFunctionMap.end()){
+				op = internalVarFunctionMap[op];
+				update = true;
+			}
 		}
-		else
-			return false;
 	}
 	else {
-		bool update = false;
 		for (unsigned i = 0; i < op.args.size(); ++i) {
-			update = update || formatOPInternal(op.args[i]);
+			if (op.args[i].name.find("$$_") == 0){
+				if (internalVarFunctionMap.find(op.args[i]) != internalVarFunctionMap.end()){
+					op.args[i] = internalVarFunctionMap[op.args[i]];
+					update = true;
+				}
+			}
+			else if (op.args[i].args.size() > 0)
+				update = update || formatOPInternal(op.args[i]);
 		}
 		formatOP(op);
-		return update;
 	}
+//	__debugPrint(logFile, "%d >>  %s\n", __LINE__, op.toString().c_str());
+	return update;
+
 }
 
 /*
  * change each internal variable by corresponding function
  */
 void reformatInternalVarFunctionMap(){
-	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+//	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	bool found = true;
 	while (found){
 		found = false;
@@ -5729,18 +5738,18 @@ void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
 	std::map<StringOP, std::string> ret;
 	for (const auto& op : rewriterMap){
 		StringOP tmp = op.first;
-		__debugPrint(logFile, "%d %s: %s\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
-		if (op.first.name.compare("=") != 0){
-			std::vector<StringOP> args = op.first.args;
-			for (unsigned i = 0; i < args.size(); ++i)
-				formatOPInternal(args[i]);
-			ret[StringOP(op.first.name, args)] = op.second;
+		std::vector<StringOP> args = tmp.args;
+		for (unsigned i = 0; i < args.size(); ++i) {
+			formatOPInternal(args[i]);
 		}
-		else
-			ret[op.first] = op.second;
+		tmp = StringOP(op.first.name, args);
+		ret[tmp] = op.second;
+
 	}
-	for (const auto& s : ret)
+	for (const auto& s : ret) {
+		__debugPrint(logFile, "%d >> %s\n", __LINE__, s.first.toString().c_str());
 		rewriterMap[s.first] = s.second;
+	}
 }
 
 /**
@@ -5818,9 +5827,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
 		reformatRewriterMap(rewriterStrMap);
 
-		for (const auto& elem : internalVarFunctionMap){
-					__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
-				}
+//		for (const auto& elem : internalVarFunctionMap){
+//			__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
+//		}
 
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
@@ -7988,12 +7997,12 @@ bool collectReplaceValueInPositiveContext(
 	for (const auto& it : replaceStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = TRUESTR;
+				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = FALSETR;
+				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
 			return true;
 		}
 	}
@@ -8020,12 +8029,12 @@ bool collectReplaceAllValueInPositiveContext(
 	for (const auto& it : replaceAllStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = TRUESTR;
+				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = FALSETR;
+				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
 			return true;
 		}
 	}

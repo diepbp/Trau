@@ -550,17 +550,29 @@ void formatMinusOP(StringOP &opx){
 					tmp.push_back(StringOP("-", opx.args[1].args[i]));
 				opx = StringOP("+", tmp);
 			}
-			else
-				opx = StringOP("-", opx.args[1]);
+			else {
+				if (opx.args[1].name.compare("0") == 0)
+					opx = StringOP("0");
+				else
+					opx = StringOP("-", opx.args[1]);
+			}
 		}
 		else /* convert - --> + */ {
 			std::vector<StringOP> tmp;
 			if (opx.args[1].name.compare("+") == 0){
-				for (unsigned i = 0; i < opx.args[1].args.size(); ++i)
-					tmp.push_back(StringOP("-", opx.args[1].args[i]));
+				for (unsigned i = 0; i < opx.args[1].args.size(); ++i) {
+					if (opx.args[1].args[i].name.compare("0") == 0)
+						tmp.push_back(StringOP("0"));
+					else
+						tmp.push_back(StringOP("-", opx.args[1].args[i]));
+				}
 			}
-			else
-				tmp.push_back(StringOP("-", opx.args[1]));
+			else {
+				if (opx.args[1].name.compare("0") == 0)
+					tmp.push_back(StringOP("0"));
+				else
+					tmp.push_back(StringOP("-", opx.args[1]));
+			}
 
 			if (opx.args[0].name.compare("+") == 0)
 				for (unsigned i = 0; i < opx.args[0].args.size(); ++i)
@@ -571,6 +583,9 @@ void formatMinusOP(StringOP &opx){
 			formatPlusOP(opx);
 		}
 	}
+	else if (opx.args.size() == 1)
+		if (opx.args[0].name.compare("0") == 0)
+			opx = StringOP("0");
 }
 
 
@@ -609,6 +624,10 @@ void formatPlusOP(StringOP &opx){
 				opx.args[i] = opx.args[j];
 				opx.args[j] = tmp;
 			}
+
+	if (opx.args.size() == 1)
+		if (opx.args[0].name.compare("0") == 0)
+			opx = StringOP("0");
 }
 
 /*

@@ -298,21 +298,29 @@ inline bool operator <(StringOP const& x, StringOP const& y) {
 
 	if (b0 != 0)
 		return b0 < 0;
-	if (x.args.size() > 0) {
-		std::string tmp01 = x.args[0].toString();
-		int b1 = x.args[0].toString().compare(y.args[0].toString());
 
+	for (unsigned i = 0; i < x.args.size(); ++i) {
+		if (i > y.args.size())
+			return true;
+		int b1 = x.args[i].toString().compare(y.args[i].toString());
 		if (b1 != 0)
 			return b1 < 0;
 
-		if (x.args.size() > 1) {
-			int b2 = x.args[1].toString().compare(y.args[1].toString());
-
-			if (b2 != 0)
-				return b2 < 0;
-		}
 	}
-
+//	if (x.args.size() > 0) {
+//		int b1 = x.args[0].toString().compare(y.args[0].toString());
+//
+//		if (b1 != 0)
+//			return b1 < 0;
+//
+//		if (x.args.size() > 1) {
+//			int b2 = x.args[1].toString().compare(y.args[1].toString());
+//
+//			if (b2 != 0)
+//				return b2 < 0;
+//		}
+//	}
+//
 //	int b3 = x.arg03.compare(y.arg03);
 //
 //	if (b3 != 0)

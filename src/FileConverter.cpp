@@ -135,6 +135,37 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 /*
  *
  */
+void formatOPByRewriter(StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	bool update = false;
+	if (op.args.size() == 0){
+		if (op.name.find("$$_") == 0) {
+			for (const auto& opx : rewriterStrMap)
+				if (opx.second.compare(op.name) == 0) {
+					op = opx.first;
+					return;
+				}
+		}
+	}
+	else {
+		for (unsigned i = 0; i < op.args.size(); ++i) {
+			if (op.args[i].name.find("$$_") == 0){
+				for (const auto& opx : rewriterStrMap)
+					if (opx.second.compare(op.args[i].name) == 0) {
+						op.args[i] = opx.first;
+						break;
+					}
+			}
+			else if (op.args[i].args.size() > 0)
+				formatOPByRewriter(op.args[i], rewriterStrMap);
+		}
+		formatOP(op);
+	}
+}
+
+/*
+ *
+ */
 StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
 				int &startPos){
@@ -230,7 +261,7 @@ void updateEquality(
 		__debugPrint(logFile, "%d stringOP: %s\n", __LINE__, op.toString().c_str());
 		bool foundOp = false;
 		for (const auto& _op : rewriterStrMap) {
-			__debugPrint(logFile, "%d op: %s\n", __LINE__, _op.first.toString().c_str());
+//			__debugPrint(logFile, "%d op: %s\n", __LINE__, _op.first.toString().c_str());
 			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
 				tokens = replaceTokens(tokens, found - 1, findCorrespondRightParentheses(found - 1, tokens), _op.second, 88);
 				foundOp = true;
@@ -433,7 +464,6 @@ void updateEndsWith(
 	int found = findTokens(tokens, 0, languageMap[ENDSWITH], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
@@ -468,17 +498,17 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	int found = findTokens(tokens, 0, languageMap[REPLACE], 88);
 	while (found != -1){
-		while (found >= 0) {
-			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
-				int pos = findCorrespondRightParentheses(found, tokens);
-				tokens = replaceTokens(tokens, found, pos, TRUESTR, 15);
-				break;
-			}
-			else
-				found = found - 1;
-		}
+		int pos = findCorrespondRightParentheses(found - 1, tokens);
+
+		StringOP op(findStringOP(tokens, found));
+		formatOPByRewriter(op, rewriterStrMap);
+		__debugPrint(logFile, "%d op: %s\n", __LINE__, op.toString().c_str());
+
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
 		found = findTokens(tokens, found, languageMap[REPLACE], 88);
 	}
 }
@@ -491,21 +521,18 @@ void updateReplaceAll(
 		std::map<StringOP, std::string> rewriterStrMap){
 	int found = findTokens(tokens, 0, languageMap[REPLACEALL], 88);
 	while (found != -1){
-		while (found >= 0) {
-			if (tokens[found].first.compare("(") == 0 && tokens[found + 1].first.compare("=") == 0){
-				int pos = findCorrespondRightParentheses(found, tokens);
-				tokens = replaceTokens(tokens, found, pos, TRUESTR, 15);
-				break;
-			}
-			else
-				found = found - 1;
-		}
+		int pos = findCorrespondRightParentheses(found - 1, tokens);
+
+		StringOP op(findStringOP(tokens, found));
+		formatOPByRewriter(op, rewriterStrMap);
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], 88);
 		found = findTokens(tokens, found, languageMap[REPLACEALL], 88);
 	}
 }
 
 /*
- * (Substring a b c) --> c
+ * (Substring a b c) --> c && rewriter map
  */
 void updateSubstring(
 		std::vector<std::pair<std::string, int>> &tokens,
@@ -581,7 +608,6 @@ void updateSubstring(
 			}
 		}
 		__debugPrint(logFile, "%d op --> %s\n", __LINE__, rewriterStrMap[op].c_str());
-		__debugPrint(logFile, "%d *** FINAL ***: s = %s\n", __LINE__, sumTokens(tmp, 0, tmp.size() - 1).c_str());
 		tokens.clear();
 		tokens = tmp;
 
@@ -1331,20 +1357,23 @@ void toLengthLine(
 	updateEquality(tokens, rewriterStrMap);
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateNot(tokens);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
 	updateIndexOf2(tokens, rewriterStrMap);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateIndexOf(tokens, rewriterStrMap);
 	updateEndsWith(tokens, rewriterStrMap);
 	updateStartsWith(tokens, rewriterStrMap);
 	updateReplace(tokens, rewriterStrMap);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateReplaceAll(tokens, rewriterStrMap);
 
 	updateToUpper(tokens);
 	updateToLower(tokens);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateSubstring(tokens, rewriterStrMap);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateCharAt(tokens);
 
 	updateConst(tokens); /* "abcdef" --> 6 */
