@@ -1275,7 +1275,13 @@ void handle_NOTContains(
 				if (element.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
 						element.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
 						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[0].name.find(languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[1].name.find(languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[0].name.find(languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[1].name.find(languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[0].name.find(languageMap[TOLOWER]) != std::string::npos ||
+						element.first.args[1].name.find(languageMap[TOLOWER]) != std::string::npos ||
 						element.first.args[1].name.find("Automata") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.args[0].toString(), element.first.args[1].toString(), rewriterStrMap)){
@@ -5143,24 +5149,6 @@ void additionalHandling(std::map<StringOP, std::string> rewriterStrMap){
 /*
  *
  */
-std::set<std::string> collectAllVars(){
-	std::set<std::string> results;
-	for (const auto& varEq: equalitiesMap) {
-		if (varEq.first[0] != '"')
-			results.emplace(varEq.first);
-
-		for (const auto& _eq : varEq.second){
-			for (const auto& v : _eq)
-				if (v[0] != '"')
-					results.emplace(v);
-		}
-	}
-	return results;
-}
-
-/*
- *
- */
 bool isTrivialInequality(std::string x, std::string  y){
 	__debugPrint(logFile, "%d *** %s ***: %s != %s\n", __LINE__, __FUNCTION__, x.c_str(), y.c_str());
 	if (isRegexStr(x) || isUnionStr(x)) {
@@ -5245,6 +5233,20 @@ void updateRewriter(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	orgRewriterStrMap = rewriterStrMap;
 	std::map<StringOP, std::string> newRewriterStrMap;
+
+	/* collect all vars */
+	for (const auto& op : rewriterStrMap){
+		if (op.first.name.find("$$_str") == 0)
+			allVariables.emplace(op.first.name);
+		else {
+			for (unsigned i = 0; i < op.first.args.size(); ++i)
+				if (op.first.args[i].name.find("$$_str") == 0)
+					allVariables.emplace(op.first.args[i].name);
+		}
+		if (op.second.find("$$_str") == 0)
+			allVariables.emplace(op.second);
+	}
+
 	for (const auto& op : rewriterStrMap){
 		if (op.first.args.size() < 2){
 			newRewriterStrMap[op.first] = op.second;

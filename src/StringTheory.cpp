@@ -5827,9 +5827,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
 		reformatRewriterMap(rewriterStrMap);
 
-//		for (const auto& elem : internalVarFunctionMap){
-//			__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
-//		}
+		for (const auto& elem : internalVarFunctionMap){
+			__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
+		}
 
 		for (const auto& elem : rewriterStrMap){
 			StringOP op = elem.first;
@@ -7997,12 +7997,20 @@ bool collectReplaceValueInPositiveContext(
 	for (const auto& it : replaceStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
+				for (const auto& opx : internalVarFunctionMap)
+					if (opx.second == it.first) {
+						rewriterStrMap[it.first] = opx.first.toString();
+						break;
+					}
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
+				for (const auto& opx : internalVarFunctionMap)
+					if (opx.second == it.first) {
+						rewriterStrMap[it.first] = opx.first.toString();
+						break;
+					}
 			return true;
 		}
 	}
@@ -8029,12 +8037,20 @@ bool collectReplaceAllValueInPositiveContext(
 	for (const auto& it : replaceAllStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
+				for (const auto& opx : internalVarFunctionMap)
+					if (opx.second == it.first) {
+						rewriterStrMap[it.first] = opx.first.toString();
+						break;
+					}
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else
-				rewriterStrMap[it.first] = internalVarFunctionMap[it.first].toString();
+				for (const auto& opx : internalVarFunctionMap)
+					if (opx.second == it.first) {
+						rewriterStrMap[it.first] = opx.first.toString();
+						break;
+					}
 			return true;
 		}
 	}

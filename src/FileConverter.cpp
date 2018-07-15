@@ -786,7 +786,9 @@ void updateVariables(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::vector<std::string> strVars) {
 	for (unsigned int i = 0; i < tokens.size(); ++i) {
-		if (tokens[i].second == 88 && std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) {
+		if (tokens[i].second == 88 &&
+				(std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) ||
+				tokens[i].first.find("$$_str") == 0) {
 			tokens[i].first = LENPREFIX + tokens[i].first;
 		}
 	}
