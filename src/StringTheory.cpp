@@ -4277,7 +4277,7 @@ void extendVariableToFindAllPossibleEqualities(
 						fullEqPossibilities[node].push_back({_node});
 					else if (isConcatFunc(t, _node)) {
 						std::vector<Z3_ast> nodes;
-						collect_node_in_concat(t, node, nodes);
+						collect_node_in_concat(t, _node, nodes);
 						fullEqPossibilities[node].push_back(nodes);
 					}
 				}
