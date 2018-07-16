@@ -2,6 +2,7 @@
 
 extern int nondeterministicCounter;
 extern bool havingGrmConstraints;
+extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> concat_astNode_map;
 extern std::map<Z3_ast, Z3_ast> grm_astNode_map;
 extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
@@ -1802,6 +1803,21 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			convertedArgs[i] = args[i];
 		}
 	}
+	std::vector<Z3_ast> encodedConstraints;
+
+	for (int i = 0; i < n; ++i)
+		if (isConcatFunc(t, convertedArgs[i])){
+			Z3_ast n1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, convertedArgs[i]), 0);
+			Z3_ast n2 = Z3_get_app_arg(ctx, Z3_to_app(ctx, convertedArgs[i]), 1);
+			std::pair<Z3_ast, Z3_ast> concatArgs(n1, n2);
+			if (concat_astNode_map.find(concatArgs) == concat_astNode_map.end()){
+				Z3_ast tmp = mk_internal_string_var(t);
+				encodedConstraints.push_back(Z3_mk_eq(ctx, tmp, convertedArgs[i]));
+			}
+			else {
+				convertedArgs[i] = concat_astNode_map[concatArgs];
+			}
+		}
 
 	//---------------------------------
 	// reduce app: Concat
@@ -1830,8 +1846,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 
 		children_Map[tmp].push_back(convertedArgs[0]);
 		children_Map[tmp].push_back(convertedArgs[1]);
-
-		*result = tmp;
+		encodedConstraints.emplace_back(tmp);
+		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,
 				tmp);
 #ifdef DEBUGLOG
@@ -2092,8 +2108,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		printZ3Node(t, convertedArgs[2]);
 		__debugPrint(logFile, ")  =>  ");
 #endif
-
-		*result = reduce_subStr(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_subStr(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,
 				mk_ternary_app(ctx, td->SubString, convertedArgs[0],
 						convertedArgs[1], convertedArgs[2]));
@@ -2122,7 +2138,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, ")");
 		__debugPrint(logFile, "  =>  ");
 #endif
-		*result = reduce_contains(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_contains(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->Contains, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2154,7 +2171,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_charAt(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_charAt(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->CharAt, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2186,7 +2205,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_indexof(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_indexof(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->Indexof, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2220,7 +2241,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_indexof2(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_indexof2(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->Indexof2, convertedArgs[0],	convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2252,7 +2275,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_lastindexof(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_lastindexof(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->LastIndexof, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2284,7 +2309,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_endswith(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_endswith(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->EndsWith, convertedArgs[0], convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2316,7 +2343,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_startswith(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_startswith(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->StartsWith, convertedArgs[0],	convertedArgs[1]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2349,7 +2377,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_replace(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_replace(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->Replace, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2382,7 +2411,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "  =>  ");
 #endif
 
-		*result = reduce_replaceAll(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_replaceAll(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->ReplaceAll, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2406,7 +2437,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, ")");
 		__debugPrint(logFile, "  =>  ");
 #endif
-		*result = reduce_toLower(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_toLower(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_unary_app(ctx, td->ToLower, convertedArgs[0]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
@@ -2429,7 +2462,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, ")");
 		__debugPrint(logFile, "  =>  ");
 #endif
-		*result = reduce_toUpper(t, convertedArgs, breakDownAst);
+		encodedConstraints.emplace_back(reduce_toUpper(t, convertedArgs, breakDownAst));
+		*result = mk_and_fromVector(t, encodedConstraints);
+
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,	mk_unary_app(ctx, td->ToUpper, convertedArgs[0]));
 #ifdef DEBUGLOG
 		printZ3Node(t, *result);
