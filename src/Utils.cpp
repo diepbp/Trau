@@ -626,8 +626,7 @@ void formatPlusOP(StringOP &opx){
 			}
 
 	if (opx.args.size() == 1)
-		if (opx.args[0].name.compare("0") == 0)
-			opx = StringOP("0");
+		opx = opx.args[0];
 }
 
 /*

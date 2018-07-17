@@ -669,13 +669,19 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 				!= indexOf_toAstMap.end())
 			tmpInternalVars =
 					indexOf_toAstMap[std::make_pair(args[0], args[1])];
-
+		else if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0)))
+				!= indexOf2_toAstMap.end())
+			tmpInternalVars =
+					indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0))];
 		Z3_ast x1 = mk_internal_string_var(t);
 		Z3_ast x2 = mk_internal_string_var(t);
 
 		if (tmpInternalVars.size() > 0) {
 			x1 = tmpInternalVars[0];
 			x2 = tmpInternalVars[1];
+		}
+		else {
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2};
 		}
 
 		Z3_ast result = mk_internal_string_var(t);
@@ -857,8 +863,28 @@ Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[],
 		else
 			reduceAst = Z3_mk_false(ctx);
 	} else {
-		Z3_ast ts0 = mk_internal_string_var(t);
-		Z3_ast ts1 = mk_internal_string_var(t);
+		std::vector<Z3_ast> tmpInternalVars;
+		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1]))
+				!= indexOf_toAstMap.end())
+			tmpInternalVars =
+					indexOf_toAstMap[std::make_pair(args[0], args[1])];
+//		else if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0)))
+//				!= indexOf2_toAstMap.end())
+//			tmpInternalVars =
+//					indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0))];
+		Z3_ast ts0;
+		Z3_ast ts1;
+
+		if (tmpInternalVars.size() > 0) {
+			ts0 = tmpInternalVars[0];
+			ts1 = tmpInternalVars[1];
+			__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, ts0));
+		}
+		else {
+			ts0 = mk_internal_string_var(t);
+			ts1 = mk_internal_string_var(t);
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {ts0, ts1};
+		}
 
 		reduceAst = registerContain(t, args[0], args[1]); // reduceAst = Contains(args[0], args[1])
 
@@ -1087,11 +1113,11 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 	} else {
 		/* check if the contraint is handled */
 		std::vector<Z3_ast> tmpInternalVars;
-		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1]))
-				!= indexOf_toAstMap.end())
-			tmpInternalVars =
-					indexOf_toAstMap[std::make_pair(args[0], args[1])];
-
+		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1])) != indexOf_toAstMap.end())
+			tmpInternalVars = indexOf_toAstMap[std::make_pair(args[0], args[1])];
+		else if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0)))
+				!= indexOf2_toAstMap.end())
+			tmpInternalVars = indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), mk_int(ctx, 0))];
 		Z3_ast x1 = mk_internal_string_var(t);
 		Z3_ast x2 = mk_internal_string_var(t);
 
@@ -1142,9 +1168,10 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			Z3_ast x3 = mk_internal_string_var(t);
 			Z3_ast x4 = mk_internal_string_var(t);
 			if (tmpInternalVars.size() > 0) {
-				assert(tmpInternalVars.size() == 4);
-				x3 = tmpInternalVars[2];
-				x4 = tmpInternalVars[3];
+				if (tmpInternalVars.size() >= 4){
+					x3 = tmpInternalVars[2];
+					x4 = tmpInternalVars[3];
+				}
 			}
 			Z3_ast adds[3] = { mk_length(t, x1), mk_length(t, args[1]), mk_int(
 					ctx, -1) };
@@ -1239,16 +1266,22 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 	} else {
 		/* check if the contraint is handled */
 		std::vector<Z3_ast> tmpInternalVars;
-		if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), args[2]))
-				!= indexOf2_toAstMap.end())
-			tmpInternalVars =
-					indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), args[2])];
-
+		if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), args[2])) != indexOf2_toAstMap.end())
+			tmpInternalVars = indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), args[2])];
+		else {
+			std::string tmp = Z3_ast_to_string(ctx, args[2]);
+			if (tmp.compare("0") == 0)
+				if (indexOf_toAstMap.find(std::make_pair(args[0], args[1])) != indexOf_toAstMap.end())
+					tmpInternalVars = indexOf_toAstMap[std::make_pair(args[0], args[1])];
+		}
 		Z3_ast x0 = mk_internal_string_var(t);
 		Z3_ast x1 = mk_internal_string_var(t);
 		if (tmpInternalVars.size() > 0) {
 			x0 = tmpInternalVars[0];
 			x1 = tmpInternalVars[1];
+		}
+		else {
+
 		}
 
 		Z3_ast indexAst = mk_internal_int_var(t);
@@ -1266,12 +1299,35 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		Z3_ast argsTmp[2] = {x1, args[1]};
 		Z3_ast tmpAst = reduce_indexof(t, argsTmp, breakdownAssert);
 
+		std::string arg02Str = Z3_ast_to_string(ctx, args[2]);
+		if (arg02Str.compare("0") == 0){
+			indexOf_toAstMap[std::make_pair(args[0], args[1])] = indexOf_toAstMap[std::make_pair(x1, args[1])];
+			indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
+					node_to_stringOP(t, args[1]),
+					node_to_stringOP(t, args[2])})] = indexOfStrMap[StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
+							node_to_stringOP(t, args[1])})];
+			indexOfStrMap.erase(StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
+							node_to_stringOP(t, args[1])}));
+			std::vector<Z3_ast> tmpVector = {Z3_mk_eq(ctx, args[0], x1), breakdownAssert};
+			breakdownAssert = mk_and_fromVector(t, tmpVector);
+			return tmpAst;
+		}
+
 		//  args[0] =  x0 . x1
 		thenItems.push_back(
 				Z3_mk_eq(ctx, args[0],
 						mk_concat(t, x0, x1, update)));
 		if (printingConstraints)
 			constraintSet.stringConstraints.emplace(
+					node_to_string(t, thenItems[thenItems.size() - 1]));
+
+		//  |x0| =  arg2
+		thenItems.push_back(
+				Z3_mk_eq(ctx, mk_length(t, x0), args[2]));
+		__debugPrint(logFile, "%d zzzzzz: %s\n", __LINE__,  Z3_ast_to_string(ctx, thenItems[thenItems.size() - 1]) );
+
+		if (printingConstraints)
+			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		/* edit breakdown assert */

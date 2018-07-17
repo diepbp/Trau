@@ -4253,16 +4253,18 @@ void extendVariableToFindAllPossibleEqualities(
 	std::vector<Z3_ast> eqNode = collect_eqc(t, node);
 	displayListNode(t, eqNode, " eq  to node");
 	std::string nodeName = "";
-	if (isConcatFunc(t, node))
-		for (const auto& n : eqNode) {
-			if (isVariable(t, n)){
-				std::string tmp = Z3_ast_to_string(ctx, n);
-				if (nodeName.compare(tmp) < 0){
-					node = n;
-					nodeName = tmp;
-				}
+	Z3_ast orgNode = node;
+	for (const auto& n : eqNode) {
+		if (isVariable(t, n)){
+			std::string tmp = Z3_ast_to_string(ctx, n);
+			if (levelMap[node] > 0)
+				non_root.emplace(tmp);
+			if (nodeName.compare(tmp) < 0){
+				node = n;
+				nodeName = tmp;
 			}
 		}
+	}
 
 	Z3_ast constNode = findConstInList(t, eqNode);
 
@@ -4347,8 +4349,9 @@ void extendVariableToFindAllPossibleEqualities(
 
 		else if (_node != node) {
 			/* mark non-root variable */
-			if (isStrVariable(t, _node))
+			if (isStrVariable(t, _node)) {
 				non_root.insert(std::string(Z3_ast_to_string(ctx, _node)));
+			}
 
 			/* do not need to add itself */
 			if (isAutomatonFunc(t, _node)) {
@@ -4472,6 +4475,8 @@ void extendVariableToFindAllPossibleEqualities(
 
 		/* do not need to print this case because it can be implied from SMT file */
 		if (added == false) {
+			__debugPrint(logFile, "%d not added\n", __LINE__);
+			displayListNode(t, _eq, "_Eq ");
 		}
 	}
 
@@ -4507,6 +4512,12 @@ void extendVariableToFindAllPossibleEqualities(
 		/* update */
 		allEqPossibilities[node] = refined_result;
 	}
+
+	if (orgNode != node){
+		fullEqPossibilities[orgNode] = fullEqPossibilities[node];
+		allEqPossibilities[orgNode] = allEqPossibilities[node];
+	}
+
 	__debugPrint(logFile, ">> %d node %s: size = %ld\n", __LINE__, Z3_ast_to_string(ctx, node), allEqPossibilities[node].size());
 }
 
@@ -4626,6 +4637,30 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 					ret.emplace(n);
 		}
 	}
+
+	for (const auto& node : replaceNodeMap)
+		if (isVariable(t, node.second))
+			ret.emplace(node.second);
+		else if (isConcatFunc(t, node.second)){
+			std::vector<Z3_ast> tmp;
+			ret.emplace(node.second);
+			collect_node_in_concat(t, node.second, tmp);
+			for (const auto& n : tmp)
+				if (isVariable(t, n))
+					ret.emplace(n);
+		}
+
+	for (const auto& node : replaceAllNodeMap)
+		if (isVariable(t, node.second))
+			ret.emplace(node.second);
+		else if (isConcatFunc(t, node.second)){
+			std::vector<Z3_ast> tmp;
+			ret.emplace(node.second);
+			collect_node_in_concat(t, node.second, tmp);
+			for (const auto& n : tmp)
+				if (isVariable(t, n))
+					ret.emplace(n);
+		}
 
 	for (const auto& node : subStrNodeMap)
 		if (isVariable(t, node.second))
@@ -5631,7 +5666,10 @@ void collectCombinationOverVariables(Z3_theory t,
 			}
 		}
 
-
+	for (const auto& var : levelMap)
+		if (var.second > 0)
+			if (isVariable(t, var.first))
+				non_root.emplace(Z3_ast_to_string(ctx, var.first));
 
 	__debugPrint(logFile, "%d Finish calculating\n", __LINE__);
 
@@ -5691,6 +5729,7 @@ void collectCombinationOverVariables(Z3_theory t,
 				}
 		}
 		else if (non_root.find(varName) != non_root.end()){
+			combinationOverVariables[varName].clear();
 			/* keep one eq to export length constraint */
 			assert(eqVar.second.size() > 0);
 			bool found = false;
@@ -7925,7 +7964,7 @@ bool collectContainValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP(languageMap[CONTAINS], node_to_string(t, it.first.first), node_to_string(t, it.first.second))] = value;
+			rewriterStrMap[StringOP(languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = value;
 			return true;
 		}
 	}
@@ -8014,7 +8053,6 @@ bool collectLastIndexOfValueInPositiveContext(
 	for (const auto& it : lastIndexOfStrMap) {
 
 		if (boolStr.compare(it.second.first) == 0){
-//			__debugPrint(logFile, "%d %s: %s %s\n", __LINE__, it.first.arg01.c_str(), it.second.first.c_str(), it.second.second.c_str());
 			if (boolValue) {
 				rewriterStrMap[it.first] = it.second.second;
 				if (carryOn.find(boolNode) != carryOn.end())

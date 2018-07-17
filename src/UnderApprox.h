@@ -371,6 +371,11 @@ void sumConstString();
 void createConstMap();
 
 /*
+*
+*/
+void addToConnectedVar(StringOP op, std::map<std::string, int> &connectedVarSet, int length);
+
+/*
  * Find connected variables
  * They are variables that are used by more than one variables
  */

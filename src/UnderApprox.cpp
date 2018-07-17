@@ -612,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -1021,7 +1021,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	}
 
 	andConstraints.emplace_back(createLessEqualConstraint(lenName, std::to_string(size)));
-	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
 }
@@ -2034,7 +2034,7 @@ std::string collectConst(std::string str) {
 		else {
 			/* "abc"_number */
 
-			for (unsigned int i = str.length() - 1; i >= 0; --i)
+			for (unsigned i = str.length() - 1; i >= 0; --i)
 				if (str[i] == '_') {
 					assert (str[i - 1] == '\"');
 					extra = str.substr(i);
@@ -2085,8 +2085,9 @@ std::string generate_simple_constraint(std::vector<std::vector<std::string>> eqV
  */
 void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		std::map<std::string, std::vector<std::vector<std::string>>> _fullEqualMap){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	equalitiesMap.clear();
-
+	printEqualMap(_equalMap);
 	for (const auto& eqVar : _equalMap) {
 		if (eqVar.first[0] != '\"')
 			allVariables.insert(eqVar.first);
@@ -2098,7 +2099,9 @@ void parseEqualityMap(std::map<std::string, std::vector<std::vector<std::string>
 				if (eqVar.second[i][j][0] == '\"') { /* AutomataDef */
 					std::string constStr = collectConst(eqVar.second[i][j]);
 					if (constStr.length() > 2)
-						anEq.emplace_back(collectConst(eqVar.second[i][j]));
+						anEq.emplace_back(constStr);
+					else
+						__debugPrint(logFile, "%d skip const: %s\n", __LINE__, eqVar.second[i][j].c_str());
 				}
 				else {/* skip const */
 					if (varLength.find(eqVar.second[i][j]) == varLength.end() || /* does not know its length */
@@ -2317,12 +2320,29 @@ void createConstMap(){
 }
 
 /*
+ *
+ */
+void addToConnectedVar(StringOP op, std::map<std::string, int> &connectedVarSet, int length){
+	__debugPrint(logFile, "%d *** %s ***: %s, args = %ld\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.args.size());
+	 if (op.args.size() == 0) {
+		 if (connectedVarSet.find(op.name) == connectedVarSet.end())
+			 connectedVarSet[op.name] = length;
+		 else
+			 connectedVarSet[op.name] = std::max(length, connectedVarSet[op.name]);
+	 }
+	 else if (op.name.compare(languageMap[CONCAT]) == 0){
+		 for (unsigned i = 0 ; i < op.args.size(); ++i)
+			 addToConnectedVar(op.args[i], connectedVarSet, length);
+	 }
+}
+
+/*
  * Find connected variables
  * They are variables that are used by more than one variables
  */
 
 void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
-	__debugPrint(logFile, "%d *** %s ***", __LINE__, __FUNCTION__);
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::map<std::string, std::vector<std::string>> usedComponents;
 	std::map<std::string, int> connectedVarSet;
 	connectedVariables.clear();
@@ -2408,9 +2428,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 //			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
-					s.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
-					s.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+			if (s.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
 					s.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
 					s.first.args[1].name.find("Automata") != std::string::npos )
 				continue;
@@ -2455,42 +2473,34 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			if (s.first.name.compare(languageMap[CHARAT]) == 0){
 				if (s.first.args[0].name[0] != '\"') {
 					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
-					connectedVarSet[s.first.args[0].name] = connectingSize;
+					addToConnectedVar(s.first.args[0], connectedVarSet, connectingSize);
 				}
 				continue;
 			}
 
-			/* add all of variables to the connected var set*/
+			/* add all variables to the connected var set*/
 			if (s.first.args[0].name[0] != '\"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
-					if (s.first.args[1].name[0] == '"') {
-						if (connectedVarSet.find(s.first.args[0].name) == connectedVarSet.end())
-							connectedVarSet[s.first.args[0].name] = s.first.args[1].name.length() - 2;
-						else
-							connectedVarSet[s.first.args[0].name] = std::max((int)s.first.args[1].name.length() - 2, connectedVarSet[s.first.args[0].name]);
-					}
+					if (s.first.args[1].name[0] == '"')
+						addToConnectedVar(s.first.args[0], connectedVarSet, s.first.args[1].name.length() - 2);
 					else
-						connectedVarSet[s.first.args[0].name] = connectingSize;
+						addToConnectedVar(s.first.args[0], connectedVarSet, connectingSize);
 				}
 				else
-					connectedVarSet[s.first.args[0].name] = connectingSize;
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
+					addToConnectedVar(s.first.args[0], connectedVarSet, connectingSize);
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].toString().c_str());
 			}
 
 			if (s.first.args[1].name[0] != '"') {
 				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
-					if (s.first.args[0].name[0] == '"') {
-						if (connectedVarSet.find(s.first.args[1].name) == connectedVarSet.end())
-							connectedVarSet[s.first.args[1].name] = s.first.args[0].name.length() - 2;
-						else
-							connectedVarSet[s.first.args[1].name] = std::max((int)s.first.args[0].name.length() - 2, connectedVarSet[s.first.args[1].name]);
-					}
+					if (s.first.args[0].name[0] == '"')
+						addToConnectedVar(s.first.args[1], connectedVarSet, s.first.args[0].name.length() - 2);
 					else
-						connectedVarSet[s.first.args[1].name] = connectingSize;
+						addToConnectedVar(s.first.args[1], connectedVarSet, connectingSize);
 				}
 				else
-					connectedVarSet[s.first.args[1].name] = connectingSize;
-				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[1].name.c_str());
+					addToConnectedVar(s.first.args[1], connectedVarSet, connectingSize);
+				__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[1].toString().c_str());
 			}
 		}
 	}
@@ -2567,8 +2577,8 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* remove duplications */
 	for (const auto& varEq: equalitiesMap) {
-		if (connectedVariables.find(varEq.first) == connectedVariables.end() && varEq.first.find("$$") != std::string::npos)
-			continue;
+//		if (connectedVariables.find(varEq.first) == connectedVariables.end() && varEq.first.find("$$") != std::string::npos)
+//			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		std::vector<std::string> backup;
@@ -2633,7 +2643,6 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 	equalitiesMap = new_eqMap;
 
 	__debugPrint(logFile, "%d finish %s\n", __LINE__, __FUNCTION__);
-	printEqualMap(equalitiesMap);
 }
 
 /*
@@ -5060,7 +5069,7 @@ std::map<std::string, std::vector<std::string>> createNotEqualMap(std::map<Strin
  *
  */
 void createAppearanceMap(){
-	for (const auto& var : equalitiesMap){
+	for (const auto& var : fullEqualitiesMap){
 		for (const auto& eq : var.second)
 			for (const auto& s: eq)
 				appearanceMap[s].emplace(var.first);
@@ -5071,20 +5080,42 @@ void createAppearanceMap(){
  *
  * */
 void updateFullEqualMap(){
+	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
+	printEqualMap(fullEqualitiesMap);
 	std::map<std::string, std::vector<std::vector<std::string>>> tmpMap;
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
 			bool willAdd = true;
 			for (const auto& s : eq)
-				if (s[0] == '"') {
+				if (s[0] == '"' && (s[s.length() - 1] != '"' || s.length() == 2)){
+//					(s.find("*") != std::string::npos || s.find("+") != std::string::npos) &&
+//					s.find("(") != std::string::npos &&
+//					s.find(")") != std::string::npos && s.length() <= 2) {
 					willAdd = false;
 					break;
 				}
-			if (willAdd)
-				tmpMap[eqVar.first].emplace_back(eq);
+
+			if (eq.size() > 0) {
+				std::vector<std::string> tmp;
+				/* sum str */
+				tmp.emplace_back(eq[0]);
+				for (unsigned i = 1; i < eq.size(); ++i)
+					if (eq[i][0] == '"' && tmp[tmp.size() - 1][0] == '"')
+						tmp[tmp.size() - 1] = "\"" + tmp[tmp.size() - 1].substr(1, tmp[tmp.size() - 1].length() - 2) + eq[i].substr(1, eq[i].length() - 2) + "\"";
+					else
+						tmp.emplace_back(eq[i]);
+
+				if (willAdd)
+					tmpMap[eqVar.first].emplace_back(tmp);
+			}
 		}
 
-	for (const auto& eqVar : equalitiesMap)
+	for (const auto& eqVar : equalitiesMap) {
+		if (tmpMap.find(eqVar.first) == tmpMap.end()){
+			tmpMap[eqVar.first] = eqVar.second;
+			continue;
+		}
+
 		for (const auto& eq : eqVar.second) {
 			bool willAdd = false;
 			for (const auto& s : eq)
@@ -5092,11 +5123,23 @@ void updateFullEqualMap(){
 					willAdd = true;
 					break;
 				}
+
+			if (willAdd)
+				for (const auto& v : tmpMap[eqVar.first])
+					if (equalVector(v, eq)) {
+						willAdd = false;
+						break;
+					}
+
 			if (willAdd)
 				tmpMap[eqVar.first].emplace_back(eq);
 		}
+	}
+
 	fullEqualitiesMap.clear();
 	fullEqualitiesMap = tmpMap;
+	__debugPrint(logFile, "%d >> finish %s\n", __LINE__, __FUNCTION__);
+	printEqualMap(fullEqualitiesMap);
 }
 
 /*
@@ -5127,9 +5170,9 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	addConnectedVarToEQmap();
 	createConstMap();
 	refineEqualMap(rewriterStrMap);
-	createAppearanceMap();
+
 	updateFullEqualMap();
-	__debugPrint(logFile, "%d finish %s\n", __LINE__, __FUNCTION__);
+	createAppearanceMap();
 }
 
 /*
@@ -5306,7 +5349,6 @@ bool underapproxController(
 	varLength.insert(_currentLength.begin(), _currentLength.end());
 
 	/* init equalMap */
-
 	parseEqualityMap(_equalMap, _fullEqualMap);
 	analysisMaxInt(fileDir);
 	reset();
@@ -5316,10 +5358,9 @@ bool underapproxController(
 		connectingSize = std::max(connectingSize, v.second + 1);
 	}
 
-
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);
-
+	printEqualMap(equalitiesMap);
 	for (const auto& elem : rewriterStrMap){
 		StringOP op = elem.first;
 		__debugPrint(logFile, "%d rewriterStrMap \t%s: %s\n", __LINE__, op.toString().c_str(), elem.second.c_str());

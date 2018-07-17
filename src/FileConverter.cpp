@@ -137,9 +137,8 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
  */
 void formatOPByRewriter(StringOP &op,
 		std::map<StringOP, std::string> rewriterStrMap){
-	bool update = false;
 	if (op.args.size() == 0){
-		if (op.name.find("$$_") == 0) {
+		if (op.name.find("$$_") == 0 || op.name.find(std::string(LENPREFIX) + "$$_") == 0) {
 			for (const auto& opx : rewriterStrMap)
 				if (opx.second.compare(op.name) == 0) {
 					op = opx.first;
@@ -149,7 +148,7 @@ void formatOPByRewriter(StringOP &op,
 	}
 	else {
 		for (unsigned i = 0; i < op.args.size(); ++i) {
-			if (op.args[i].name.find("$$_") == 0){
+			if (op.args[i].name.find("$$_") == 0 || op.args[i].name.find(std::string(LENPREFIX) + "$$_") == 0){
 				for (const auto& opx : rewriterStrMap)
 					if (opx.second.compare(op.args[i].name) == 0) {
 						op.args[i] = opx.first;
@@ -554,15 +553,17 @@ void updateSubstring(
 		}
 
 		StringOP op(findStringOP(tokens, found));
+		StringOP arg02 = op.args[2];
+		formatOPByRewriter(op, rewriterStrMap);
 		__debugPrint(logFile, "%d op = %s\n", __LINE__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		assert(op.args.size() == 3);
-		if (op.args[2].toString()[0] >= '0' && op.args[2].toString()[0] >= '9') {
-			tokens = replaceTokens(tokens, found - 1, pos, op.args[2].toString(), 82);
+		if (arg02.toString()[0] >= '0' && arg02.toString()[0] >= '9') {
+			tokens = replaceTokens(tokens, found - 1, pos, arg02.toString(), 82);
 		}
 		else {
-			tokens = replaceTokens(tokens, found - 1, pos, op.args[2].toString(), 88);
+			tokens = replaceTokens(tokens, found - 1, pos, arg02.toString(), 88);
 		}
 
 		__debugPrint(logFile, "%d *** after replace ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
@@ -787,8 +788,8 @@ void updateVariables(
 		std::vector<std::string> strVars) {
 	for (unsigned int i = 0; i < tokens.size(); ++i) {
 		if (tokens[i].second == 88 &&
-				(std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) ||
-				tokens[i].first.find("$$_str") == 0) {
+				((std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) ||
+				tokens[i].first.find("$$_str") == 0)) {
 			tokens[i].first = LENPREFIX + tokens[i].first;
 		}
 	}
