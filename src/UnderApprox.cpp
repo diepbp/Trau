@@ -1324,16 +1324,13 @@ void handle_NOTEqual(
 		std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
 		if (s.first.name.compare("=") == 0){
-			if (s.second.compare(FALSETR) == 0) {
-				if ((connectedVariables.find(s.first.args[0].toString()) != connectedVariables.end() ||
-						connectedVariables.find(s.first.args[1].toString()) != connectedVariables.end() ||
-						s.first.args[0].toString().compare("\"\"") == 0 ||
-						s.first.args[1].toString().compare("\"\"") == 0)){
-					global_smtStatements.push_back({create_constraints_NOTEqual(s.first.args[0].toString(), s.first.args[1].toString())});
+			if (s.first.args[0].args.size() == 0 && s.first.args[1].args.size() == 0 && s.second.compare(FALSETR) == 0)  {
+				if ((connectedVariables.find(s.first.args[0].name) != connectedVariables.end() ||
+						connectedVariables.find(s.first.args[1].name) != connectedVariables.end() ||
+						s.first.args[0].name.compare("\"\"") == 0 ||
+						s.first.args[1].name.compare("\"\"") == 0)){
+					global_smtStatements.push_back({create_constraints_NOTEqual(s.first.args[0].name, s.first.args[1].name)});
 				}
-			}
-			else {
-//				global_smtStatements.push_back({create_constraints_equal(s.first.arg01, s.first.arg02)});
 			}
 		}
 
@@ -3163,14 +3160,14 @@ void convertEqualities(){
 
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
-			bool willConvert = true;
-			for (const auto& s : eq)
-				if (s[0] == '"') {
-					willConvert = false;
-					break;
-				}
-			if (willConvert)
-				global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
+//			bool willConvert = true;
+//			for (const auto& s : eq)
+//				if (s[0] == '"') {
+//					willConvert = false;
+//					break;
+//				}
+//			if (willConvert)
+			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
 		}
 
 	for (std::map<std::string, std::vector<std::vector<std::string>>>::iterator it = equalitiesMap.begin();
@@ -3598,6 +3595,7 @@ int getVarLength(
 		return len[tmp];
 	}
 	else {
+		__debugPrint(logFile, "%d %s : %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 		assert(len.find(newlyUpdate) != len.end());
 		return len[newlyUpdate];
 	}
@@ -4141,7 +4139,7 @@ std::map<std::string, int> createSimpleEqualMap(
 	for (const auto& op : equalities){
 		std::string arg01 = op.args[0].toString();
 		std::string arg02 = op.args[1].toString();
-		if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
+		if (op.args[1].name.compare(languageMap[CONCAT]) == 0){
 			arg02 = findEqValueInConcat(arg02, len);
 		}
 
@@ -4370,6 +4368,31 @@ void formatOtherVars(
 				op.first.args[1].name.find("\"") == std::string::npos &&
 				op.first.args[0].name.find("\"") == std::string::npos){
 			StringOP _op("=", op.first.args[0], op.first.args[1]);
+
+			if (op.first.args[1].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+				continue;
+
+			if (op.first.args[0].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+				continue;
+
+			if (op.first.args[1].toString().find(languageMap[REPLACE]) != std::string::npos)
+				continue;
+
+			if (op.first.args[0].toString().find(languageMap[REPLACE]) != std::string::npos)
+				continue;
+
+			if (op.first.args[1].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+				continue;
+
+			if (op.first.args[0].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+				continue;
+
+			if (op.first.args[0].args.size() > 0 && op.first.args[0].name.compare(languageMap[CONCAT]) != 0)
+				continue;
+
+			if (op.first.args[1].args.size() > 0 && op.first.args[1].name.compare(languageMap[CONCAT]) != 0)
+				continue;
+
 			if (op.first.args[0].name.find(std::string(languageMap[CONCAT])) == 0) {
 				_op.setArgs({op.first.args[1], op.first.args[0]});
 			}

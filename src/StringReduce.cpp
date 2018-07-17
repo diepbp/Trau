@@ -688,7 +688,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 
 		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
 		std::string boolName = Z3_ast_to_string(ctx, condAst_arg0);
-		replaceStrMap[StringOP(languageMap[REPLACE], node_to_string(t, args[0]),
+		replaceStrMap[StringOP(languageMap[REPLACE], node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2]))] =
 				boolName;
 
@@ -1106,7 +1106,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			return mk_int(ctx, index);
 		} else {
 			indexOfStrMap[StringOP(languageMap[INDEXOF],
-					node_to_string(t, args[0]), node_to_string(t, args[1]))] =
+					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 					std::make_pair("", "-1");
 			return mk_int(ctx, -1);
 		}
@@ -1559,12 +1559,19 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[],
 		ands[2] = Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 1));
 
 		Z3_ast thenBranch = Z3_mk_and(ctx, 3, ands);
-		Z3_ast elseBranch = Z3_mk_eq(ctx, ts1, mk_str_value(t, ""));
+		std::vector<Z3_ast> elseVector = {Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)),
+				Z3_mk_eq(ctx, mk_length(t, ts2), mk_int(ctx, 0))
+		};
+		Z3_ast elseBranch = mk_and_fromVector(t, elseVector);
 		std::vector<Z3_ast> tmp01 = { Z3_mk_eq(ctx, astBool, cond), Z3_mk_ite(
 				ctx, astBool, thenBranch, elseBranch) };
 		breakdownAssert = mk_and_fromVector(t, tmp01);
 
-		carryOn[astBool] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
+		std::vector<Z3_ast> carryOnArgs = {
+				Z3_mk_eq(ctx, args[1], mk_length(t, ts0)),
+				Z3_mk_eq(ctx, mk_int(ctx, 1), mk_length(t, ts1))
+		};
+		carryOn[astBool] = mk_and_fromVector(t, carryOnArgs);
 		charAtStrMap[StringOP(languageMap[CHARAT], node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]))] = std::make_pair(boolVar,
 				LENPREFIX + std::string(Z3_ast_to_string(ctx, ts0)));

@@ -734,8 +734,7 @@ Z3_ast registerStartsWith(Z3_theory t, Z3_ast str, Z3_ast subStr){
 #endif
 
 	addStartsWithRelation(t, str, subStr, startsWithPairBoolMap[key]);
-	constraintSet.otherConstraints.emplace(createEqualConstraint(
-																	node_to_string(t, startsWithPairBoolMap[key]),
+	constraintSet.otherConstraints.emplace(createEqualConstraint(node_to_string(t, startsWithPairBoolMap[key]),
 																	createStartsWithConstraint(node_to_string(t, tmpStr), node_to_string(t, tmpSubStr))));
 	return startsWithPairBoolMap[key];
 }
@@ -5853,7 +5852,14 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
  *
  */
 bool formatOPInternal(StringOP &op){
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+	bool print = false;
+	if (op.toString().find("Indexof2 $$_str1") != std::string::npos) {
+		__debugPrint(logFile, "%d *** %s ***: %s; name = %s, args %ld\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.name.c_str(), op.args.size());
+		for (unsigned i = 0; i < op.args.size(); ++i) {
+			__debugPrint(logFile, "%d name = %s, args = %ld\n", __LINE__, op.args[i].name.c_str(), op.args[i].args.size());
+		}
+		print = true;
+	}
 	bool update = false;
 	if (op.args.size() == 0){
 		if (op.name.find("$$_") == 0) {
@@ -5871,12 +5877,16 @@ bool formatOPInternal(StringOP &op){
 					update = true;
 				}
 			}
-			else if (op.args[i].args.size() > 0)
-				update = update || formatOPInternal(op.args[i]);
+			else if (op.args[i].args.size() > 0) {
+				bool tmpUpdate = formatOPInternal(op.args[i]);
+				update = update || tmpUpdate;
+			}
 		}
 		formatOP(op);
 	}
-//	__debugPrint(logFile, "%d >>  %s\n", __LINE__, op.toString().c_str());
+
+	if (print)
+		__debugPrint(logFile, "%d %s \n", __LINE__, op.toString().c_str());
 	return update;
 
 }
@@ -8095,8 +8105,9 @@ void collectEqualValueInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	std::string astToString = Z3_ast_to_string(ctx, argAst);
+//	__debugPrint(logFile, "%d * %s *: %s\n", __LINE__, __FUNCTION__, astToString.c_str());
 
-	if (astToString.find("$$") == std::string::npos && /* not internal vars */
+	if (//astToString.find("$$") == std::string::npos && /* not internal vars */
 			astToString.find("a!") == std::string::npos && /* not internal vars */
 			astToString.find("(" + std::string(languageMap[LENGTH]) + " ") == std::string::npos && /* not length constraints */
 			astToString.find("(= ") != std::string::npos) { /* equality */
@@ -8106,13 +8117,14 @@ void collectEqualValueInPositiveContext(
 			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 0);
 			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, boolNode), 1);
 			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", node_to_string(t, arg0), node_to_string(t, arg1))] = FALSETR;
+				rewriterStrMap[StringOP("=", node_to_stringOP(t, arg0), node_to_stringOP(t, arg1))] = FALSETR;
 		}
 		else {
-			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
-			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
-				rewriterStrMap[StringOP("=", node_to_string(t, arg0), node_to_string(t, arg1))] = TRUESTR;
+//			__debugPrint(logFile, "%d * %s *: %s\n", __LINE__, __FUNCTION__, astToString.c_str());
+//			Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+//			Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
+//			if (isStrVariable(t, arg0) || isStrVariable(t, arg1))
+//				rewriterStrMap[StringOP("=", node_to_stringOP(t, arg0), node_to_stringOP(t, arg1))] = TRUESTR;
 		}
 	}
 	else if (astToString.find("(= ") != std::string::npos &&
@@ -8121,16 +8133,16 @@ void collectEqualValueInPositiveContext(
 		Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
 		Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
 		if (toUpperMap.find(arg0) != toUpperMap.end()) {
-			rewriterStrMap[StringOP("=", node_to_string(t, toUpperMap[arg0]), node_to_string(t, arg1))] = TOUPPER;
+			rewriterStrMap[StringOP("=", node_to_stringOP(t, toUpperMap[arg0]), node_to_stringOP(t, arg1))] = TOUPPER;
 		}
 		else if (toUpperMap.find(arg1) != toUpperMap.end()){
-			rewriterStrMap[StringOP("=", node_to_string(t, toUpperMap[arg1]), node_to_string(t, arg0))] = TOUPPER;
+			rewriterStrMap[StringOP("=", node_to_stringOP(t, toUpperMap[arg1]), node_to_stringOP(t, arg0))] = TOUPPER;
 		}
 		else if (toLowerMap.find(arg1) != toLowerMap.end()){
-			rewriterStrMap[StringOP("=", node_to_string(t, toLowerMap[arg1]), node_to_string(t, arg0))] = TOLOWER;
+			rewriterStrMap[StringOP("=", node_to_stringOP(t, toLowerMap[arg1]), node_to_stringOP(t, arg0))] = TOLOWER;
 		}
 		else if (toLowerMap.find(arg0) != toLowerMap.end()) {
-			rewriterStrMap[StringOP("=", node_to_string(t, toLowerMap[arg0]), node_to_string(t, arg1))] = TOLOWER;
+			rewriterStrMap[StringOP("=", node_to_stringOP(t, toLowerMap[arg0]), node_to_stringOP(t, arg1))] = TOLOWER;
 		}
 	}
 }

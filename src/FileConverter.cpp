@@ -150,7 +150,8 @@ void formatOPByRewriter(StringOP &op,
 		for (unsigned i = 0; i < op.args.size(); ++i) {
 			if (op.args[i].name.find("$$_") == 0 || op.args[i].name.find(std::string(LENPREFIX) + "$$_") == 0){
 				for (const auto& opx : rewriterStrMap)
-					if (opx.second.compare(op.args[i].name) == 0) {
+					if (opx.second.compare(op.args[i].name) == 0 &&
+							opx.first.toString().find("$$_") == std::string::npos) {
 						op.args[i] = opx.first;
 						break;
 					}
@@ -540,7 +541,7 @@ void updateSubstring(
 	int found = findTokens(tokens, 0, languageMap[SUBSTRING], 88);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		int startAssignment = found - 2;
 		while (startAssignment >= 0) {
@@ -566,7 +567,7 @@ void updateSubstring(
 			tokens = replaceTokens(tokens, found - 1, pos, arg02.toString(), 88);
 		}
 
-		__debugPrint(logFile, "%d *** after replace ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//		__debugPrint(logFile, "%d *** after replace ***: s = %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < startAssignment; ++i)
@@ -1358,25 +1359,25 @@ void toLengthLine(
 
 	updateImplies(tokens);
 	updateEquality(tokens, rewriterStrMap);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateNot(tokens);
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
 	updateIndexOf2(tokens, rewriterStrMap);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateIndexOf(tokens, rewriterStrMap);
 	updateEndsWith(tokens, rewriterStrMap);
 	updateStartsWith(tokens, rewriterStrMap);
 	updateReplace(tokens, rewriterStrMap);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateReplaceAll(tokens, rewriterStrMap);
 
 	updateToUpper(tokens);
 	updateToLower(tokens);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateSubstring(tokens, rewriterStrMap);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateCharAt(tokens);
 
 	updateConst(tokens); /* "abcdef" --> 6 */
