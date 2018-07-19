@@ -15,6 +15,7 @@
 static std::map<char, char> ENCODEMAP;
 
 static std::map<char, char> DECODEMAP;
+static int intVar = 0;
 extern bool getModel;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
@@ -123,7 +124,8 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars);
  *
  */
 void updateNot(std::vector<std::pair<std::string, int>> &tokens,
-		std::set<std::string> otherVars);
+		std::set<std::string> otherVars,
+		std::vector<std::string> &smtVarDefinition);
 
 /*
  * (implies x) --> (implies false x)

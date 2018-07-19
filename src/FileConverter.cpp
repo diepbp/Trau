@@ -240,6 +240,12 @@ StringOP findOpArg(
 		else if (tokens[startPos + 1].first.compare(languageMap[REPLACEALL]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
+		else if (tokens[startPos + 1].first.compare(languageMap[STARTSWITH]) == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare(languageMap[ENDSWITH]) == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
 		else
 			ret = StringOP(sumTokens(tokens, startPos, tmp));
 		startPos = tmp;
@@ -310,12 +316,12 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 			opx.name.compare(">=") == 0 ||
 			opx.name.compare("<=") == 0 ||
 			opx.name.compare("not") == 0 ||
-			opx.name.compare("ite") == 0)
+			opx.name.compare("ite") == 0 ||
+			opx.name.compare(languageMap[STARTSWITH]) == 0 ||
+			opx.name.compare(languageMap[ENDSWITH]) == 0)
 		return true;
 
 	if (opx.name.compare("=") == 0){
-		__debugPrint(logFile, "%d %s = %s\n", __LINE__, opx.args[0].name.c_str(), opx.args[1].name.c_str());
-		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
 		if (opx.args[0].name.compare("ite") == 0 ||
 				opx.args[0].name.compare("not") == 0 ||
 				opx.args[0].name.compare("+") == 0 ||
@@ -324,6 +330,7 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 				opx.args[0].name.compare(languageMap[LENGTH]) == 0 ||
 				opx.args[0].name.compare(languageMap[INDEXOF]) == 0 ||
 				opx.args[0].name.compare(languageMap[INDEXOF2]) == 0 ||
+				opx.args[0].name.compare(languageMap[LASTINDEXOF]) == 0 ||
 				(opx.args[0].name[0] >= '0' && opx.args[0].name[0] <= '9'))
 			return true;
 
@@ -335,6 +342,7 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 				opx.args[1].name.compare(languageMap[LENGTH]) == 0 ||
 				opx.args[1].name.compare(languageMap[INDEXOF]) == 0 ||
 				opx.args[1].name.compare(languageMap[INDEXOF2]) == 0 ||
+				opx.args[1].name.compare(languageMap[LASTINDEXOF]) == 0 ||
 				(opx.args[1].name[0] >= '0' && opx.args[1].name[0] <= '9'))
 			return true;
 
@@ -348,11 +356,17 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 	return false;
 }
 
+std::string createNewIntVar(){
+	intVar++;
+	return "$$$___intVar" + std::to_string(intVar);
+}
+
 /*
  *
  */
 void updateNot(std::vector<std::pair<std::string, int>> &tokens,
-		std::set<std::string> otherVars){
+		std::set<std::string> otherVars,
+		std::vector<std::string> &smtVarDefinition){
 	int found = findTokens(tokens, 0, "not", 3);
 	while (found != -1) {
 		int endCond = -1;
@@ -363,32 +377,14 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 			StringOP opx = findStringOP(tokens, found + 2);
 
 			if (!isArithmeticOP(opx, otherVars)) {
-				bool eqType = false;
-				for (int i = found - 2; i >= 0; --i) {
-					if (tokens[i].second == 92) {
-						if (tokens[i + 1].first.compare("=") == 0) {
-
-							eqType = true;
-							found = i;
-							endCond = findCorrespondRightParentheses(i, tokens);
-						}
-						else {
-						}
-						break;
-					}
-
-				}
 				std::vector<std::pair<std::string, int>> addingTokens;
-				if (eqType) {
-					addingTokens.push_back(std::make_pair(TRUESTR, 15));
-					tokens = replaceTokens(tokens, found, endCond + 1, addingTokens); /* found at ( */
-					found = findTokens(tokens, found, "not", 3);
-				}
-				else {
-					addingTokens.push_back(std::make_pair(TRUESTR, 15));
-					tokens = replaceTokens(tokens, found - 1, endCond + 1, addingTokens); /* found at not */
-					found = findTokens(tokens, found, "not", 3);
-				}
+				addingTokens.push_back(std::make_pair("=", 2));
+				std::string tmpVar = createNewIntVar();
+				smtVarDefinition.push_back(createIntDefinition(tmpVar));
+				addingTokens.push_back(std::make_pair(tmpVar, 88));
+				addingTokens.push_back(std::make_pair("0", 82));
+				tokens = replaceTokens(tokens, found, endCond, addingTokens); /* found at ( */
+				found = findTokens(tokens, found, "not", 3);
 			}
 			else
 				found = findTokens(tokens, found + 1, "not", 3);
@@ -1432,10 +1428,9 @@ void toLengthLine(
 		}
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateImplies(tokens);
-	__debugPrint(logFile, "%d *** after updateImplies ***: %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateEquality(tokens, rewriterStrMap);
 //	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	updateNot(tokens, otherVar);
+	updateNot(tokens, otherVar, smtVarDefinition);
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
