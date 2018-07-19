@@ -5111,14 +5111,6 @@ void updateFullEqualMap(){
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
 			bool willAdd = true;
-			for (const auto& s : eq)
-				if (s[0] == '"' && (s[s.length() - 1] != '"' || s.length() == 2)){
-//					(s.find("*") != std::string::npos || s.find("+") != std::string::npos) &&
-//					s.find("(") != std::string::npos &&
-//					s.find(")") != std::string::npos && s.length() <= 2) {
-					willAdd = false;
-					break;
-				}
 
 			if (eq.size() > 0) {
 				std::vector<std::string> tmp;
@@ -5130,15 +5122,24 @@ void updateFullEqualMap(){
 					else
 						tmp.emplace_back(eq[i]);
 
+				std::vector<std::string> tmp01;
+				for (unsigned i = 0; i < tmp.size(); ++i)
+					if (tmp[i][0] == '"' && tmp[i].length() == 2){
+
+					}
+					else tmp01.emplace_back(tmp[i]);
+				if (tmp01.size() == 0)
+					willAdd = false;
+
 				if (willAdd)
 					for (const auto& v : tmpMap[eqVar.first])
-						if (equalVector(v, tmp)) {
+						if (equalVector(v, tmp01)) {
 							willAdd = false;
 							break;
 						}
 
 				if (willAdd)
-					tmpMap[eqVar.first].emplace_back(tmp);
+					tmpMap[eqVar.first].emplace_back(tmp01);
 			}
 		}
 

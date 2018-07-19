@@ -4551,8 +4551,10 @@ void extendVariableToFindAllPossibleEqualities(
 						added = true;
 						break;
 					}
-			if (!added)
+			if (!added) {
 				refined_result.push_back({constNode});
+				result.push_back({constNode});
+			}
 			allEqPossibilities[constNode] = refined_result;
 			fullEqPossibilities[constNode] = result;
 		}
@@ -4566,9 +4568,9 @@ void extendVariableToFindAllPossibleEqualities(
 					break;
 				}
 		if (!added) {
-			fullEqPossibilities[node].push_back({constNode});
 			allEqPossibilities[node].push_back({constNode});
 		}
+		fullEqPossibilities[node].push_back({constNode});
 	}
 	else {
 		/* he = himself */
