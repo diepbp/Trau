@@ -45,10 +45,10 @@ std::map<std::pair<std::pair<Z3_ast, Z3_ast>, Z3_ast>, std::vector<Z3_ast>> inde
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> lastIndexOf_toAstMap;
 
 std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
-std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
-std::map<StringOP, std::pair<std::string, std::string>> indexOf2StrMap;
+std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> indexOfStrMap;
+std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> indexOf2StrMap;
 
-std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
+std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> lastIndexOfStrMap;
 std::map<StringOP, std::string> endsWithStrMap;
 std::map<StringOP, std::string> startsWithStrMap;
 
@@ -5853,13 +5853,13 @@ std::map<std::string, int> collectCurrentLength(Z3_theory t){
  */
 bool formatOPInternal(StringOP &op){
 	bool print = false;
-	if (op.toString().find("Indexof2 $$_str1") != std::string::npos) {
-		__debugPrint(logFile, "%d *** %s ***: %s; name = %s, args %ld\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.name.c_str(), op.args.size());
-		for (unsigned i = 0; i < op.args.size(); ++i) {
-			__debugPrint(logFile, "%d name = %s, args = %ld\n", __LINE__, op.args[i].name.c_str(), op.args[i].args.size());
-		}
-		print = true;
-	}
+//	if (op.toString().find("Indexof2 $$_str1") != std::string::npos) {
+//		__debugPrint(logFile, "%d *** %s ***: %s; name = %s, args %ld\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.name.c_str(), op.args.size());
+//		for (unsigned i = 0; i < op.args.size(); ++i) {
+//			__debugPrint(logFile, "%d name = %s, args = %ld\n", __LINE__, op.args[i].name.c_str(), op.args[i].args.size());
+//		}
+//		print = true;
+//	}
 	bool update = false;
 	if (op.args.size() == 0){
 		if (op.name.find("$$_") == 0) {
@@ -7986,9 +7986,11 @@ bool collectContainValueInPositiveContext(
  */
 void collectSubstrValueInPositiveContext(
 		Z3_theory t,
-		std::map<StringOP, std::string> &rewriterStrMap){
+		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints){
 	for (const auto& substrElement : subStrStrMap) {
 		rewriterStrMap[substrElement.first] = substrElement.second;
+		carryOnConstraints.emplace(substrElement.second);
 	}
 }
 
@@ -8006,12 +8008,15 @@ bool collectIndexOfValueInPositiveContext(
 	for (const auto& it : indexOfStrMap) {
 		if (boolStr.compare(it.second.first) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = it.second.second;
+				rewriterStrMap[it.first] = it.second.second.first;
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
-			else
-				rewriterStrMap[it.first] = it.second.second;
+			else {
+				rewriterStrMap[it.first] = "(- 1)";
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, "(- 1)"));
+			}
 			return true;
 		}
 	}
@@ -8032,12 +8037,15 @@ bool collectIndexOf2ValueInPositiveContext(
 	for (const auto& it : indexOf2StrMap) {
 		if (boolStr.compare(it.second.first) == 0) {
 			if (boolValue) {
-				rewriterStrMap[it.first] = it.second.second;
+				rewriterStrMap[it.first] = it.second.second.first;
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(
 							Z3_ast_to_string(ctx, carryOn[boolNode]));
-			} else
-				rewriterStrMap[it.first] = it.second.second;
+			} else {
+				rewriterStrMap[it.first] = "(- 1)";
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, "(- 1)"));
+			}
 			return true;
 		}
 	}
@@ -8064,12 +8072,15 @@ bool collectLastIndexOfValueInPositiveContext(
 
 		if (boolStr.compare(it.second.first) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = it.second.second;
+				rewriterStrMap[it.first] = it.second.second.first;
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
-			else
-				rewriterStrMap[it.first] = it.second.second;
+			else {
+				rewriterStrMap[it.first] = "(- 1)";
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, "(- 1)"));
+			}
 			return true;
 		}
 	}
@@ -8320,15 +8331,15 @@ void collectDataInPositiveContext(
 
 	for (const auto& s: indexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
-			rewriterStrMap[s.first] = s.second.second;
+			rewriterStrMap[s.first] = s.second.second.first;
 
 	for (const auto& s : indexOf2StrMap)
 		if (s.second.first.length() == 0) /* evaluated */
-			rewriterStrMap[s.first] = s.second.second;
+			rewriterStrMap[s.first] = s.second.second.first;
 
 	for (const auto& s: lastIndexOfStrMap)
 		if (s.second.first.length() == 0) /* evaluated */
-			rewriterStrMap[s.first] = s.second.second;
+			rewriterStrMap[s.first] = s.second.second.first;
 
 	for (const auto& s : endsWithStrMap)
 		rewriterStrMap[s.first] = s.second;
@@ -8342,7 +8353,7 @@ void collectDataInPositiveContext(
 	for (const auto& s : replaceAllStrMap)
 		rewriterStrMap[s.first] = s.second;
 
-	collectSubstrValueInPositiveContext(t, rewriterStrMap);
+	collectSubstrValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
 		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));

@@ -5421,7 +5421,7 @@ bool underapproxController(
 	if (connectedVariables.size() == 0 &&
 			equalitiesMap.size() == 0 &&
 			!hasInequalities(orgRewriterStrMap)) {
-		toLengthFile(nonGrm, true, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(nonGrm, true, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
 			return false;
@@ -5432,7 +5432,7 @@ bool underapproxController(
 		result = Z3_run(cmd, _fullEqualMap, false);
 		if (result == false){
 			regexCnt = 0;
-			toLengthFile(nonGrm, false, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+			toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
 				printf(">> UNSAT\n");
 				return false;
@@ -5442,7 +5442,7 @@ bool underapproxController(
 		}
 	}
 	else {
-		toLengthFile(nonGrm, false, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
+		toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");

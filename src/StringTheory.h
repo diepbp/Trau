@@ -949,7 +949,8 @@ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
   */
  void collectSubstrValueInPositiveContext(
  		Z3_theory t,
- 		std::map<StringOP, std::string> &rewriterStrMap);
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
  /*
   *

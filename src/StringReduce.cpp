@@ -9,9 +9,9 @@ extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 extern std::map<StringOP, std::string> subStrStrMap;
 extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
-extern std::map<StringOP, std::pair<std::string, std::string>> indexOfStrMap;
-extern std::map<StringOP, std::pair<std::string, std::string>> indexOf2StrMap;
-extern std::map<StringOP, std::pair<std::string, std::string>> lastIndexOfStrMap;
+extern std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> indexOfStrMap;
+extern std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> indexOf2StrMap;
+extern std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> lastIndexOfStrMap;
 extern std::map<StringOP, std::string> endsWithStrMap;
 extern std::map<StringOP, std::string> startsWithStrMap;
 
@@ -1102,12 +1102,12 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			int index = arg0Str.find(arg1Str);
 			indexOfStrMap[StringOP(languageMap[INDEXOF],
 					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
-					std::make_pair("", std::to_string(index));
+					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
 			indexOfStrMap[StringOP(languageMap[INDEXOF],
 					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
-					std::make_pair("", "-1");
+					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -1158,9 +1158,13 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
-		indexOfStrMap[StringOP(languageMap[INDEXOF], {node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] = std::make_pair(boolVar,
-				LENPREFIX + std::string(Z3_ast_to_string(ctx, x1)));
-
+		StringOP tmpOp = StringOP(languageMap[INDEXOF], {node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])});
+		indexOfStrMap[tmpOp] =
+				std::make_pair(boolVar,
+						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
+								node_to_string(t, indexAst)));
+		__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
+																						indexOfStrMap[tmpOp].second.second.c_str());
 		if (!canSkipExt(t, args[1])) {
 			//     args[0]  = x3 . x4
 			//  /\ |x3| = |x1| + |args[1]| - 1
@@ -1255,12 +1259,12 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 			index += pos;
 			indexOf2StrMap[StringOP(languageMap[INDEXOF2],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2])})] =
-					std::make_pair("", std::to_string(index));
+					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
 			indexOf2StrMap[StringOP(languageMap[INDEXOF2],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2])})] =
-					std::make_pair("", "-1");
+					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -1302,10 +1306,14 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::string arg02Str = Z3_ast_to_string(ctx, args[2]);
 		if (arg02Str.compare("0") == 0){
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = indexOf_toAstMap[std::make_pair(x1, args[1])];
+			StringOP tmpOp = StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
+					node_to_stringOP(t, args[1])});
 			indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 					node_to_stringOP(t, args[1]),
-					node_to_stringOP(t, args[2])})] = indexOfStrMap[StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
-							node_to_stringOP(t, args[1])})];
+					node_to_stringOP(t, args[2])})] = indexOfStrMap[tmpOp];
+
+			__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
+																				indexOfStrMap[tmpOp].second.second.c_str());
 			indexOfStrMap.erase(StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
 							node_to_stringOP(t, args[1])}));
 			std::vector<Z3_ast> tmpVector = {Z3_mk_eq(ctx, args[0], x1), breakdownAssert};
@@ -1335,9 +1343,10 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		Z3_ast correctCase = Z3_get_app_arg(ctx, Z3_to_app(ctx, breakdownAssert), 1);
 		Z3_ast incorrectCase = Z3_get_app_arg(ctx, Z3_to_app(ctx, breakdownAssert), 2);
 
-		//  indexAst =tmpAst + args[2]
+		//  indexAst = tmpAst + args[2]
 		Z3_ast addResult[2] = {tmpAst, args[2]};
-		std::vector<Z3_ast> tmpVector01 = {correctCase, Z3_mk_eq(ctx, indexAst, Z3_mk_add(ctx, 2, addResult))};
+		Z3_ast addNode = Z3_mk_add(ctx, 2, addResult);
+		std::vector<Z3_ast> tmpVector01 = {correctCase, Z3_mk_eq(ctx, indexAst, addNode)};
 
 		std::vector<Z3_ast> tmpVector02 = {incorrectCase, Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)) };
 		thenItems.push_back(
@@ -1354,9 +1363,12 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::string boolVar = Z3_ast_to_string(ctx, boolAst);
 
 		indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), args[2])] = {x0, x1};
+
 		indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar, node_to_string(t, indexAst));
+				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar,
+													std::make_pair(node_to_string(t, addNode),
+																	node_to_string(t, indexAst)));
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
@@ -1391,12 +1403,12 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 			int index = arg0Str.rfind(arg1Str);
 			lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
-					std::make_pair("", std::to_string(index));
+					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
 			lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
-					std::make_pair("", "-1");
+					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
 	} else {
@@ -1452,7 +1464,8 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 		lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 				std::make_pair(boolVar,
-						LENPREFIX + std::string(Z3_ast_to_string(ctx, x1)));
+						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
+								node_to_string(t, indexAst)));
 
 		if (!canSkipExt(t, args[1])) {
 			// args[0]  = x3 . x4 /\ |x3| = |x1| + 1 /\ ! contains(x4, args[1])
@@ -1614,10 +1627,12 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		and_item[2] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
 
 		/* convert to string, prepare for replaceStrMap */
-		std::string tmp = createEqualConstraint(
-				std::string(LENPREFIX)
-						+ (std::string) Z3_ast_to_string(ctx, ts0),
-				Z3_ast_to_string(ctx, args[1]));
+		std::string tmp = "(and " + createEqualConstraint(
+										std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts0),
+										Z3_ast_to_string(ctx, args[1])) +
+									createEqualConstraint(
+										std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts1),
+										Z3_ast_to_string(ctx, args[2])) + ")";
 
 		subStrStrMap[StringOP(languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
@@ -1631,7 +1646,9 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		ands[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
 		subStrStrMap[StringOP(languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2]))] = TRUESTR;
+				node_to_stringOP(t, args[2]))] = createEqualConstraint(
+													std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts1),
+													Z3_ast_to_string(ctx, args[2]));
 		breakdownAssert = Z3_mk_and(ctx, 2, ands);
 
 		if (printingConstraints) {

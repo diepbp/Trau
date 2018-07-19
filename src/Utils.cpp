@@ -583,9 +583,23 @@ void formatMinusOP(StringOP &opx){
 			formatPlusOP(opx);
 		}
 	}
-	else if (opx.args.size() == 1)
+	else if (opx.args.size() == 1) {
 		if (opx.args[0].name.compare("0") == 0)
 			opx = StringOP("0");
+		else {
+			if (opx.args[0].name.compare("+") == 0){
+				std::vector<StringOP> tmp;
+				for (unsigned i = 0; i < opx.args[0].args.size(); ++i) {
+					if (opx.args[0].args[i].name.compare("0") == 0)
+						tmp.push_back(StringOP("0"));
+					else
+						tmp.push_back(StringOP("-", opx.args[0].args[i]));
+				}
+				opx = StringOP("+", tmp);
+				formatPlusOP(opx);
+			}
+		}
+	}
 }
 
 
@@ -605,16 +619,31 @@ void formatOP(StringOP &opx){
  */
 void formatPlusOP(StringOP &opx){
 	/* remove 0 */
-	std::vector<StringOP> tmpVector;
-	for (unsigned i = 0 ; i < opx.args.size(); ++i){
-		std::string tmp = opx.args[i].toString();
-		if (tmp.size() == 0 || tmp.compare("0") == 0){
+	bool expaned = true;
+	std::vector<StringOP> elements = opx.args;
+	std::vector<StringOP> args;
+	unsigned pos = 0;
+	while (pos < elements.size()) {
+		StringOP curr = elements[pos];
+		if (curr.name.compare("0") == 0){
+		}
+		else if (curr.name.compare("+") == 0){
+			for (unsigned i = 0; i < curr.args.size(); ++i)
+				elements.emplace_back(curr.args[i]);
+		}
+		else if (curr.name.compare("-") == 0){
+			formatMinusOP(curr);
+			if (curr.args.size() == 1)
+				args.emplace_back(StringOP("-", curr.args[0]));
+			else for (unsigned i = 0; i < curr.args.size(); ++i)
+				elements.emplace_back(StringOP("-", curr.args[i]));
 		}
 		else
-			tmpVector.emplace_back(opx.args[i]);
+			args.emplace_back(curr);
+		pos++;
 
 	}
-	opx.setArgs(tmpVector);
+	opx.setArgs(args);
 
 	/* reorder args */
 	for (unsigned i = 0 ; i < opx.args.size(); ++i)

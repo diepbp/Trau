@@ -313,6 +313,7 @@ void toNonGRMFile(
  */
 void defineIntVars(
 		std::map<StringOP, std::string> rewriterStrMap,
+		std::set<std::string> carryOnConstraints,
 		std::vector<std::string> &smtVarDefinition);
 
 /*
@@ -320,6 +321,7 @@ void defineIntVars(
  * convert the file to length file & store it
  */
 void toLengthFile(std::string inputFile, bool handleNotOp,
+		std::set<std::string> carryOnConstraints,
 		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,

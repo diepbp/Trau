@@ -553,7 +553,7 @@ void updateSubstring(
 				startAssignment--;
 		}
 
-		StringOP op(findStringOP(tokens, found));
+		StringOP op = findStringOP(tokens, found);
 		StringOP arg02 = op.args[2];
 		formatOPByRewriter(op, rewriterStrMap);
 		__debugPrint(logFile, "%d op = %s\n", __LINE__, op.toString().c_str());
@@ -573,12 +573,12 @@ void updateSubstring(
 		for (int i = 0; i < startAssignment; ++i)
 			tmp.emplace_back(tokens[i]);
 
-		tmp.push_back(std::make_pair("(", 92));
-		tmp.push_back(std::make_pair("and", 88));
-		tmp.push_back(std::make_pair(rewriterStrMap[op], 88));
+//		tmp.push_back(std::make_pair("(", 92));
+//		tmp.push_back(std::make_pair("and", 88));
+//		tmp.push_back(std::make_pair(rewriterStrMap[op], 88));
 
-		int cnt = 0;
-		bool added = false;
+//		int cnt = 0;
+//		bool added = false;
 		for (int i = startAssignment; i < (int)tokens.size(); ++i){
 			if (i == found - 1){
 				std::vector<std::pair<std::string, int>> tmpx;
@@ -599,17 +599,17 @@ void updateSubstring(
 			else
 				tmp.emplace_back(tokens[i]);
 
-			if (tokens[i].second == 92)
-				++cnt;
-			else if (tokens[i].second == 93) {
-				--cnt;
-				if (cnt == 0 && added == false) {
-					tmp.push_back(std::make_pair(")", 93));
-					added = true; /* add only once */
-				}
-			}
+//			if (tokens[i].second == 92)
+//				++cnt;
+//			else if (tokens[i].second == 93) {
+//				--cnt;
+//				if (cnt == 0 && added == false) {
+//					tmp.push_back(std::make_pair(")", 93));
+//					added = true; /* add only once */
+//				}
+//			}
 		}
-		__debugPrint(logFile, "%d op --> %s\n", __LINE__, rewriterStrMap[op].c_str());
+//		__debugPrint(logFile, "%d op --> %s\n", __LINE__, rewriterStrMap[op].c_str());
 		tokens.clear();
 		tokens = tmp;
 
@@ -1963,11 +1963,22 @@ void encodeHex(std::string inputFile, std::string outFile){
  */
 void defineIntVars(
 		std::map<StringOP, std::string> rewriterStrMap,
+		std::set<std::string> carryOnConstraints,
 		std::vector<std::string> &smtVarDefinition){
 	std::set<std::string> intVars;
 	for (const auto& opx : rewriterStrMap){
 		if (opx.second.find("$$_int") != std::string::npos){
 			std::vector<std::string> tokens = parse_string_language(opx.second, " ()");
+			for (const auto& token : tokens)
+				if (token.find("$$_int") == 0) {
+					intVars.emplace(token);
+				}
+		}
+	}
+
+	for (const auto& s : carryOnConstraints){
+		if (s.find("$$_int") != std::string::npos){
+			std::vector<std::string> tokens = parse_string_language(s, " ()");
 			for (const auto& token : tokens)
 				if (token.find("$$_int") == 0) {
 					intVars.emplace(token);
@@ -1988,6 +1999,7 @@ void defineIntVars(
  */
 void toLengthFile(
 		std::string inputFile, bool handleNotOp,
+		std::set<std::string> carryOnConstraints,
 		std::map<StringOP, std::string> rewriterStrMap,
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
@@ -1995,7 +2007,7 @@ void toLengthFile(
 	smtVarDefinition.clear();
 	smtLenConstraints.clear();
 
-	defineIntVars(rewriterStrMap, smtVarDefinition);
+	defineIntVars(rewriterStrMap, carryOnConstraints, smtVarDefinition);
 	std::vector<std::vector<std::string>> newtokens;
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
