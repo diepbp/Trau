@@ -2320,12 +2320,13 @@ void createConstMap(){
  *
  */
 void addToConnectedVar(StringOP op, std::map<std::string, int> &connectedVarSet, int length){
-	__debugPrint(logFile, "%d *** %s ***: %s, args = %ld\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.args.size());
+	__debugPrint(logFile, "%d *** %s ***: %s, args = %ld, len = %d\n", __LINE__, __FUNCTION__, op.toString().c_str(), op.args.size(), length);
 	 if (op.args.size() == 0) {
 		 if (connectedVarSet.find(op.name) == connectedVarSet.end())
 			 connectedVarSet[op.name] = length;
 		 else
 			 connectedVarSet[op.name] = std::max(length, connectedVarSet[op.name]);
+		 __debugPrint(logFile, ">> %d connectedVarSet @ %s: %d\n", __LINE__, op.name.c_str(),  connectedVarSet[op.name]);
 	 }
 	 else if (op.name.compare(languageMap[CONCAT]) == 0){
 		 for (unsigned i = 0 ; i < op.args.size(); ++i)
@@ -2510,7 +2511,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 		if (connectedVariables.find(eq.first) != connectedVariables.end()){
 			for (const auto& v : eq.second)
 				if (v.size() == 1){
-					if (v[0][0] != '"')
+					if (v[0][0] != '"' && connectedVariables.find(v[0]) == connectedVariables.end())
 						connectedVariables[v[0]] = connectedVariables[eq.first];
 				}
 		}
@@ -3559,7 +3560,7 @@ void syncConst(
 
 	for (const auto& s : propagatingList) {
 		__debugPrint(logFile, "%d propagating %s\n", __LINE__, s.c_str())
-		if (s[0] == '"')
+//		if (s[0] == '"')
 			forwardPropagate(s, len, strValue, completion);
 		if (s[0] == '"' || equalitiesMap[s].size() > 1)
 			backwardPropagarate(s, len, strValue, completion);
@@ -3595,7 +3596,7 @@ int getVarLength(
 		return len[tmp];
 	}
 	else {
-		__debugPrint(logFile, "%d %s : %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
+//		__debugPrint(logFile, "%d %s : %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 		assert(len.find(newlyUpdate) != len.end());
 		return len[newlyUpdate];
 	}
@@ -3724,6 +3725,7 @@ void forwardPropagate(
 					__debugPrint(logFile, "%d", value[i]);
 			__debugPrint(logFile, "\n");
 			strValue[getVarName(var.first)] = value;
+//			forwardPropagate(var.first, len, strValue, completion);
 
 			/* update peers */
 			if (var.second.size() > 1) {
@@ -5127,6 +5129,13 @@ void updateFullEqualMap(){
 						tmp[tmp.size() - 1] = "\"" + tmp[tmp.size() - 1].substr(1, tmp[tmp.size() - 1].length() - 2) + eq[i].substr(1, eq[i].length() - 2) + "\"";
 					else
 						tmp.emplace_back(eq[i]);
+
+				if (willAdd)
+					for (const auto& v : tmpMap[eqVar.first])
+						if (equalVector(v, tmp)) {
+							willAdd = false;
+							break;
+						}
 
 				if (willAdd)
 					tmpMap[eqVar.first].emplace_back(tmp);

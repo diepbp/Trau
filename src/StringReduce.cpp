@@ -1369,6 +1369,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar,
 													std::make_pair(node_to_string(t, addNode),
 																	node_to_string(t, indexAst)));
+		carryOn[boolAst] = Z3_mk_eq(ctx, mk_length(t, x0), args[2]);
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));

@@ -117,7 +117,13 @@ void updateEquality(
 /*
  *
  */
-void updateNot(std::vector<std::pair<std::string, int>> &tokens);
+bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars);
+
+/*
+ *
+ */
+void updateNot(std::vector<std::pair<std::string, int>> &tokens,
+		std::set<std::string> otherVars);
 
 /*
  * (implies x) --> (implies false x)

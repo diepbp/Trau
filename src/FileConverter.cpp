@@ -186,6 +186,30 @@ StringOP findOpArg(
 			StringOP ret = findStringOP(tokens, startPos + 1);
 			formatMultiplyOP(ret);
 		}
+		else if (tokens[startPos + 1].first.compare("not") == 0) {
+					ret = findStringOP(tokens, startPos + 1);
+				}
+		else if (tokens[startPos + 1].first.compare("ite") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare("implies") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare("=") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare(">") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare("<") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare(">=") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
+		else if (tokens[startPos + 1].first.compare("<=") == 0) {
+			ret = findStringOP(tokens, startPos + 1);
+		}
 		else if (tokens[startPos + 1].first.compare(languageMap[LENGTH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
@@ -279,52 +303,99 @@ void updateEquality(
 /*
  *
  */
-void updateNot(std::vector<std::pair<std::string, int>> &tokens){
+bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
+	if (opx.name.compare(">") == 0 ||
+			opx.name.compare("<") == 0 ||
+			opx.name.compare(">=") == 0 ||
+			opx.name.compare("<=") == 0 ||
+			opx.name.compare("not") == 0 ||
+			opx.name.compare("ite") == 0)
+		return true;
+
+	if (opx.name.compare("=") == 0){
+		__debugPrint(logFile, "%d %s = %s\n", __LINE__, opx.args[0].name.c_str(), opx.args[1].name.c_str());
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
+		if (opx.args[0].name.compare("ite") == 0 ||
+				opx.args[0].name.compare("not") == 0 ||
+				opx.args[0].name.compare("+") == 0 ||
+				opx.args[0].name.compare("-") == 0 ||
+				opx.args[0].name.compare("*") == 0 ||
+				opx.args[0].name.compare(languageMap[LENGTH]) == 0 ||
+				opx.args[0].name.compare(languageMap[INDEXOF]) == 0 ||
+				opx.args[0].name.compare(languageMap[INDEXOF2]) == 0 ||
+				(opx.args[0].name[0] >= '0' && opx.args[0].name[0] <= '9'))
+			return true;
+
+		if (opx.args[1].name.compare("ite") == 0 ||
+				opx.args[1].name.compare("not") == 0 ||
+				opx.args[1].name.compare("+") == 0 ||
+				opx.args[1].name.compare("-") == 0 ||
+				opx.args[1].name.compare("*") == 0 ||
+				opx.args[1].name.compare(languageMap[LENGTH]) == 0 ||
+				opx.args[1].name.compare(languageMap[INDEXOF]) == 0 ||
+				opx.args[1].name.compare(languageMap[INDEXOF2]) == 0 ||
+				(opx.args[1].name[0] >= '0' && opx.args[1].name[0] <= '9'))
+			return true;
+
+		if (otherVars.find(opx.args[0].name) != otherVars.end())
+			return true;
+
+		if (otherVars.find(opx.args[1].name) != otherVars.end())
+			return true;
+	}
+	__debugPrint(logFile, ">> %d not ArithmeticOP\n", __LINE__);
+	return false;
+}
+
+/*
+ *
+ */
+void updateNot(std::vector<std::pair<std::string, int>> &tokens,
+		std::set<std::string> otherVars){
 	int found = findTokens(tokens, 0, "not", 3);
 	while (found != -1) {
 		int endCond = -1;
 		assert(tokens[found - 1].second == 92);
-		if (tokens[found + 1].second == 92)
+		if (tokens[found + 1].second == 92) {
 			endCond = findCorrespondRightParentheses(found - 1, tokens);
 
-		bool foundConst = false;
-		for (int i = found; i < endCond; ++i)
-			if (tokens[i].second == 86 && tokens[i].first.length() > 2) {
-				foundConst = true;
-				break;
-			}
+			StringOP opx = findStringOP(tokens, found + 2);
 
+			if (!isArithmeticOP(opx, otherVars)) {
+				bool eqType = false;
+				for (int i = found - 2; i >= 0; --i) {
+					if (tokens[i].second == 92) {
+						if (tokens[i + 1].first.compare("=") == 0) {
 
-		if (foundConst) {
-			bool eqType = false;
-			for (int i = found - 2; i >= 0; --i) {
-				if (tokens[i].second == 92) {
-					if (tokens[i + 1].first.compare("=") == 0) {
-
-						eqType = true;
-						found = i;
-						endCond = findCorrespondRightParentheses(i, tokens);
+							eqType = true;
+							found = i;
+							endCond = findCorrespondRightParentheses(i, tokens);
+						}
+						else {
+						}
+						break;
 					}
-					else {
-					}
-					break;
+
 				}
-
+				std::vector<std::pair<std::string, int>> addingTokens;
+				if (eqType) {
+					addingTokens.push_back(std::make_pair(TRUESTR, 15));
+					tokens = replaceTokens(tokens, found, endCond + 1, addingTokens); /* found at ( */
+					found = findTokens(tokens, found, "not", 3);
+				}
+				else {
+					addingTokens.push_back(std::make_pair(TRUESTR, 15));
+					tokens = replaceTokens(tokens, found - 1, endCond + 1, addingTokens); /* found at not */
+					found = findTokens(tokens, found, "not", 3);
+				}
 			}
-			std::vector<std::pair<std::string, int>> addingTokens;
-			if (eqType) {
-				addingTokens.push_back(std::make_pair(TRUESTR, 15));
-				tokens = replaceTokens(tokens, found, endCond + 1, addingTokens); /* found at ( */
-				found = findTokens(tokens, found, "not", 3);
-			}
-			else {
-				addingTokens.push_back(std::make_pair(TRUESTR, 15));
-				tokens = replaceTokens(tokens, found - 1, endCond + 1, addingTokens); /* found at not */
-				found = findTokens(tokens, found, "not", 3);
-			}
+			else
+				found = findTokens(tokens, found + 1, "not", 3);
 		}
-		else
+		else {
 			found = findTokens(tokens, found + 1, "not", 3);
+		}
 	}
 }
 
@@ -1303,6 +1374,7 @@ void toLengthLine(
 		std::vector<std::string> &smtLenConstraints){
 
 	std::set<std::string> constList;
+	std::set<std::string> otherVar;
 
 	bool declare = false;
 	for (const auto& token : tokens)
@@ -1323,12 +1395,14 @@ void toLengthLine(
 		if (stringVarDef == true) {
 			smtLenConstraints.emplace_back("(assert (>= len_" + tokens[2].first + " 0))\n");
 			strVars.emplace_back(tokens[2].first); /* list of string variables */
+
 			if (tokens[2].first.find("const_") != 0)
 				newStr = redefineStringVar(tokens[2].first);
 			else
 				newStr = "";
 		}
 		else {
+			otherVar.emplace(tokens[2].first);
 			newStr = redefineOtherVar(tokens[2].first, tokens[tokens.size() - 2].first);
 		}
 
@@ -1356,11 +1430,13 @@ void toLengthLine(
 					s += tokens[i].first[j];
 			tokens[i].first = "\"" + s + "\"";
 		}
-
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateImplies(tokens);
+	__debugPrint(logFile, "%d *** after updateImplies ***: %s\n", __LINE__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateEquality(tokens, rewriterStrMap);
 //	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	updateNot(tokens);
+	updateNot(tokens, otherVar);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);

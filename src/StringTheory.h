@@ -585,6 +585,7 @@ typedef struct _AutomatonStringData
  void extendVariableToFindAllPossibleEqualities(
 		 Z3_theory t, Z3_ast node,
 		 std::set<Z3_ast> connectedVariables,
+		 std::map<Z3_ast, std::vector<Z3_ast>> disEq,
 		 std::set<std::string> &variableBelongToOthers,
 		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &allEqPossibilities,
 		 std::map<Z3_ast, std::vector<std::vector<Z3_ast>>> &fullEqPossibilities,
@@ -614,6 +615,11 @@ typedef struct _AutomatonStringData
   *
   */
  std::set<Z3_ast> collectConnectedVars(Z3_theory t);
+
+ /*
+  *
+  */
+ std::map<Z3_ast, std::vector<Z3_ast>> collectDisEQVars(Z3_theory t);
 
  /*
   * how many letters in a combination
