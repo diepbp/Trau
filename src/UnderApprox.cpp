@@ -5127,6 +5127,15 @@ void updateFullEqualMap(){
 					if (tmp[i][0] == '"' && tmp[i].length() == 2){
 
 					}
+					else if (tmp[i][0] == '"' &&
+							(tmp[i][tmp[i].length() - 1] != '"' ||
+									(tmp[i].find(")*") != std::string::npos &&
+											tmp[i].find("(") != std::string::npos &&
+											tmp[i].find("(") < tmp[i].find(")*")))){
+						/* regex */
+						willAdd = false;
+						break;
+					}
 					else tmp01.emplace_back(tmp[i]);
 				if (tmp01.size() == 0)
 					willAdd = false;
