@@ -1588,7 +1588,7 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[],
 		carryOn[astBool] = mk_and_fromVector(t, carryOnArgs);
 		charAtStrMap[StringOP(languageMap[CHARAT], node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]))] = std::make_pair(boolVar,
-				LENPREFIX + std::string(Z3_ast_to_string(ctx, ts0)));
+				node_to_string(t, ts1));
 
 		if (printingConstraints) {
 			constraintSet.stringConstraints.emplace(node_to_string(t, ands[0]));

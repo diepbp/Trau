@@ -199,6 +199,13 @@ void updateRegexPlus(
 		std::vector<std::pair<std::string, int>> &tokens,
 		int &regexCnt);
 
+
+/*
+ *
+ */
+void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap);
+
 /*
  * xyz --> len_xyz
  */

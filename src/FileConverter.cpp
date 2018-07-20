@@ -828,24 +828,22 @@ void updateRegexPlus(
 /*
  *
  */
-void updateCharAt(std::vector<std::pair<std::string, int>> &tokens){
+void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap){
 	// replace CharAt --> select
 	int found = findTokens(tokens, 0, languageMap[CHARAT], 88);
 	while (found != -1) {
-		int pos = found - 1;
-		while (pos > 0)
-			if (tokens[pos].first[0] == '=')
-				break;
-			else --pos;
+		StringOP opx = findStringOP(tokens, found);
+		formatOPByRewriter(opx, rewriterStrMap);
 
-		assert(pos > 0);
-		int tmp = findCorrespondRightParentheses(pos - 1, tokens);
-
+		int tmp = findCorrespondRightParentheses(found - 1, tokens);
+		__debugPrint(logFile, "%d %s: %s --> %s\n", __LINE__, __FUNCTION__, opx.toString().c_str(), rewriterStrMap[opx].c_str());
 		std::vector<std::pair<std::string, int>> addingTokens;
-		addingTokens.push_back(std::make_pair(TRUESTR, 15));
-		tokens = replaceTokens(tokens, pos - 1, tmp + 1, addingTokens);
+		tokens = replaceTokens(tokens, found - 1, tmp, rewriterStrMap[opx], 88);
+
 		found = findTokens(tokens, found, languageMap[CHARAT], 88);
 	}
+
 }
 
 /*
@@ -1428,12 +1426,10 @@ void toLengthLine(
 		}
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateImplies(tokens);
-	updateEquality(tokens, rewriterStrMap);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	updateNot(tokens, otherVar, smtVarDefinition);
 	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateRegexIn(tokens);
 	updateContain(tokens, rewriterStrMap);
+	updateCharAt(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
 	updateIndexOf2(tokens, rewriterStrMap);
 //	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
@@ -1448,9 +1444,8 @@ void toLengthLine(
 	updateToLower(tokens);
 //	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateSubstring(tokens, rewriterStrMap);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	updateCharAt(tokens);
-
+	updateEquality(tokens, rewriterStrMap);
+	updateNot(tokens, otherVar, smtVarDefinition);
 	updateConst(tokens); /* "abcdef" --> 6 */
 	updateStr2Regex(tokens);
 	updateRegexStar(tokens, regexCnt);
