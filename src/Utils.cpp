@@ -542,6 +542,7 @@ std::string createEndsWithConstraint(std::string x, std::string y){
  *
  */
 void formatMinusOP(StringOP &opx){
+//	__debugPrint(logFile, "%d %s: op minus: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
 	if (opx.args.size() == 2) {
 		if (opx.args[0].name.compare("0") == 0) {
 			if (opx.args[1].name.compare("+") == 0){
@@ -600,6 +601,7 @@ void formatMinusOP(StringOP &opx){
 			}
 		}
 	}
+//	__debugPrint(logFile, "%d >> %s\n", __LINE__, opx.toString().c_str());
 }
 
 
@@ -619,7 +621,7 @@ void formatOP(StringOP &opx){
  */
 void formatPlusOP(StringOP &opx){
 	/* remove 0 */
-	bool expaned = true;
+//	__debugPrint(logFile, "%d %s: op plus: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
 	std::vector<StringOP> elements = opx.args;
 	std::vector<StringOP> args;
 	unsigned pos = 0;
@@ -643,6 +645,7 @@ void formatPlusOP(StringOP &opx){
 		pos++;
 
 	}
+
 	opx.setArgs(args);
 
 	/* reorder args */
@@ -654,8 +657,11 @@ void formatPlusOP(StringOP &opx){
 				opx.args[j] = tmp;
 			}
 
-	if (opx.args.size() == 1)
-		opx = opx.args[0];
+	if (opx.args.size() == 1){
+		opx.setName(opx.args[0].name);
+		opx.setArgs(opx.args[0].args);
+	}
+//	__debugPrint(logFile, "%d >> %s\n", __LINE__, opx.toString().c_str());
 }
 
 /*
