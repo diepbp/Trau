@@ -271,6 +271,56 @@ void pushVectors(Z3_ast node, std::vector<Z3_ast> &v0, std::vector<Z3_ast> &v1,
 /*
  *
  */
+StringOP convertStrOPToArithmeticOP(StringOP op){
+	if (op.args.size() == 0)
+		return op;
+	else {
+		if (op.name.compare(languageMap[LENGTH]) == 0){
+			if (op.args[0].name.compare(languageMap[CONCAT]) == 0){
+				std::vector<StringOP> args;
+				std::vector<StringOP> q;
+				q.emplace_back(op.args[0]);
+				int pos = 0;
+				while (pos < q.size()){
+					StringOP curr = q[pos];
+					pos ++;
+
+					for (unsigned i = 0; i < curr.args.size(); ++i)
+						if (curr.args[i].args.size() == 0){
+							args.push_back(StringOP(LENPREFIX + curr.args[i].name));
+						}
+						else {
+							assert (curr.args[i].name.compare(languageMap[CONCAT]) == 0);
+							q.emplace_back(curr.args[i]);
+						}
+				}
+				return StringOP("+", args);
+			}
+			else
+				return StringOP(LENPREFIX + op.args[0].name);
+		}
+		else {
+			std::vector<StringOP> args;
+			for (unsigned i = 0; i < op.args.size(); ++i){
+				args.push_back(convertStrOPToArithmeticOP(op.args[i]));
+			}
+
+			return StringOP(op.name, args);
+		}
+
+	}
+}
+/*
+ *
+ */
+std::string convertStrNodeToArithmeticNode(Z3_theory t, Z3_ast node){
+	StringOP op = node_to_stringOP(t, node);
+	return convertStrOPToArithmeticOP(op).toString();
+}
+
+/*
+ *
+ */
 void pushVectors(Z3_ast node, std::vector<Z3_ast> &v0,
 		std::vector<Z3_ast> &v1) {
 	v0.push_back(node);
@@ -1619,6 +1669,8 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 	bool update;
 
 	int value_prefix = getConstIntValue(t, args[1]);
+	std::string arg01Str = convertStrNodeToArithmeticNode(t, args[1]);
+	std::string arg02Str = convertStrNodeToArithmeticNode(t, args[2]);
 
 	if (value_prefix != 0) {
 		Z3_ast and_item[3];
@@ -1630,10 +1682,10 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		/* convert to string, prepare for replaceStrMap */
 		std::string tmp = "(and " + createEqualConstraint(
 										std::string(LENPREFIX) + node_to_string(t, ts0),
-										node_to_string(t, args[1])) +
+										arg01Str) +
 									createEqualConstraint(
 										std::string(LENPREFIX) + node_to_string(t, ts1),
-										node_to_string(t, args[2])) + ")";
+										arg02Str) + ")";
 
 		subStrStrMap[StringOP(languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
@@ -1649,7 +1701,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
 				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), createEqualConstraint(
 													std::string(LENPREFIX) + (std::string) node_to_string(t, ts1),
-													node_to_string(t, args[2])));
+													arg02Str));
 		breakdownAssert = Z3_mk_and(ctx, 2, ands);
 
 		if (printingConstraints) {

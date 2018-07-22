@@ -8317,23 +8317,13 @@ bool collectReplaceValueInPositiveContext(
 
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
+
 	for (const auto& it : replaceStrMap) {
 		if (boolStr.compare(it.second) == 0){
 			if (boolValue) {
-				for (const auto& opx : internalVarFunctionMap)
-					if (opx.second == it.first) {
-						rewriterStrMap[it.first] = opx.first.toString();
-						break;
-					}
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
-			else
-				for (const auto& opx : internalVarFunctionMap)
-					if (opx.second == it.first) {
-						rewriterStrMap[it.first] = opx.first.toString();
-						break;
-					}
 			return true;
 		}
 	}
@@ -8476,11 +8466,21 @@ void collectDataInPositiveContext(
 	for (const auto& it : startsWithStrMap)
 		rewriterStrMap[it.first] = it.second;
 
-	for (const auto& s : replaceStrMap)
-		rewriterStrMap[s.first] = s.second;
+	for (const auto& it : replaceStrMap) {
+		for (const auto& opx : internalVarFunctionMap)
+			if (opx.second == it.first) {
+				rewriterStrMap[it.first] = opx.first.toString();
+				break;
+			}
+	}
 
-	for (const auto& s : replaceAllStrMap)
-		rewriterStrMap[s.first] = s.second;
+	for (const auto& it : replaceAllStrMap) {
+		for (const auto& opx : internalVarFunctionMap)
+			if (opx.second == it.first) {
+				rewriterStrMap[it.first] = opx.first.toString();
+				break;
+			}
+	}
 
 	collectSubstrValueInPositiveContext(t, rewriterStrMap, carryOnConstraints);
 
