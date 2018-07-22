@@ -1058,7 +1058,7 @@ std::string extractConst(std::string str) {
 			str = str.substr(1, str.length() - 2);
 		else {
 			/* "abc"_number */
-			for (unsigned int i = str.length() - 1; i >= 0; --i)
+			for (int i = str.length() - 1; i >= 0; --i)
 				if (str[i] == '_') {
 					assert (str[i - 1] == '\"');
 					str = str.substr(1, i - 2);
@@ -1220,7 +1220,7 @@ void rewriteGRM(std::string s,
 
 	__debugPrint(logFile, "%d CFG constraint: %s\n", __LINE__, s.c_str());
 	/* step 1: collect var that is the next token after GrammarIn */
-	unsigned int pos = s.find("GrammarIn");
+	int pos = s.find("GrammarIn");
 	assert(pos != std::string::npos);
 
 	assert(s[pos + 9] == ' ');
