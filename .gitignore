@@ -1,3 +1,7 @@
 /Debug/
 /Release/
-/install/  
+/install/
+/.project
+/.cproject
+/.settings/
+/.DS_Store  
