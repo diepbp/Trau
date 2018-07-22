@@ -2,9 +2,7 @@ RELEASE NOTES
 
 Version 1.1
 ==================
-- Language support: SMTLIB 2.0. SMT2.5 is under development.
-- Input Requirements:
-	One side of string equalities must be a string variable.
+- Language support: SMTLIB 2.0. SMT2.5 is under development. 
 - Support more escape characters such as \a \b \e \f \n \r \t \v
 - Bug fixed: fix some minor bugs
 
