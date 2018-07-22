@@ -1953,19 +1953,30 @@ std::vector<std::string> equalityToSMT(
 		std::vector<std::pair<std::string, int>> rhs_elements){
 #ifdef DEBUGLOG
 	__debugPrint(logFile, ">> equalities to SMT \n");
-	for (unsigned int i = 0; i < lhs_elements.size(); ++i)
+	for (unsigned i = 0; i < lhs_elements.size(); ++i)
 		__debugPrint(logFile, "%s.%d ", lhs_elements[i].first.c_str(), lhs_elements[i].second);
 	__debugPrint(logFile, "= ");
-	for (unsigned int i = 0; i < rhs_elements.size(); ++i)
+	for (unsigned i = 0; i < rhs_elements.size(); ++i)
 		__debugPrint(logFile, "%s.%d ", rhs_elements[i].first.c_str(), rhs_elements[i].second);
 	__debugPrint(logFile, "\nNumber of flats: %ld flats = %ld flats\n", lhs_elements.size(), rhs_elements.size());
 #endif
 
-
-	std::vector<std::string> cases = collectAllPossibleArrangements(
-			lhs, rhs,
-			lhs_elements, rhs_elements);
-	return cases;
+	std::string tmp01;
+	std::string tmp02;
+	for (unsigned i = 0; i < lhs_elements.size(); ++i)
+		tmp01 = tmp01 + "---" + lhs_elements[i].first;
+	for (unsigned i = 0; i < rhs_elements.size(); ++i)
+		tmp01 = tmp01 + "+++" + rhs_elements[i].first;
+	if (generatedEqualities.find(tmp01) == generatedEqualities.end()){
+//	if (true)
+		std::vector<std::string> cases = collectAllPossibleArrangements(
+				lhs, rhs,
+				lhs_elements, rhs_elements);
+		generatedEqualities.emplace(tmp01);
+		return cases;
+	}
+	else
+		return {TRUESTR};
 }
 
 /*
@@ -4959,6 +4970,7 @@ void pthreadController(){
  *
  */
 void reset(){
+	generatedEqualities.clear();
 	varPieces.clear();
 	notContainMap.clear();
 	smtLenConstraints.clear();

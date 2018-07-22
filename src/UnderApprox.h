@@ -57,6 +57,7 @@ static int maxInt = -1;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
+static std::set<std::string> generatedEqualities;
 
 /*
  * get value from eq map
