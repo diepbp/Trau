@@ -786,7 +786,7 @@ void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], 88);
+	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
