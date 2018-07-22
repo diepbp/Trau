@@ -6,7 +6,7 @@ extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> concat_astNode_map;
 extern std::map<Z3_ast, Z3_ast> grm_astNode_map;
 extern std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast> containPairBoolMap;
 
-extern std::map<StringOP, std::string> subStrStrMap;
+extern std::map<StringOP, std::pair<std::string, std::string>> subStrStrMap;
 extern std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 extern std::map<StringOP, std::pair<std::string, std::string>> charAtStrMap;
 extern std::map<StringOP, std::pair<std::string, std::pair<std::string, std::string>>> indexOfStrMap;
@@ -1629,15 +1629,15 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 
 		/* convert to string, prepare for replaceStrMap */
 		std::string tmp = "(and " + createEqualConstraint(
-										std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts0),
-										Z3_ast_to_string(ctx, args[1])) +
+										std::string(LENPREFIX) + node_to_string(t, ts0),
+										node_to_string(t, args[1])) +
 									createEqualConstraint(
-										std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts1),
-										Z3_ast_to_string(ctx, args[2])) + ")";
+										std::string(LENPREFIX) + node_to_string(t, ts1),
+										node_to_string(t, args[2])) + ")";
 
 		subStrStrMap[StringOP(languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2]))] = tmp;
+				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), tmp);
 
 		breakdownAssert = Z3_mk_and(ctx, 3, and_item);
 	} else {
@@ -1647,9 +1647,9 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		ands[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
 		subStrStrMap[StringOP(languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2]))] = createEqualConstraint(
-													std::string(LENPREFIX) + (std::string) Z3_ast_to_string(ctx, ts1),
-													Z3_ast_to_string(ctx, args[2]));
+				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), createEqualConstraint(
+													std::string(LENPREFIX) + (std::string) node_to_string(t, ts1),
+													node_to_string(t, args[2])));
 		breakdownAssert = Z3_mk_and(ctx, 2, ands);
 
 		if (printingConstraints) {

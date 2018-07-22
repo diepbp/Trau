@@ -37,7 +37,7 @@ clock_t timer;
 std::map<Z3_ast, Z3_ast> toUpperMap;
 std::map<Z3_ast, Z3_ast> toLowerMap;
 
-std::map<StringOP, std::string> subStrStrMap;
+std::map<StringOP, std::pair<std::string, std::string>> subStrStrMap;
 std::map<std::pair<Z3_ast, std::pair<Z3_ast, Z3_ast>>, Z3_ast> subStrNodeMap;
 
 std::map<std::pair<Z3_ast, Z3_ast>, std::vector<Z3_ast>> indexOf_toAstMap;
@@ -8118,8 +8118,8 @@ void collectSubstrValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap,
 		std::set<std::string> &carryOnConstraints){
 	for (const auto& substrElement : subStrStrMap) {
-		rewriterStrMap[substrElement.first] = substrElement.second;
-		carryOnConstraints.emplace(substrElement.second);
+		rewriterStrMap[substrElement.first] = substrElement.second.first;
+		carryOnConstraints.emplace(substrElement.second.second);
 	}
 }
 
@@ -8166,7 +8166,7 @@ bool collectIndexOf2ValueInPositiveContext(
 	for (const auto& it : indexOf2StrMap) {
 		if (boolStr.compare(it.second.first) == 0) {
 			if (boolValue) {
-				rewriterStrMap[it.first] = it.second.second.first;
+				rewriterStrMap[it.first] = it.second.second.second;
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(
