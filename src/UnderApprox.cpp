@@ -5217,19 +5217,21 @@ void initConnectingSize(){
 		connectingSize = std::max(connectingSize, v.second + 1);
 	}
 
-	int varCount = 0;
-	for (const auto& var : allVariables)
-		if (var.find("$$_") != 0)
-			varCount++;
+	if (lazy) {
+		int varCount = 0;
+		for (const auto& var : allVariables)
+			if (var.find("$$_") != 0)
+				varCount++;
 
-	sumConstLength = std::max(sumConstLength, (long) 2);
-	maxInt = std::max(maxInt, 1);
+		sumConstLength = std::max(sumConstLength, (long) 2);
+		maxInt = std::max(maxInt, 1);
 
-	long tmp = maxInt * sumConstLength * varCount;
+		long tmp = maxInt * sumConstLength * varCount;
 		if (tmp < connectingSize)
 			connectingSize = tmp;
 
-	__debugPrint(logFile, "%d maxInt: %d; sumConstLength: %li; varCount: %d ==> connectingSize: %d\n", __LINE__, maxInt, sumConstLength, varCount, connectingSize);
+		__debugPrint(logFile, "%d maxInt: %d; sumConstLength: %li; varCount: %d ==> connectingSize: %d\n", __LINE__, maxInt, sumConstLength, varCount, connectingSize);
+	}
 }
 
 /*
@@ -5422,7 +5424,7 @@ bool underapproxController(
 		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
-		std::string fileDir ) {
+		std::string fileDir) {
 	printf("\nRunning Under Approximation\n");
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
 	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT);
@@ -5511,7 +5513,16 @@ bool underapproxController(
 	}
 
 	if (result == false) {
-		/* skip */
+		if (lazy == false) {
+			lazy = true;
+			underapproxController(_equalMap,
+					_fullEqualMap,
+					rewriterStrMap,
+					_carryOnConstraints,
+					_currentLength,
+					fileDir);
+			lazy = false;
+		}
 	}
 	return result;
 }

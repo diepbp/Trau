@@ -56,6 +56,7 @@ static int connectingSize;
 static int maxInt = -1;
 static long sumInt = -1;
 static long sumConstLength = 0;
+static bool lazy = true;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
