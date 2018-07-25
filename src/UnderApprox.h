@@ -54,6 +54,8 @@ static std::map<std::string, std::set<std::string>> appearanceMap;
 static int noFlatVariables = 0;
 static int connectingSize;
 static int maxInt = -1;
+static long sumInt = -1;
+static long sumConstLength = 0;
 extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
@@ -672,7 +674,7 @@ void createAppearanceMap();
 
 /*
  * */
-void analysisMaxInt(std::string fileName);
+void staticIntegerAnalysis(std::string fileName);
 
 /*
  *

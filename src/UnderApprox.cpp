@@ -2177,6 +2177,7 @@ void sumConstString(){
 	std::map<std::string, std::vector<std::string>> parserMap;
 
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
+	sumConstLength = 0;
 	for (const auto& _eq :  equalitiesMap) {
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (const auto& vt : _eq.second){
@@ -2185,6 +2186,7 @@ void sumConstString(){
 			/* push to map */
 			for (const auto& s : vt) {
 				if (s[0] == '\"') {
+					sumConstLength += s.length() - 2;
 					/* prevent the case: (abc)*  + def */
 					if (isRegexStr(s) || isUnionStr(s)) {
 						std::vector<std::string> localElements;
@@ -2193,7 +2195,7 @@ void sumConstString(){
 							localElements = parserMap[s];
 						else {
 							/* update regex */
-							unsigned tmpPos = s.length() - 1;
+							int tmpPos = s.length() - 1;
 							std::string indexStr = "";
 							for (tmpPos = s.length() - 1; tmpPos >= 0; --tmpPos)
 								if (s[tmpPos] == '\"') {
@@ -2299,11 +2301,12 @@ void sumConstString(){
 void createConstMap(){
 	int constCnt = 0;
 	constMap.clear();
-
+	sumConstLength = 2;
 	for (const auto _eq : equalitiesMap) {
 		if (_eq.first[0] == '"') {
 			std::string content = _eq.first.substr(1, _eq.first.length() - 2);
 			constMap[content] = "const_" + std::to_string(constCnt++);
+			sumConstLength += content.length();
 		}
 		for (const auto v: _eq.second){
 
@@ -2312,12 +2315,14 @@ void createConstMap(){
 
 			/* push to map */
 			for (const auto s : v)
-				if (s[0] == '\"'){
+				if (s[0] == '"'){
 					std::string content = s.substr(1, s.length() - 2);
 					/* string is regex ? */
-//					if (isRegexStr(content)) {
-//						content = content + "__" + std::to_string(constCnt);
-//					}
+					if (isRegexStr(content)) {
+						sumConstLength = CONNECTINGSIZE * 2;
+					}
+					else
+						sumConstLength += content.length();
 					if (constMap.find(content) == constMap.end()) {
 						__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
 						constMap[content] = "const_" + std::to_string(constCnt++);
@@ -2355,11 +2360,13 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::string, std::vector<std::string>> usedComponents;
 	std::map<std::string, int> connectedVarSet;
 	connectedVariables.clear();
+
 	/* collect from equality map */
 	for (const auto& eq : equalitiesMap) {
 		if (eq.second.size() > 4 && eq.first[0] != '"') {
-			if (connectedVariables.find(eq.first) == connectedVariables.end())
+			if (connectedVariables.find(eq.first) == connectedVariables.end()) {
 				connectedVarSet[eq.first] = connectingSize;
+			}
 			__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, eq.first.c_str());
 		}
 
@@ -2586,8 +2593,6 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* remove duplications */
 	for (const auto& varEq: equalitiesMap) {
-//		if (connectedVariables.find(varEq.first) == connectedVariables.end() && varEq.first.find("$$") != std::string::npos)
-//			continue;
 
 		std::vector<std::vector<std::string>> tmp_vector;
 		std::vector<std::string> backup;
@@ -2650,8 +2655,6 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 
 	equalitiesMap.clear();
 	equalitiesMap = new_eqMap;
-
-	__debugPrint(logFile, "%d finish %s\n", __LINE__, __FUNCTION__);
 }
 
 /*
@@ -4981,7 +4984,6 @@ void reset(){
 	fullEqualitiesMap.clear();
 	trivialUnsat = false;
 	unknownResult = false;
-	connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
 }
 
 /*
@@ -5198,11 +5200,36 @@ void updateFullEqualMap(){
 
 /*
  * */
-void analysisMaxInt(std::string fileName){
+void staticIntegerAnalysis(std::string fileName){
 	if (maxInt == -1) {
-		maxInt = getMaxInt(fileName);
-		__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, maxInt);
+		std::pair<int, long> tmp = getAllInt(fileName);
+		maxInt = tmp.first;
+		sumInt = tmp.second;
 	}
+}
+
+/*
+ *
+ */
+void initConnectingSize(){
+	connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
+	for (const auto& v : varLength) {
+		connectingSize = std::max(connectingSize, v.second + 1);
+	}
+
+	int varCount = 0;
+	for (const auto& var : allVariables)
+		if (var.find("$$_") != 0)
+			varCount++;
+
+	sumConstLength = std::max(sumConstLength, (long) 2);
+	maxInt = std::max(maxInt, 1);
+
+	long tmp = maxInt * sumConstLength * varCount;
+		if (tmp < connectingSize)
+			connectingSize = tmp;
+
+	__debugPrint(logFile, "%d maxInt: %d; sumConstLength: %li; varCount: %d ==> connectingSize: %d\n", __LINE__, maxInt, sumConstLength, varCount, connectingSize);
 }
 
 /*
@@ -5215,6 +5242,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
+	initConnectingSize();
 
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
@@ -5404,13 +5432,9 @@ bool underapproxController(
 
 	/* init equalMap */
 	parseEqualityMap(_equalMap, _fullEqualMap);
-	analysisMaxInt(fileDir);
+	staticIntegerAnalysis(fileDir);
 	reset();
 	fullEqualitiesMap = _fullEqualMap;
-
-	for (const auto& v : varLength) {
-		connectingSize = std::max(connectingSize, v.second + 1);
-	}
 
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);

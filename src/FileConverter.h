@@ -271,9 +271,9 @@ std::vector<std::vector<std::string>> collectArgs(
 		std::vector<std::string> tokens);
 
 /*
- * read SMT file and get maxInt number
+ * read SMT file and get maxInt and sumInt
  */
-int getMaxInt(std::string inputFile);
+std::pair<int, long> getAllInt(std::string inputFile);
 
 /*
  *

@@ -1678,9 +1678,9 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 
 
 /*
- * read SMT file and get maxInt number
+ * read SMT file and get maxInt and sumInt
  */
-int getMaxInt(std::string inputFile){
+std::pair<int, long> getAllInt(std::string inputFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 
 	switch (languageVersion) {
@@ -1695,14 +1695,18 @@ int getMaxInt(std::string inputFile){
 		break;
 	}
 
-	int ret = 0;
+	int maxInt = 0;
+	long sumInt = 0;
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
-			if (token.second == 82)
-				ret = std::max(ret, std::stoi(token.first.c_str()));
+			if (token.second == 82){
+				int tmp = std::stoi(token.first.c_str());
+				maxInt = std::max(maxInt, tmp);
+				sumInt += tmp;
+			}
 		}
 	}
-	return ret;
+	return std::make_pair(maxInt, sumInt);
 }
 
 /*
