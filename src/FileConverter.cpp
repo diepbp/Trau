@@ -786,7 +786,7 @@ void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], 88);
+	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -1058,7 +1058,7 @@ std::string extractConst(std::string str) {
 			str = str.substr(1, str.length() - 2);
 		else {
 			/* "abc"_number */
-			for (unsigned int i = str.length() - 1; i >= 0; --i)
+			for (int i = str.length() - 1; i >= 0; --i)
 				if (str[i] == '_') {
 					assert (str[i - 1] == '\"');
 					str = str.substr(1, i - 2);
@@ -1220,7 +1220,7 @@ void rewriteGRM(std::string s,
 
 	__debugPrint(logFile, "%d CFG constraint: %s\n", __LINE__, s.c_str());
 	/* step 1: collect var that is the next token after GrammarIn */
-	unsigned int pos = s.find("GrammarIn");
+	int pos = s.find("GrammarIn");
 	assert(pos != std::string::npos);
 
 	assert(s[pos + 9] == ' ');
@@ -1678,9 +1678,9 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 
 
 /*
- * read SMT file and get maxInt number
+ * read SMT file and get maxInt and sumInt
  */
-int getMaxInt(std::string inputFile){
+std::pair<int, long> getAllInt(std::string inputFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 
 	switch (languageVersion) {
@@ -1695,14 +1695,18 @@ int getMaxInt(std::string inputFile){
 		break;
 	}
 
-	int ret = 0;
+	int maxInt = 0;
+	long sumInt = 0;
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
-			if (token.second == 82)
-				ret = std::max(ret, std::stoi(token.first.c_str()));
+			if (token.second == 82){
+				int tmp = std::stoi(token.first.c_str());
+				maxInt = std::max(maxInt, tmp);
+				sumInt += tmp;
+			}
 		}
 	}
-	return ret;
+	return std::make_pair(maxInt, sumInt);
 }
 
 /*

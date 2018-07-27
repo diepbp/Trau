@@ -20,6 +20,7 @@ bool lengthDefined = false;
 bool languageDefined = false;
 bool done = false;
 bool assignedConcrete = false;
+bool tryUnderApprox = false;
 bool skipUnderApprox;
 
 int varCnt = 0;
@@ -6180,7 +6181,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			}
 		}
 
-
+		tryUnderApprox = true;
 		if (!underapproxController(combinationOverVariables,
 				fullCombinationOverVariables,
 				rewriterStrMap,
@@ -9684,6 +9685,8 @@ void check(Z3_theory t)
 
 	Z3_model m      = 0;
 	Z3_lbool result = Z3_check_and_get_model(ctx, &m);
+	if (tryUnderApprox)
+		unknownResult = true;
 	if (unknownResult == true && result == Z3_L_FALSE)
 		result = Z3_L_UNDEF;
 	if (printingConstraints){
