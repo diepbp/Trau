@@ -349,7 +349,8 @@ public:
 				}
 				else
 					values.emplace(elementNames[currentSplit.size()].first);
-
+				__debugPrint(logFile, "%d %s -> values size = %u\n", __LINE__, elementNames[currentSplit.size()].first.c_str(),
+						values.size());
 				for (const auto& value : values) {
 					std::string constValue = str.substr(pos, value.length());
 					if (constValue.compare(value) == 0) {
@@ -760,7 +761,8 @@ public:
 	 */
 	std::vector<std::vector<int> > collectAllPossibleSplits(
 			std::pair<std::string, int> lhs,
-			std::vector<std::pair<std::string, int> > elementNames
+			std::vector<std::pair<std::string, int> > elementNames,
+			bool fullConst = false
 	){
 		/* create alias elementNames with smaller number of elements*/
 		std::vector<std::pair<std::string, int> > alias;
@@ -789,13 +791,17 @@ public:
 			collectAllPossibleSplits_regex(0, regexContent, 10, alias, curr, allPossibleSplits);
 		}
 		else if (lhs.second % QMAX == 0) /* tail */ {
-			for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
+			if (fullConst){
+				std::vector<int> curr;
+				collectAllPossibleSplits_const(0, lhs.first, 10, alias, curr, allPossibleSplits);
+			}
+			else for (unsigned int i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
 				collectAllPossibleSplits_const(0, lhs.first.substr(i), 10, alias, curr, allPossibleSplits);
 			}
 		}
 		else if (lhs.second % QMAX == -1) /* head */ {
-			if (QCONSTMAX == 1) {
+			if (QCONSTMAX == 1 || fullConst) {
 				std::vector<int> curr;
 				collectAllPossibleSplits_const(0, lhs.first, 10, alias, curr, allPossibleSplits);
 			}
@@ -2442,8 +2448,9 @@ public:
 			std::vector<std::pair<std::string, int>> elementNames,
 			std::string lhs_str, std::string rhs_str,
 			int pMax,
-			std::map<std::string, int> connectedVariables){
-		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
+			std::map<std::string, int> connectedVariables,
+			bool fullConst = false){
+		__debugPrint(logFile, "%d %s: fullConst: %s\n", __LINE__, __FUNCTION__, fullConst? "true" : "false");
 		std::string result = "";
 
 		if (a.second < 0) { /* const string or regex */
@@ -2503,7 +2510,7 @@ public:
 			else if (splitType == 1) {
 
 				/* handle const */
-				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames);
+				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, fullConst);
 				std::set<std::string> strSplits;
 				for (unsigned int i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
@@ -2522,7 +2529,7 @@ public:
 			else {
 				/* handle connected var */
 				/* handle const */
-				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames);
+				std::vector<std::vector<int>> allPossibleSplits = collectAllPossibleSplits(a, elementNames, fullConst);
 				std::set<std::string> strSplits;
 				for (unsigned i = 0; i < allPossibleSplits.size(); ++i) {
 					/* check feasibility */
@@ -2572,6 +2579,27 @@ public:
 	}
 
 	/*
+	 *
+	 */
+	bool checkFullConst(
+			int i,
+			std::vector<std::pair<std::string, int>> elements){
+		bool fullConst = false;
+		if (elements[i].second < 0 &&
+				i > 0 &&
+				elements[i].first.compare(elements[i - 1].first) == 0 &&
+				left_arr[i - 1] == EMPTYFLAT)
+			fullConst = true;
+
+		if (elements[i].second < 0 &&
+				i < left_arr.size() - 1 &&
+				elements[i].first.compare(elements[i + 1].first) == 0 &&
+				left_arr[i + 1] == EMPTYFLAT)
+			fullConst = true;
+		return fullConst;
+	}
+
+	/*
 	 * a_1 + a_2 + b_1 + b_2 = c_1 + c_2 + d_1 + d_2 ---> SMT
 	 */
 	std::string generateSMT(int pMax,
@@ -2600,7 +2628,9 @@ public:
 						checkRight[j] = true;
 					}
 
-				std::string tmp = generateConstraint02(lhs_elements[i], elements, lhs_str, rhs_str, pMax, connectedVariables);
+				bool fullConst = checkFullConst(i, lhs_elements);
+
+				std::string tmp = generateConstraint02(lhs_elements[i], elements, lhs_str, rhs_str, pMax, connectedVariables, fullConst);
 
 				if (tmp.length() == 0) { /* cannot happen due to const */
 					__debugPrint(logFile, "\n%d 02 because of lhs[%d]\n", __LINE__, i);
@@ -2645,7 +2675,9 @@ public:
 						checkLeft[j] = true;
 					}
 
-				std::string tmp = generateConstraint02(rhs_elements[i], elements, rhs_str, lhs_str, pMax, connectedVariables);
+				bool fullConst = checkFullConst(i, rhs_elements);
+
+				std::string tmp = generateConstraint02(rhs_elements[i], elements, rhs_str, lhs_str, pMax, connectedVariables, fullConst);
 				if (tmp.length() == 0) { /* cannot happen due to const */
 					__debugPrint(logFile, "\n%d 02 because of rhs[%d]\n", __LINE__, i);
 					return "";
