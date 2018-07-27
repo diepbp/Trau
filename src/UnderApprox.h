@@ -680,6 +680,11 @@ void staticIntegerAnalysis(std::string fileName);
 /*
  *
  */
+void initConnectingSize(bool prep);
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);

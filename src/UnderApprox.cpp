@@ -2186,7 +2186,8 @@ void sumConstString(){
 			/* push to map */
 			for (const auto& s : vt) {
 				if (s[0] == '\"') {
-					sumConstLength += s.length() - 2;
+					if (_eq.second.size() > 1)
+						sumConstLength += s.length() - 2;
 					/* prevent the case: (abc)*  + def */
 					if (isRegexStr(s) || isUnionStr(s)) {
 						std::vector<std::string> localElements;
@@ -5211,13 +5212,15 @@ void staticIntegerAnalysis(std::string fileName){
 /*
  *
  */
-void initConnectingSize(){
-	connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
-	for (const auto& v : varLength) {
-		connectingSize = std::max(connectingSize, v.second + 1);
+void initConnectingSize(bool prep = true){
+	if (!prep){
+		connectingSize = std::max(maxInt + 10, CONNECTINGSIZE);
+		for (const auto& v : varLength) {
+			connectingSize = std::max(connectingSize, v.second + 1);
+		}
 	}
-
-	if (lazy) {
+	int oldConnectingSize = connectingSize;
+	if (lazy && prep) {
 		int varCount = 0;
 		for (const auto& var : allVariables)
 			if (var.find("$$_") != 0)
@@ -5226,12 +5229,28 @@ void initConnectingSize(){
 		sumConstLength = std::max(sumConstLength, (long) 2);
 		maxInt = std::max(maxInt, 1);
 
-		long tmp = maxInt * sumConstLength * varCount;
-		if (tmp < connectingSize)
+		long tmp = maxInt + sumConstLength * varCount;
+		if (tmp < connectingSize) {
 			connectingSize = tmp;
+		}
+		else
+			lazy = false;
 
 		__debugPrint(logFile, "%d maxInt: %d; sumConstLength: %li; varCount: %d ==> connectingSize: %d\n", __LINE__, maxInt, sumConstLength, varCount, connectingSize);
 	}
+
+	if (prep){
+		for (auto& v : connectedVariables)
+			if (v.second == oldConnectingSize)
+				v.second = connectingSize;
+	}
+}
+
+/*
+ *
+ */
+bool checkBelongingVariable(std::string var01, std::string var02){
+
 }
 
 /*
@@ -5244,7 +5263,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
-	initConnectingSize();
+	initConnectingSize(false);
 
 	collectConnectedVariables(rewriterStrMap);
 	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
@@ -5257,6 +5276,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 
 	updateFullEqualMap();
 	createAppearanceMap();
+	initConnectingSize();
 }
 
 /*
