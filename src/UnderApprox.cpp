@@ -601,7 +601,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 #else
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
-	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
+	for (unsigned i = 0; i < possibleCases.size(); ++i) {
 		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
@@ -612,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -1968,7 +1968,6 @@ std::vector<std::string> equalityToSMT(
 	for (unsigned i = 0; i < rhs_elements.size(); ++i)
 		tmp01 = tmp01 + "+++" + rhs_elements[i].first;
 	if (generatedEqualities.find(tmp01) == generatedEqualities.end()){
-//	if (true)
 		std::vector<std::string> cases = collectAllPossibleArrangements(
 				lhs, rhs,
 				lhs_elements, rhs_elements);
