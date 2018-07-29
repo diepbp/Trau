@@ -184,6 +184,12 @@ const static char ESCAPECHAR20 = '\\';
 const static char ESCAPECHAR25 = '\\';
 const static char ESCAPECHAR26 = '"';
 
+enum {
+	Trau_SAT = 1,
+	Trau_UNSAT = 2,
+	Trau_Unknown = 3
+};
+
 #define TRUESTR "true"
 #define FALSETR "false"
 #define LENPREFIX "len_"
@@ -577,5 +583,26 @@ void formatPlusOP(StringOP &opx);
  */
 void formatMultiplyOP(StringOP &opx);
 
+/*
+ *
+ */
+int Z3_reviews(std::string fileName);
 
+/*
+ *
+ */
+int CVC4_reviews(std::string fileName);
+
+/*
+ *
+ */
+int S3_reviews(std::string fileName);
+
+/*
+ *
+ */
+void verifyResult(
+		int languageVersion,
+		std::string fileName,
+		bool result);
 #endif /* UTILS_H_ */

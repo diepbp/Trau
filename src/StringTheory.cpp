@@ -9720,6 +9720,9 @@ void check(Z3_theory t)
 
 	else switch (result) {
 	case Z3_L_FALSE:
+		if (beReviewed) {
+			verifyResult(languageVersion, std::string(TMPDIR) + "/" + std::string(NONGRM), false);
+		}
 		printf("================================================\n");
 		printf(">> UNSAT\n");
 		printf("================================================\n");

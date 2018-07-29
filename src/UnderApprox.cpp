@@ -4781,35 +4781,9 @@ bool Z3_run(
 		}
 		else {
 			sat = false;
+			return sat;
 		}
-		if (!sat) {
-			/* unsat */
-			if (beReviewed) {
-				std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
-				switch (languageVersion) {
-				case 20:
-					sat = S3_reviews(nonGrm, false);
-					if (sat == true) {
-						printf("\nDouble-checked by S3P: successful.\n");
-					}
-					else
-						assert(false);
-					break;
-				case 25:
-				case 26:
-					sat = Z3_reviews(nonGrm, false);
-					if (sat == true) {
-						printf("\nDouble-checked by Z3str3: successful.\n");
-					}
-					else
-						assert(false);
-					break;
-				default:
-					break;
-				}
-			}
-			return false;
-		}
+
 		std::map<std::string, std::string> array_map;
 		/* the concrete values */
 		while (!feof(in)) {
@@ -4906,28 +4880,7 @@ bool Z3_run(
 			/* read & copy the input file */
 			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
 			addConstraintsToSMTFile(nonGrm, _equalMap, createSatisfyingAssignments(_equalMap, len_results, results), lengthFile);
-
-			switch (languageVersion) {
-				case 20:
-					sat = S3_reviews(lengthFile, true);
-					if (sat == true) {
-						printf("\nDouble-checked by S3P: successful.\n");
-					}
-					else
-						assert(false);
-					break;
-				case 25:
-				case 26:
-					sat = Z3_reviews(lengthFile, true);
-					if (sat == true) {
-						printf("\nDouble-checked by Z3str3: successful.\n");
-					}
-					else
-						assert(false);
-					break;
-				default:
-					break;
-			}
+			verifyResult(languageVersion, lengthFile, true);
 		}
 		else {
 			sat = true;
@@ -4936,138 +4889,6 @@ bool Z3_run(
 	return sat;
 }
 
-/*
- *
- */
-bool Z3_reviews(std::string fileName,
-		bool result){
-	std::string cmd = std::string(Z3VERIFIER) + fileName;
-
-	FILE* in = popen(cmd.c_str(), "r");
-	if (!in)
-		throw std::runtime_error("Z3 failed!");
-
-	std::map<std::string, std::string> results;
-	char buffer[5000];
-	try {
-		while (!feof(in)) {
-			std::string line = "";
-			if (fgets(buffer, 5000, in) != NULL) {
-				line = buffer;
-				if (line.find("unsat") == 0) {
-					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
-					if (result)
-						assert(false);
-					else
-						return true;
-				}
-				if (line.find("sat") == 0) {
-					if (!result)
-						assert(false);
-					else
-						return true;
-				}
-			}
-
-		}
-
-	} catch (...) {
-		pclose(in);
-		throw;
-	}
-	pclose(in);
-	printf("Warning: Z3 returns unknown\n");
-	return true;
-
-}
-
-/*
- *
- */
-bool CVC4_reviews(std::string fileName,
-		bool result){
-	std::string cmd = std::string(CVC4VERIFIER) + fileName;
-
-	FILE* in = popen(cmd.c_str(), "r");
-	if (!in)
-		throw std::runtime_error("CVC4 failed!");
-
-	std::map<std::string, std::string> results;
-	char buffer[5000];
-	try {
-		while (!feof(in)) {
-			std::string line = "";
-			if (fgets(buffer, 5000, in) != NULL) {
-				line = buffer;
-				if (line.find("unsat") == 0) {
-					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
-					if (result)
-						assert(false);
-					else
-						return true;
-				}
-				if (line.find("sat") == 0) {
-					if (!result)
-						assert(false);
-					else
-						return true;
-				}
-			}
-
-		}
-
-	} catch (...) {
-		pclose(in);
-		throw;
-	}
-	pclose(in);
-	printf("Warning: CVC4 returns unknown\n");
-	return true;
-
-}
-
-/*
- *
- */
-bool S3_reviews(std::string fileName,
-		bool result){
-	std::string cmd = std::string(S3VERIFIER) + " -f " + fileName;
-
-	FILE* in = popen(cmd.c_str(), "r");
-	if (!in)
-		throw std::runtime_error("S3 failed!");
-
-	std::map<std::string, std::string> results;
-	char buffer[5000];
-	try {
-		while (!feof(in)) {
-			std::string line = "";
-			if (fgets(buffer, 5000, in) != NULL) {
-				line = buffer;
-				if (line.substr(0, 8).compare(">> UNSAT") == 0) {
-					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
-					assert(false);
-				}
-				else if (line.find("unknown function/constant") != std::string::npos){
-					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
-					std::string funcName = "";
-					while (line[pos] != ' ' && line[pos] != '"' && pos < line.length())
-						funcName += line[pos++];
-					printf("Warning: S3P does not support some functions: %s\n", funcName.c_str());
-					break;
-				}
-			}
-
-		}
-
-	} catch (...) {
-		pclose(in);
-		throw;
-	}
-	pclose(in);
-
-	return true;
-}
 
 /*
  * Pthread Caller

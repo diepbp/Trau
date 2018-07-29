@@ -707,3 +707,150 @@ void formatMultiplyOP(StringOP &opx){
 	}
 }
 
+
+/*
+ *
+ */
+int Z3_reviews(std::string fileName){
+	std::string cmd = std::string(Z3VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("Z3 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					return Trau_UNSAT;
+				}
+				if (line.find("sat") == 0) {
+					return Trau_SAT;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: Z3 returns unknown\n");
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+int CVC4_reviews(std::string fileName){
+	std::string cmd = std::string(CVC4VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("CVC4 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					return Trau_UNSAT;
+				}
+				if (line.find("sat") == 0) {
+					return Trau_SAT;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: CVC4 returns unknown\n");
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+int S3_reviews(std::string fileName){
+	std::string cmd = std::string(S3VERIFIER) + " -f " + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("S3 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find(">> UNSAT") == 0){
+					return Trau_UNSAT;
+				}
+				else if (line.find(">> SAT") == 0) {
+					return Trau_SAT;
+				}
+				else if (line.find("unknown function/constant") != std::string::npos){
+					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
+					std::string funcName = "";
+					while (line[pos] != ' ' && line[pos] != '"' && pos < line.length())
+						funcName += line[pos++];
+					printf("Warning: S3P does not support some functions: %s\n", funcName.c_str());
+					return Trau_Unknown;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+void verifyResult(
+		int languageVersion,
+		std::string fileName,
+		bool result){
+	int sat;
+	switch (languageVersion) {
+	case 20:
+		sat = S3_reviews(fileName);
+		if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+			printf("\nDouble-checked by S3P: successful.\n");
+		}
+		else
+			assert(false);
+		break;
+	case 25:
+	case 26:
+		sat = Z3_reviews(fileName);
+		if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+			printf("\nDouble-checked by Z3str3: successful.\n");
+		}
+		else
+			assert(false);
+		break;
+	default:
+		break;
+	}
+}

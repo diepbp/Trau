@@ -25,6 +25,8 @@
 #define LOGFILE ".trauLog"
 #define LOGAXIOMFILE ".z3Log"
 #define TMPDIR "/tmp/fat_str_convert"
+#define NONGRM "_nogrm.smt2"
+#define OUTPUT "output.smt2"
 
 bool isDirExist(const std::string& path);
 

@@ -12,9 +12,6 @@
 #include "FileConverter.h"
 #include "Utils.h"
 
-#define OUTPUT "output.smt2"
-#define NONGRM "_nogrm.smt2"
-
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
@@ -634,22 +631,6 @@ bool Z3_run(
 		std::string cmd,
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		bool finalCall);
-
-
-/*
- *
- */
-bool Z3_reviews(std::string fileName, bool result);
-
-/*
- *
- */
-bool CVC4_reviews(std::string fileName, bool result);
-
-/*
- *
- */
-bool S3_reviews(std::string fileName, bool result);
 
 /*
  * Pthread Caller
