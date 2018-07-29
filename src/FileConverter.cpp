@@ -447,7 +447,6 @@ void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens){
 		}
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		/* clone & replace */
 		tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);

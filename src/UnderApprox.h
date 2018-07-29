@@ -717,6 +717,7 @@ bool underapproxController(
 		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> carryOnConstraints,
 		std::map<std::string, int> _currentLength,
-		std::string fileDir);
+		std::string fileDir,
+		bool lazy = true);
 
 #endif /* UNDERAPPROX_H_ */
