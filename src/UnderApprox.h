@@ -635,10 +635,21 @@ bool Z3_run(
 		std::map<std::string, std::vector<std::vector<std::string>>> _equalMap,
 		bool finalCall);
 
+
 /*
  *
  */
-bool S3_reviews(std::string fileName);
+bool Z3_reviews(std::string fileName, bool result);
+
+/*
+ *
+ */
+bool CVC4_reviews(std::string fileName, bool result);
+
+/*
+ *
+ */
+bool S3_reviews(std::string fileName, bool result);
 
 /*
  * Pthread Caller

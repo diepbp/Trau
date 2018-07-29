@@ -7,8 +7,8 @@
 #include "Utils.h"
 
 std::string longestCommonTail(std::string a, std::string b){
-	unsigned int posA = a.length() - 1;
-	unsigned int posB = b.length() - 1;
+	int posA = (int)a.length() - 1;
+	int posB = (int)b.length() - 1;
 	std::string ret = "";
 	while(posA >= 0 && posB >= 0){
 		if (a[posA] == b[posB]){

@@ -135,12 +135,10 @@ void updateImplies(std::vector<std::pair<std::string, int>> &tokens);
 /*
  * (RegexIn ...) --> TRUE
  */
-void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
-
-/*
- * (RegexIn ...) --> TRUE
- */
-void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
+void updateRegexIn(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition);
 
 /*
  * (Contain v1 v2) --> TRUE || FALSE

@@ -516,8 +516,8 @@ void UnderApproxCFG::evalNode(
 
 	/* eval the base case which ends by _0, and then broadcast */
 	if (node.substr(node.length() - 2).compare("_0") != 0) {
-		unsigned int pos = 0;
-		for (pos = node.length() - 1; pos >=0; --pos){
+		int pos = 0;
+		for (pos = (int)node.length() - 1; pos >=0; --pos){
 			if (node[pos] == '_')
 				break;
 		}

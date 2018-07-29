@@ -542,25 +542,15 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 			indexOf_toAstMap[std::make_pair(x2, args[1])] = {x3, x4};
 		}
 
-		thenItems01.push_back(
-				Z3_mk_eq(ctx, result,
-						mk_concat(t, x1,
-								mk_concat(t,
-										mk_binary_app(ctx,
-												td->NonDet_AutomataDef,
-												mk_str_value(t,
-														arg02Plus.c_str()),
-												mk_int(ctx,
-														nondeterministicCounter++)),
-										mk_concat(t, x3,
-												mk_concat(t,
-														mk_binary_app(ctx,
-																td->NonDet_AutomataDef,
-																mk_str_value(t,
-																		arg02Plus.c_str()),
-																mk_int(ctx,
-																		nondeterministicCounter++)),
-														x4, update), update),
+		Z3_ast nonDet01 = mk_binary_app(ctx, td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nonDet02 = mk_binary_app(ctx, td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+					mk_int(ctx, nondeterministicCounter++));
+		thenItems01.push_back( Z3_mk_eq(ctx, result, mk_concat(t, x1,
+														mk_concat(t, nonDet01,
+																	mk_concat(t, x3, mk_concat(t, nonDet02, x4, update), update),
 										update), update)));
 		thenItems01.push_back(Z3_mk_not(ctx, condAst_x4));
 
@@ -634,35 +624,27 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 			indexOf_toAstMap[std::make_pair(x4, args[1])] = {x5, x6};
 		}
 
+		Z3_ast nondet03 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nondet04 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nondet05 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
 		thenItems02.push_back(
 				Z3_mk_eq(ctx, result,
 						mk_concat(t, x1,
-								mk_concat(t,
-										mk_binary_app(ctx,
-												td->NonDet_AutomataDef,
-												mk_str_value(t,
-														arg02Plus.c_str()),
-												mk_int(ctx,
-														nondeterministicCounter++)),
+								mk_concat(t, nondet03,
 										mk_concat(t, x3,
-												mk_concat(t,
-														mk_binary_app(ctx,
-																td->NonDet_AutomataDef,
-																mk_str_value(t,
-																		arg02Plus.c_str()),
-																mk_int(ctx,
-																		nondeterministicCounter++)),
+												mk_concat(t, nondet04,
 														mk_concat(t, x5,
 																mk_concat(t,
-																		mk_binary_app(
-																				ctx,
-																				td->NonDet_AutomataDef,
-																				mk_str_value(
-																						t,
-																						arg02Plus.c_str()),
-																				mk_int(
-																						ctx,
-																						nondeterministicCounter++)),
+																		nondet05,
 																		x6,
 																		update),
 																update),
@@ -2446,6 +2428,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		case 20:
 			break;
 		case 25:
+		case 26:
 			/* swap args */
 			tmp = convertedArgs[0];
 			convertedArgs[0] = convertedArgs[1];
@@ -2494,6 +2477,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		case 20:
 			break;
 		case 25:
+		case 26:
 			/* swap args */
 			tmp = convertedArgs[0];
 			convertedArgs[0] = convertedArgs[1];

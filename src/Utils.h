@@ -54,7 +54,9 @@
 #define CONNECTINGSIZE 300
 
 #define Z3_PATH "z3 "
-#define VERIFIER "verifier/run.py "
+#define S3VERIFIER "verifier/run.py "
+#define Z3VERIFIER "z3 smt.string_solver=z3str3 "
+#define CVC4VERIFIER "cvc4 -L smt --strings-exp "
 
 #ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
@@ -124,14 +126,14 @@ const static std::map<int, std::string> languageMap25 = {
 	{LENGTH, "str.len"},
 	{CONCAT, "str.++"},
 	{SUBSTRING, "str.substr"},
-	{INDEXOF, "str.indexof"},
-	{LASTINDEXOF, "LastIndexof"},
+	{INDEXOF, "str.indexof0"},
+	{LASTINDEXOF, "str.lastindexof"},
 	{STARTSWITH, "str.prefixof"},
 	{ENDSWITH, "str.suffixof"},
-	{TOUPPER, "ToUpper"},
-	{TOLOWER, "ToLower"},
+	{TOUPPER, "str.toupper"},
+	{TOLOWER, "str.tolower"},
 	{REPLACE, "str.replace"},
-	{REPLACEALL, "ReplaceAll"},
+	{REPLACEALL, "str.replaceall"},
 	{CONTAINS, "str.contains"},
 	{CHARAT, "str.at"},
 	{STR2REG, "str.to.re"},
@@ -144,11 +146,43 @@ const static std::map<int, std::string> languageMap25 = {
 	{REGEXALL, "re.all"},
 	{REGEXALLCHAR, "re.allchar"},
 	{REGEXNONE, "re.none"},
-	{INDEXOF2, "str.indexof2"},
+	{INDEXOF2, "str.indexof"},
 };
 
+const static std::map<int, std::string> languageMap26 = {
+	{LENGTH, "str.len"},
+	{CONCAT, "str.++"},
+	{SUBSTRING, "str.substr"},
+	{INDEXOF, "str.indexof0"},
+	{LASTINDEXOF, "str.lastindexof"},
+	{STARTSWITH, "str.prefixof"},
+	{ENDSWITH, "str.suffixof"},
+	{TOUPPER, "str.toupper"},
+	{TOLOWER, "str.tolower"},
+	{REPLACE, "str.replace"},
+	{REPLACEALL, "str.replaceall"},
+	{CONTAINS, "str.contains"},
+	{CHARAT, "str.at"},
+	{STR2REG, "str.to.re"},
+	{REGEXSTAR, "re.*"},
+	{REGEXPLUS, "re.+"},
+	{REGEXCHARRANGE, "re.range"},
+	{REGEXIN, "str.in.re"},
+	{REGEXUNION, "re.union"},
+	{REGEXCONCAT, "re.++"},
+	{REGEXALL, "re.all"},
+	{REGEXALLCHAR, "re.allchar"},
+	{REGEXNONE, "re.none"},
+	{INDEXOF2, "str.indexof"},
+};
+
+const static std::set<char> escapeCharacter20 = {'\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v'};
+const static std::set<char> escapeCharacter25 = {'\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v'};
+const static std::set<char> escapeCharacter26 = {'"'};
+
 const static char ESCAPECHAR20 = '\\';
-const static char ESCAPECHAR25 = '"';
+const static char ESCAPECHAR25 = '\\';
+const static char ESCAPECHAR26 = '"';
 
 #define TRUESTR "true"
 #define FALSETR "false"

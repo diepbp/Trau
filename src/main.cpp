@@ -29,10 +29,12 @@ std::map<std::string, std::vector<std::string>> ourGrm;
 std::map<int, std::string> languageMap;
 char escapeChar = ESCAPECHAR20;
 int languageVersion = 20;
+std::string trauVersion = "1.2";
+
 
 ConstraintSet constraintSet;
 
-const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5"};
+const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5", "SMT2.6"};
 
 /*
  *
@@ -108,9 +110,11 @@ void initGraph(std::string inputFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -191,7 +195,7 @@ std::string convertToRemoveSpecialConstCharacters(std::string fileDir){
  *
  */
 void printHelp(){
-	printf("Trau string solver [version 0.9]\n");
+	printf("Trau string solver [version %s]\n", trauVersion.c_str());
 	printf("Usage ./Trau [option] file.smt2\n\n");
 
 	printf("Input format:\n");
@@ -244,6 +248,11 @@ void parseUserInput(int argc, char* argv[]){
 					printf("%s ", s.c_str());
 				printf("!\n");
 				throw std::runtime_error("Cannot recognize the input language!");
+			}
+			else if (language.compare("SMT2.6") == 0) {
+				languageMap = languageMap26;
+				languageVersion = 26;
+				escapeChar = ESCAPECHAR26;
 			}
 			else if (language.compare("SMT2.5") == 0) {
 				languageMap = languageMap25;

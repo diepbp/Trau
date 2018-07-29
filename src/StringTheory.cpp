@@ -421,46 +421,42 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 		Z3_ast node00 = get_eqc_value(t, n1, hasEqcValue);
 		if (hasEqcValue) {
 			std::string str = getConstString(t, node00);
-			if (str.size() >= 0) {
-				// create automata def for const string
-				if (str.find('*') != std::string::npos || str.find('+') != std::string::npos)
-					n1 = mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, str.c_str()), mk_int(ctx, nondeterministicCounter++));
-				else
-					n1 = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, str.c_str()));
+			// create automata def for const string
+			if (isRegexStr(str))
+				n1 = mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, str.c_str()), mk_int(ctx, nondeterministicCounter++));
+			else
+				n1 = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, str.c_str()));
 
 #ifdef ARITH
-				and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n1), mk_int(ctx, str.size())));
-				// create Parikh for const string
-				std::vector<Z3_ast> list;
+			and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n1), mk_int(ctx, str.size())));
+			// create Parikh for const string
+			std::vector<Z3_ast> list;
 #ifdef PARIKH1
-				list = createParikhConstraints_string(t, n1, str);
+			list = createParikhConstraints_string(t, n1, str);
 #endif
-				and_list.insert(and_list.end(), list.begin(), list.end());
+			and_list.insert(and_list.end(), list.begin(), list.end());
 #endif
-			}
 		}
 
 		Z3_ast node02 = get_eqc_value(t, n2, hasEqcValue);
 		if (hasEqcValue) {
 
 			std::string str = getConstString(t, node02);
-			if (str.size() >= 0) {
-				//create automata def for const string
-				if (str.find('*') != std::string::npos || str.find('+') != std::string::npos)
-					n2 = mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, str.c_str()), mk_int(ctx, nondeterministicCounter++));
-				else
-					n2 = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, str.c_str()));
+			//create automata def for const string
+			if (isRegexStr(str))
+				n2 = mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, str.c_str()), mk_int(ctx, nondeterministicCounter++));
+			else
+				n2 = mk_unary_app(ctx, td->AutomataDef, mk_str_value(t, str.c_str()));
 
 #ifdef ARITH
-				and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n2), mk_int(ctx, str.size())));
-				// create Parikh for const string
-				std::vector<Z3_ast> list;
+			and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n2), mk_int(ctx, str.size())));
+			// create Parikh for const string
+			std::vector<Z3_ast> list;
 #ifdef PARIKH1
-				list = createParikhConstraints_string(t, n2, str);
+			list = createParikhConstraints_string(t, n2, str);
 #endif
-				and_list.insert(and_list.end(), list.begin(), list.end());
+			and_list.insert(and_list.end(), list.begin(), list.end());
 #endif
-			}
 		}
 
 		std::pair<Z3_ast, Z3_ast> concatArgs(n1, n2);
@@ -596,8 +592,17 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\' && languageVersion == 20)
-				++i;
+			switch (languageVersion) {
+				case 20:
+				case 25:
+					if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+						++i;
+					break;
+				case 26:
+					break;
+				default:
+					break;
+			}
 		}
 		return s;
 	}
@@ -606,8 +611,17 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\' && languageVersion == 20)
-				++i;
+			switch (languageVersion) {
+			case 20:
+			case 25:
+				if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
+					++i;
+				break;
+			case 26:
+				break;
+			default:
+				break;
+			}
 		}
 		return customizeString(s);
 	}
@@ -1570,8 +1584,8 @@ void findVariableDomain(){
 std::set<char> collectChars(std::vector<std::string> constStrs) {
 	std::set<char> componentChars;
 	int state = 0; // 1: normal, 2: "\\"
-	for (unsigned int i = 0; i < constStrs.size(); ++i) {
-		for (unsigned int j = 1 ; j < constStrs[i].length() - 1; ++j)
+	for (unsigned i = 0; i < constStrs.size(); ++i) {
+		for (unsigned j = 1 ; j < constStrs[i].length() - 1; ++j)
 			if (state == 2){
 				componentChars.insert(constStrs[i][j]);
 				state = 1;
@@ -5309,7 +5323,7 @@ bool parikh_check_substr_basic(
 				++start;
 			else
 				break;
-		while (finish >= 0 && (list[i].size() - list[0].size() + finish) >= 0) {
+		while (finish >= 0 && ((int)list[i].size() - (int)list[0].size() + finish) >= 0) {
 			if (list[0][finish] == list[i][list[i].size() - list[0].size() + finish])
 				--finish;
 			else
@@ -5516,13 +5530,13 @@ bool parikh_check_replaceall(
 		/* cut common prefix and suffix */
 		std::vector<Z3_ast> l00;
 		std::vector<Z3_ast> l01;
-		unsigned start = 0, removeItems = 0;
+		int start = 0, removeItems = 0;
 		while (start < list[0].size() && start < list[i].size())
 			if (list[0][start] == list[i][start])
 				++start;
 			else
 				break;
-		while (list[0].size() - removeItems > start && list[i].size() - removeItems - 1 >= 0)
+		while ((int)list[0].size() - removeItems > start && (int)list[i].size() - removeItems - 1 >= 0)
 			if (list[0][list[0].size() - removeItems - 1] == list[i][list[i].size() - removeItems - 1])
 				removeItems++;
 			else
@@ -6181,7 +6195,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			}
 		}
 
-		tryUnderApprox = true;
+//		tryUnderApprox = true;
 		if (!underapproxController(combinationOverVariables,
 				fullCombinationOverVariables,
 				rewriterStrMap,
@@ -6191,14 +6205,14 @@ Z3_bool Th_final_check(Z3_theory t) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
-			for (std::map<Z3_ast, Z3_ast>::iterator it = grm_astNode_map.begin(); it != grm_astNode_map.end(); ++it) {
-				std::string grm2str = Z3_ast_to_string(ctx, it->first);
+			for (const auto& grmNode : grm_astNode_map) {
+				std::string grm2str = Z3_ast_to_string(ctx, grmNode.first);
 				assert (combinationOverVariables.find(grm2str) != combinationOverVariables.end());
-				std::vector<Z3_ast> eq_grm = getEqualValues(it->first);
+				std::vector<Z3_ast> eq_grm = getEqualValues(grmNode.first);
 				displayListNode(t, eq_grm, " ccc ");
 				for (unsigned int i = 0; i < eq_grm.size(); ++i)
 					if (isAutomatonFunc(t, eq_grm[i]))
-						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, it->first, eq_grm[i])));
+						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, grmNode.first, eq_grm[i])));
 			}
 
 			__debugPrint(logFile, "%d boolVars: %ld, orConstraints: %ld, unknownResult: %d\n", __LINE__, boolVars.size(), orConstraints.size(), unknownResult == true ? 1 : 0);

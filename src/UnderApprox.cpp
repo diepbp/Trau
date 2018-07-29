@@ -1079,9 +1079,11 @@ std::string create_constraints_equal(
 			std::vector<std::pair<std::string, int>> tokens;
 			switch (languageVersion) {
 			case 20:
+			case 25:
 				tokens = parseTerm20(str01);
 				break;
-			case 25:
+
+			case 26:
 				tokens = parseTerm26(str01);
 				break;
 			default:
@@ -2041,7 +2043,7 @@ std::string collectConst(std::string str) {
 		else {
 			/* "abc"_number */
 
-			for (unsigned i = str.length() - 1; i >= 0; --i)
+			for (int i = (int)str.length() - 1; i >= 0; --i)
 				if (str[i] == '_') {
 					assert (str[i - 1] == '\"');
 					extra = str.substr(i);
@@ -2154,10 +2156,10 @@ std::string sumStringVector(std::vector<std::string> list){
  * Remove common prefix and suffix
  */
 std::string stringDiff(std::string a, std::string b){
-	unsigned pre = 0, suf = a.length() - 1;
+	int pre = 0, suf = a.length() - 1;
 	while (pre < a.length() && pre < b.length() && a[pre] == b[pre])
 		++pre;
-	while (suf >= 0 && a[suf] == b[b.length() - (a.length() - suf)])
+	while (suf >= 0 && a[suf] == b[(int)b.length() - ((int)a.length() - suf)])
 		--suf;
 
 	if (pre >= suf)
@@ -4110,9 +4112,11 @@ std::string findEqValueInConcat(
 	std::vector<std::pair<std::string, int>> tokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		tokens = parseTerm20(concat);
 		break;
-	case 25:
+
+	case 26:
 		tokens = parseTerm26(concat);
 		break;
 	default:
@@ -4300,9 +4304,11 @@ bool findExistsingValue(
 				std::vector<std::pair<std::string, int>> tokens;
 				switch (languageVersion) {
 				case 20:
+				case 25:
 					tokens = parseTerm20(op.args[1].toString());
 					break;
-				case 25:
+
+				case 26:
 					tokens = parseTerm26(op.args[1].toString());
 					break;
 				default:
@@ -4705,27 +4711,33 @@ std::map<std::string, std::string> formatResult(
 			}
 		}
 		std::string tmp = "";
-		for (unsigned int i = 0; i < value.length(); ++i)
-			if (languageVersion == 20) {
-				if (value[i] == '\"')
-					tmp = tmp + "\\\"";
-				else if (value[i] == '\\')
-					tmp = tmp + "\\\\";
-				else if (value[i] == 9) // tab
-					tmp = tmp + "\\t";
-				else if (value[i] < 32 || value[i] > 126)
-					tmp = tmp + 'a';
-				else
-					tmp = tmp + value[i];
+		for (unsigned i = 0; i < value.length(); ++i) {
+			switch (languageVersion) {
+				case 20:
+				case 25:
+					if (value[i] == '"')
+						tmp = tmp + "\\\"";
+					else if (value[i] == '\\')
+						tmp = tmp + "\\\\";
+					else if (value[i] == 9) // tab
+						tmp = tmp + "\\t";
+					else if (value[i] < 32 || value[i] > 126)
+						tmp = tmp + 'a';
+					else
+						tmp = tmp + value[i];
+					break;
+				case 26:
+					if (value[i] == '"')
+						tmp = tmp + """";
+					else if (value[i] < 32 || value[i] > 126)
+						tmp = tmp + 'a';
+					else
+						tmp = tmp + value[i];
+					break;
+				default:
+					break;
 			}
-			else if (languageVersion == 25){
-				if (value[i] == '"')
-					tmp = tmp + """";
-				else if (value[i] < 32 || value[i] > 126)
-					tmp = tmp + 'a';
-				else
-					tmp = tmp + value[i];
-			}
+		}
 		finalResult[var.first] = tmp;
 	}
 
@@ -4768,9 +4780,36 @@ bool Z3_run(
 			sat = true;
 		}
 		else {
-			return sat;
+			sat = false;
 		}
-
+		if (!sat) {
+			/* unsat */
+			if (beReviewed) {
+				std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
+				switch (languageVersion) {
+				case 20:
+					sat = S3_reviews(nonGrm, false);
+					if (sat == true) {
+						printf("\nDouble-checked by S3P: successful.\n");
+					}
+					else
+						assert(false);
+					break;
+				case 25:
+				case 26:
+					sat = Z3_reviews(nonGrm, false);
+					if (sat == true) {
+						printf("\nDouble-checked by Z3str3: successful.\n");
+					}
+					else
+						assert(false);
+					break;
+				default:
+					break;
+				}
+			}
+			return false;
+		}
 		std::map<std::string, std::string> array_map;
 		/* the concrete values */
 		while (!feof(in)) {
@@ -4868,12 +4907,27 @@ bool Z3_run(
 			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
 			addConstraintsToSMTFile(nonGrm, _equalMap, createSatisfyingAssignments(_equalMap, len_results, results), lengthFile);
 
-			sat = S3_reviews(lengthFile);
-			if (sat == true) {
-				printf("\nDouble-checked by S3P: successful.\n");
+			switch (languageVersion) {
+				case 20:
+					sat = S3_reviews(lengthFile, true);
+					if (sat == true) {
+						printf("\nDouble-checked by S3P: successful.\n");
+					}
+					else
+						assert(false);
+					break;
+				case 25:
+				case 26:
+					sat = Z3_reviews(lengthFile, true);
+					if (sat == true) {
+						printf("\nDouble-checked by Z3str3: successful.\n");
+					}
+					else
+						assert(false);
+					break;
+				default:
+					break;
 			}
-			else
-				assert(false);
 		}
 		else {
 			sat = true;
@@ -4885,8 +4939,99 @@ bool Z3_run(
 /*
  *
  */
-bool S3_reviews(std::string fileName){
-	std::string cmd = std::string(VERIFIER) + " -f " + fileName;
+bool Z3_reviews(std::string fileName,
+		bool result){
+	std::string cmd = std::string(Z3VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("Z3 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
+					if (result)
+						assert(false);
+					else
+						return true;
+				}
+				if (line.find("sat") == 0) {
+					if (!result)
+						assert(false);
+					else
+						return true;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: Z3 returns unknown\n");
+	return true;
+
+}
+
+/*
+ *
+ */
+bool CVC4_reviews(std::string fileName,
+		bool result){
+	std::string cmd = std::string(CVC4VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("CVC4 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
+					if (result)
+						assert(false);
+					else
+						return true;
+				}
+				if (line.find("sat") == 0) {
+					if (!result)
+						assert(false);
+					else
+						return true;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: CVC4 returns unknown\n");
+	return true;
+
+}
+
+/*
+ *
+ */
+bool S3_reviews(std::string fileName,
+		bool result){
+	std::string cmd = std::string(S3VERIFIER) + " -f " + fileName;
 
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
@@ -4894,7 +5039,6 @@ bool S3_reviews(std::string fileName){
 
 	std::map<std::string, std::string> results;
 	char buffer[5000];
-	std::string result = "";
 	try {
 		while (!feof(in)) {
 			std::string line = "";

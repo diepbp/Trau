@@ -88,9 +88,11 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 		std::vector<std::pair<std::string, int>> tokensTmp;
 		switch (languageVersion) {
 		case 20:
+		case 25:
 			tokensTmp = parseTerm20(tokenName);
 			break;
-		case 25:
+
+		case 26:
 			tokensTmp = parseTerm26(tokenName);
 			break;
 		default:
@@ -262,12 +264,37 @@ StringOP findOpArg(
 		}
 		else if (tokens[startPos + 1].first.compare(languageMap[STARTSWITH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
+			assert (ret.args.size() == 2);
+			StringOP tmp;
+			switch (languageVersion) {
+				case 26:
+				case 25:
+					tmp = ret.args[0];
+					ret.args[0] = ret.args[1];
+					ret.args[1] = tmp;
+					break;
+				default:
+					break;
+			}
 		}
 		else if (tokens[startPos + 1].first.compare(languageMap[ENDSWITH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
+			assert (ret.args.size() == 2);
+			StringOP tmp;
+			switch (languageVersion) {
+			case 26:
+			case 25:
+				tmp = ret.args[0];
+				ret.args[0] = ret.args[1];
+				ret.args[1] = tmp;
+				break;
+			default:
+				break;
+			}
 		}
-		else
-			ret = StringOP(sumTokens(tokens, startPos, tmp));
+		else {
+			ret = findStringOP(tokens, startPos + 1);
+		}
 		startPos = tmp;
 	}
 	else {
@@ -282,18 +309,31 @@ StringOP findOpArg(
 StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
 		int startPos){
-
 //	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP op(tokens[startPos].first);
 
 	while (true){
 		startPos++;
 		if (tokens[startPos].second == antlrcpptest::SMTLIB26Lexer::ClosePar){
-			return op;
+			break;
 		}
 		op.addArg(findOpArg(tokens, startPos));
 	}
-
+	if (op.name.compare(languageMap[STARTSWITH]) == 0 ||
+			op.name.compare(languageMap[ENDSWITH]) == 0) {
+		assert (op.args.size() == 2);
+		StringOP tmp;
+		switch (languageVersion) {
+		case 26:
+		case 25:
+			tmp = op.args[0];
+			op.args[0] = op.args[1];
+			op.args[1] = tmp;
+			break;
+		default:
+			break;
+		}
+	}
 	return op;
 }
 
@@ -376,11 +416,57 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 	return false;
 }
 
+/*
+ *
+ */
 std::string createNewIntVar(){
 	intVar++;
 	return "$$$___intVar" + std::to_string(intVar);
 }
 
+/*
+ *
+ */
+std::string getStringFromRegexOP(StringOP op){
+
+	std::string tmp = "";
+	if (op.name.compare(languageMap[STR2REG]) == 0) {
+		tmp = tmp + op.args[0].name.substr(1, op.args[0].name.length() - 2);
+	}
+	else if (op.name.compare(languageMap[REGEXALL]) == 0){
+		tmp = "(a|b|c|d|e|f|g|h)*";
+	}
+	else if (op.name.compare(languageMap[REGEXALLCHAR]) == 0){
+		tmp = "(a|b|c)";
+	}
+	else if (op.name.compare(languageMap[REGEXCHARRANGE]) == 0){
+		tmp = "(a|b|c)";
+	}
+	else if (op.name.compare(languageMap[REGEXNONE]) == 0){
+		tmp = "";
+	}
+	else if (op.name.compare(languageMap[REGEXPLUS]) == 0){
+		tmp = tmp + "(" + getStringFromRegexOP(op.args[0]) + ")+";
+	}
+	else if (op.name.compare(languageMap[REGEXSTAR]) == 0){
+		tmp = tmp + "(" + getStringFromRegexOP(op.args[0]) + ")*";
+	}
+	else if (op.name.compare(languageMap[REGEXUNION]) == 0){
+		if (op.args.size() == 1)
+			tmp = tmp + getStringFromRegexOP(op.args[0]);
+		else {
+			std::string tmp01 = "";
+			for (unsigned j = 0; j < op.args.size(); ++j)
+				tmp01 = tmp01 + "(" + getStringFromRegexOP(op.args[j]) + ")|";
+			tmp = tmp = tmp + tmp01.substr(0, tmp.length() - 1);
+		}
+	}
+	else if (op.name.compare(languageMap[REGEXCONCAT]) == 0) {
+		for (unsigned j = 0; j < op.args.size(); ++j)
+			tmp = tmp + getStringFromRegexOP(op.args[j]);
+	}
+	return tmp;
+}
 /*
  *
  */
@@ -436,24 +522,61 @@ void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
 }
 
 /*
- * (RegexIn ...) --> TRUE
+ * (RegexIn ...) --> random
  */
-void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens){
+void updateRegexIn(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition){
 	int found = -1;
 	for (unsigned i = 0; i < tokens.size(); ++i)
-		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM && tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
+		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
+				tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
 			found = (int)i;
 			break;
 		}
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
-		/* clone & replace */
-		tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
+		StringOP op = findStringOP(tokens, found);
+		/* check if it is a const string */
+		std::string tmp = getStringFromRegexOP(op.args[1]);
+		if (!isRegexStr(tmp)) {
+			StringOP opx = StringOP("=", op.args[0], "\"" + tmp + "\"");
+			__debugPrint(logFile, "%d %s\n", __LINE__, opx.toString().c_str());
+			if (rewriterStrMap.find(opx) != rewriterStrMap.end()) {
+				std::string tmpStr = rewriterStrMap[opx];
+				if (tmpStr.compare(TRUESTR) == 0)
+					tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
+				else if (tmpStr.compare(FALSETR) == 0)
+					tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
+				else
+					assert (false);
+			}
+			else {
+				std::vector<std::pair<std::string, int>> addingTokens;
+				addingTokens.push_back(std::make_pair("=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
+				std::string tmpVar = createNewIntVar();
+				smtVarDefinition.push_back(createIntDefinition(tmpVar));
+				addingTokens.push_back(std::make_pair(tmpVar, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
+				addingTokens.push_back(std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
+				tokens = replaceTokens(tokens, found, pos, addingTokens); /* found at ( */
+			}
+		}
+		else {
+			std::vector<std::pair<std::string, int>> addingTokens;
+			addingTokens.push_back(std::make_pair("=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
+			std::string tmpVar = createNewIntVar();
+			smtVarDefinition.push_back(createIntDefinition(tmpVar));
+			addingTokens.push_back(std::make_pair(tmpVar, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
+			addingTokens.push_back(std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
+			tokens = replaceTokens(tokens, found, pos, addingTokens); /* found at ( */
+		}
 
 		found = -1;
 		for (unsigned i = found + 1; i < tokens.size(); ++i)
-			if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM && tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
+			if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
+					tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
 				found = (int)i;
 				break;
 			}
@@ -662,9 +785,11 @@ void updateSubstring(
 				std::vector<std::pair<std::string, int>> tmpx;
 				switch (languageVersion) {
 				case 20:
+				case 25:
 					tmpx = parseTerm20(tokens[i].first);
 					break;
-				case 25:
+
+				case 26:
 					tmpx = parseTerm26(tokens[i].first);
 					break;
 				default:
@@ -1097,30 +1222,36 @@ std::set<char> getUsedChars(std::string str){
 
 	for (unsigned i = 1; i < str.length() - 1; ++i) {
 		if (str[i] == escapeChar) {
-			if (languageVersion == 25) {
-				result.emplace(str[i + 1]);
-				i++;
-			}
-			else if (languageVersion == 20){
-				if (str[i + 1] == 'a')
-					result.emplace('\a');
-				else if (str[i + 1] == 'b')
-					result.emplace('\b');
-				else if (str[i + 1] == 'e')
-					result.emplace('\e');
-				else if (str[i + 1] == 'f')
-					result.emplace('\f');
-				else if (str[i + 1] == 'n')
-					result.emplace('\n');
-				else if (str[i + 1] == 'r')
-					result.emplace('\r');
-				else if (str[i + 1] == 't')
-					result.emplace('\t');
-				else if (str[i + 1] == 'v')
-					result.emplace('\v');
-				else
+			switch (languageVersion) {
+				case 25:
+				case 20:
+					if (str[i + 1] == 'a')
+						result.emplace('\a');
+					else if (str[i + 1] == 'b')
+						result.emplace('\b');
+					else if (str[i + 1] == 'e')
+						result.emplace('\e');
+					else if (str[i + 1] == 'f')
+						result.emplace('\f');
+					else if (str[i + 1] == 'n')
+						result.emplace('\n');
+					else if (str[i + 1] == 'r')
+						result.emplace('\r');
+					else if (str[i + 1] == 't')
+						result.emplace('\t');
+					else if (str[i + 1] == 'v')
+						result.emplace('\v');
+					else
+						result.emplace(str[i + 1]);
+					i++;
+					break;
+				case 26:
 					result.emplace(str[i + 1]);
-				i++;
+					i++;
+					break;
+				default:
+					assert (false);
+					break;
 			}
 		}
 		else
@@ -1140,24 +1271,40 @@ bool prepareEncoderDecoderMap(std::string fileName){
 		throw std::runtime_error("Cannot open input file!");
 	}
 
-	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v', '\'', '+', '%', '#', '*'};
+	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
+	switch (languageVersion) {
+		case 20:
+			for (const auto& ch : escapeCharacter20)
+				tobeEncoded.emplace(ch);
+			break;
+		case 25:
+			for (const auto& ch : escapeCharacter25)
+				tobeEncoded.emplace(ch);
+			break;
+		case 26:
+			for (const auto& ch : escapeCharacter26)
+				tobeEncoded.emplace(ch);
+			break;
+		default:
+			break;
+	}
 	std::set<char> encoded;
 	bool used[255];
 	memset(used, sizeof used, false);
-	__debugPrint(logFile, "%d *** %s ***: 01\n", __LINE__, __FUNCTION__);
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(fileName);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(fileName);
 		break;
 	default:
 		assert(false);
 		break;
 	}
-	__debugPrint(logFile, "%d *** %s ***: 02\n", __LINE__, __FUNCTION__);
 
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
@@ -1411,35 +1558,41 @@ void toLengthLine(
 	for (unsigned i = 0; i < tokens.size(); ++i)
 		if (tokens[i].second == 86){
 			std::string s = "";
-			for (unsigned j = 1; j < tokens[i].first.length() - 1; ++j)
+			for (unsigned j = 1; j < tokens[i].first.length() - 1; ++j) {
 				if (tokens[i].first[j] == escapeChar){
-					if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't' && languageVersion == 20) {
-						s += '\t';
-						++j;
-					}
-					else if (j + 2 < tokens[i].first.length()){
-						s += tokens[i].first[j + 1];
-						++j;
+					switch (languageVersion) {
+					case 20:
+					case 25:
+						if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't') {
+							s += '\t';
+							++j;
+						}
+						else if (j + 2 < tokens[i].first.length()){
+							s += tokens[i].first[j + 1];
+							++j;
+						}
+						break;
+					case 26:
+						break;
+					default:
+						break;
 					}
 				}
 				else
 					s += tokens[i].first[j];
+			}
 			tokens[i].first = "\"" + s + "\"";
 		}
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateImplies(tokens);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
-	updateRegexIn(tokens);
+	updateRegexIn(tokens, rewriterStrMap, smtVarDefinition);
 	updateContain(tokens, rewriterStrMap);
 	updateCharAt(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
 	updateIndexOf2(tokens, rewriterStrMap);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateIndexOf(tokens, rewriterStrMap);
 	updateEndsWith(tokens, rewriterStrMap);
 	updateStartsWith(tokens, rewriterStrMap);
 	updateReplace(tokens, rewriterStrMap);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateReplaceAll(tokens, rewriterStrMap);
 
 	updateToUpper(tokens);
@@ -1470,70 +1623,76 @@ std::string encodeSpecialChars(std::string constStr){
 	std::string strTmp = "";
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
-		if (languageVersion == 20) {
-			if (constStr[i] == escapeChar) {
-				if (i < constStr.length() - 1) {
-					if (constStr[i + 1] == 'a') {
-						strTmp += ENCODEMAP['\a'];
-						i++;
-					} else if (constStr[i + 1] == 'b') {
-						strTmp += ENCODEMAP['\b'];
-						i++;
-					} else if (constStr[i + 1] == 'e') {
-						strTmp += ENCODEMAP['\e'];
-						i++;
-					} else if (constStr[i + 1] == 'f') {
-						strTmp += ENCODEMAP['\f'];
-						i++;
-					} else if (constStr[i + 1] == 'n') {
-						strTmp += ENCODEMAP['\n'];
-						i++;
-					} else if (constStr[i + 1] == 'r') {
-						strTmp += ENCODEMAP['\r'];
-						i++;
-					} else if (constStr[i + 1] == 't') {
-						strTmp += ENCODEMAP['\t'];
-						i++;
-					} else if (constStr[i + 1] == 'v') {
-						strTmp += ENCODEMAP['\v'];
-						i++;
-					}
-					else if (constStr[i + 1] == '"' ||
-							constStr[i + 1] == '\'' ||
-							constStr[i + 1] == '\\') {
-						strTmp += ENCODEMAP[constStr[i + 1]];
-						i++;
+		switch (languageVersion) {
+			case 25:
+			case 20:
+				if (constStr[i] == escapeChar) {
+					if (i < constStr.length() - 1) {
+						if (constStr[i + 1] == 'a') {
+							strTmp += ENCODEMAP['\a'];
+							i++;
+						} else if (constStr[i + 1] == 'b') {
+							strTmp += ENCODEMAP['\b'];
+							i++;
+						} else if (constStr[i + 1] == 'e') {
+							strTmp += ENCODEMAP['\e'];
+							i++;
+						} else if (constStr[i + 1] == 'f') {
+							strTmp += ENCODEMAP['\f'];
+							i++;
+						} else if (constStr[i + 1] == 'n') {
+							strTmp += ENCODEMAP['\n'];
+							i++;
+						} else if (constStr[i + 1] == 'r') {
+							strTmp += ENCODEMAP['\r'];
+							i++;
+						} else if (constStr[i + 1] == 't') {
+							strTmp += ENCODEMAP['\t'];
+							i++;
+						} else if (constStr[i + 1] == 'v') {
+							strTmp += ENCODEMAP['\v'];
+							i++;
+						}
+						else if (constStr[i + 1] == '"' ||
+								constStr[i + 1] == '\'' ||
+								constStr[i + 1] == '\\') {
+							strTmp += ENCODEMAP[constStr[i + 1]];
+							i++;
+						}
+						else {
+							strTmp += constStr[i];
+							strTmp += constStr[i];
+						}
 					}
 					else {
 						strTmp += constStr[i];
+					}
+				}
+				else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
+					strTmp += ENCODEMAP[constStr[i]];
+				else
+					strTmp += constStr[i];
+				break;
+			case 26:
+				if (constStr[i] == escapeChar) {
+					if (i < constStr.length() - 1) {
+						if (constStr[i + 1] == '"'){
+							strTmp += ENCODEMAP['"'];
+							i++;
+						}
+					}
+					else {
 						strTmp += constStr[i];
 					}
 				}
-				else {
+				else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
+					strTmp += ENCODEMAP[constStr[i]];
+				else
 					strTmp += constStr[i];
-				}
-			}
-			else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
-				strTmp += ENCODEMAP[constStr[i]];
-			else
-				strTmp += constStr[i];
-		}
-		else if (languageVersion == 25) {
-			if (constStr[i] == escapeChar) {
-				if (i < constStr.length() - 1) {
-					if (constStr[i + 1] == '"'){
-						strTmp += ENCODEMAP['"'];
-						i++;
-					}
-				}
-				else {
-					strTmp += constStr[i];
-				}
-			}
-			else if (ENCODEMAP.find(constStr[i]) != ENCODEMAP.end())
-				strTmp += ENCODEMAP[constStr[i]];
-			else
-				strTmp += constStr[i];
+				break;
+			default:
+				assert (false);
+				break;
 		}
 	}
 
@@ -1684,9 +1843,11 @@ std::pair<int, long> getAllInt(std::string inputFile){
 
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -1808,9 +1969,11 @@ ConstraintSet getConstraints(std::string inputFile){
 	ConstraintSet result;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -1899,9 +2062,11 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -1984,9 +2149,11 @@ void encodeHex(std::string inputFile, std::string outFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -2084,9 +2251,11 @@ void toLengthFile(
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	switch (languageVersion) {
 	case 20:
+	case 25:
 		fileTokens = parseFile20(inputFile);
 		break;
-	case 25:
+
+	case 26:
 		fileTokens = parseFile26(inputFile);
 		break;
 	default:
@@ -2109,18 +2278,36 @@ std::string decodeStr(std::string s){
 	std::string tmp = "";
 	for (unsigned i = 0 ; i < s.size(); ++i) {
 		tmp += s[i];
-		if (s[i] == '\\' && i != s.size() - 1 && s[i + 1] == '\\' && languageVersion == 20)
-			++i;
+		switch (languageVersion) {
+			case 20:
+			case 25:
+				if (s[i] == '\\' && i + 1 < s.size() && s[i + 1] == '\\')
+					++i;
+				break;
+			case 26:
+				break;
+			default:
+				break;
+		}
 	}
 	s = tmp;
 	tmp = "";
 
 	for (unsigned i = 0; i < s.length(); ++i){
 		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
-			if ((char)DECODEMAP[s[i]] != '\t')
-				tmp += (char)DECODEMAP[s[i]];
-			else
-				tmp += "\\t";
+			switch (languageVersion) {
+			case 20:
+			case 25:
+				if ((char)DECODEMAP[s[i]] != '\t')
+					tmp += (char)DECODEMAP[s[i]];
+				else
+					tmp += "\\t";
+				break;
+			case 26:
+				break;
+			default:
+				break;
+			}
 		}
 		else
 			tmp += s[i];

@@ -366,7 +366,7 @@ public:
 				}
 				else
 					values.emplace(elementNames[currentSplit.size()].first);
-				__debugPrint(logFile, "%d %s -> values size = %u\n", __LINE__, elementNames[currentSplit.size()].first.c_str(),
+				__debugPrint(logFile, "%d %s -> values size = %ld\n", __LINE__, elementNames[currentSplit.size()].first.c_str(),
 						values.size());
 				for (const auto& value : values) {
 					std::string constValue = str.substr(pos, value.length());
@@ -3016,13 +3016,13 @@ public:
 				right_arr[right_arr.size() -1] == EMPTYFLAT)
 			return false;
 		/* not allow empty flats in the middle */
-		unsigned int startPos = 0;
-		unsigned int endPos = left_arr.size() - 1;
+		int startPos = 0;
+		int endPos = left_arr.size() - 1;
 		/* check lhs */
 		for (startPos = 0; startPos < left_arr.size(); ++startPos)
 			if (left_arr[startPos] != EMPTYFLAT)
 				break;
-		for (endPos = left_arr.size() - 1; endPos >= 0; --endPos)
+		for (endPos = (int)left_arr.size() - 1; endPos >= 0; --endPos)
 			if (left_arr[endPos] != EMPTYFLAT)
 				break;
 		for (unsigned int i = startPos; i < endPos; ++i)
@@ -3035,7 +3035,7 @@ public:
 		for (startPos = 0; startPos < right_arr.size(); ++startPos)
 			if (right_arr[startPos] != EMPTYFLAT)
 				break;
-		for (endPos = right_arr.size() - 1; endPos >= 0; --endPos)
+		for (endPos = (int)right_arr.size() - 1; endPos >= 0; --endPos)
 			if (right_arr[endPos] != EMPTYFLAT)
 				break;
 		for (unsigned int i = startPos; i < endPos; ++i)
