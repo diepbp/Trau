@@ -601,8 +601,8 @@ std::vector<std::string> collectAllPossibleArrangements(
 #else
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
-	for (unsigned int i = 0; i < possibleCases.size(); ++i) {
-//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+	for (unsigned i = 0; i < possibleCases.size(); ++i) {
+		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
@@ -612,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -1968,7 +1968,6 @@ std::vector<std::string> equalityToSMT(
 	for (unsigned i = 0; i < rhs_elements.size(); ++i)
 		tmp01 = tmp01 + "+++" + rhs_elements[i].first;
 	if (generatedEqualities.find(tmp01) == generatedEqualities.end()){
-//	if (true)
 		std::vector<std::string> cases = collectAllPossibleArrangements(
 				lhs, rhs,
 				lhs_elements, rhs_elements);
@@ -2382,7 +2381,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 								if (_eq.size() == 1 && _eq[0][0] != '"' && _eq[0].compare(var) != 0){
 									variableCounting[_eq[0]]++;
 									if (variableCounting[_eq[0]] > 1){
-										connectedVarSet[_eq[0]] = connectingSize;
+										connectedVarSet[_eq[0]] = connectingSize * 2;
 										__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, _eq[0].c_str());
 									}
 								}
@@ -2390,8 +2389,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 							}
 						variableCounting[var]++;
 						if (variableCounting[var] > 1){
-
-							connectedVarSet[var] = connectingSize;
+							connectedVarSet[var] = connectingSize * 2;
 							__debugPrint(logFile, "%d Add %s to connectedVar\n", __LINE__, var.c_str());
 						}
 					}
@@ -5023,8 +5021,8 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
  * v01 is inside v02?
  */
 int vectorInsideVector(std::vector<std::string> v01, std::vector<std::string> v02){
-	for (unsigned int i = 0; i <= v02.size() - v01.size(); ++i) {
-		unsigned int pos = 0;
+	for (unsigned i = 0; i <= v02.size() - v01.size(); ++i) {
+		unsigned pos = 0;
 		while (pos < v01.size() && v02[i + pos].compare(v01[pos]) == 0)
 			pos++;
 		if (pos == v01.size())
@@ -5055,7 +5053,7 @@ void addConnectedVarToEQmap(){
 									for (int i = 0; i < pos; ++i)
 										tmp.emplace_back(eq00[i]);
 									tmp.emplace_back(varEq00.first);
-									for (unsigned int i = pos + eq01.size(); i < eq00.size(); ++i)
+									for (unsigned i = pos + eq01.size(); i < eq00.size(); ++i)
 										tmp.emplace_back(eq00[i]);
 
 									_newEqMap[varEq.first].emplace_back(tmp);
@@ -5251,6 +5249,44 @@ void initConnectingSize(bool prep = true){
  */
 bool checkBelongingVariable(std::string var01, std::string var02){
 
+	for (const auto& eq01 : equalitiesMap[var01]){
+		bool found = false;
+		for (const auto& eq02 : equalitiesMap[var02]) {
+			if (eq01.size() <= eq02.size()) {
+				if (vectorInsideVector(eq01, eq02)) {
+					found = true;
+					break;
+				}
+			}
+		}
+		if (!found)
+			return false;
+	}
+	return true;
+}
+
+/*
+ *
+ */
+void removeConnectedVarIfPossible(){
+	std::set<std::string> candidates;
+	for (const auto& var02 : equalitiesMap){
+		for (const auto& var01 : equalitiesMap){
+			if (checkBelongingVariable(var01.first, var02.first)){
+				for (const auto& eq : var01.second)
+					for (const auto& s : eq)
+						if (s[0] != '"')
+							candidates.emplace(s);
+			}
+		}
+	}
+
+	for (const auto& s : candidates)
+		if (connectedVariables.find(s) != connectedVariables.end() &&
+				connectedVariables[s] == connectingSize * 2) {
+			__debugPrint(logFile, "%d *** %s ***: remove %s\n", __LINE__, __FUNCTION__, s.c_str());
+			connectedVariables.erase(s);
+		}
 }
 
 /*
@@ -5270,6 +5306,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
+	removeConnectedVarIfPossible();
 	addConnectedVarToEQmap();
 	createConstMap();
 	refineEqualMap(rewriterStrMap);
@@ -5406,7 +5443,9 @@ void updateRewriter(
 			}
 			continue;
 		}
-
+#if 1
+		newRewriterStrMap[op.first] = op.second;
+#else
 		if (allVariables.find(op.first.args[0].toString()) != allVariables.end() ||
 				allVariables.find(op.first.args[1].toString()) != allVariables.end() ||
 				(op.first.args.size() < 3 || allVariables.find(op.first.args[2].toString()) != allVariables.end()) ||
@@ -5418,6 +5457,7 @@ void updateRewriter(
 			StringOP tmp = op.first;
 			__debugPrint(logFile, "%d remove in rewriter: (%s, %s)\n", __LINE__, tmp.toString().c_str(), op.second.c_str());
 		}
+#endif
 	}
 	rewriterStrMap.clear();
 	rewriterStrMap = newRewriterStrMap;
@@ -5444,7 +5484,8 @@ bool underapproxController(
 		std::map<StringOP, std::string> rewriterStrMap,
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
-		std::string fileDir) {
+		std::string fileDir,
+		bool _lazy) {
 	printf("\nRunning Under Approximation\n");
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
 	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT);
@@ -5456,6 +5497,7 @@ bool underapproxController(
 	parseEqualityMap(_equalMap, _fullEqualMap);
 	staticIntegerAnalysis(fileDir);
 	reset();
+	lazy = _lazy;
 	fullEqualitiesMap = _fullEqualMap;
 
 	init(rewriterStrMap);
@@ -5533,15 +5575,13 @@ bool underapproxController(
 	}
 
 	if (result == false) {
-		if (lazy == false) {
-			lazy = true;
+		if (lazy == true) {
 			underapproxController(_equalMap,
 					_fullEqualMap,
 					rewriterStrMap,
 					_carryOnConstraints,
 					_currentLength,
-					fileDir);
-			lazy = false;
+					fileDir, false);
 		}
 	}
 	return result;
