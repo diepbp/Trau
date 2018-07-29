@@ -2441,13 +2441,13 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, ")");
 		__debugPrint(logFile, "  =>  ");
 #endif
-
+		Z3_ast tmp;
 		switch (languageVersion) {
 		case 20:
 			break;
 		case 25:
 			/* swap args */
-			Z3_ast tmp = convertedArgs[0];
+			tmp = convertedArgs[0];
 			convertedArgs[0] = convertedArgs[1];
 			convertedArgs[1] = tmp;
 			break;
@@ -2489,12 +2489,13 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, ")");
 		__debugPrint(logFile, "  =>  ");
 #endif
+		Z3_ast tmp;
 		switch (languageVersion) {
 		case 20:
 			break;
 		case 25:
 			/* swap args */
-			Z3_ast tmp = convertedArgs[0];
+			tmp = convertedArgs[0];
 			convertedArgs[0] = convertedArgs[1];
 			convertedArgs[1] = tmp;
 			break;
