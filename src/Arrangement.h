@@ -2246,10 +2246,23 @@ public:
 
 		if (!isConstA && !isConstB) {
 			/* size = size && it = it */
-			if (connectedVariables.find(b.first) != connectedVariables.end()){
+
+			if (connectedVariables.find(b.first) != connectedVariables.end() &&
+					connectedVariables.find(a.first) != connectedVariables.end()){
+
 				std::vector<std::pair<std::string, int>> elements;
-				elements.emplace_back(a);
-				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, optimizing);
+				if (!optimizing)
+					result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, optimizing);
+				else {
+					std::string tmp = "";
+					std::string arrA = generateFlatArray(a, "");
+					std::string arrB = generateFlatArray(b, "");
+					for (int i = 0; i < std::max(connectedVariables[b.first], connectedVariables[a.first]); ++i) {
+						tmp = tmp + "(or " + createEqualConstraint(createSelectConstraint(arrA, std::to_string(i)), createSelectConstraint(arrB, std::to_string(i)))
+											+ createLessConstraint(nameA, std::to_string(i + 1)) + ")";
+					}
+					result = result + "(and " + tmp + ")";
+				}
 			}
 		}
 		else if (isConstA && isConstB) {
@@ -2401,11 +2414,16 @@ public:
 
 		else if (isConstA) {
 			/* size = size && it = 1*/
-
+			assert(a.second != REGEX_CODE);
 			/* record characters for some special variables */
 			if (connectedVariables.find(b.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
-				elements.emplace_back(a);
+				if (optimizing) {
+					elements.emplace_back(std::make_pair(a.first, -1));
+					elements.emplace_back(std::make_pair(a.first, -2));
+				}
+				else
+					elements.emplace_back(a);
 				result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, optimizing);
 			}
 		}
@@ -2413,9 +2431,15 @@ public:
 		else { /* isConstB */
 			/* size = size && it = 1*/
 			/* record characters for some special variables */
+			assert(a.second != REGEX_CODE);
 			if (connectedVariables.find(a.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
-				elements.emplace_back(b);
+				if (optimizing) {
+					elements.emplace_back(std::make_pair(b.first, -1));
+					elements.emplace_back(std::make_pair(b.first, -2));
+				}
+				else
+					elements.emplace_back(b);
 				result = result + " " + unrollConnectedVariable(a, elements, lhs_str, rhs_str, connectedVariables, optimizing);
 			}
 		}
@@ -2684,7 +2708,7 @@ public:
 				else if (i + 1 < lhs_elements.size()){
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1){
-						return RIGHT_EQUAL;
+						return NONE;
 					}
 				}
 			}
@@ -2699,7 +2723,7 @@ public:
 				else if (startPos > 0){
 					if (left_arr[startPos - 1] == j - 1 &&
 							right_arr[j - 1] == startPos - 1){
-						return LEFT_EQUAL;
+						return NONE;
 					}
 				}
 			}
