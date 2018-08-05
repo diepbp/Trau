@@ -1,9 +1,16 @@
 RELEASE NOTES
 
+Git version
+==================
+- Language support: SMTLIB 2.0. SMT2.5, SMT2.6 are under development. 
+- SMT2.6 uses only one escape character which is ".
+- Performance improvement
+- Bug fixed: fix some minor bugs
+
 Version 1.1
 ==================
 - Language support: SMTLIB 2.0. SMT2.5 is under development. 
-- Support more escape characters such as \a \b \e \f \n \r \t \v
+- Support more escape characters in SMT2.0 and SMT2.5 such as \a \b \e \f \n \r \t \v
 - Performance improvement
 - Bug fixed: fix some minor bugs
 
