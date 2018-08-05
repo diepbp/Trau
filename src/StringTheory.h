@@ -54,6 +54,7 @@ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 extern std::map<int, std::string> languageMap;
 extern char escapeChar;
 extern std::string verifyingSolver;
+extern bool aggressiveRefineBool;
 
 static std::map<std::string, std::set<char>> charSet;
 
@@ -871,26 +872,31 @@ typedef struct _AutomatonStringData
  /**
   *
   */
-Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *
   */
-  Z3_ast negatePositiveContext(Z3_theory t);
+ Z3_ast negatePositiveContext(Z3_theory t);
 
-  /*
-   *
-   */
-  Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
+ /*
+  *
+  */
+ Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
 
-  /*
-   * not(a = b = c = d)
-   */
-  Z3_ast negatePositiveEquality(
-  		Z3_theory t,
-  		Z3_ast node,
-  		std::vector<std::vector<Z3_ast>> list,
-  		std::map<Z3_ast, bool> boolValues);
+ /*
+  * negate all boolean variables
+  */
+ Z3_ast negatePositiveContext(Z3_theory t, std::set<Z3_ast> boolVars) ;
+
+ /*
+  * not(a = b = c = d)
+  */
+ Z3_ast negatePositiveEquality(
+		 Z3_theory t,
+		 Z3_ast node,
+		 std::vector<std::vector<Z3_ast>> list,
+		 std::map<Z3_ast, bool> boolValues);
 
  std::vector<Z3_ast> collectLanguageValue(Z3_theory t);
  std::vector<Z3_ast> collectStringValue(Z3_theory t);

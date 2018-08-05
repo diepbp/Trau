@@ -6196,12 +6196,14 @@ Z3_bool Th_final_check(Z3_theory t) {
 		}
 
 //		tryUnderApprox = true;
+		std::set<std::string> _connectedVars;
 		if (!underapproxController(combinationOverVariables,
 				fullCombinationOverVariables,
 				rewriterStrMap,
 				carryOnConstraints,
 				initLength,
-				inputFile)) {
+				inputFile,
+				_connectedVars)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -6209,7 +6211,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 				std::string grm2str = Z3_ast_to_string(ctx, grmNode.first);
 				assert (combinationOverVariables.find(grm2str) != combinationOverVariables.end());
 				std::vector<Z3_ast> eq_grm = getEqualValues(grmNode.first);
-				displayListNode(t, eq_grm, " ccc ");
+				displayListNode(t, eq_grm, " grm_astNode_map ");
 				for (unsigned int i = 0; i < eq_grm.size(); ++i)
 					if (isAutomatonFunc(t, eq_grm[i]))
 						orConstraints.emplace_back(Z3_mk_not(ctx, Z3_mk_eq(ctx, grmNode.first, eq_grm[i])));
@@ -6222,7 +6224,68 @@ Z3_bool Th_final_check(Z3_theory t) {
 				return Z3_FALSE;
 			}
 			else {
-				Z3_ast negation = negatePositiveContext(t, boolVars);
+				/**/
+				Z3_ast negation;
+				if (aggressiveRefineBool) {
+					/* refine boolVars */
+					std::set<Z3_ast> selectedBoolVars;
+					for (const auto& boolVar : boolVars) {
+						std::string varStr = node_to_string(t, boolVar);
+						if (varStr.find("$$_") != 0)
+							selectedBoolVars.emplace(boolVar);
+					}
+					for (const auto& var : containPairBoolMap) {
+						std::string boolVarStr = node_to_string(t, var.second);
+						if (boolVarStr.find("$$_") == std::string::npos) {
+							selectedBoolVars.emplace(var.second);
+							continue;
+						}
+
+						std::vector<Z3_ast> nodes;
+						/* 1st arg */
+						if (isConcatFunc(t, var.first.first)){
+							collect_node_in_concat(t, var.first.first, nodes);
+						}
+						else if (isVariable(t, var.first.first))
+							nodes.emplace_back(var.first.first);
+
+						/* 2nd arg */
+						if (isConcatFunc(t, var.first.second)){
+							collect_node_in_concat(t, var.first.first, nodes);
+						}
+						else if (isVariable(t, var.first.second))
+							nodes.emplace_back(var.first.second);
+
+						for (const auto& node : nodes) {
+							std::string nodeStr = node_to_string(t, node);
+							if (_connectedVars.find(nodeStr) != _connectedVars.end()) {
+								for (const auto& boolVar : boolVars)
+									if (boolVar == var.second ||
+											boolVar == Z3_mk_not(ctx, var.second)) {
+										selectedBoolVars.emplace(boolVar);
+										break;
+									}
+								__debugPrint(logFile, "%d selectedBoolVars adds: ", __LINE__);
+								printZ3Node(t, var.second);
+								__debugPrint(logFile, ": ");
+								printZ3Node(t, var.first.first);
+								__debugPrint(logFile, " contains ");
+								printZ3Node(t, var.first.second);
+								__debugPrint(logFile, "\n");
+								break;
+							}
+						}
+					}
+
+					/* print test: */
+					__debugPrint(logFile, "%d selectedBoolVars for underapprox\n", __LINE__);
+					for (const auto& node : selectedBoolVars){
+						__debugPrint(logFile, "%s\n", node_to_string(t, node).c_str());
+					}
+					negation = negatePositiveContext(t, selectedBoolVars);
+				}
+				else
+					negation = negatePositiveContext(t, boolVars);
 				orConstraints.emplace_back(negation);
 				addAxiom(t, mk_or_fromVector(t, orConstraints), __LINE__, true);
 			}
@@ -7469,6 +7532,24 @@ Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars) {
 		return Z3_mk_false(ctx);
 	else
 		return Z3_mk_not(ctx, mk_and_fromVector(t, boolVars));
+}
+
+/*
+ * negate all boolean variables
+ */
+Z3_ast negatePositiveContext(Z3_theory t, std::set<Z3_ast> boolVars) {
+#ifdef DEBUGLOG
+	__debugPrint(logFile, "@%d *** %s ***: ", __LINE__, __FUNCTION__);
+	__debugPrint(logFile, "\n");
+#endif
+	Z3_context ctx = Z3_theory_get_context(t);
+	if (boolVars.size() == 0)
+		return Z3_mk_false(ctx);
+	else {
+		std::vector<Z3_ast> tmp;
+		tmp.insert(tmp.begin(), boolVars.begin(), boolVars.end());
+		return Z3_mk_not(ctx, mk_and_fromVector(t, tmp));
+	}
 }
 
 /*

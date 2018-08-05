@@ -712,6 +712,7 @@ bool underapproxController(
 		std::set<std::string> carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
+		std::set<std::string> &_connectedVars,
 		bool lazy = true);
 
 #endif /* UNDERAPPROX_H_ */

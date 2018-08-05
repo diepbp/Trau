@@ -5450,6 +5450,7 @@ bool underapproxController(
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
+		std::set<std::string> &_connectedVars,
 		bool _lazy) {
 	printf("\nRunning Under Approximation\n");
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
@@ -5508,7 +5509,8 @@ bool underapproxController(
 		toLengthFile(nonGrm, true, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
-			return false;
+			result = false;
+			goto endLabel;
 		}
 
 		writeOutput_basic(output);
@@ -5519,7 +5521,7 @@ bool underapproxController(
 			toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
 				printf(">> UNSAT\n");
-				return false;
+				goto endLabel;
 			}
 			writeOutput_basic(output);
 			result = Z3_run(cmd, _fullEqualMap);
@@ -5530,7 +5532,7 @@ bool underapproxController(
 		pthreadController();
 		if (trivialUnsat) {
 			printf(">> UNSAT\n");
-			return false;
+			goto endLabel;
 		}
 		else {
 			printf(">> Generated SMT\n\n");
@@ -5546,9 +5548,16 @@ bool underapproxController(
 					rewriterStrMap,
 					_carryOnConstraints,
 					_currentLength,
-					fileDir, false);
+					fileDir,
+					_connectedVars, false);
 		}
 	}
+	endLabel: if (result == false) {
+		_connectedVars.clear();
+		for (const auto& var : connectedVariables)
+			_connectedVars.emplace(var.first);
+	}
+
 	return result;
 }
 
