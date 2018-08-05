@@ -25,17 +25,21 @@
 #define LOGFILE ".trauLog"
 #define LOGAXIOMFILE ".z3Log"
 #define TMPDIR "/tmp/fat_str_convert"
-#define NONGRM "_nogrm.smt2"
-#define OUTPUT "output.smt2"
+#define NONGRM "_trau_nogrm_"
+#define OUTPUT "_trau_output_"
+#define WITHLENGH "_trau_w_l_"
+#define CONVERTED "_trau_converted_"
 
 bool isDirExist(const std::string& path);
 
 bool makePath(const std::string& path);
 
-void removeFile(const std::string& fileName);
+void removeFiles(const std::string& fileName);
 
 void rmTree(const char path[]);
 
 void removeLog();
+
+void cleanOldLog();
 
 #endif /* FILEUTILS_H_ */

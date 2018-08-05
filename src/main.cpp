@@ -29,12 +29,14 @@ std::map<std::string, std::vector<std::string>> ourGrm;
 std::map<int, std::string> languageMap;
 char escapeChar = ESCAPECHAR20;
 int languageVersion = 20;
+std::string verifyingSolver = "";
 std::string trauVersion = "1.2";
 
 
 ConstraintSet constraintSet;
 
 const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5", "SMT2.6"};
+const std::vector<std::string> availableSolvers = {"cvc4", "z3str3", "s3"};
 
 /*
  *
@@ -161,7 +163,7 @@ std::string convertFileToReplaceConst(std::string fileDir) {
 	__debugPrint(logFile, "%d creating %s: %s\n", __LINE__, TMPDIR, success ? "OK" : "failed");
 
 	/* create file */
-	std::string outFile = std::string(TMPDIR) + "/converted_" + fileName ;
+	std::string outFile = std::string(TMPDIR) + "/" + CONVERTED + fileName ;
 	encodeHex(fileDir, outFile);
 	return outFile;
 }
@@ -253,21 +255,40 @@ void parseUserInput(int argc, char* argv[]){
 				languageMap = languageMap26;
 				languageVersion = 26;
 				escapeChar = ESCAPECHAR26;
+				if (verifyingSolver.length() == 0)
+					verifyingSolver = "cvc4";
 			}
 			else if (language.compare("SMT2.5") == 0) {
 				languageMap = languageMap25;
 				languageVersion = 25;
 				escapeChar = ESCAPECHAR25;
+				if (verifyingSolver.length() == 0)
+					verifyingSolver = "z3str3";
 			}
 			else if (language.compare("SMT2.0") == 0) {
 				languageMap = languageMap20;
 				languageVersion = 20;
 				escapeChar = ESCAPECHAR20;
+				if (verifyingSolver.length() == 0)
+					verifyingSolver = "s3";
 			}
 		}
 		else if (tmp.compare("-doublecheck") == 0){
 			getModel = true;
 			beReviewed = true;
+
+			if (i + 1 < argc){
+				std::string checker = std::string(argv[i + 1]);
+				if (checker[0] != '-') {
+					if (std::find(availableSolvers.begin(), availableSolvers.end(), checker) != availableSolvers.end()) {
+						verifyingSolver = argv[i + 1];
+						i++;
+					}
+					else {
+						printf("%s is not supported\n", argv[i + 1]);
+					}
+				}
+			}
 		}
 		else if (tmp.compare("-model") == 0){
 			getModel = true;
@@ -294,6 +315,9 @@ void parseUserInput(int argc, char* argv[]){
 			orgInput = inputFile;
 		}
 	}
+
+	if (verifyingSolver.length() == 0)
+		verifyingSolver = "s3";
 
 	if (foundGrm == true){
 		loadGrammar(grammarFile);
@@ -330,7 +354,7 @@ int main(int argc, char* argv[])
 		overApproxController();
 
 		if (cleanLog == true)
-			removeFile(inputFile);
+			removeFiles(inputFile);
 	}
 
 #ifdef DEBUGLOG

@@ -4860,7 +4860,7 @@ bool Z3_run(
 	pclose(in);
 
 	/* collect length of all string variables*/
-	std::string lengthFile = std::string(TMPDIR) + "/w_l_" + getFileNameFromFileDir(orgInput);
+	std::string lengthFile = std::string(TMPDIR) + "/" + WITHLENGH + getFileNameFromFileDir(orgInput);
 #ifdef PRINTTEST_UNDERAPPROX
 	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
@@ -4878,9 +4878,9 @@ bool Z3_run(
 		printSatisfyingAssignments(decodeResultMap(results), len_results);
 		if (beReviewed) {
 			/* read & copy the input file */
-			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
+			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
 			addConstraintsToSMTFile(nonGrm, _equalMap, createSatisfyingAssignments(_equalMap, len_results, results), lengthFile);
-			verifyResult(languageVersion, lengthFile, true);
+			verifyResult(languageVersion, lengthFile, verifyingSolver, true);
 		}
 		else {
 			sat = true;
@@ -5452,8 +5452,8 @@ bool underapproxController(
 		std::string fileDir,
 		bool _lazy) {
 	printf("\nRunning Under Approximation\n");
-	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
-	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT);
+	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
+	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(orgInput);
 	/* init varLength */
 	varLength.clear();
 	varLength.insert(_currentLength.begin(), _currentLength.end());
@@ -5501,7 +5501,7 @@ bool underapproxController(
 	regexCnt = 0;
 
 	bool result = false;
-	std::string cmd = std::string(Z3_PATH) + "-smt2 " + output;
+	std::string cmd = std::string(Z3_PATH) + output;
 	if (connectedVariables.size() == 0 &&
 			equalitiesMap.size() == 0 &&
 			!hasInequalities(orgRewriterStrMap)) {

@@ -830,25 +830,46 @@ int S3_reviews(std::string fileName){
 void verifyResult(
 		int languageVersion,
 		std::string fileName,
+		std::string verifyingSolver,
 		bool result){
 	int sat;
 	switch (languageVersion) {
 	case 20:
-		sat = S3_reviews(fileName);
-		if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
-			printf("\nDouble-checked by S3P: successful.\n");
+		if (verifyingSolver.compare("s3") == 0) {
+			sat = S3_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by S3P: successful.\n");
+			}
+			else
+				assert(false);
 		}
-		else
-			assert(false);
+		else {
+			printf("\n %s cannot check the test.\n", verifyingSolver.c_str());
+		}
 		break;
 	case 25:
+
 	case 26:
-		sat = Z3_reviews(fileName);
-		if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
-			printf("\nDouble-checked by Z3str3: successful.\n");
+		if (verifyingSolver.compare("cvc4") == 0){
+			sat = CVC4_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+			}
+			else
+				assert(false);
 		}
-		else
-			assert(false);
+		else if (verifyingSolver.compare("z3str3") == 0){
+			sat = Z3_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+			}
+			else
+				assert(false);
+		}
+		else {
+			printf("\n %s cannot check the test.\n", verifyingSolver.c_str());
+		}
+		break;
 		break;
 	default:
 		break;

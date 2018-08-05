@@ -21,6 +21,11 @@
 extern std::string orgInput;
 extern bool getModel;
 extern bool beReviewed;
+extern bool unknownResult;
+extern std::map<int, std::string> languageMap;
+extern int languageVersion;
+extern std::string verifyingSolver;
+
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, std::vector<std::vector<std::string>>> fullEqualitiesMap;
@@ -54,9 +59,6 @@ static int maxInt = -1;
 static long sumInt = -1;
 static long sumConstLength = 0;
 static bool lazy = true;
-extern bool unknownResult;
-extern std::map<int, std::string> languageMap;
-extern int languageVersion;
 static std::set<std::string> generatedEqualities;
 
 /*

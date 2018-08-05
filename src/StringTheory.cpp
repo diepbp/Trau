@@ -9721,9 +9721,7 @@ void check(Z3_theory t)
 	else switch (result) {
 	case Z3_L_FALSE:
 		if (beReviewed) {
-			std::string fileName = std::string(TMPDIR) + "/" + std::string(NONGRM);
-			if (( access( fileName.c_str(), F_OK ) != -1 ))
-				verifyResult(languageVersion, std::string(TMPDIR) + "/" + std::string(NONGRM), false);
+			verifyResult(languageVersion, inputFile, verifyingSolver, false);
 		}
 		printf("================================================\n");
 		printf(">> UNSAT\n");

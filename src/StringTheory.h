@@ -53,6 +53,7 @@ extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
 extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 extern std::map<int, std::string> languageMap;
 extern char escapeChar;
+extern std::string verifyingSolver;
 
 static std::map<std::string, std::set<char>> charSet;
 

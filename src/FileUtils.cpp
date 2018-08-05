@@ -75,29 +75,34 @@ inline bool exists(const std::string& name){
 /*
  *
  */
-void removeFile(const std::string& fileName){
+void removeFiles(const std::string& fileDir){
 	/*get fileName from fileDir */
-	rmTree(TMPDIR);
-	return;
-
 	std::string name = "";
-	for (int i = fileName.length() - 1; i >= 0; --i)
-		if (fileName[i] != '/')
-			name = fileName[i] + name;
-		else
-			break;
+	for (int i = fileDir.length() - 1; i >= 0; --i)
+			if (fileDir[i] != '/')
+				name = fileDir[i] + name;
+			else
+				break;
 
 	std::string filePath = std::string(TMPDIR) + "/" + name;
 	if (exists(filePath))
 		remove(filePath.c_str());
 
-	filePath =  std::string(TMPDIR) + "/w_l_" + name;
+	filePath =  std::string(TMPDIR) + "/" + WITHLENGH + name;
 	if (exists(filePath))
 		remove(filePath.c_str());
 
-	filePath =  std::string(TMPDIR) + "/converted_" + name;
+	filePath =  std::string(TMPDIR) + "/" + CONVERTED + name;
 	if (exists(filePath))
 		remove(filePath.c_str());
+
+	filePath =  std::string(TMPDIR) + "/" + NONGRM + name;
+	if (exists(filePath))
+		remove(filePath.c_str());
+
+	filePath =  std::string(TMPDIR) + "/" + OUTPUT + name;
+		if (exists(filePath))
+			remove(filePath.c_str());
 }
 
 /*
@@ -160,6 +165,11 @@ void removeLog(){
 		remove(LOGFILE);
 	if (exists(LOGAXIOMFILE))
 		remove(LOGAXIOMFILE);
+}
+
+void cleanOldLog(){
+	rmTree(TMPDIR);
+	return;
 }
 
 
