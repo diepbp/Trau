@@ -29,7 +29,7 @@ std::map<std::string, std::vector<std::string>> ourGrm;
 std::map<int, std::string> languageMap;
 char escapeChar = ESCAPECHAR20;
 int languageVersion = 20;
-bool aggressiveRefineBool = false;
+bool aggresiveBoolRefinement = true;
 std::string verifyingSolver = "";
 std::string trauVersion = "1.2";
 
@@ -294,8 +294,8 @@ void parseUserInput(int argc, char* argv[]){
 		else if (tmp.compare("-model") == 0){
 			getModel = true;
 		}
-		else if (tmp.compare("-agressiveRefineBool") == 0){
-			aggressiveRefineBool = true;
+		else if (tmp.compare("-noAgressiveRefinement") == 0){
+			aggresiveBoolRefinement = false;
 		}
 		else if (tmp.compare("-noCleanLog") == 0){
 			cleanLog = false;

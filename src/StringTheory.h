@@ -54,7 +54,7 @@ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
 extern std::map<int, std::string> languageMap;
 extern char escapeChar;
 extern std::string verifyingSolver;
-extern bool aggressiveRefineBool;
+extern bool aggresiveBoolRefinement;
 
 static std::map<std::string, std::set<char>> charSet;
 
@@ -452,24 +452,24 @@ typedef struct _AutomatonStringData
  /*
   * a contains "xyz" == false && b = x . "123xyz" . y && a == b --> false
   */
- void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addImpliableContains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *  a contains b && b contains c --> a contains c
   */
- void add_transitive_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addTransitiveContains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *	x = replace a b c
   *	--> contain x y = contain a y if ...
   */
- void add_replace_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addReplaceConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * a = b && endwith a "abc" && endwith b "abce"  --> false
   * "abc" \in postfix(a) -> endwith a "c" = true *
   */
- void add_endsWith_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addEndsWithConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *  a contains c && a = b --> b contains c
