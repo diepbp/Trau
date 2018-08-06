@@ -3,16 +3,20 @@ RELEASE NOTES
 Git version
 ==================
 - Language support: SMTLIB 2.0. SMT2.5, SMT2.6 are under development. 
-- SMT2.6 uses only one escape character which is ".
+- [SMT2.6]() uses only one escape character which is ".
 - Performance improvement
 - Bug fixed: fix some minor bugs
+- String operations supported: Concat, Contains, CharAt, IndexOf, LastIndexof, Length, Replace, ReplaceAll, Substr, StartsWith, EndsWith, RegexConcat, RegexCharRange, RegexIn, RegexPlus, RegexStar, RegexUnion, Str2Reg.
+Syntaxs and semantics of those operations can be seen in [CVC4 Strings page](cvc4.cs.stanford.edu/wiki/Strings).
 
 Version 1.1
 ==================
 - Language support: SMTLIB 2.0. SMT2.5 is under development. 
-- Support more escape characters in SMT2.0 and SMT2.5 such as \a \b \e \f \n \r \t \v
+- Support more escape characters in SMT2.0 and [SMT2.5](cvc4.cs.stanford.edu/wiki/Strings) such as \a \b \e \f \n \r \t \v
 - Performance improvement
 - Bug fixed: fix some minor bugs
+- String operations supported: Concat, Contains, CharAt, IndexOf, LastIndexof, Length, Replace, ReplaceAll, Substr, StartsWith, EndsWith, RegexConcat, RegexCharRange, RegexIn, RegexPlus, RegexStar, RegexUnion, Str2Reg.
+Syntaxs and semantics of those operations can be seen in [CVC4 Strings page](cvc4.cs.stanford.edu/wiki/Strings). 
 
 Version 1.0
 ==================

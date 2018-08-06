@@ -2078,18 +2078,11 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 	}
 
 	if (!checkContainConsistency(t, nn1, nn2)){
-		Z3_ast toAssert = negatedConstraint(t);
-
-		__debugPrint(logFile, "@%d >> Negate of:", __LINE__);
-		printZ3Node(t, toAssert);
-		if (toAssert == NULL)
-			addAxiom(t, negateEquality(t, nn1, nn2), __LINE__, true);
 		return;
 	}
 
 //	add_prefix_relation(t, nn1, nn2);
 //	add_posfix_relation(t, nn1, nn2);
-
 //	implyEqualityForConcatMember(t, nn1, nn2);
 
 	addEndsWithConsistency(t, nn1, nn2);
@@ -2715,8 +2708,15 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 				if (isDetAutomatonFunc(t, eq02[i]) && isDetAutomatonFunc(t, itor)){
 					std::string tmp00 = getConstString(t, eq02[i]);
 					std::string tmp01 = getConstString(t, itor);
-					if (tmp00.find(tmp01) == std::string::npos)
+					if (tmp00.find(tmp01) == std::string::npos) {
+						Z3_ast eq1 = Z3_mk_eq(ctx, nn1, nn2);
+						Z3_ast eq2 = Z3_mk_eq(ctx, itor, it);
+						Z3_ast eq3 = Z3_mk_eq(ctx, eq02[i], nn2);
+						std::vector<Z3_ast> tmp = {eq1, eq2, eq3};
+						addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, tmp)), __LINE__, true);
+						__debugPrint(logFile, "%d conflict in %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp00.c_str(), tmp01.c_str())
 						return false;
+					}
 				}
 			}
 		}
@@ -2739,8 +2739,15 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 				if (isDetAutomatonFunc(t, eq01[i]) && isDetAutomatonFunc(t, itor)){
 					std::string tmp00 = getConstString(t, eq01[i]);
 					std::string tmp01 = getConstString(t, itor);
-					if (tmp00.find(tmp01) == std::string::npos)
+					if (tmp00.find(tmp01) == std::string::npos) {
+						__debugPrint(logFile, "%d conflict in %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp00.c_str(), tmp01.c_str())
+						Z3_ast eq1 = Z3_mk_eq(ctx, nn1, nn2);
+						Z3_ast eq2 = Z3_mk_eq(ctx, itor, it);
+						Z3_ast eq3 = Z3_mk_eq(ctx, eq01[i], nn1);
+						std::vector<Z3_ast> tmp = {eq1, eq2, eq3};
+						addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, tmp)), __LINE__, true);
 						return false;
+					}
 				}
 			}
 		}
@@ -7448,7 +7455,7 @@ Z3_ast negatedConstraint(Z3_theory t) {
 	if (str.size() == 0) {
 		if (lang.size() <= 0) {
 			__debugPrint(logFile, "@%d at %s Something go wrong.\n ", __LINE__, __FUNCTION__);
-			return Z3_FALSE;
+			return NULL;
 		}
 		assert(lang.size() > 0);
 		return Z3_mk_not(ctx, mk_and_fromVector(t, lang));
