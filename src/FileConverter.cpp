@@ -348,7 +348,7 @@ void updateEquality(
 	while (found != -1) {
 		assert(tokens[found - 1].second == antlrcpptest::SMTLIB26Lexer::OpenPar);
 		StringOP op(findStringOP(tokens, found));
-		__debugPrint(logFile, "%d stringOP: %s\n", __LINE__, op.toString().c_str());
+//		__debugPrint(logFile, "%d stringOP: %s\n", __LINE__, op.toString().c_str());
 		bool foundOp = false;
 		for (const auto& _op : rewriterStrMap) {
 //			__debugPrint(logFile, "%d op: %s\n", __LINE__, _op.first.toString().c_str());
@@ -370,7 +370,7 @@ void updateEquality(
  *
  */
 bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, opx.toString().c_str());
 	if (opx.name.compare(">") == 0 ||
 			opx.name.compare("<") == 0 ||
 			opx.name.compare(">=") == 0 ||
@@ -412,7 +412,7 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 		if (otherVars.find(opx.args[1].name) != otherVars.end())
 			return true;
 	}
-	__debugPrint(logFile, ">> %d not ArithmeticOP\n", __LINE__);
+//	__debugPrint(logFile, ">> %d not ArithmeticOP\n", __LINE__);
 	return false;
 }
 
@@ -596,13 +596,13 @@ void updateContain(
 //		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		StringOP op(findStringOP(tokens, found));
-		__debugPrint(logFile, "%d %s: op = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+//		__debugPrint(logFile, "%d %s: op = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		if (rewriterStrMap[op].compare(TRUESTR) == 0)
 			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
 		else
 			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
-		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		found = findTokens(tokens, 0, languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
@@ -638,7 +638,7 @@ void updateIndexOf2(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
-		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -708,14 +708,14 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	int found = findTokens(tokens, 0, languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
 		formatOPByRewriter(op, rewriterStrMap);
-		__debugPrint(logFile, "%d op: %s\n", __LINE__, op.toString().c_str());
+//		__debugPrint(logFile, "%d op: %s\n", __LINE__, op.toString().c_str());
 
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -1612,7 +1612,7 @@ void toLengthLine(
 	updateLength(tokens); /* Length --> "" */
 	updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1) + "\n");
 }
 

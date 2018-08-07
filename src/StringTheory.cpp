@@ -1209,7 +1209,6 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 	else if (isVariable(t, node))
 		return Z3_ast_to_string(ctx, node);
 	else {
-//		__debugPrint(logFile, "%d node: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
 		Z3_ast funcType = Z3_func_decl_to_ast(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, node)));
 		std::string typeStr = Z3_ast_to_string(ctx, funcType);
 		int args = Z3_get_app_num_args(ctx, Z3_to_app(ctx, node));
@@ -1263,6 +1262,10 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 			ret = "(or" + ret + ")";
 			return ret;
 		}
+		else if (typeStr.find("declare-fun not") != std::string::npos){
+					ret = "(not" + ret + ")";
+					return ret;
+				}
 		else if (typeStr.find("declare-fun " + languageMap[CONCAT]) != std::string::npos) {
 			ret = "(" + languageMap[CONCAT] + ret + ")";
 			return ret;
@@ -2028,7 +2031,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 	if (isVariable(t, nn1)) {
 		if (isConcatFunc(t, nn2)){
 			std::vector<Z3_ast> list;
-			collect_node_in_concat(t, nn2, list);
+			collectNodesInConcat(t, nn2, list);
 			for (const auto& node : list){
 				std::vector<Z3_ast> eq_node = collect_eqc(t, node);
 				for (const auto& _node : eq_node)
@@ -2041,7 +2044,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 	if (isVariable(t, nn2)) {
 		if (isConcatFunc(t, nn1)){
 			std::vector<Z3_ast> list;
-			collect_node_in_concat(t, nn1, list);
+			collectNodesInConcat(t, nn1, list);
 			displayListNode(t, list, "xxxxxx");
 			for (const auto& node : list){
 				std::vector<Z3_ast> eq_node = collect_eqc(t, node);
@@ -2081,8 +2084,8 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		return;
 	}
 
-//	add_prefix_relation(t, nn1, nn2);
-//	add_posfix_relation(t, nn1, nn2);
+//	addPrefixRelation(t, nn1, nn2);
+//	addPosfixRelation(t, nn1, nn2);
 //	implyEqualityForConcatMember(t, nn1, nn2);
 
 	addEndsWithConsistency(t, nn1, nn2);
@@ -2810,20 +2813,6 @@ void addReplaceConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	}
 
 }
-/*
- *
- */
-void add_startsWith_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
-	// TODO add_startsWith_consistency
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "%d *** %s ***: (", __LINE__, __FUNCTION__);
-	printZ3Node(t, nn1);
-	__debugPrint(logFile, ", ");
-	printZ3Node(t, nn2);
-	__debugPrint(logFile, ")\n");
-#endif
-
-}
 
 /*
  * a = b && endwith a "abc" && endwith b "abce"  --> false
@@ -2908,44 +2897,16 @@ void addEndsWithConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	}
 }
 
-/**
- * find all nodes that accept "node" as the prefix
- */
-std::set<Z3_ast> find_all_nodes_from_prefix(Z3_theory t, Z3_ast node){
-	std::vector<Z3_ast> queue;
-	queue.emplace_back(node);
-	unsigned int pos = 0;
-	while (pos < queue.size()) {
-		Z3_ast nodeTmp = queue[pos];
-		pos++;
-
-		for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = concat_astNode_map.begin(); it != concat_astNode_map.end(); ++it){
-			if (it->first.first == nodeTmp && std::find(queue.begin(), queue.end(), it->second) == queue.end()) {
-				std::vector<Z3_ast> eq_nodeSecond = collect_eqc(t, it->second);
-				for (const auto& n : eq_nodeSecond)
-					if (std::find(queue.begin(), queue.end(), n) == queue.end())
-						queue.emplace_back(n);
-			}
-		}
-	}
-	std::set<Z3_ast> result;
-	for (unsigned int i = 1; i < queue.size(); ++i) /* skip itself */
-		if (isVariable(t, queue[i]))
-			result.insert(queue[i]);
-
-	return result;
-}
-
 /*
  * find prefix of a node
  */
-std::set<Z3_ast> find_all_prefix_of_node(Z3_theory t, Z3_ast node){
+std::set<Z3_ast> findAllNodesFromPrefix(Z3_theory t, Z3_ast node){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	std::vector<Z3_ast> queue;
 	queue.emplace_back(node);
-	unsigned int pos = 0;
+	unsigned pos = 0;
 	while (pos < queue.size()) {
 		Z3_ast nodeTmp = queue[pos];
 		pos++;
@@ -2964,7 +2925,7 @@ std::set<Z3_ast> find_all_prefix_of_node(Z3_theory t, Z3_ast node){
 //	__debugPrint(logFile, "%d *** %s ***: before refine\n", __LINE__, __FUNCTION__);
 //	displayListNode(t, queue, "");
 	std::set<Z3_ast> result;
-	for (unsigned int i = 1; i < queue.size(); ++i) /* skip itself */
+	for (unsigned i = 1; i < queue.size(); ++i) /* skip itself */
 		if (isVariable(t, queue[i])) {
 			result.insert(queue[i]);
 		}
@@ -2974,13 +2935,13 @@ std::set<Z3_ast> find_all_prefix_of_node(Z3_theory t, Z3_ast node){
 /*
  * find posfix of a node
  */
-std::set<Z3_ast> find_all_posfix_of_node(Z3_theory t, Z3_ast node){
+std::set<Z3_ast> findPosfixOfNode(Z3_theory t, Z3_ast node){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	std::vector<Z3_ast> queue;
 	queue.emplace_back(node);
-	unsigned int pos = 0;
+	unsigned pos = 0;
 	while (pos < queue.size()) {
 		Z3_ast nodeTmp = queue[pos];
 		pos++;
@@ -3009,11 +2970,11 @@ std::set<Z3_ast> find_all_posfix_of_node(Z3_theory t, Z3_ast node){
  * prefix_01 not contain "s"
  * --> prefix_02 not contain "s"
  */
-void add_posfix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
+void addPosfixRelation(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	std::set<Z3_ast> all_posfix_nn1 = find_all_posfix_of_node(t, nn1);
-	std::set<Z3_ast> all_posfix_nn2 = find_all_posfix_of_node(t, nn2);
+	std::set<Z3_ast> all_posfix_nn1 = findPosfixOfNode(t, nn1);
+	std::set<Z3_ast> all_posfix_nn2 = findPosfixOfNode(t, nn2);
 
 	printZ3Node(t, nn1);
 	displayListNode(t, all_posfix_nn1, ">> all_posfix_nn1 ");
@@ -3129,11 +3090,11 @@ void add_posfix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
  * posfix_01 not contain "s"
  * --> posfix_02 not contain "s"
  */
-void add_prefix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
+void addPrefixRelation(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	Z3_context ctx = Z3_theory_get_context(t);
 
-	std::set<Z3_ast> all_prefix_nn1 = find_all_prefix_of_node(t, nn1);
-	std::set<Z3_ast> all_prefix_nn2 = find_all_prefix_of_node(t, nn2);
+	std::set<Z3_ast> all_prefix_nn1 = findAllNodesFromPrefix(t, nn1);
+	std::set<Z3_ast> all_prefix_nn2 = findAllNodesFromPrefix(t, nn2);
 
 	printZ3Node(t, nn1);
 	displayListNode(t, all_prefix_nn1, ">> all_prefix_nn1 ");
@@ -3247,7 +3208,7 @@ bool propagate(Z3_theory t, Z3_ast node){
 		if (!isLengthFunc(t, n)){
 			std::vector<Z3_ast> listNodes;
 			if (isConcatFunc(t, node)) {
-				collect_node_in_concat(t, node, listNodes);
+				collectNodesInConcat(t, node, listNodes);
 
 				for (const auto& _node : listNodes) {
 					std::vector<Z3_ast> eq_node = collect_eqc(t, _node);
@@ -3257,7 +3218,7 @@ bool propagate(Z3_theory t, Z3_ast node){
 				}
 			}
 			bool add = true;
-			for (unsigned int i = 0 ; i < parents_filtered.size(); ++i) {
+			for (unsigned i = 0 ; i < parents_filtered.size(); ++i) {
 				std::vector<Z3_ast> eq_parent = getEqualValues(parents_filtered[i]);
 				if (std::find(eq_parent.begin(), eq_parent.end(), n) != eq_parent.end()) {
 					add = false;
@@ -3321,9 +3282,7 @@ bool propagate(Z3_theory t, Z3_ast node){
  *
  */
 void updateEqualMap(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
-#ifdef DEBUGLOG
 	__debugPrint(logFile, "\n>> @%d *** %s ***\n", __LINE__, __FUNCTION__);
-#endif
 
 	std::vector<Z3_ast> leftEq = getEqualValues(nn1);
 	std::vector<Z3_ast> rightEq = getEqualValues(nn2);
@@ -3342,14 +3301,12 @@ void updateEqualMap(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 	}
 
 	// combine
-	for (unsigned int j = 0; j < leftEq.size(); ++j) {
+	for (unsigned j = 0; j < leftEq.size(); ++j) {
 		if (std::find(rightEq.begin(), rightEq.end(), leftEq[j]) == rightEq.end())
 			rightEq.emplace_back(leftEq[j]);
 	}
 
-//	displayListNode(t, rightEq);
-
-	for (unsigned int i = 0; i < rightEq.size(); ++i) {
+	for (unsigned i = 0; i < rightEq.size(); ++i) {
 		equalMap[std::make_pair(rightEq[i], sLevel)] = rightEq;
 	}
 }
@@ -3364,11 +3321,7 @@ bool checkSingleAutomaton(Automaton ton){
 
 
 Automaton updateNode(Z3_theory t, Z3_ast node, bool &success) {
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "\n\n>>%d *** %s *** @%d ", __LINE__, __FUNCTION__, sLevel);
-	printZ3Node(t, node);
-	__debugPrint(logFile, "\n");
-#endif
+	__debugPrint(logFile, "\n\n>>%d *** %s ***[@%d] %s\n", __LINE__, __FUNCTION__, sLevel, node_to_string(t, node).c_str());
 	success = false;
 	Automaton oldVal = getPreCalculatedValue(t, node);
 	if (oldVal.isUnknown())
@@ -3484,10 +3437,6 @@ Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence) {
 	if (ret.isUnknown()) {
 		if (isVariable(t, node)) {
 			Automaton ton = evalVariable(t, node, false);
-
-#ifdef DEBUGLOG
-//			__debugPrint(logFile, "\n>> @%d Value of variable: @%d: %s \n", __LINE__, sLevel, ton.name.c_str());
-#endif
 			if (ton.isUnknown())
 				return ton;
 
@@ -3525,18 +3474,12 @@ Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence) {
 				return ton;
 			}
 			else {
-#ifdef DEBUGLOG
-//				__debugPrint(logFile, "\n\n>> @%d at __%s: Eval UNKNOWN \n", __LINE__, __FILE__);
-#endif
 				Automaton ton(UNKNOWN_AUTOMATON);
 				return ton;
 			}
 		}
 	}
 	else {
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, "\n\n>> @%d at __%s:known node value %s\n", __LINE__, __FILE__, ret.toString().c_str());
-#endif
 		//		ret.name = UNKNOWN_AUTOMATON;
 		return ret;
 	}
@@ -3605,14 +3548,6 @@ Automaton evalAutomataDef(Z3_theory t, Z3_ast arg) {
  *
  */
 Automaton evalConcat(Z3_theory t, Z3_ast arg00, Z3_ast arg01, bool isIndependence) {
-
-#ifdef DEBUGLOG
-//	__debugPrint(logFile, "\n>> @%d Eval Concat: ", __LINE__);
-//	printZ3Node(t, arg00);
-//	__debugPrint(logFile, " *concat* ");
-//	printZ3Node(t, arg01);
-//	__debugPrint(logFile, "\n");
-#endif
 	std::string known = "known";
 	Automaton ret(known);
 
@@ -3628,11 +3563,6 @@ Automaton evalConcat(Z3_theory t, Z3_ast arg00, Z3_ast arg01, bool isIndependenc
 		return ton01;
 	if (ton01.isError())
 		return ret;
-
-#ifdef DEBUGLOG
-//	__debugPrint(logFile, "\n>> @%d at __%s: Finish Concat\n", __LINE__, __FILE__);
-#endif
-
 	return ton00.Concat(known, ton01);
 }
 
@@ -3681,7 +3611,7 @@ bool checkCylicity(Z3_theory t, Z3_ast node){
 		for (const auto& n : eq_n)
 			if (isConcatFunc(t, n)) {
 				std::vector<Z3_ast> list;
-				collect_node_in_concat(t, n, list);
+				collectNodesInConcat(t, n, list);
 				for (const auto& __n: list) {
 					__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, __n));
 					if (repeated[__n] == 1)
@@ -3754,7 +3684,7 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 //			for (unsigned j = i + 1; j < elements_filtered.size(); ++j)
 //				if (isConcatFunc(t, elements_filtered[j])) {
 //					std::vector<Z3_ast> list;
-//					collect_node_in_concat(t, elements_filtered[j], list);
+//					collectNodesInConcat(t, elements_filtered[j], list);
 //					for (const auto& _n : eq_n)
 //						for (const auto& __n: list)
 //							if (_n == __n)
@@ -3774,20 +3704,11 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 	}
 
 	if (elements.size() == 0) {
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, "\n>> @%d at __%s: UNKNOWN (%ld elements)\n", __LINE__, __FILE__, elements_filtered.size());
-#endif
 		return ret;
 	}
 	else {
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, "\n\n>> @%d at __%s:Update interstion list = %d --> ", __LINE__, __FILE__, (int)elements.size());
-#endif
 		elements = removeEqualAutomata(elements);
 		elements = removeGenericAutomata(elements);
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, " %d\n", (int)elements.size());
-#endif
 		std::string known = "known";
 
 		// sorting elements
@@ -3795,22 +3716,12 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 
 		// intersect with concats
 		Automaton tonton = elements[0];
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, 0, elements[0].toString(false).c_str());
-#endif
-
-		for (unsigned int i = 1; i < elements.size(); ++i) {
-#ifdef DEBUGLOG
-//			__debugPrint(logFile, "\n\n>> @%d  Element %d: \n %s", __LINE__, i, elements[i].toString(false).c_str());
-#endif
+		for (unsigned i = 1; i < elements.size(); ++i) {
 			tonton = tonton.Intersect(known, elements[i]);
 			if (tonton.isError())
 				return tonton;
 		}
 		tonton.name = known;
-#ifdef DEBUGLOG
-//		__debugPrint(logFile, "\n\n>> @%d at __%s: Result intersection: %s ", __LINE__, __FILE__, tonton.toString(false).c_str());
-#endif
 		return tonton;
 
 	}
@@ -3823,9 +3734,9 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 std::vector<Automaton> removeEqualAutomata(std::vector<Automaton> list) {
 	std::vector<Automaton> ret;
 	// remove all equal ones
-	for (unsigned int i = 0; i < list.size(); ++i) {
+	for (unsigned i = 0; i < list.size(); ++i) {
 		bool add = true;
-		for (unsigned int j = i + 1; j < list.size(); ++j) {
+		for (unsigned j = i + 1; j < list.size(); ++j) {
 			if (list[i].isEqual(list[j])) {
 				add = false;
 				break;
@@ -3842,7 +3753,7 @@ std::vector<Automaton> removeEqualAutomata(std::vector<Automaton> list) {
  */
 std::vector<Automaton> removeGenericAutomata(std::vector<Automaton> list) {
 	std::vector<Automaton> ret;
-	for (unsigned int i = 0; i < list.size(); ++i) {
+	for (unsigned i = 0; i < list.size(); ++i) {
 		if (list[i].isGeneric == false)
 			ret.emplace_back(list[i]);
 	}
@@ -3885,7 +3796,7 @@ bool crossCheck_Update(Z3_theory t, std::vector<Z3_ast> v1, std::vector<Z3_ast> 
 	else
 		genericString =  createGenericLanguage(t, nn2);
 
-	std::string tmpStr = std::string(Z3_ast_to_string(ctx, nn1)) + std::string(Z3_ast_to_string(ctx, nn2));
+	std::string tmpStr = node_to_string(t, nn1) + node_to_string(t, nn2);
 	if (tmpStr.find(genericString) != std::string::npos)
 		genericNode = true;
 
@@ -3929,11 +3840,7 @@ bool crossCheck_Update(Z3_theory t, std::vector<Z3_ast> v1, std::vector<Z3_ast> 
  *
  */
 bool crossCheck(Z3_theory t, std::vector<Z3_ast> v1, Z3_ast node) {
-#ifdef DEBUGLOG
-	__debugPrint(logFile, "@%d at %s Cross Check: ", __LINE__, __FILE__);
-	printZ3Node(t, node);
-	__debugPrint(logFile, "\n");
-#endif
+	__debugPrint(logFile, "@%d at %s Cross Check: %s\n", __LINE__, __FILE__, node_to_string(t, node).c_str());
 
 	std::vector<Z3_ast> checkedNode;
 
@@ -4154,7 +4061,7 @@ Z3_ast extendEqualVar_Automata(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 Z3_ast extendEqualVars_Automata(Z3_theory t, std::vector<std::pair<Z3_ast, int>> langVal) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "** extendEqualVars_Automata(): @%d %d\n", sLevel, (int)langVal.size());
-	for (unsigned int i = 0; i < langVal.size(); ++i) {
+	for (unsigned i = 0; i < langVal.size(); ++i) {
 		printZ3Node(t, langVal[i].first);
 		__debugPrint(logFile, " = %d ", langVal[i].second);
 		printZ3Node(t, language_Map[langVal[i].first][langVal[i].second - 1]);
@@ -4164,7 +4071,7 @@ Z3_ast extendEqualVars_Automata(Z3_theory t, std::vector<std::pair<Z3_ast, int>>
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::vector<Z3_ast> ret;
 
-	for (unsigned int i = 0; i < langVal.size(); ++i) {
+	for (unsigned i = 0; i < langVal.size(); ++i) {
 		Z3_ast tmp = extendEqualVar_Automata(t, langVal[i].first, language_Map[langVal[i].first][langVal[i].second - 1]);
 		if (tmp == NULL)
 			return NULL;
@@ -4189,7 +4096,7 @@ std::string customizeString(std::string s) {
 		if (pos != std::string::npos)
 			s = s.substr(pos + 2);
 
-	for (unsigned int i = 0; i < s.size(); ++i)
+	for (unsigned i = 0; i < s.size(); ++i)
 		if (s[i] == '~')
 			s[i] = '|';
 	return s;
@@ -4238,7 +4145,7 @@ bool isEqualVector(std::vector<Z3_ast> a, std::vector<Z3_ast> b) {
 
 	if (a.size() != b.size())
 		return false;
-	for (unsigned int i = 0; i < a.size(); ++i) {
+	for (unsigned i = 0; i < a.size(); ++i) {
 		if (a[i] == b[i]) {
 
 		}
@@ -4252,7 +4159,7 @@ bool isEqualVector(std::vector<Z3_ast> a, std::vector<Z3_ast> b) {
  * Collect const in a list
  */
 Z3_ast findConstInList(Z3_theory t, std::vector<Z3_ast> list){
-	for (unsigned int i = 0 ; i < list.size(); ++i)
+	for (unsigned i = 0 ; i < list.size(); ++i)
 		if (isDetAutomatonFunc(t, list[i]))
 			return list[i];
 	return NULL;
@@ -4342,7 +4249,7 @@ void extendVariableToFindAllPossibleEqualities(
 						fullEqPossibilities[node].push_back({_node});
 					else if (isConcatFunc(t, _node)) {
 						std::vector<Z3_ast> nodes;
-						collect_node_in_concat(t, _node, nodes);
+						collectNodesInConcat(t, _node, nodes);
 						fullEqPossibilities[node].push_back(nodes);
 					}
 				}
@@ -4357,7 +4264,7 @@ void extendVariableToFindAllPossibleEqualities(
 
 			/* check y = x y z*/
 			std::vector<Z3_ast> list;
-			collect_node_in_concat(t, _node, list);
+			collectNodesInConcat(t, _node, list);
 			for (const auto& __node : list){
 				std::vector<Z3_ast> eq_node = collect_eqc(t, __node);
 				for (const auto& _n : eq_node) {
@@ -4606,7 +4513,7 @@ void extendVariableToFindAllPossibleEqualities(
 				refined_result.push_back({node});
 			else {
 				std::vector<Z3_ast> tmpVector;
-				collect_node_in_concat(t, node, tmpVector);
+				collectNodesInConcat(t, node, tmpVector);
 				refined_result.push_back(tmpVector);
 			}
 			__debugPrint(logFile, "\t %d add itself: %s\n", __LINE__, Z3_ast_to_string(ctx, node));
@@ -4627,10 +4534,10 @@ void extendVariableToFindAllPossibleEqualities(
 /*
  * rewrite a vector of ast node to a vector of string
  */
-std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_ast> eqPossibility){
+std::vector<std::string> vectorAst2vectorString(Z3_theory t, std::vector<Z3_ast> eqPossibility){
 	std::vector<std::string> tmp;
 	Z3_context ctx = Z3_theory_get_context(t);
-	for (unsigned int j = 0; j < eqPossibility.size(); ++j) {
+	for (unsigned j = 0; j < eqPossibility.size(); ++j) {
 		if (isAutomatonFunc(t, eqPossibility[j])) {
 			std::string regex = getConstString(t, eqPossibility[j]);
 			if (isNonDetAutomatonFunc(t, eqPossibility[j])) {
@@ -4648,7 +4555,7 @@ std::vector<std::string> vectorAst_to_vectorString(Z3_theory t, std::vector<Z3_a
 	return tmp;
 }
 
-void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list){
+void collectNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list){
 	Z3_context ctx = Z3_theory_get_context(t);
 	assert(isConcatFunc(t, node));
 
@@ -4659,14 +4566,14 @@ void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list)
 		list.emplace_back(arg0);
 	else {
 		if (isConcatFunc(t, arg0))
-			collect_node_in_concat(t, arg0, list);
+			collectNodesInConcat(t, arg0, list);
 	}
 
 	if (isStrVariable(t, arg1) || isAutomatonFunc(t, arg1))
 		list.emplace_back(arg1);
 	else {
 		if (isConcatFunc(t, arg1))
-			collect_node_in_concat(t, arg1, list);
+			collectNodesInConcat(t, arg1, list);
 	}
 }
 
@@ -4681,7 +4588,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 	for (const auto& concatNode : concat_astNode_map) {
 
 		 std::vector<Z3_ast> list;
-		 collect_node_in_concat(t, concatNode.second, list);
+		 collectNodesInConcat(t, concatNode.second, list);
 		 for (unsigned i = 0; i < list.size(); ++i){
 			 std::vector<Z3_ast> eq_node = collect_eqc(t, list[i]);
 			 for (unsigned j = i + 1; j < list.size(); ++j)
@@ -4711,7 +4618,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 //		else if (isConcatFunc(t, node.first.first)){
 //			std::vector<Z3_ast> tmp;
 //			ret.emplace(node.first.first);
-//			collect_node_in_concat(t, node.first.first, tmp);
+//			collectNodesInConcat(t, node.first.first, tmp);
 //			for (const auto& n : tmp)
 //				if (isVariable(t, n))
 //					ret.emplace(n);
@@ -4721,7 +4628,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 //		else if (isConcatFunc(t, node.first.second)){
 //			std::vector<Z3_ast> tmp;
 //			ret.emplace(node.first.second);
-//			collect_node_in_concat(t, node.first.second, tmp);
+//			collectNodesInConcat(t, node.first.second, tmp);
 //			for (const auto& n : tmp)
 //				if (isVariable(t, n))
 //					ret.emplace(n);
@@ -4734,7 +4641,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.first)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.first.first);
-			collect_node_in_concat(t, node.first.first, tmp);
+			collectNodesInConcat(t, node.first.first, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4747,7 +4654,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.second)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.second);
-			collect_node_in_concat(t, node.second, tmp);
+			collectNodesInConcat(t, node.second, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4759,7 +4666,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.second)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.second);
-			collect_node_in_concat(t, node.second, tmp);
+			collectNodesInConcat(t, node.second, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4771,7 +4678,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.second)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.second);
-			collect_node_in_concat(t, node.second, tmp);
+			collectNodesInConcat(t, node.second, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4783,7 +4690,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.first)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.first.first);
-			collect_node_in_concat(t, node.first.first, tmp);
+			collectNodesInConcat(t, node.first.first, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4796,7 +4703,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.first.first)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.first.first.first);
-			collect_node_in_concat(t, node.first.first.first, tmp);
+			collectNodesInConcat(t, node.first.first.first, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4808,7 +4715,7 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.first)){
 			std::vector<Z3_ast> tmp;
 			ret.emplace(node.first.first);
-			collect_node_in_concat(t, node.first.first, tmp);
+			collectNodesInConcat(t, node.first.first, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret.emplace(n);
@@ -4838,7 +4745,7 @@ std::map<Z3_ast, std::vector<Z3_ast>> collectDisEQVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.first)){
 			std::vector<Z3_ast> tmp;
 			ret[node.first.first].emplace_back(constNode);
-			collect_node_in_concat(t, node.first.first, tmp);
+			collectNodesInConcat(t, node.first.first, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret[n].emplace_back(constNode);
@@ -4848,7 +4755,7 @@ std::map<Z3_ast, std::vector<Z3_ast>> collectDisEQVars(Z3_theory t){
 		else if (isConcatFunc(t, node.first.second)){
 			std::vector<Z3_ast> tmp;
 			ret[node.first.second].emplace_back(constNode);
-			collect_node_in_concat(t, node.first.second, tmp);
+			collectNodesInConcat(t, node.first.second, tmp);
 			for (const auto& n : tmp)
 				if (isVariable(t, n))
 					ret[n].emplace_back(constNode);
@@ -4910,7 +4817,7 @@ std::set<char> getNotContainLetters(
 /*
  *
  */
-std::map<char, int> eval_parikh_fixedbound(
+std::map<char, int> evalParikhFixedbound(
 		Z3_theory t,
 		std::vector<Z3_ast> list,
 		std::map<Z3_ast, bool> boolValues){
@@ -4942,7 +4849,7 @@ std::map<char, int> eval_parikh_fixedbound(
 /*
  * the string has at least some chars
  */
-std::map<char, int> eval_parikh_lowerbound(
+std::map<char, int> evalParikhLowerbound(
 		Z3_theory t,
 		std::vector<Z3_ast> list,
 		std::map<Z3_ast, bool> boolValues){
@@ -5312,7 +5219,7 @@ void compute_parikh(
 /*
  *
  */
-bool parikh_check_substr_basic(
+bool parikhCheckSubstrBasic(
 		Z3_theory t,
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list){
@@ -5384,7 +5291,7 @@ bool parikh_check_substr_basic(
 /*
  *
  */
-bool parikh_check_contain(
+bool parikhCheckContain(
 		Z3_theory t,
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list,
@@ -5467,7 +5374,7 @@ bool parikh_check_contain(
 /*
  *
  */
-bool parikh_check_regex(
+bool parikhCheckRegex(
 		Z3_theory t,
 		Z3_ast node,
 		std::vector<std::vector<Z3_ast>> list,
@@ -5477,9 +5384,6 @@ bool parikh_check_regex(
 	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
 	printZ3Node(t, node);
 	__debugPrint(logFile, "\n");
-
-//	for (const auto& v : list)
-//		displayListNode(t, v, "Quick check list: ");
 
 	std::map<std::string, int> data = parikhMap[node];
 	for (const auto& ch : data)
@@ -5524,7 +5428,7 @@ bool parikh_check_regex(
 /*
  * x = a . b . c = d . e . f --> possible or not
  */
-bool parikh_check_replaceall(
+bool parikhCheckReplaceall(
 		Z3_theory t,
 		std::vector<std::vector<Z3_ast>> list,
 		std::map<Z3_ast, bool> boolValues){
@@ -5532,9 +5436,6 @@ bool parikh_check_replaceall(
 
 	if (list.size() <= 1)
 		return true;
-
-//	for (const auto& l : list)
-//		displayListNode(t, l, "Quick check list: ");
 
 	for (unsigned i = 1; i < list.size(); ++i) {
 		/* cut common prefix and suffix */
@@ -5579,10 +5480,10 @@ bool parikh_check_replaceall(
 				l11.emplace_back(v);
 
 		/* compare */
-		std::map<char, int> fixed00 = eval_parikh_fixedbound(t, l10, boolValues);
-		std::map<char, int> lower00 = eval_parikh_lowerbound(t, l10, boolValues);
-		std::map<char, int> fixed01 = eval_parikh_fixedbound(t, l11, boolValues);
-		std::map<char, int> lower01 = eval_parikh_lowerbound(t, l11, boolValues);
+		std::map<char, int> fixed00 = evalParikhFixedbound(t, l10, boolValues);
+		std::map<char, int> lower00 = evalParikhLowerbound(t, l10, boolValues);
+		std::map<char, int> fixed01 = evalParikhFixedbound(t, l11, boolValues);
+		std::map<char, int> lower01 = evalParikhLowerbound(t, l11, boolValues);
 
 		__debugPrint(logFile, "%d fixed00 bound size %ld\n", __LINE__, fixed00.size());
 		for (const auto& p : fixed00)
@@ -5833,9 +5734,9 @@ void collectCombinationOverVariables(Z3_theory t,
 	/* collect all equal possibilities of root variables */
 	for (const auto& eqVar : allEqPossibilities) {
 		std::string varName = std::string(Z3_ast_to_string(ctx, eqVar.first));
-		__debugPrint(logFile, "%d before parikh_check_replaceall: var = %s\n", __LINE__, varName.c_str());
-		bool fine_replace = parikh_check_replaceall(t, eqVar.second, boolMapValues);
-		bool substr_basic = parikh_check_substr_basic(t, eqVar.first, eqVar.second);
+		__debugPrint(logFile, "%d before parikhCheckReplaceall: var = %s\n", __LINE__, varName.c_str());
+		bool fine_replace = parikhCheckReplaceall(t, eqVar.second, boolMapValues);
+		bool substr_basic = parikhCheckSubstrBasic(t, eqVar.first, eqVar.second);
 
 		if (!fine_replace || !substr_basic) {
 			__debugPrint(logFile, "%d * %s * replaceall does not work\n", __LINE__, __FUNCTION__);
@@ -5864,7 +5765,7 @@ void collectCombinationOverVariables(Z3_theory t,
 			/* add them to the result set */
 
 			for (const auto& _eq : eqVar.second)
-				combinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, _eq));
+				combinationOverVariables[varName].emplace_back(vectorAst2vectorString(t, _eq));
 
 			/* add all equal nodes of itor->first to repeated list */
 			std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);
@@ -5884,7 +5785,7 @@ void collectCombinationOverVariables(Z3_theory t,
 				for (const auto& s : v)
 					if (isAutomatonFunc(t, s)) {
 						found = true;
-						combinationOverVariables[varName] = {vectorAst_to_vectorString(t, v)};
+						combinationOverVariables[varName] = {vectorAst2vectorString(t, v)};
 						break;
 					}
 				if (found)
@@ -5896,7 +5797,7 @@ void collectCombinationOverVariables(Z3_theory t,
 					for (const auto& s : v)
 						if (connectedVariables.find(s) != connectedVariables.end()) {
 							found = true;
-							combinationOverVariables[varName] = {vectorAst_to_vectorString(t, v)};
+							combinationOverVariables[varName] = {vectorAst2vectorString(t, v)};
 							break;
 						}
 					if (found)
@@ -5904,7 +5805,7 @@ void collectCombinationOverVariables(Z3_theory t,
 				}
 			/* then add the first constraints */
 			if (!found)
-				combinationOverVariables[varName] = {vectorAst_to_vectorString(t, eqVar.second[0])};
+				combinationOverVariables[varName] = {vectorAst2vectorString(t, eqVar.second[0])};
 		}
 
 		/* update eq for its friends */
@@ -5926,7 +5827,7 @@ void collectCombinationOverVariables(Z3_theory t,
 			continue;
 
 		for (const auto& _eq : eqVar.second)
-			fullCombinationOverVariables[varName].emplace_back(vectorAst_to_vectorString(t, _eq));
+			fullCombinationOverVariables[varName].emplace_back(vectorAst2vectorString(t, _eq));
 
 		/* update eq for its friends */
 		std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);
@@ -5944,7 +5845,7 @@ void collectCombinationOverVariables(Z3_theory t,
 	compute_parikh(t, allEqPossibilities, boolMapValues, min_parikhMap, fix_parikhMap);
 	for (const auto& n : allEqPossibilities) {
 		Z3_ast conflict = NULL;
-		bool fine_contain = parikh_check_contain(t, n.first, n.second, boolMapValues, min_parikhMap, fix_parikhMap, conflict);
+		bool fine_contain = parikhCheckContain(t, n.first, n.second, boolMapValues, min_parikhMap, fix_parikhMap, conflict);
 		if (!fine_contain) {
 			assert(conflict != NULL);
 			__debugPrint(logFile, "%d * %s * contain does not work\n", __LINE__, __FUNCTION__);
@@ -5956,7 +5857,7 @@ void collectCombinationOverVariables(Z3_theory t,
 	}
 
 	for (const auto& n : allEqPossibilities) {
-		bool fine_regex = parikh_check_regex(t, n.first, n.second, boolMapValues, min_parikhMap);
+		bool fine_regex = parikhCheckRegex(t, n.first, n.second, boolMapValues, min_parikhMap);
 		if (!fine_regex) {
 			__debugPrint(logFile, "%d * %s * regex does not work\n", __LINE__, __FUNCTION__);
 			addAxiom(t, negatePositiveEquality(t, n.first, n.second, boolMapValues), __LINE__, true);
@@ -6254,14 +6155,14 @@ Z3_bool Th_final_check(Z3_theory t) {
 						std::vector<Z3_ast> nodes;
 						/* 1st arg */
 						if (isConcatFunc(t, var.first.first)){
-							collect_node_in_concat(t, var.first.first, nodes);
+							collectNodesInConcat(t, var.first.first, nodes);
 						}
 						else if (isVariable(t, var.first.first))
 							nodes.emplace_back(var.first.first);
 
 						/* 2nd arg */
 						if (isConcatFunc(t, var.first.second)){
-							collect_node_in_concat(t, var.first.first, nodes);
+							collectNodesInConcat(t, var.first.first, nodes);
 						}
 						else if (isVariable(t, var.first.second))
 							nodes.emplace_back(var.first.second);
@@ -6975,7 +6876,7 @@ bool splitValueForConcat(
 	__debugPrint(logFile, "\n");
 
 	std::vector<Z3_ast> list;
-	collect_node_in_concat(t, node, list);
+	collectNodesInConcat(t, node, list);
 	return splitValueForConcat(t, list, value, str_values, len_values);
 }
 
@@ -6994,7 +6895,7 @@ bool determindConcat(
 		if (isConcatFunc(t, node)) {
 			// 1. get args
 			std::vector<Z3_ast> listNode;
-			collect_node_in_concat(t, node, listNode);
+			collectNodesInConcat(t, node, listNode);
 
 #ifdef DEBUGLOG
 			__debugPrint(logFile, "\n------------------------------------\n");
@@ -7005,7 +6906,7 @@ bool determindConcat(
 
 			// 2. values is determined?
 			std::vector<Z3_ast> list;
-			collect_node_in_concat(t, node, list);
+			collectNodesInConcat(t, node, list);
 			std::string tmpValue = "";
 			bool found = true;
 			for (const auto& n : list) {
@@ -8485,6 +8386,7 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, node_to_string(t, ctxAssign).c_str());
 	std::vector<Z3_ast> ret;
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
