@@ -602,8 +602,9 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned i = 0; i < possibleCases.size(); ++i) {
-//		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 			std::string tmp = possibleCases[i].
@@ -611,7 +612,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 //				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
@@ -727,7 +728,7 @@ std::string create_constraints_StartsWith(
 	else if (isConst_01){
 		/* (length a >= ... && ...) */
 		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
-		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
+		for (unsigned i = 1; i < str01.length() - 1; ++i) {
 			andConstraints.emplace_back("(= (select " +
 					generateVarArray(str00) + " " +
 					std::to_string(i - 1) + ") " +
@@ -1004,7 +1005,10 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 			arrayRhs.c_str());
 	__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 #endif
-	assert(connectedVariables.find(var) != connectedVariables.end());
+	if (connectedVariables.find(var) != connectedVariables.end()){
+		__debugPrint(logFile, "%d %s: %s was removed in removeConnectedVarsIfNotInEqualities\n", __LINE__, __FUNCTION__, var.c_str());
+		return TRUESTR;
+	}
 
 	int size = std::max(findVariableSize(var) * MAXQ, connectedVariables[var]);
 	for (unsigned i = value.length() - 2; i <= (unsigned)size; ++i){
@@ -1359,7 +1363,7 @@ void handle_EndsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
+		if (s.first.name.compare(languageMap[ENDSWITH]) == 0){
 			global_smtStatements.push_back({create_constraints_EndsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -5254,6 +5258,37 @@ void removeConnectedVarIfPossible(){
 		}
 }
 
+void removeConnectedVarsIfNotInEqualities(){
+	std::map<std::string, int> newConnectedVars;
+	for (const auto& var : connectedVariables) {
+		bool found = false;
+		for (const auto& var02 : equalitiesMap){
+			if (var.first.compare(var02.first) == 0){
+				found = true;
+				break;
+			}
+
+			for (const auto& v : var02.second) {
+				if (std::find(v.begin(), v.end(), var.first) != v.end()) {
+					found = true;
+					break;
+				}
+			}
+			if (found)
+				break;
+		}
+		if (found)
+			newConnectedVars[var.first] = var.second;
+		else {
+			__debugPrint(logFile, "%d %s: remove %s from connectedVars\n", __LINE__, __FUNCTION__, var.first.c_str());
+		}
+	}
+
+	connectedVariables.clear();
+	connectedVariables = newConnectedVars;
+
+}
+
 /*
  *
  */
@@ -5279,6 +5314,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	updateFullEqualMap();
 	createAppearanceMap();
 	initConnectingSize();
+	removeConnectedVarsIfNotInEqualities();
 }
 
 /*
@@ -5554,8 +5590,10 @@ bool underapproxController(
 	}
 	endLabel: if (result == false) {
 		_connectedVars.clear();
-		for (const auto& var : connectedVariables)
+		for (const auto& var : connectedVariables) {
+			__debugPrint(logFile, "%d connectedVar: %s\n", __LINE__, var.first.c_str());
 			_connectedVars.emplace(var.first);
+		}
 	}
 
 	return result;

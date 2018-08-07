@@ -2057,24 +2057,29 @@ public:
 			if (elementNames[i].second < 0){ /* regex */
 				/* |lhs| = 1 vs |rhs| = 1*/
 				if (elementNames.size() == 1 && QCONSTMAX > 1) {
+//					__debugPrint(logFile, "%d case 1\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 				else if (elementNames[i].second == REGEX_CODE) {
+//					__debugPrint(logFile, "%d case 2\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 
 				/* tail of string, head of elements*/
 				else if (i == 0 && elementNames[i].second % QCONSTMAX == 0 && QCONSTMAX > 1) {
+//					__debugPrint(logFile, "%d case 3\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 
 				/* head of string, tail of elements */
 				else if (i == elementNames.size() - 1 && elementNames[i].second % QCONSTMAX == -1 && QCONSTMAX > 1)  {
+//					__debugPrint(logFile, "%d case 4\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 
 				/* only care about first element */
-				else if (elementNames[i].second % QCONSTMAX == -1)  {
+				else if (elementNames[i].second % QCONSTMAX == -1){
+//					__debugPrint(logFile, "%d case 5\n", __LINE__);
 					possibleCases.emplace_back(
 							handle_Const_WithPosition_array(
 									a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0, elementNames[i].first.length(),
@@ -2167,21 +2172,26 @@ public:
 			if (elementNames[i].second < 0){ /* const || regex */
 				/* |lhs| = 1 vs |rhs| = 1*/
 				if (elementNames.size() == 1 && QCONSTMAX > 1) {
+//					__debugPrint(logFile, "%d case 1\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 				else if (elementNames[i].second == REGEX_CODE) {
+//					__debugPrint(logFile, "%d case 11\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 				/* tail of string, head of elements*/
 				else if (i == 0 && elementNames[i].second % QCONSTMAX == 0 && QCONSTMAX > 1) {
+//					__debugPrint(logFile, "%d case 111\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 				/* head of string, tail of elements */
 				else if (i == elementNames.size() - 1 && elementNames[i].second % QCONSTMAX == -1 && QCONSTMAX > 1)  {
+//					__debugPrint(logFile, "%d case 1111\n", __LINE__);
 					possibleCases.emplace_back(handle_SubConst_WithPosition_array(a, elementNames, lhs_str, rhs_str, i, optimizing));
 				}
 				/* only care about first element */
 				else if (elementNames[i].second % QCONSTMAX == -1)  {
+//					__debugPrint(logFile, "%d case 11111\n", __LINE__);
 					possibleCases.emplace_back(
 							handle_Const_WithPosition_array(
 									a, elementNames, lhs_str, rhs_str, i, elementNames[i].first, 0,
@@ -2190,6 +2200,7 @@ public:
 				}
 			}
 			else if (elementNames[i].second >= 0 && connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
+//				__debugPrint(logFile, "%d case 111111\n", __LINE__);
 				if (elementNames[i].second % QMAX == 1 && i > 0)
 					continue;
 
@@ -2601,7 +2612,9 @@ public:
 			}
 			constraints01 = constraints01 + ")) ";
 			constraints01 = "(and " + constraints01 + " " + constraints02 + ")";
-			result = "(or (and " + result + + ") " + constraints01 + ")";
+
+			result = "(or (and " + result + + "))";
+//			result = "(or (and " + result + + ") " + constraints01 + ")";
 		}
 
 
@@ -2783,7 +2796,7 @@ public:
 		for (unsigned i = 0; i < left_arr.size(); ++i)
 			if (!checkLeft[i]) {
 				if (left_arr[i] == SUMFLAT) { /* a = bx + cy */
-
+//					__debugPrint(logFile, "%d %s.%d: %d\n", __LINE__, lhs_elements[i].first.c_str(), lhs_elements[i].second, left_arr[i]);
 					checkLeft[i] = true;
 
 					std::vector<std::pair<std::string, int>> elements;
