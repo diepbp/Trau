@@ -980,6 +980,7 @@ std::string create_constraints_ReplaceAll(
  *
  */
 std::string create_constraints_NOTContain(std::string var, std::string value){
+	__debugPrint(logFile, "%d *** %s ***: %s vs %s\n", __LINE__, __FUNCTION__, var.c_str(), value.c_str());
 	std::string lenName = generateVarLength(var);
 	std::string arrName = generateVarArray(var);
 
@@ -1005,7 +1006,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 			arrayRhs.c_str());
 	__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 #endif
-	if (connectedVariables.find(var) != connectedVariables.end()){
+	if (connectedVariables.find(var) == connectedVariables.end()){
 		__debugPrint(logFile, "%d %s: %s was removed in removeConnectedVarsIfNotInEqualities\n", __LINE__, __FUNCTION__, var.c_str());
 		return TRUESTR;
 	}
@@ -1275,6 +1276,9 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 void handle_NOTContains(
 		std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::pair<std::string, std::string>, bool> done;
+	for (const auto& c : connectedVariables) {
+			__debugPrint(logFile, "%d connectedVar: %s %d\n", __LINE__, c.first.c_str(), c.second);
+		}
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
@@ -1301,7 +1305,6 @@ void handle_NOTContains(
 						done.find(std::make_pair(element.first.args[0].name, value02)) == done.end()) {
 
 					global_smtStatements.push_back({create_constraints_NOTContain(element.first.args[0].name, value02)});
-
 					done[std::make_pair(element.first.args[0].name, value02)] = true;
 				}
 				else if (value02.compare(NOTFOUND) == 0 && value01.compare(NOTFOUND) != 0 &&
