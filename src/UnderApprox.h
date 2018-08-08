@@ -642,7 +642,7 @@ void pthreadController();
 /*
  *
  */
-void reset();
+void reset(bool wellform = false);
 
 /*
  * replace all "Length " by "len_"
@@ -713,6 +713,7 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
-		bool lazy = true);
+		bool lazy = true,
+		bool wellForm = false);
 
 #endif /* UNDERAPPROX_H_ */

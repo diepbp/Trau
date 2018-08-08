@@ -613,7 +613,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 //				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -1006,6 +1006,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 			arrayRhs.c_str());
 	__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 #endif
+//	return TRUESTR;
 	if (connectedVariables.find(var) == connectedVariables.end()){
 		__debugPrint(logFile, "%d %s: %s was removed in removeConnectedVarsIfNotInEqualities\n", __LINE__, __FUNCTION__, var.c_str());
 		return TRUESTR;
@@ -2885,6 +2886,8 @@ bool similarVector(
 		){
 	if (equalVector(a, b))
 		return true;
+	else
+		return false;
 
 	unsigned posB = 0;
 	for (unsigned i = 0; i < a.size(); ++i){
@@ -4943,7 +4946,7 @@ void pthreadController(){
 /*
  *
  */
-void reset(){
+void reset(bool wellForm){
 	generatedEqualities.clear();
 	varPieces.clear();
 	notContainMap.clear();
@@ -5490,7 +5493,8 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
-		bool _lazy) {
+		bool _lazy,
+		bool wellForm) {
 	printf("\nRunning Under Approximation\n");
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
 	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(orgInput);
@@ -5588,13 +5592,13 @@ bool underapproxController(
 					_carryOnConstraints,
 					_currentLength,
 					fileDir,
-					_connectedVars, false);
+					_connectedVars, false, true);
 		}
 	}
+
 	endLabel: if (result == false) {
 		_connectedVars.clear();
 		for (const auto& var : connectedVariables) {
-			__debugPrint(logFile, "%d connectedVar: %s\n", __LINE__, var.first.c_str());
 			_connectedVars.emplace(var.first);
 		}
 	}

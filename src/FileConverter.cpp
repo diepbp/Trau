@@ -2092,7 +2092,12 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 			continue;
 
 		for (const auto& token : tokens) {
-			if (token.second == 81) { /* get model */
+			if (token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_GET_MODEL) { /* get model */
+				getModel = true;
+				add = false;
+				break;
+			}
+			if (token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_GET_VALUE) {
 				getModel = true;
 				add = false;
 				break;
