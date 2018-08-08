@@ -981,6 +981,19 @@ std::string create_constraints_ReplaceAll(
  */
 std::string create_constraints_NOTContain(std::string var, std::string value){
 	__debugPrint(logFile, "%d *** %s ***: %s vs %s\n", __LINE__, __FUNCTION__, var.c_str(), value.c_str());
+
+	bool found = false;
+	for (unsigned i = 0; i < value.length(); ++i)
+		if (excludeCharSet.find(value[i]) != excludeCharSet.end()) {
+			found = true;
+			break;
+		}
+
+	if (!found) {
+		__debugPrint(logFile, "%d skip %s: %s vs %s\n", __LINE__, __FUNCTION__, var.c_str(), value.c_str());
+		return TRUESTR;
+	}
+
 	std::string lenName = generateVarLength(var);
 	std::string arrName = generateVarArray(var);
 
@@ -1277,9 +1290,10 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 void handle_NOTContains(
 		std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::pair<std::string, std::string>, bool> done;
-	for (const auto& c : connectedVariables) {
-			__debugPrint(logFile, "%d connectedVar: %s %d\n", __LINE__, c.first.c_str(), c.second);
-		}
+	for (const auto& c : excludeCharSet) {
+		__debugPrint(logFile, "%d %c\n", __LINE__, c);
+	}
+
 	for (const auto& element : rewriterStrMap){
 		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
@@ -4956,6 +4970,8 @@ void reset(bool wellForm){
 	connectedVariables.clear();
 	appearanceMap.clear();
 	fullEqualitiesMap.clear();
+	includeCharSet.clear();
+	excludeCharSet.clear();
 	trivialUnsat = false;
 	unknownResult = false;
 }
@@ -5298,6 +5314,28 @@ void removeConnectedVarsIfNotInEqualities(){
 /*
  *
  */
+void initExcludeCharSet(){
+	for (const auto& s : constMap){
+		if (!isRegexStr(s.first))
+			for (unsigned i = 0; i < s.first.length(); ++i)
+				excludeCharSet.emplace(s.first[i]);
+	}
+}
+
+/*
+ *
+ */
+void initIncludeCharSet(){
+	for (const auto& s : constMap){
+		if (isRegexStr(s.first))
+			for (unsigned i = 0; i < s.first.length(); ++i)
+				excludeCharSet.emplace(s.first[i]);
+	}
+}
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
@@ -5315,12 +5353,17 @@ void init(std::map<StringOP, std::string> rewriterStrMap){
 	removeConnectedVarIfPossible();
 	addConnectedVarToEQmap();
 	createConstMap();
+	initIncludeCharSet();
+	initExcludeCharSet();
+
 	refineEqualMap(rewriterStrMap);
 
 	updateFullEqualMap();
 	createAppearanceMap();
 	initConnectingSize();
 	removeConnectedVarsIfNotInEqualities();
+
+
 }
 
 /*
@@ -5493,6 +5536,7 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
+		std::set<char> &_excludeSet,
 		bool _lazy,
 		bool wellForm) {
 	printf("\nRunning Under Approximation\n");
@@ -5592,7 +5636,9 @@ bool underapproxController(
 					_carryOnConstraints,
 					_currentLength,
 					fileDir,
-					_connectedVars, false, true);
+					_connectedVars,
+					_excludeSet,
+					false, true);
 		}
 	}
 
@@ -5601,6 +5647,8 @@ bool underapproxController(
 		for (const auto& var : connectedVariables) {
 			_connectedVars.emplace(var.first);
 		}
+		_excludeSet.clear();
+		_excludeSet = excludeCharSet;
 	}
 
 	return result;

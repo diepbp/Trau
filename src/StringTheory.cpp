@@ -3782,7 +3782,6 @@ bool isCheckedNode(Z3_theory t, Z3_ast node, std::vector<Z3_ast> checkedNode){
  *
  */
 bool crossCheck_Update(Z3_theory t, std::vector<Z3_ast> v1, std::vector<Z3_ast> v2, Z3_ast nn1, Z3_ast nn2) {
-	Z3_context ctx = Z3_theory_get_context(t);
 
 	// checker if one of nodes is a generic automaton
 	bool genericNode = false;
@@ -6108,13 +6107,15 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 //		tryUnderApprox = true;
 		std::set<std::string> _connectedVars;
+		std::set<char> _excludeSet;
 		if (!underapproxController(combinationOverVariables,
 				fullCombinationOverVariables,
 				rewriterStrMap,
 				carryOnConstraints,
 				initLength,
 				inputFile,
-				_connectedVars)) {
+				_connectedVars,
+				_excludeSet)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
@@ -6159,6 +6160,19 @@ Z3_bool Th_final_check(Z3_theory t) {
 						}
 						else if (isVariable(t, var.first.first))
 							nodes.emplace_back(var.first.first);
+						else if (isDetAutomatonFunc(t, var.first.second)) {
+							std::string strValue = getConstString(t, var.first.second);
+							bool found = false;
+							for (unsigned p = 0; p < strValue.size(); ++p)
+								if (_excludeSet.find(p) != _excludeSet.end()) {
+									found = true;
+									break;
+								}
+							if (!found) {
+								__debugPrint(logFile, "%d skipping %s\n", __LINE__, boolVarStr.c_str());
+								continue;
+							}
+						}
 
 						/* 2nd arg */
 						if (isConcatFunc(t, var.first.second)){
@@ -6166,6 +6180,19 @@ Z3_bool Th_final_check(Z3_theory t) {
 						}
 						else if (isVariable(t, var.first.second))
 							nodes.emplace_back(var.first.second);
+						else if (isDetAutomatonFunc(t, var.first.second)) {
+							std::string strValue = getConstString(t, var.first.second);
+							bool found = false;
+							for (unsigned p = 0; p < strValue.size(); ++p)
+								if (_excludeSet.find(p) != _excludeSet.end()) {
+									found = true;
+									break;
+								}
+							if (!found) {
+								__debugPrint(logFile, "%d skipping %s\n", __LINE__, boolVarStr.c_str());
+								continue;
+							}
+						}
 
 						for (const auto& node : nodes) {
 							std::string nodeStr = node_to_string(t, node);

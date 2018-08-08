@@ -60,6 +60,8 @@ static long sumInt = -1;
 static long sumConstLength = 0;
 static bool lazy = true;
 static std::set<std::string> generatedEqualities;
+static std::set<char> includeCharSet;
+static std::set<char> excludeCharSet;
 
 /*
  * get value from eq map
@@ -679,6 +681,16 @@ void initConnectingSize(bool prep);
 /*
  *
  */
+void initExcludeCharSet();
+
+/*
+ *
+ */
+void initIncludeCharSet();
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
@@ -713,6 +725,7 @@ bool underapproxController(
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
+		std::set<char> &_excludeSet,
 		bool lazy = true,
 		bool wellForm = false);
 
