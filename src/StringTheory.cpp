@@ -6143,7 +6143,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 					std::set<Z3_ast> selectedBoolVars;
 					for (const auto& boolVar : boolVars) {
 						std::string varStr = node_to_string(t, boolVar);
-						if (varStr.find("$$_") != 0)
+						if (varStr.find("$$_") == std::string::npos)
 							selectedBoolVars.emplace(boolVar);
 					}
 					for (const auto& var : containPairBoolMap) {
@@ -6152,7 +6152,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 							selectedBoolVars.emplace(var.second);
 							continue;
 						}
-
+						bool found = true;
 						std::vector<Z3_ast> nodes;
 						/* 1st arg */
 						if (isConcatFunc(t, var.first.first)){
@@ -6162,9 +6162,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 							nodes.emplace_back(var.first.first);
 						else if (isDetAutomatonFunc(t, var.first.second)) {
 							std::string strValue = getConstString(t, var.first.second);
-							bool found = false;
+							found = false;
 							for (unsigned p = 0; p < strValue.size(); ++p)
-								if (_excludeSet.find(p) != _excludeSet.end()) {
+								if (_excludeSet.find(strValue[p]) != _excludeSet.end()) {
 									found = true;
 									break;
 								}
@@ -6182,9 +6182,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 							nodes.emplace_back(var.first.second);
 						else if (isDetAutomatonFunc(t, var.first.second)) {
 							std::string strValue = getConstString(t, var.first.second);
-							bool found = false;
+							found = false;
 							for (unsigned p = 0; p < strValue.size(); ++p)
-								if (_excludeSet.find(p) != _excludeSet.end()) {
+								if (_excludeSet.find(strValue[p]) != _excludeSet.end()) {
 									found = true;
 									break;
 								}
@@ -6193,6 +6193,8 @@ Z3_bool Th_final_check(Z3_theory t) {
 								continue;
 							}
 						}
+
+
 
 						for (const auto& node : nodes) {
 							std::string nodeStr = node_to_string(t, node);
@@ -6213,6 +6215,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 								break;
 							}
 						}
+
 					}
 
 					/* print test: */
