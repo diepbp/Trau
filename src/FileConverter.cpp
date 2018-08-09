@@ -209,8 +209,8 @@ StringOP findOpArg(
 			formatMultiplyOP(ret);
 		}
 		else if (tokens[startPos + 1].first.compare("not") == 0) {
-					ret = findStringOP(tokens, startPos + 1);
-				}
+			ret = findStringOP(tokens, startPos + 1);
+		}
 		else if (tokens[startPos + 1].first.compare("ite") == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
@@ -348,10 +348,8 @@ void updateEquality(
 	while (found != -1) {
 		assert(tokens[found - 1].second == antlrcpptest::SMTLIB26Lexer::OpenPar);
 		StringOP op(findStringOP(tokens, found));
-//		__debugPrint(logFile, "%d stringOP: %s\n", __LINE__, op.toString().c_str());
 		bool foundOp = false;
 		for (const auto& _op : rewriterStrMap) {
-//			__debugPrint(logFile, "%d op: %s\n", __LINE__, _op.first.toString().c_str());
 			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
 				tokens = replaceTokens(tokens, found - 1, findCorrespondRightParentheses(found - 1, tokens), _op.second, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 				foundOp = true;
@@ -434,13 +432,13 @@ std::string getStringFromRegexOP(StringOP op){
 		tmp = tmp + op.args[0].name.substr(1, op.args[0].name.length() - 2);
 	}
 	else if (op.name.compare(languageMap[REGEXALL]) == 0){
-		tmp = "(a|b|c|d|e|f|g|h)*";
+		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)*";
 	}
 	else if (op.name.compare(languageMap[REGEXALLCHAR]) == 0){
-		tmp = "(a|b|c)";
+		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)";
 	}
 	else if (op.name.compare(languageMap[REGEXCHARRANGE]) == 0){
-		tmp = "(a|b|c)";
+		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)";
 	}
 	else if (op.name.compare(languageMap[REGEXNONE]) == 0){
 		tmp = "";
@@ -593,16 +591,13 @@ void updateContain(
 	int found = findTokens(tokens, 0, languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		StringOP op(findStringOP(tokens, found));
-//		__debugPrint(logFile, "%d %s: op = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		if (rewriterStrMap[op].compare(TRUESTR) == 0)
 			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
 		else
 			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
-//		__debugPrint(logFile, "--> s = %s \n", sumTokens(tokens, 0, tokens.size() - 1).c_str());
 
 		found = findTokens(tokens, 0, languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
@@ -619,7 +614,6 @@ void updateIndexOf(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
-		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -638,7 +632,6 @@ void updateIndexOf2(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -655,7 +648,6 @@ void updateLastIndexOf(
 	int found = findTokens(tokens, 0, languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
@@ -692,7 +684,6 @@ void updateStartsWith(
 	int found = findTokens(tokens, 0, languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-//		__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, s.c_str());
 
 		StringOP op(findStringOP(tokens, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
@@ -708,14 +699,12 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-//	__debugPrint(logFile, "%d *** %s ***: s = %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	int found = findTokens(tokens, 0, languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
 		formatOPByRewriter(op, rewriterStrMap);
-//		__debugPrint(logFile, "%d op: %s\n", __LINE__, op.toString().c_str());
 
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -881,10 +870,10 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
 	/* replace const --> its length */
 
 	for (unsigned i = 0; i < tokens.size(); ++i){
-		if (tokens[i].second == 86){
+		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::STRING){
 			assert(tokens[i].first.length() - 2 >= 0);
 			tokens[i].first = std::to_string(tokens[i].first.length() - 2);
-			tokens[i].second = 82;
+			tokens[i].second = antlrcpptest::SMTLIB26Lexer::NUMERAL;
 		}
 	}
 }
@@ -964,7 +953,6 @@ void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
 		formatOPByRewriter(opx, rewriterStrMap);
 
 		int tmp = findCorrespondRightParentheses(found - 1, tokens);
-		__debugPrint(logFile, "%d %s: %s --> %s\n", __LINE__, __FUNCTION__, opx.toString().c_str(), rewriterStrMap[opx].c_str());
 		std::vector<std::pair<std::string, int>> addingTokens;
 		tokens = replaceTokens(tokens, found - 1, tmp, rewriterStrMap[opx], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 
@@ -979,7 +967,7 @@ void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
 void updateVariables(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::vector<std::string> strVars) {
-	for (unsigned int i = 0; i < tokens.size(); ++i) {
+	for (unsigned i = 0; i < tokens.size(); ++i) {
 		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
 				((std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) ||
 				tokens[i].first.find("$$_str") == 0)) {
@@ -1007,8 +995,8 @@ bool strContaintStringVar(std::string notStr, std::vector<std::string> strVars) 
 std::vector<std::string> _collectAlternativeComponents(std::string str){
 	std::vector<std::string> result;
 	int counter = 0;
-	unsigned int startPos = 0;
-	for (unsigned int j = 0; j < str.length(); ++j) {
+	unsigned startPos = 0;
+	for (unsigned j = 0; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 		}
@@ -1031,7 +1019,7 @@ std::vector<std::string> _collectAlternativeComponents(std::string str){
 int _findCorrespondRightParentheses(int leftParentheses, std::string str){
 	assert (str[leftParentheses] == '(');
 	int counter = 1;
-	for (unsigned int j = leftParentheses + 1; j < str.length(); ++j) {
+	for (unsigned j = leftParentheses + 1; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 			if (counter == 0){
@@ -1067,7 +1055,6 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 	}
 
 	size_t leftParentheses = str.find('(');
-//	if (leftParentheses == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
 	if (leftParentheses == std::string::npos)
 		return {{str}};
 
@@ -1075,7 +1062,7 @@ std::vector<std::vector<std::string>> _parseRegexComponents(std::string str){
 	if (leftParentheses != 0) {
 		std::string header = str.substr(0, leftParentheses);
 		std::vector<std::vector<std::string>> rightComponents = _parseRegexComponents(str.substr(leftParentheses));
-		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
+		for (unsigned i = 0; i < rightComponents.size(); ++i) {
 			std::vector<std::string> tmp = {header};
 			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
 			result.emplace_back(tmp);
@@ -1208,7 +1195,7 @@ std::string extractConst(std::string str) {
  * check whether the list does not have variables
  */
 bool hasNoVar(std::vector<std::string> list){
-	for (unsigned int i = 0; i < list.size(); ++i)
+	for (unsigned i = 0; i < list.size(); ++i)
 		if (list[i][0] != '\"')
 			return false;
 	return true;
@@ -1308,7 +1295,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 
 	for (const auto& tokens : fileTokens) {
 		for (const auto& token : tokens) {
-			if (token.second == 86) /* string */{
+			if (token.second == antlrcpptest::SMTLIB26Lexer::STRING) /* string */{
 				std::set<char> tmp = getUsedChars(token.first);
 				for (const auto& ch : tmp) {
 					used[(int)ch] = true;
@@ -1441,7 +1428,6 @@ void rewriteGRM(std::string s,
 
 	result = "(assert (= " + varName + " " + result + "))\n";
 	constraints.emplace_back(result);
-	__debugPrint(logFile, "%d >> %s\n", __LINE__, result.c_str());
 }
 
 /*
@@ -1486,11 +1472,11 @@ void toNonGRMFile(
 	}
 
 	/* write everything to the file */
-	for (unsigned int i = 0; i < definitions.size(); ++i) {
+	for (unsigned i = 0; i < definitions.size(); ++i) {
 		out << definitions[i];
 	}
 
-	for (unsigned int i = 0; i < constraints.size(); ++i) {
+	for (unsigned i = 0; i < constraints.size(); ++i) {
 		out << constraints[i];
 	}
 
@@ -1521,7 +1507,8 @@ void toLengthLine(
 
 	bool declare = false;
 	for (const auto& token : tokens)
-		if (token.second == 64 || token.second == 65) {
+		if (token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_DECLARE_SORT  ||
+				token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_DECLARE_FUN) {
 			declare = true;
 			break;
 		}
@@ -1530,7 +1517,7 @@ void toLengthLine(
 		bool stringVarDef = false;
 		std::string newStr = "";
 		for (const auto& token : tokens)
-			if (token.second == 88 && token.first.compare("String") == 0){
+			if (token.second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM && token.first.compare("String") == 0){
 				stringVarDef = true;
 				break;
 			}
@@ -1556,7 +1543,7 @@ void toLengthLine(
 	}
 
 	for (unsigned i = 0; i < tokens.size(); ++i)
-		if (tokens[i].second == 86){
+		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::STRING){
 			std::string s = "";
 			for (unsigned j = 1; j < tokens[i].first.length() - 1; ++j) {
 				if (tokens[i].first[j] == escapeChar){
@@ -1597,7 +1584,6 @@ void toLengthLine(
 
 	updateToUpper(tokens);
 	updateToLower(tokens);
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	updateSubstring(tokens, rewriterStrMap);
 	updateEquality(tokens, rewriterStrMap);
 	updateNot(tokens, otherVar, smtVarDefinition);
@@ -2248,6 +2234,9 @@ void toLengthFile(
 		int &regexCnt,
 		std::vector<std::string> &smtVarDefinition,
 		std::vector<std::string> &smtLenConstraints){
+	clock_t t;
+	t = clock();
+
 	smtVarDefinition.clear();
 	smtLenConstraints.clear();
 
@@ -2273,6 +2262,8 @@ void toLengthFile(
 	for (const auto& tokens : fileTokens) {
 		toLengthLine(tokens, strVars, handleNotOp, rewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 	}
+	t = clock() - t;
+	__debugPrint(logFile, "%d %s: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 }
 
 /*

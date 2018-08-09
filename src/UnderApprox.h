@@ -691,7 +691,7 @@ void initIncludeCharSet();
 /*
  *
  */
-void init(std::map<StringOP, std::string> rewriterStrMap);
+void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm = false);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 

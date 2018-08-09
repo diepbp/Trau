@@ -4961,17 +4961,22 @@ void pthreadController(){
  *
  */
 void reset(bool wellForm){
+
+	includeCharSet.clear();
+	excludeCharSet.clear();
+	appearanceMap.clear();
+	fullEqualitiesMap.clear();
+	notContainMap.clear();
+
+
 	generatedEqualities.clear();
 	varPieces.clear();
-	notContainMap.clear();
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
 	connectedVariables.clear();
-	appearanceMap.clear();
-	fullEqualitiesMap.clear();
-	includeCharSet.clear();
-	excludeCharSet.clear();
+
+
 	trivialUnsat = false;
 	unknownResult = false;
 }
@@ -5336,17 +5341,19 @@ void initIncludeCharSet(){
 /*
  *
  */
-void init(std::map<StringOP, std::string> rewriterStrMap){
+void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
 			createAnyway = false;
 
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
-	initConnectingSize(false);
 
+
+	initConnectingSize(false);
 	collectConnectedVariables(rewriterStrMap);
-	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
+	/* this is the simplies version of eq map, before adding connected var to eq map */
+	refineEqualMap(rewriterStrMap);
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
@@ -5543,15 +5550,18 @@ bool underapproxController(
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
 	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(orgInput);
 	/* init varLength */
-	varLength.clear();
-	varLength.insert(_currentLength.begin(), _currentLength.end());
+	clock_t t;
+	t = clock();
+	if (!wellForm) {
+		varLength.clear();
+		varLength.insert(_currentLength.begin(), _currentLength.end());
+		parseEqualityMap(_equalMap, _fullEqualMap);
+		staticIntegerAnalysis(fileDir);
+	}
 
-	/* init equalMap */
-	parseEqualityMap(_equalMap, _fullEqualMap);
-	staticIntegerAnalysis(fileDir);
-	reset();
-	lazy = _lazy;
+	reset(wellForm);
 	fullEqualitiesMap = _fullEqualMap;
+	lazy = _lazy;
 
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);
@@ -5584,6 +5594,8 @@ bool underapproxController(
 	}
 
 	toNonGRMFile(fileDir, nonGrm, equalitiesMap, constMap);
+	t = clock() - t;
+	__debugPrint(logFile, "%d %s: Prep: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 
 	/* init regexCnt */
 	regexCnt = 0;
@@ -5630,6 +5642,7 @@ bool underapproxController(
 
 	if (result == false) {
 		if (lazy == true) {
+			/* save underapprox state */
 			underapproxController(_equalMap,
 					_fullEqualMap,
 					rewriterStrMap,
