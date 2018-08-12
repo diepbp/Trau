@@ -197,6 +197,8 @@ enum {
 #define ITERSUFFIX "__iter"
 #define ZERO "0"
 #define REGEXSUFFIX "_10000"
+extern FILE * logFile;
+extern FILE * logAxiom;
 
 struct ConstraintSet{
 	std::set<std::string> arithmeticConstraints;
@@ -347,30 +349,8 @@ inline bool operator <(StringOP const& x, StringOP const& y) {
 			return b1 < 0;
 
 	}
-//	if (x.args.size() > 0) {
-//		int b1 = x.args[0].toString().compare(y.args[0].toString());
-//
-//		if (b1 != 0)
-//			return b1 < 0;
-//
-//		if (x.args.size() > 1) {
-//			int b2 = x.args[1].toString().compare(y.args[1].toString());
-//
-//			if (b2 != 0)
-//				return b2 < 0;
-//		}
-//	}
-//
-//	int b3 = x.arg03.compare(y.arg03);
-//
-//	if (b3 != 0)
-//		return b3 < 0;
-
     return false;
 }
-
-extern FILE * logFile;
-extern FILE * logAxiom;
 
 std::string longestCommonTail(std::string a, std::string b);
 
@@ -547,6 +527,18 @@ std::string createArrayDefinition(std::string x);
  *
  */
 std::string createIntDefinition(std::string x);
+
+/*
+ * For all string variables
+ * Change var name: xyz --> len_xyz
+ * and change var type: string -> int
+ */
+std::string redefineStringVar(std::string var);
+
+/*
+ *
+ */
+std::string redefineOtherVar(std::string var, std::string type);
 
 /*
  *

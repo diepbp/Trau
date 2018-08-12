@@ -5369,8 +5369,6 @@ void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	createAppearanceMap();
 	initConnectingSize();
 	removeConnectedVarsIfNotInEqualities();
-
-
 }
 
 /*
@@ -5544,7 +5542,7 @@ bool underapproxController(
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
 		std::set<char> &_excludeSet,
-		bool _lazy,
+		bool &_lazy,
 		bool wellForm) {
 	printf("\nRunning Under Approximation\n");
 	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
@@ -5641,9 +5639,11 @@ bool underapproxController(
 	}
 
 	if (result == false) {
-		if (lazy == true) {
+		if (lazy == true && !prioritySearch) {
+			_lazy = false;
 			/* save underapprox state */
-			underapproxController(_equalMap,
+			underapproxController(
+					_equalMap,
 					_fullEqualMap,
 					rewriterStrMap,
 					_carryOnConstraints,
@@ -5651,11 +5651,16 @@ bool underapproxController(
 					fileDir,
 					_connectedVars,
 					_excludeSet,
-					false, true);
+					_lazy,
+					true);
 		}
+		else
+			/* exit as usual */
+			goto endLabel;
 	}
 
 	endLabel: if (result == false) {
+		_lazy = lazy;
 		_connectedVars.clear();
 		for (const auto& var : connectedVariables) {
 			_connectedVars.emplace(var.first);
@@ -5666,5 +5671,4 @@ bool underapproxController(
 
 	return result;
 }
-
 

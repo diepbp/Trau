@@ -429,12 +429,6 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 
 #ifdef ARITH
 			and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n1), mk_int(ctx, str.size())));
-			// create Parikh for const string
-			std::vector<Z3_ast> list;
-#ifdef PARIKH1
-			list = createParikhConstraints_string(t, n1, str);
-#endif
-			and_list.insert(and_list.end(), list.begin(), list.end());
 #endif
 		}
 
@@ -450,12 +444,6 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 
 #ifdef ARITH
 			and_list.emplace_back(Z3_mk_eq(ctx, getLengthAST(t, n2), mk_int(ctx, str.size())));
-			// create Parikh for const string
-			std::vector<Z3_ast> list;
-#ifdef PARIKH1
-			list = createParikhConstraints_string(t, n2, str);
-#endif
-			and_list.insert(and_list.end(), list.begin(), list.end());
 #endif
 		}
 
@@ -467,8 +455,6 @@ Z3_ast mk_concat(Z3_theory t, Z3_ast n1, Z3_ast n2, bool &updated) {
 		if (concat_astNode_map.find(concatArgs) == concat_astNode_map.end()) {
 			concatAst = mk_binary_app(ctx, td->Concat, n1, n2);
 			concat_astNode_map[concatArgs] = concatAst;
-
-			//      getNodesInConcat(t, concatAst, childrenVector);
 #ifdef ARITH
 			std::vector<Z3_ast> basicN1 = basicArithConstraints_forNode_simple(t, n1);
 			std::vector<Z3_ast> basicN2 = basicArithConstraints_forNode_simple(t, n2);
@@ -6108,15 +6094,29 @@ Z3_bool Th_final_check(Z3_theory t) {
 //		tryUnderApprox = true;
 		std::set<std::string> _connectedVars;
 		std::set<char> _excludeSet;
-		if (!underapproxController(combinationOverVariables,
+		bool _lazy = lazySearch ? true : false;
+		Decision decision = Decision(
+						combinationOverVariables,
+						fullCombinationOverVariables,
+						rewriterStrMap,
+						carryOnConstraints,
+						initLength);
+		if (!underapproxController(
+				combinationOverVariables,
 				fullCombinationOverVariables,
 				rewriterStrMap,
 				carryOnConstraints,
 				initLength,
 				inputFile,
 				_connectedVars,
-				_excludeSet)) {
+				_excludeSet,
+				_lazy,
+				false)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
+			if (_lazy && prioritySearch) {
+				decisions.emplace_back(decision);
+				__debugPrint(logFile, "%d >> save the search\n", __LINE__);
+			}
 			/* create negation */
 			std::vector<Z3_ast> orConstraints;
 			for (const auto& grmNode : grm_astNode_map) {
@@ -7236,18 +7236,6 @@ Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::set<std::string> list)
 
 #ifdef ARITH
 		parikh.insert(parikh.end(), list01.begin(), list01.end());
-#ifdef PARIKH1
-		// TODO do not understand
-
-		//		if (std::string(Z3_ast_to_string(ctx, node)).compare("y1") != 0 || cnt++ < 3)
-		{
-
-			parikhSimpleLanguage = createParikhConstraints_evenSimplerLanguage(t, langNode, *it);
-			if (parikhSimpleLanguage.size() > 0)
-				and_List.emplace_back(mk_and_fromVector(t, parikhSimpleLanguage));
-		}
-#endif
-
 #endif
 		and_List.emplace_back(Z3_mk_eq(ctx, or_List[or_List.size() - 1], Z3_mk_eq(ctx, node, langNode)));
 
@@ -9716,14 +9704,43 @@ void checkInputVar(Z3_theory t, Z3_ast node) {
    \brief Check whether the logical context is satisfiable, and compare the result with the expected result.
    If the context is satisfiable, then display the model.
  */
-void check(Z3_theory t)
-{
-	Z3_context ctx = Z3_theory_get_context(t);
+void check(Z3_theory t){
 
+	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_model m      = 0;
 	Z3_lbool result = Z3_check_and_get_model(ctx, &m);
 	if (tryUnderApprox)
 		unknownResult = true;
+
+	if (result != Z3_L_TRUE && prioritySearch == true && decisions.size() > 0){
+		bool resultBool = false;
+		unsigned pos = 0;
+		while (pos < decisions.size()){
+			std::set<std::string> _connectedVars;
+			std::set<char> _excludeSet;
+			bool _lazy = false;
+			__debugPrint(logFile, "%d >> perform the heavy search\n", __LINE__);
+			resultBool = underapproxController(
+					decisions[pos].combinationOverVariables,
+					decisions[pos].fullCombinationOverVariables,
+					decisions[pos].rewriterStrMap,
+					decisions[pos].carryOnConstraints,
+					decisions[pos].initLength,
+					inputFile,
+					_connectedVars,
+					_excludeSet,
+					_lazy,
+					false);
+			if (resultBool)
+				break;
+			++pos;
+		}
+		if (resultBool)
+			result = Z3_L_TRUE;
+		else
+			result = Z3_L_FALSE;
+	}
+
 	if (unknownResult == true && result == Z3_L_FALSE)
 		result = Z3_L_UNDEF;
 	if (printingConstraints){
@@ -9742,48 +9759,28 @@ void check(Z3_theory t)
 	}
 
 	else switch (result) {
-	case Z3_L_FALSE:
-		if (beReviewed) {
-			verifyResult(languageVersion, inputFile, verifyingSolver, false);
-		}
-		printf("================================================\n");
-		printf(">> UNSAT\n");
-		printf("================================================\n");
-		break;
-	case Z3_L_UNDEF:
-		printf(">> UNKNOWN\n");
-		break;
-	case Z3_L_TRUE:
-
-#if 0
-		if (ourGrm.size() == 0) {
-			printf("OverApprox: sat\n");
-			std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables = collectCombinationOverVariables(t);
-			std::map<std::string, int> currentLength = collectCurrentLength(t);
-
-			underapproxController(combinationOverVariables, currentLength, inputFile);
-		}
-		else {
+		case Z3_L_FALSE:
+			if (beReviewed) {
+				verifyResult(languageVersion, inputFile, verifyingSolver, false);
+			}
 			printf("================================================\n");
-			printf(">> SAT\n");
-			printf("------------------------------------------------\n");
-			printf("%s\n", Z3_model_to_string(ctx, m));
+			printf(">> UNSAT\n");
 			printf("================================================\n");
-		}
-
-		break;
-#else
-		if (skipUnderApprox){
-			printf("================================================\n");
-			printf("%s", Z3_model_to_string(ctx, m));
-			printf("================================================\n");
-			printf("\n>> SAT\n");
-		}
-		else {
-			printf("\n>> SAT\n");
-		}
-		break;
-#endif
+			break;
+		case Z3_L_UNDEF:
+			printf(">> UNKNOWN\n");
+			break;
+		case Z3_L_TRUE:
+			if (skipUnderApprox){
+				printf("================================================\n");
+				printf("%s", Z3_model_to_string(ctx, m));
+				printf("================================================\n");
+				printf("\n>> SAT\n");
+			}
+			else {
+				printf("\n>> SAT\n");
+			}
+			break;
 	}
 	if (m) {
 		Z3_del_model(ctx, m);

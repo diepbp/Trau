@@ -8,7 +8,8 @@
 #ifndef TRANSITION_H_
 #define TRANSITION_H_
 
-#include "Utils.h"
+#include <iostream>
+#include <string.h>
 
 struct Transition{
 	int in;

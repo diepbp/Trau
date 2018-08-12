@@ -63,19 +63,6 @@ std::string refine_not_equality(std::string str){
 }
 
 /*
- * For all string variables
- * Change var name: xyz --> len_xyz
- * and change var type: string -> int
- */
-std::string redefineStringVar(std::string var){
-	return "(declare-const len_" + var + " Int)";
-}
-
-std::string redefineOtherVar(std::string var, std::string type){
-	return "(declare-const " + var + " " + type + ")";
-}
-
-/*
  *
  */
 std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std::string, int>> tokens,

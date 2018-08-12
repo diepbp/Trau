@@ -10,7 +10,6 @@
 
 #include "Regex.h"
 #include "UnderApprox.h"
-#include "Utils.h"
 
 #define ARITH 0
 //#define PARIKH 1
@@ -23,43 +22,6 @@
 #define PRE_VALUE "$$vAlUe_"
 #define PRE_LANGUAGE "$$lAnG_"
 #define UNKNOWN_AUTOMATON "uNkNoWn"
-
-extern std::string inputFile;
-extern std::string inputFile_converted;
-
-extern std::map<std::string, int> variables;
-extern std::vector<std::vector<int>> graph;
-extern std::map<std::string, std::vector<std::string>> ourGrm;
-
-extern int value_count;
-extern int sLevel;
-// extern std::map<std::string, std::set<char>> charSet;
-extern Z3_ast emptyConstStr;
-
-extern const std::string escapeDict[];
-
-extern int numOfFlats;
-extern bool skipOverapprox;
-
-extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
-
-extern std::map<Z3_ast, std::vector<Z3_ast>> concrete_value_Map;
-extern std::map<Z3_ast, int> lang_value_Map;
-extern std::map<Z3_ast, Z3_ast> final_value_Map;
-extern std::map<std::vector<Z3_ast>, int> lang_value_Map1;
-extern std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
-extern std::set<Z3_ast> inputVarInLen;
-extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
-extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
-extern std::map<int, std::string> languageMap;
-extern char escapeChar;
-extern std::string verifyingSolver;
-extern bool aggresiveBoolRefinement;
-
-static std::map<std::string, std::set<char>> charSet;
-
-static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
-
 
 /**
    \brief Data-structure for storing theory specific data.
@@ -111,8 +73,6 @@ typedef struct _AutomatonStringData
  */
  typedef struct _AutomatonStringData AutomatonStringData;
 
-
-
  typedef enum
  {
 	 my_Z3_ConstStr,    // 0
@@ -126,6 +86,68 @@ typedef struct _AutomatonStringData
 	 my_Z3_Unknown,     // 9
 	 my_Z3_Grammar_Var  // 10
  } T_TheoryType;
+
+
+ struct Decision{
+ 	std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables;
+ 	std::map<std::string, std::vector<std::vector<std::string>>> fullCombinationOverVariables;
+ 	std::map<StringOP, std::string> rewriterStrMap;
+ 	std::set<std::string> carryOnConstraints;
+ 	std::map<std::string, int> initLength;
+
+ 	Decision (
+ 			std::map<std::string, std::vector<std::vector<std::string>>> _combinationOverVariables,
+ 				std::map<std::string, std::vector<std::vector<std::string>>> _fullCombinationOverVariables,
+ 				std::map<StringOP, std::string> _rewriterStrMap,
+ 				std::set<std::string> _carryOnConstraints,
+ 				std::map<std::string, int> _initLength):
+ 					combinationOverVariables(_combinationOverVariables),
+ 					fullCombinationOverVariables(_fullCombinationOverVariables),
+ 					rewriterStrMap(_rewriterStrMap),
+ 					carryOnConstraints(_carryOnConstraints),
+ 					initLength(_initLength){
+ 	}
+
+ 	Decision(){
+
+ 	}
+ };
+
+
+ extern std::string inputFile;
+ extern std::string inputFile_converted;
+
+ extern std::map<std::string, int> variables;
+ extern std::vector<std::vector<int>> graph;
+ extern std::map<std::string, std::vector<std::string>> ourGrm;
+
+ extern int value_count;
+ extern int sLevel;
+ extern Z3_ast emptyConstStr;
+
+ extern const std::string escapeDict[];
+
+ extern int numOfFlats;
+ extern bool skipOverapprox;
+ extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
+ extern std::map<Z3_ast, std::vector<Z3_ast>> concrete_value_Map;
+ extern std::map<Z3_ast, int> lang_value_Map;
+ extern std::map<Z3_ast, Z3_ast> final_value_Map;
+ extern std::map<std::vector<Z3_ast>, int> lang_value_Map1;
+ extern std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
+ extern std::set<Z3_ast> inputVarInLen;
+ extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
+ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
+ extern std::map<int, std::string> languageMap;
+ extern char escapeChar;
+ extern std::string verifyingSolver;
+ extern bool aggresiveBoolRefinement;
+ extern bool prioritySearch;
+ extern bool lazySearch;
+
+ static std::map<std::string, std::set<char>> charSet;
+ static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
+ static std::vector<Decision> decisions;
 
  std::set<std::string> createFlats(int p, int q, std::set<char> charSet);
 

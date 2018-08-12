@@ -10,7 +10,6 @@
 
 #include "Arrangement.h"
 #include "FileConverter.h"
-#include "Utils.h"
 
 #define ALLVAR 0
 #define MAXP 6
@@ -25,7 +24,7 @@ extern bool unknownResult;
 extern std::map<int, std::string> languageMap;
 extern int languageVersion;
 extern std::string verifyingSolver;
-
+extern bool prioritySearch;
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, std::vector<std::vector<std::string>>> fullEqualitiesMap;
@@ -726,7 +725,7 @@ bool underapproxController(
 		std::string fileDir,
 		std::set<std::string> &_connectedVars,
 		std::set<char> &_excludeSet,
-		bool lazy = true,
+		bool &_lazy,
 		bool wellForm = false);
 
 #endif /* UNDERAPPROX_H_ */
