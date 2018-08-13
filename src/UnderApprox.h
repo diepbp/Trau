@@ -14,7 +14,6 @@
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
-#define DEFAULT_CHAR 'a'
 #define REGEX_BOUND 10
 
 extern std::string orgInput;
@@ -61,7 +60,7 @@ static bool lazy = true;
 static std::set<std::string> generatedEqualities;
 static std::set<char> includeCharSet;
 static std::set<char> excludeCharSet;
-
+static char defaultChar;
 /*
  * get value from eq map
  */
@@ -680,7 +679,7 @@ void initConnectingSize(bool prep);
 /*
  *
  */
-void initExcludeCharSet();
+void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
  *

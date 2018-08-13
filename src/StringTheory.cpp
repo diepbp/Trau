@@ -9735,10 +9735,8 @@ void check(Z3_theory t){
 				break;
 			++pos;
 		}
-		if (resultBool)
-			result = Z3_L_TRUE;
-		else
-			result = Z3_L_FALSE;
+
+		result = resultBool ? Z3_L_TRUE: Z3_L_FALSE;
 	}
 
 	if (unknownResult == true && result == Z3_L_FALSE)

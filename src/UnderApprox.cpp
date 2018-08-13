@@ -3810,7 +3810,7 @@ void forwardPropagate(
 }
 
 /*
- *
+ * note that, value can be wrong because we removed some not-contain constraints.
  */
 std::vector<int> createString(
 		std::string name,
@@ -3834,6 +3834,16 @@ std::vector<int> createString(
 			__debugPrint(logFile, "%d", val[i]);
 	__debugPrint(logFile, "\n");
 
+	/* check if the value is usable or not */
+	bool usable = true;
+	for (const auto& str : notContainMap)
+		if (str.second == false && str.first.first.compare(name) == 0){
+			if (value.find(str.first.second) != std::string::npos) {
+				usable = false;
+				break;
+			}
+		}
+
 	/* update values found by the solver & previous iterations */
 	/* collect iter */
 //	assert(iters.size() == QMAX);
@@ -3847,11 +3857,11 @@ std::vector<int> createString(
 //					val[pos + j * iters[i].first + k] = value[pos + k];
 //		pos += iters[i].first;
 //	}
-
-	for (int i = 0; i < lenVar; ++i)
-		if (val[i] == 0)
-			if (i < (int)value.length())
-				val[i] = value[i];
+	if (usable)
+		for (int i = 0; i < lenVar; ++i)
+			if (val[i] == 0)
+				if (i < (int)value.length())
+					val[i] = value[i];
 
 	bool canAssign = false;
 	for (int i = 0; i < lenVar; ++i)
@@ -3865,7 +3875,7 @@ std::vector<int> createString(
 	if (canAssign || assignAnyway) {
 		for (int i = 0; i < lenVar; ++i)
 			if (val[i] == 0)
-				val[i] = DEFAULT_CHAR;
+				val[i] = defaultChar;
 	}
 	else {
 		/* cannot assign because we do not know anything */
@@ -4707,6 +4717,7 @@ std::map<std::string, std::string> formatResult(
 
 	formatRegexes(indexes, lenVector, lenInt, finalStrValue, completion);
 	formatOtherVars(indexes, strValue, lenVector, lenInt, iterInt, finalStrValue, completion);
+
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
 		int varLength = getVarLength(var.first, lenInt);
@@ -4746,7 +4757,7 @@ std::map<std::string, std::string> formatResult(
 					else if (value[i] == 9) // tab
 						tmp = tmp + "\\t";
 					else if (value[i] < 32 || value[i] > 126)
-						tmp = tmp + 'a';
+						tmp = tmp + defaultChar;
 					else
 						tmp = tmp + value[i];
 					break;
@@ -4754,7 +4765,7 @@ std::map<std::string, std::string> formatResult(
 					if (value[i] == '"')
 						tmp = tmp + """";
 					else if (value[i] < 32 || value[i] > 126)
-						tmp = tmp + 'a';
+						tmp = tmp + defaultChar;
 					else
 						tmp = tmp + value[i];
 					break;
@@ -4831,13 +4842,13 @@ bool Z3_run(
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
 								if (elseValue > 'z' || elseValue < '!')
-									elseValue = DEFAULT_CHAR;
+									elseValue = defaultChar;
 								break;
 							}
 							else {
 								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
 								if (tmpNum > 'z' || tmpNum < '!')
-									tmpNum = DEFAULT_CHAR;
+									tmpNum = defaultChar;
 								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}
 						}
@@ -5319,12 +5330,22 @@ void removeConnectedVarsIfNotInEqualities(){
 /*
  *
  */
-void initExcludeCharSet(){
+void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : constMap){
 		if (!isRegexStr(s.first))
-			for (unsigned i = 0; i < s.first.length(); ++i)
+			for (unsigned i = 0; i < s.first.length(); ++i) {
 				excludeCharSet.emplace(s.first[i]);
+			}
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, s.first.c_str());
 	}
+	for (const auto& s : rewriterStrMap)
+		for (const auto& arg : s.first.args)
+			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
+				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
+				for (unsigned i = 0; i < arg.name.length(); ++i) {
+					excludeCharSet.emplace(arg.name[i]);
+				}
+			}
 }
 
 /*
@@ -5334,8 +5355,21 @@ void initIncludeCharSet(){
 	for (const auto& s : constMap){
 		if (isRegexStr(s.first))
 			for (unsigned i = 0; i < s.first.length(); ++i)
-				excludeCharSet.emplace(s.first[i]);
+				includeCharSet.emplace(s.first[i]);
 	}
+	if (includeCharSet.size() == 0)
+		for (unsigned i = 32; i <= 126; ++i)
+			includeCharSet.emplace(i);
+}
+
+void setupDefaultChar(){
+	defaultChar = 'a';
+	for (const auto& ch : includeCharSet)
+		if (excludeCharSet.find(ch) == excludeCharSet.end()) {
+			defaultChar = ch;
+			break;
+		}
+	__debugPrint(logFile, "%d *** %s ***: defaultChar = %c\n", __LINE__, __FUNCTION__, defaultChar);
 }
 
 /*
@@ -5361,7 +5395,8 @@ void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	addConnectedVarToEQmap();
 	createConstMap();
 	initIncludeCharSet();
-	initExcludeCharSet();
+	initExcludeCharSet(rewriterStrMap);
+	setupDefaultChar();
 
 	refineEqualMap(rewriterStrMap);
 
