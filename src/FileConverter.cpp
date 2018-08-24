@@ -2075,7 +2075,7 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 				add = false;
 				break;
 			}
-			else if (token.second == 86) /* string */{
+			else if (token.second == antlrcpptest::SMTLIB26Lexer::STRING) /* string */{
 				std::string tmp = encodeSpecialChars(token.first);
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);
@@ -2143,7 +2143,7 @@ void encodeHex(std::string inputFile, std::string outFile){
 	for (const auto& tokens : fileTokens) {
 		std::vector<std::string> listTokens;
 		for (const auto &token : tokens) {
-			if (token.second == 86) /* string */{
+			if (token.second == antlrcpptest::SMTLIB26Lexer::STRING) /* string */{
 				std::string tmp = encodeHex(token.first);
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);

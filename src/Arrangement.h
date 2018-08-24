@@ -498,8 +498,7 @@ public:
 			int pMax,
 			std::vector<std::pair<std::string, int> > elementNames,
 			std::vector<int> currentSplit,
-			std::vector<std::vector<int> > &allPossibleSplits
-	) {
+			std::vector<std::vector<int> > &allPossibleSplits) {
 
 		/* reach end */
 		if (currentSplit.size() == elementNames.size() &&
