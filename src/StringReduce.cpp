@@ -1343,7 +1343,6 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 			indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 					node_to_stringOP(t, args[1]),
 					node_to_stringOP(t, args[2])})] = indexOfStrMap[tmpOp];
-
 			__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
 																				indexOfStrMap[tmpOp].second.second.c_str());
 			indexOfStrMap.erase(StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),

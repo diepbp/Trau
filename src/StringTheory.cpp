@@ -8188,16 +8188,28 @@ bool collectIndexOf2ValueInPositiveContext(
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
+
 	for (const auto& it : indexOf2StrMap) {
+		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str());
 		if (boolStr.compare(it.second.first) == 0) {
 			if (boolValue) {
+
 				rewriterStrMap[it.first] = it.second.second.second;
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
-				if (carryOn.find(boolNode) != carryOn.end())
+
+				if (carryOn.find(boolNode) != carryOn.end()) {
+					__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, carryOn[boolNode]));
 					carryOnConstraints.emplace(
 							Z3_ast_to_string(ctx, carryOn[boolNode]));
+				}
 			} else {
 				rewriterStrMap[it.first] = "(- 1)";
+
+				if (carryOn.find(boolNode) != carryOn.end()) {
+					__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, carryOn[boolNode]));
+					carryOnConstraints.emplace(
+							Z3_ast_to_string(ctx, carryOn[boolNode]));
+				}
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.second, "(- 1)"));
 			}
 			return true;
@@ -8479,7 +8491,6 @@ void collectDataInPositiveContext(
 			rewriterStrMap[s.first] = s.second.second.first;
 
 	for (const auto& s : indexOf2StrMap)
-		if (s.second.first.length() == 0) /* evaluated */
 			rewriterStrMap[s.first] = s.second.second.first;
 
 	for (const auto& s: lastIndexOfStrMap)
@@ -8547,7 +8558,7 @@ void collectDataInPositiveContext(
 					if (astToString.find("$$_bool") != std::string::npos) {
 						found01 = collectContainValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
-						found09 = collectIndexOf2ValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
+						found09 = collectIndexOf2ValueInPositiveContext(t, argAst, false, rewriterStrMap, carryOnConstraints);
 						found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found04 = collectEndsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
 						found05 = collectStartsWithValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);

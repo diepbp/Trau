@@ -5533,6 +5533,7 @@ void updateRewriter(
 			}
 			continue;
 		}
+
 #if 1
 		newRewriterStrMap[op.first] = op.second;
 #else

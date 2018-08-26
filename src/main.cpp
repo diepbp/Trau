@@ -63,8 +63,8 @@ void buildDependenceGraph(
 
 
 	if (cmdTokens.size() > 0) {
-		if (cmdTokens[1].second >= 64 &&
-				cmdTokens[1].second <= 67 &&
+		if (cmdTokens[1].second >= antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_DECLARE_SORT &&
+				cmdTokens[1].second <= antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_DEFINE_FUN &&
 				variables.find(cmdTokens[2].first) == variables.end()) {
 
 			variables[cmdTokens[2].first] = cnt;
@@ -78,9 +78,8 @@ void buildDependenceGraph(
 			std::vector<int> lineVars;
 			for (const auto& token : cmdTokens) {
 				if (variables.find(token.first) != variables.end() &&
-						token.second == 88) {
+						token.second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM) {
 					lineVars.push_back(variables[token.first]);
-					__debugPrint(logFile, " %s \n", token.first.c_str());
 				}
 			}
 
