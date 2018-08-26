@@ -73,7 +73,7 @@ std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std
 	if (tokenName[0] == '('){
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, tokenName.c_str());
 		std::vector<std::pair<std::string, int>> tokensTmp;
-		switch (languageVersion) {
+		switch (config.languageVersion) {
 		case 20:
 		case 25:
 			tokensTmp = parseTerm20(tokenName);
@@ -219,41 +219,41 @@ StringOP findOpArg(
 		else if (tokens[startPos + 1].first.compare("<=") == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[LENGTH]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[LENGTH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[CONCAT]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[CONCAT]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[SUBSTRING]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[SUBSTRING]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[INDEXOF2]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[INDEXOF2]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[INDEXOF]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[INDEXOF]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[LASTINDEXOF]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[LASTINDEXOF]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[TOUPPER]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[TOUPPER]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[TOLOWER]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[TOLOWER]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[REPLACE]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[REPLACE]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[REPLACEALL]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[REPLACEALL]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[STARTSWITH]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[STARTSWITH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 			assert (ret.args.size() == 2);
 			StringOP tmp;
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 				case 26:
 				case 25:
 					tmp = ret.args[0];
@@ -264,11 +264,11 @@ StringOP findOpArg(
 					break;
 			}
 		}
-		else if (tokens[startPos + 1].first.compare(languageMap[ENDSWITH]) == 0) {
+		else if (tokens[startPos + 1].first.compare(config.languageMap[ENDSWITH]) == 0) {
 			ret = findStringOP(tokens, startPos + 1);
 			assert (ret.args.size() == 2);
 			StringOP tmp;
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 			case 26:
 			case 25:
 				tmp = ret.args[0];
@@ -306,11 +306,11 @@ StringOP findStringOP(
 		}
 		op.addArg(findOpArg(tokens, startPos));
 	}
-	if (op.name.compare(languageMap[STARTSWITH]) == 0 ||
-			op.name.compare(languageMap[ENDSWITH]) == 0) {
+	if (op.name.compare(config.languageMap[STARTSWITH]) == 0 ||
+			op.name.compare(config.languageMap[ENDSWITH]) == 0) {
 		assert (op.args.size() == 2);
 		StringOP tmp;
-		switch (languageVersion) {
+		switch (config.languageVersion) {
 		case 26:
 		case 25:
 			tmp = op.args[0];
@@ -362,8 +362,8 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 			opx.name.compare("<=") == 0 ||
 			opx.name.compare("not") == 0 ||
 			opx.name.compare("ite") == 0 ||
-			opx.name.compare(languageMap[STARTSWITH]) == 0 ||
-			opx.name.compare(languageMap[ENDSWITH]) == 0)
+			opx.name.compare(config.languageMap[STARTSWITH]) == 0 ||
+			opx.name.compare(config.languageMap[ENDSWITH]) == 0)
 		return true;
 
 	if (opx.name.compare("=") == 0){
@@ -372,10 +372,10 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 				opx.args[0].name.compare("+") == 0 ||
 				opx.args[0].name.compare("-") == 0 ||
 				opx.args[0].name.compare("*") == 0 ||
-				opx.args[0].name.compare(languageMap[LENGTH]) == 0 ||
-				opx.args[0].name.compare(languageMap[INDEXOF]) == 0 ||
-				opx.args[0].name.compare(languageMap[INDEXOF2]) == 0 ||
-				opx.args[0].name.compare(languageMap[LASTINDEXOF]) == 0 ||
+				opx.args[0].name.compare(config.languageMap[LENGTH]) == 0 ||
+				opx.args[0].name.compare(config.languageMap[INDEXOF]) == 0 ||
+				opx.args[0].name.compare(config.languageMap[INDEXOF2]) == 0 ||
+				opx.args[0].name.compare(config.languageMap[LASTINDEXOF]) == 0 ||
 				(opx.args[0].name[0] >= '0' && opx.args[0].name[0] <= '9'))
 			return true;
 
@@ -384,10 +384,10 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 				opx.args[1].name.compare("+") == 0 ||
 				opx.args[1].name.compare("-") == 0 ||
 				opx.args[1].name.compare("*") == 0 ||
-				opx.args[1].name.compare(languageMap[LENGTH]) == 0 ||
-				opx.args[1].name.compare(languageMap[INDEXOF]) == 0 ||
-				opx.args[1].name.compare(languageMap[INDEXOF2]) == 0 ||
-				opx.args[1].name.compare(languageMap[LASTINDEXOF]) == 0 ||
+				opx.args[1].name.compare(config.languageMap[LENGTH]) == 0 ||
+				opx.args[1].name.compare(config.languageMap[INDEXOF]) == 0 ||
+				opx.args[1].name.compare(config.languageMap[INDEXOF2]) == 0 ||
+				opx.args[1].name.compare(config.languageMap[LASTINDEXOF]) == 0 ||
 				(opx.args[1].name[0] >= '0' && opx.args[1].name[0] <= '9'))
 			return true;
 
@@ -415,28 +415,28 @@ std::string createNewIntVar(){
 std::string getStringFromRegexOP(StringOP op){
 
 	std::string tmp = "";
-	if (op.name.compare(languageMap[STR2REG]) == 0) {
+	if (op.name.compare(config.languageMap[STR2REG]) == 0) {
 		tmp = tmp + op.args[0].name.substr(1, op.args[0].name.length() - 2);
 	}
-	else if (op.name.compare(languageMap[REGEXALL]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXALL]) == 0){
 		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)*";
 	}
-	else if (op.name.compare(languageMap[REGEXALLCHAR]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXALLCHAR]) == 0){
 		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)";
 	}
-	else if (op.name.compare(languageMap[REGEXCHARRANGE]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXCHARRANGE]) == 0){
 		tmp = "(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|x|u|v|x|y|z)";
 	}
-	else if (op.name.compare(languageMap[REGEXNONE]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXNONE]) == 0){
 		tmp = "";
 	}
-	else if (op.name.compare(languageMap[REGEXPLUS]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXPLUS]) == 0){
 		tmp = tmp + "(" + getStringFromRegexOP(op.args[0]) + ")+";
 	}
-	else if (op.name.compare(languageMap[REGEXSTAR]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXSTAR]) == 0){
 		tmp = tmp + "(" + getStringFromRegexOP(op.args[0]) + ")*";
 	}
-	else if (op.name.compare(languageMap[REGEXUNION]) == 0){
+	else if (op.name.compare(config.languageMap[REGEXUNION]) == 0){
 		if (op.args.size() == 1)
 			tmp = tmp + getStringFromRegexOP(op.args[0]);
 		else {
@@ -446,7 +446,7 @@ std::string getStringFromRegexOP(StringOP op){
 			tmp = tmp = tmp + tmp01.substr(0, tmp.length() - 1);
 		}
 	}
-	else if (op.name.compare(languageMap[REGEXCONCAT]) == 0) {
+	else if (op.name.compare(config.languageMap[REGEXCONCAT]) == 0) {
 		for (unsigned j = 0; j < op.args.size(); ++j)
 			tmp = tmp + getStringFromRegexOP(op.args[j]);
 	}
@@ -516,7 +516,7 @@ void updateRegexIn(
 	int found = -1;
 	for (unsigned i = 0; i < tokens.size(); ++i)
 		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
-				tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
+				tokens[i].first.compare(config.languageMap[REGEXIN]) == 0) {
 			found = (int)i;
 			break;
 		}
@@ -561,7 +561,7 @@ void updateRegexIn(
 		found = -1;
 		for (unsigned i = found + 1; i < tokens.size(); ++i)
 			if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
-					tokens[i].first.compare(languageMap[REGEXIN]) == 0) {
+					tokens[i].first.compare(config.languageMap[REGEXIN]) == 0) {
 				found = (int)i;
 				break;
 			}
@@ -575,7 +575,7 @@ void updateContain(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 
-	int found = findTokens(tokens, 0, languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -586,7 +586,7 @@ void updateContain(
 		else
 			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
 
-		found = findTokens(tokens, 0, languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -596,7 +596,7 @@ void updateContain(
 void updateIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -604,7 +604,7 @@ void updateIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -614,7 +614,7 @@ void updateIndexOf(
 void updateIndexOf2(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -622,7 +622,7 @@ void updateIndexOf2(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -632,7 +632,7 @@ void updateIndexOf2(
 void updateLastIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -640,7 +640,7 @@ void updateLastIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -650,7 +650,7 @@ void updateLastIndexOf(
 void updateEndsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -658,7 +658,7 @@ void updateEndsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -668,7 +668,7 @@ void updateEndsWith(
 void updateStartsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -676,7 +676,7 @@ void updateStartsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -686,7 +686,7 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -695,7 +695,7 @@ void updateReplace(
 
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, found, languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -705,7 +705,7 @@ void updateReplace(
 void updateReplaceAll(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-	int found = findTokens(tokens, 0, languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -713,7 +713,7 @@ void updateReplaceAll(
 		formatOPByRewriter(op, rewriterStrMap);
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, found, languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -724,7 +724,7 @@ void updateSubstring(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap) {
 
-	int found = findTokens(tokens, 0, languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -759,7 +759,7 @@ void updateSubstring(
 		for (int i = startAssignment; i < (int)tokens.size(); ++i){
 			if (i == found - 1){
 				std::vector<std::pair<std::string, int>> tmpx;
-				switch (languageVersion) {
+				switch (config.languageVersion) {
 				case 20:
 				case 25:
 					tmpx = parseTerm20(tokens[i].first);
@@ -783,7 +783,7 @@ void updateSubstring(
 		tokens.clear();
 		tokens = tmp;
 
-		found = findTokens(tokens, 0, languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -791,14 +791,14 @@ void updateSubstring(
  * ToUpper --> len = len
  */
 void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
-	int found = findTokens(tokens, 0, languageMap[TOUPPER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[TOUPPER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
 
 		tokens = replaceTokens(tokens, found - 1, pos, op.args[0].toString(), antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, pos, languageMap[TOUPPER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, pos, config.languageMap[TOUPPER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -806,14 +806,14 @@ void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
  * ToLower --> len = len
  */
 void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
-	int found = findTokens(tokens, 0, languageMap[TOLOWER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[TOLOWER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
 		tokens = replaceTokens(tokens, found - 1, pos, op.args[0].toString(), antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 
-		found = findTokens(tokens, pos, languageMap[TOLOWER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, pos, config.languageMap[TOLOWER], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -823,10 +823,10 @@ void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
  */
 void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace concat --> +
-	int found = findTokens(tokens, 0, languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, found, languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -835,7 +835,7 @@ void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
  */
 void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace Length --> ""
-	int found = findTokens(tokens, 0, languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		std::vector<std::pair<std::string, int>> tmp;
 		for (int i = 0; i < found; ++i)
@@ -846,7 +846,7 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 			tmp.emplace_back(tokens[i]);
 		tokens.clear();
 		tokens = tmp;
-		found = findTokens(tokens, found, languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -869,14 +869,14 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
  * (Str2Reg x)--> x
  */
 void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
-	int found = findTokens(tokens, 0, languageMap[STR2REG], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[STR2REG], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
 		tokens = replaceTokens(tokens, found - 1, pos, op.args[0].toString(), antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 
-		found = findTokens(tokens, pos, languageMap[STR2REG], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, pos, config.languageMap[STR2REG], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -886,7 +886,7 @@ void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -899,7 +899,7 @@ void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &rege
 		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
 
 		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
-		found = findTokens(tokens, pos, languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, pos, config.languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -911,7 +911,7 @@ void updateRegexPlus(
 		int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
-	int found = findTokens(tokens, 0, languageMap[REGEXPLUS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[REGEXPLUS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
@@ -924,7 +924,7 @@ void updateRegexPlus(
 		addingTokens.push_back(std::make_pair(regexPrefix + std::to_string(regexCnt++), antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
 
 		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
-		found = findTokens(tokens, pos, languageMap[REGEXPLUS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, pos, config.languageMap[REGEXPLUS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 }
 
@@ -934,7 +934,7 @@ void updateRegexPlus(
 void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 	// replace CharAt --> select
-	int found = findTokens(tokens, 0, languageMap[CHARAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int found = findTokens(tokens, 0, config.languageMap[CHARAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		StringOP opx = findStringOP(tokens, found);
 		formatOPByRewriter(opx, rewriterStrMap);
@@ -943,7 +943,7 @@ void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
 		std::vector<std::pair<std::string, int>> addingTokens;
 		tokens = replaceTokens(tokens, found - 1, tmp, rewriterStrMap[opx], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 
-		found = findTokens(tokens, found, languageMap[CHARAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[CHARAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
 
 }
@@ -1195,8 +1195,8 @@ std::set<char> getUsedChars(std::string str){
 	std::set<char> result;
 
 	for (unsigned i = 1; i < str.length() - 1; ++i) {
-		if (str[i] == escapeChar) {
-			switch (languageVersion) {
+		if (str[i] == config.escapeChar) {
+			switch (config.languageVersion) {
 				case 25:
 				case 20:
 					if (str[i + 1] == 'a')
@@ -1246,7 +1246,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	}
 
 	std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 		case 20:
 			for (const auto& ch : escapeCharacter20)
 				tobeEncoded.emplace(ch);
@@ -1266,7 +1266,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	bool used[255];
 	memset(used, sizeof used, false);
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(fileName);
@@ -1378,11 +1378,11 @@ void rewriteGRM(std::string s,
 					__debugPrint(logFile, "%d: lhs = %d, rhs = %d, str = %s --> %s (%s) \n", __LINE__, leftParentheses, rightParentheses, components[j].c_str(), tmp.c_str(), constMap[content].c_str());
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + std::string(REGEXSUFFIX) + " () String)\n");
-					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
-													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(config.languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
+													std::string(config.languageMap[REGEXSTAR]) + " (" + std::string(config.languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 
 					if (result.length() > 0)
-						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
+						result = "("  + std::string(config.languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
 					else
 						result = constMap[content] + std::string(REGEXSUFFIX);
 				}
@@ -1392,16 +1392,16 @@ void rewriteGRM(std::string s,
 					std::string tmp = components[j].substr(leftParentheses + 1, rightParentheses - leftParentheses - 1);
 
 					definitions.emplace_back("(declare-fun " + constMap[content] + std::string(REGEXSUFFIX) + " () String)\n");
-					constraints.emplace_back("(assert (" + std::string(languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
-													std::string(languageMap[REGEXSTAR]) + " (" + std::string(languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
+					constraints.emplace_back("(assert (" + std::string(config.languageMap[REGEXIN]) + " " + constMap[content] + std::string(REGEXSUFFIX) + " (" +
+													std::string(config.languageMap[REGEXSTAR]) + " (" + std::string(config.languageMap[STR2REG]) + " \"" + tmp + "\"))))\n");
 					if (result.length() > 0)
-						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
+						result = "("  + std::string(config.languageMap[CONCAT]) + " " + result + " " + constMap[content] + std::string(REGEXSUFFIX) + ")";
 					else
 						result = constMap[content] + std::string(REGEXSUFFIX);
 				}
 				else {
 					if (result.length() > 0)
-						result = "("  + std::string(languageMap[CONCAT]) + " " + result + " " + components[j] + ")";
+						result = "("  + std::string(config.languageMap[CONCAT]) + " " + result + " " + components[j] + ")";
 					else
 						result = components[j];
 				}
@@ -1533,8 +1533,8 @@ void toLengthLine(
 		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::STRING){
 			std::string s = "";
 			for (unsigned j = 1; j < tokens[i].first.length() - 1; ++j) {
-				if (tokens[i].first[j] == escapeChar){
-					switch (languageVersion) {
+				if (tokens[i].first[j] == config.escapeChar){
+					switch (config.languageVersion) {
 					case 20:
 					case 25:
 						if (j + 2 < tokens[i].first.length() && tokens[i].first[j + 1] == 't') {
@@ -1596,10 +1596,10 @@ std::string encodeSpecialChars(std::string constStr){
 	std::string strTmp = "";
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
-		switch (languageVersion) {
+		switch (config.languageVersion) {
 			case 25:
 			case 20:
-				if (constStr[i] == escapeChar) {
+				if (constStr[i] == config.escapeChar) {
 					if (i < constStr.length() - 1) {
 						if (constStr[i + 1] == 'a') {
 							strTmp += ENCODEMAP['\a'];
@@ -1647,7 +1647,7 @@ std::string encodeSpecialChars(std::string constStr){
 					strTmp += constStr[i];
 				break;
 			case 26:
-				if (constStr[i] == escapeChar) {
+				if (constStr[i] == config.escapeChar) {
 					if (i < constStr.length() - 1) {
 						if (constStr[i + 1] == '"'){
 							strTmp += ENCODEMAP['"'];
@@ -1765,9 +1765,9 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 		found = false;
 		unsigned i = 0;
 		while (i < tokens.size()) {
-			if (tokens[i].compare(languageMap[CONCAT]) == 0 ||
-					tokens[i].compare(languageMap[REGEXCONCAT]) == 0 ||
-					tokens[i].compare(languageMap[REGEXUNION]) == 0){
+			if (tokens[i].compare(config.languageMap[CONCAT]) == 0 ||
+					tokens[i].compare(config.languageMap[REGEXCONCAT]) == 0 ||
+					tokens[i].compare(config.languageMap[REGEXUNION]) == 0){
 				/* count the number of str */
 				unsigned endPos = 0;
 				std::vector<std::vector<std::string>> args = collectArgs(
@@ -1814,7 +1814,7 @@ std::vector<std::string> rewriteLeftAssociationConstraints(std::vector<std::stri
 std::pair<int, long> getAllInt(std::string inputFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(inputFile);
@@ -1940,7 +1940,7 @@ std::vector<std::string> getParameters(std::vector<std::vector<std::pair<std::st
 ConstraintSet getConstraints(std::string inputFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
 	ConstraintSet result;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(inputFile);
@@ -1976,8 +1976,8 @@ ConstraintSet getConstraints(std::string inputFile){
 
 						if (intVars.find(eqArgs.first) != intVars.end() ||
 								intVars.find(eqArgs.second) != intVars.end() ||
-								eqArgs.first.find("( " + languageMap[LENGTH]) == 0 ||
-								eqArgs.second.find("( " + languageMap[LENGTH]) == 0 ||
+								eqArgs.first.find("( " + config.languageMap[LENGTH]) == 0 ||
+								eqArgs.second.find("( " + config.languageMap[LENGTH]) == 0 ||
 								(eqArgs.first[0] >= '1' && eqArgs.first[0] <= '9') ||
 								(eqArgs.second[0] >= '1' && eqArgs.second[0] <= '9') ||
 								eqArgs.first.find("( +") == 0 ||
@@ -2005,9 +2005,9 @@ ConstraintSet getConstraints(std::string inputFile){
 					}
 					else {
 						/* regex */
-						if (i + 2 < tokens.size() && tokens[i + 1].first.compare(languageMap[REGEXIN]) == 0){
+						if (i + 2 < tokens.size() && tokens[i + 1].first.compare(config.languageMap[REGEXIN]) == 0){
 							std::pair<std::string, std::string> eqArgs = getParameters(tokens, i + 2);
-							result.regularConstraints.emplace("(" + languageMap[REGEXIN] + " " + eqArgs.first + " " + eqArgs.second + ")");
+							result.regularConstraints.emplace("(" + config.languageMap[REGEXIN] + " " + eqArgs.first + " " + eqArgs.second + ")");
 						}
 					}
 				}
@@ -2033,7 +2033,7 @@ ConstraintSet getConstraints(std::string inputFile){
  */
 void encodeSpecialChars(std::string inputFile, std::string outFile){
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(inputFile);
@@ -2066,12 +2066,12 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 
 		for (const auto& token : tokens) {
 			if (token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_GET_MODEL) { /* get model */
-				getModel = true;
+				config.getModel = true;
 				add = false;
 				break;
 			}
 			if (token.second == antlrcpptest::SMTLIB26Lexer::TOKEN_CMD_GET_VALUE) {
-				getModel = true;
+				config.getModel = true;
 				add = false;
 				break;
 			}
@@ -2125,7 +2125,7 @@ std::string encodeHex(std::string constStr){
 void encodeHex(std::string inputFile, std::string outFile){
 	__debugPrint(logFile, "%d *** %s ***: %s -> %s\n", __LINE__, __FUNCTION__, inputFile.c_str(), outFile.c_str());
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(inputFile);
@@ -2230,7 +2230,7 @@ void toLengthFile(
 	defineIntVars(rewriterStrMap, carryOnConstraints, smtVarDefinition);
 	std::vector<std::vector<std::string>> newtokens;
 	std::vector<std::vector<std::pair<std::string, int>>> fileTokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		fileTokens = parseFile20(inputFile);
@@ -2261,7 +2261,7 @@ std::string decodeStr(std::string s){
 	std::string tmp = "";
 	for (unsigned i = 0 ; i < s.size(); ++i) {
 		tmp += s[i];
-		switch (languageVersion) {
+		switch (config.languageVersion) {
 			case 20:
 			case 25:
 				if (s[i] == '\\' && i + 1 < s.size() && s[i + 1] == '\\')
@@ -2278,7 +2278,7 @@ std::string decodeStr(std::string s){
 
 	for (unsigned i = 0; i < s.length(); ++i){
 		if (DECODEMAP.find(s[i]) != DECODEMAP.end()){
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 			case 20:
 			case 25:
 				if ((char)DECODEMAP[s[i]] != '\t')

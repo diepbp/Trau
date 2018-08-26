@@ -10,6 +10,7 @@
 
 #include "Regex.h"
 #include "UnderApprox.h"
+#include "Config.h"
 
 #define ARITH 0
 //#define PARIKH 1
@@ -114,21 +115,13 @@ typedef struct _AutomatonStringData
  };
 
 
- extern std::string inputFile;
- extern std::string inputFile_converted;
-
  extern std::map<std::string, int> variables;
  extern std::vector<std::vector<int>> graph;
- extern std::map<std::string, std::vector<std::string>> ourGrm;
-
  extern int value_count;
  extern int sLevel;
  extern Z3_ast emptyConstStr;
-
  extern const std::string escapeDict[];
-
  extern int numOfFlats;
- extern bool skipOverapprox;
  extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
  extern std::map<Z3_ast, std::vector<Z3_ast>> concrete_value_Map;
  extern std::map<Z3_ast, int> lang_value_Map;
@@ -138,12 +131,8 @@ typedef struct _AutomatonStringData
  extern std::set<Z3_ast> inputVarInLen;
  extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
  extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
- extern std::map<int, std::string> languageMap;
- extern char escapeChar;
- extern std::string verifyingSolver;
- extern bool aggresiveBoolRefinement;
- extern bool prioritySearch;
- extern bool lazySearch;
+
+ extern Config config;
 
  static std::map<std::string, std::set<char>> charSet;
  static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;

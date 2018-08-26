@@ -10,20 +10,16 @@
 
 #include "Arrangement.h"
 #include "FileConverter.h"
+#include "Config.h"
 
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
 #define REGEX_BOUND 10
 
-extern std::string orgInput;
-extern bool getModel;
-extern bool beReviewed;
 extern bool unknownResult;
-extern std::map<int, std::string> languageMap;
-extern int languageVersion;
-extern std::string verifyingSolver;
-extern bool prioritySearch;
+
+extern Config config;
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, std::vector<std::vector<std::string>>> fullEqualitiesMap;

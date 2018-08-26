@@ -671,7 +671,7 @@ bool canSkipNotContain(
 	for (const auto& var : equalitiesMap)
 			for (const auto& _eq : var.second) {
 				if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
-					StringOP opTmp(languageMap[CONTAINS], var.first, arg);
+					StringOP opTmp(config.languageMap[CONTAINS], var.first, arg);
 					if (rewriterStrMap[opTmp].compare(FALSETR) == 0) {
 						__debugPrint(logFile, "%d *** %s ***: Contains - %s - %s\n", __LINE__, __FUNCTION__, v.c_str(), arg.c_str());
 						return true;
@@ -1078,8 +1078,8 @@ std::string create_constraints_equal(
 		return createEqualConstraint(len01, std::to_string((int)str00.length() - 2));
 	}
 	else {
-		bool concat00 = str00.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
-		bool concat01 = str01.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
+		bool concat00 = str00.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
 		if (!concat00 && !concat01) {
 			/* x = y */
 
@@ -1096,7 +1096,7 @@ std::string create_constraints_equal(
 				str01 = tmp;
 			}
 			std::vector<std::pair<std::string, int>> tokens;
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 			case 20:
 			case 25:
 				tokens = parseTerm20(str01);
@@ -1111,7 +1111,7 @@ std::string create_constraints_equal(
 			}
 			std::string tmp = "";
 			for (const auto& s : tokens)
-				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(languageMap[CONCAT]) != 0) {
+				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(config.languageMap[CONCAT]) != 0) {
 					if (s.first[0] != '"')
 						tmp = tmp + generateVarLength(s.first) + " ";
 					else
@@ -1182,8 +1182,8 @@ std::string create_constraints_NOTEqual(
 
 	}
 	else {
-		bool concat00 = str00.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
-		bool concat01 = str01.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
+		bool concat00 = str00.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
 		if (!concat00 && !concat01) {
 			/* x != y */
 
@@ -1295,18 +1295,18 @@ void handle_NOTContains(
 	}
 
 	for (const auto& element : rewriterStrMap){
-		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
+		if (element.first.name.compare(config.languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
-				if (element.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[REPLACE]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[REPLACE]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[TOUPPER]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[TOUPPER]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[TOLOWER]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[TOLOWER]) != std::string::npos ||
+				if (element.first.args[0].name.find(config.languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[TOLOWER]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[TOLOWER]) != std::string::npos ||
 						element.first.args[1].name.find("Automata") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.args[0].toString(), element.first.args[1].toString(), rewriterStrMap)){
@@ -1368,7 +1368,7 @@ void handle_StartsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[STARTSWITH]) == 0){
 			global_smtStatements.push_back({create_constraints_StartsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1381,7 +1381,7 @@ void handle_EndsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[ENDSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[ENDSWITH]) == 0){
 			global_smtStatements.push_back({create_constraints_EndsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1393,7 +1393,7 @@ void handle_EndsWith(
  */
 void handle_Replace(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[REPLACE]) == 0){
+		if (s.first.name.compare(config.languageMap[REPLACE]) == 0){
 		}
 	}
 }
@@ -1418,7 +1418,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 	}
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[REPLACEALL]) == 0){
+		if (s.first.name.compare(config.languageMap[REPLACEALL]) == 0){
 			std::vector<std::string> args = {s.first.args[0].toString(), s.first.args[1].toString(), s.first.args[2].toString()};
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
@@ -1429,7 +1429,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare(languageMap[TOUPPER]) == 0){
+		if (s.second.compare(config.languageMap[TOUPPER]) == 0){
 			global_smtStatements.push_back({create_constraints_ToUpper(s.first.args[0].toString(), s.first.args[1].toString())});
 		}
 	}
@@ -1440,7 +1440,7 @@ void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare(languageMap[TOLOWER]) == 0){
+		if (s.second.compare(config.languageMap[TOLOWER]) == 0){
 			global_smtStatements.push_back({create_constraints_ToLower(s.first.args[0].name, s.first.args[1].name)});
 		}
 	}
@@ -1944,7 +1944,7 @@ std::vector<std::string> createSatisfyingAssignments(
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
 			if (tokens[1].substr(0, std::string(LENPREFIX).length()).compare(LENPREFIX) == 0) {
 				std::string tmp = def.substr(std::string(LENPREFIX).length());
-				additionalAssertions.emplace_back("(assert (= (" + std::string(languageMap[LENGTH]) + " " + tokens[1].substr(std::string(LENPREFIX).length()) +") " + value + "))\n");
+				additionalAssertions.emplace_back("(assert (= (" + std::string(config.languageMap[LENGTH]) + " " + tokens[1].substr(std::string(LENPREFIX).length()) +") " + value + "))\n");
 			}
 			else {
 				if (value[0] != '-')
@@ -2368,7 +2368,7 @@ void addToConnectedVar(StringOP op, std::map<std::string, int> &connectedVarSet,
 			 connectedVarSet[op.name] = std::max(length, connectedVarSet[op.name]);
 		 __debugPrint(logFile, ">> %d connectedVarSet @ %s: %d\n", __LINE__, op.name.c_str(),  connectedVarSet[op.name]);
 	 }
-	 else if (op.name.compare(languageMap[CONCAT]) == 0){
+	 else if (op.name.compare(config.languageMap[CONCAT]) == 0){
 		 for (unsigned i = 0 ; i < op.args.size(); ++i)
 			 addToConnectedVar(op.args[i], connectedVarSet, length);
 	 }
@@ -2456,19 +2456,19 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* from rewriterMap */
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[CHARAT]) == 0 ||
-				s.first.name.compare(languageMap[STARTSWITH]) == 0 ||
-				s.first.name.compare(languageMap[ENDSWITH]) == 0 ||
-				s.first.name.compare(languageMap[REPLACE]) == 0 ||
-				s.first.name.compare(languageMap[REPLACEALL]) == 0 ||
-				(s.first.name.compare(languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
-				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(languageMap[TOUPPER]) == 0 || s.second.compare(languageMap[TOLOWER]) == 0))){
+		if (s.first.name.compare(config.languageMap[CHARAT]) == 0 ||
+				s.first.name.compare(config.languageMap[STARTSWITH]) == 0 ||
+				s.first.name.compare(config.languageMap[ENDSWITH]) == 0 ||
+				s.first.name.compare(config.languageMap[REPLACE]) == 0 ||
+				s.first.name.compare(config.languageMap[REPLACEALL]) == 0 ||
+				(s.first.name.compare(config.languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
+				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(config.languageMap[TOUPPER]) == 0 || s.second.compare(config.languageMap[TOLOWER]) == 0))){
 			StringOP op = s.first;
 
 //			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-					s.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+			if (s.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+					s.first.args[1].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
 					s.first.args[1].name.find("Automata") != std::string::npos )
 				continue;
 
@@ -2509,7 +2509,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				}
 			}
 
-			if (s.first.name.compare(languageMap[CHARAT]) == 0){
+			if (s.first.name.compare(config.languageMap[CHARAT]) == 0){
 				if (s.first.args[0].name[0] != '\"') {
 					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
 					addToConnectedVar(s.first.args[0], connectedVarSet, connectingSize);
@@ -2519,7 +2519,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 			/* add all variables to the connected var set*/
 			if (s.first.args[0].name[0] != '\"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(config.languageMap[STARTSWITH]) == 0) {
 					if (s.first.args[1].name[0] == '"')
 						addToConnectedVar(s.first.args[0], connectedVarSet, s.first.args[1].name.length() - 2);
 					else
@@ -2531,7 +2531,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			}
 
 			if (s.first.args[1].name[0] != '"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(config.languageMap[STARTSWITH]) == 0) {
 					if (s.first.args[0].name[0] == '"')
 						addToConnectedVar(s.first.args[1], connectedVarSet, s.first.args[0].name.length() - 2);
 					else
@@ -4144,7 +4144,7 @@ std::string findEqValueInConcat(
 		std::string concat,
 		std::map<std::string, int> len){
 	std::vector<std::pair<std::string, int>> tokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
 	case 25:
 		tokens = parseTerm20(concat);
@@ -4169,7 +4169,7 @@ std::string findEqValueInConcat(
 					return "";
 			}
 		}
-		else if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0 &&
+		else if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(config.languageMap[CONCAT]) != 0 &&
 				getVarLength(token.first, len) > 0) {
 			if (ret.length() == 0)
 				ret = token.first;
@@ -4192,7 +4192,7 @@ std::map<std::string, int> createSimpleEqualMap(
 	for (const auto& op : equalities){
 		std::string arg01 = op.args[0].toString();
 		std::string arg02 = op.args[1].toString();
-		if (op.args[1].name.compare(languageMap[CONCAT]) == 0){
+		if (op.args[1].name.compare(config.languageMap[CONCAT]) == 0){
 			arg02 = findEqValueInConcat(arg02, len);
 		}
 
@@ -4256,12 +4256,12 @@ std::vector<std::string> findEqualVar(
 		for (const auto& op : equalities) {
 			std::string arg01 = op.args[0].toString();
 			std::string arg02 = op.args[1].toString();
-			assert(arg01.find("(" + std::string(languageMap[CONCAT])) != 0);
+			assert(arg01.find("(" + std::string(config.languageMap[CONCAT])) != 0);
 
 			if (arg01.compare(varName) == 0) {
 				if (std::find(ret.begin(), ret.end(), arg02) == ret.end()) {
 					/* x = concat y z and |z| = 0 */
-					if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
+					if (arg02.find("(" + std::string(config.languageMap[CONCAT])) == 0){
 						__debugPrint(logFile, "%d varname: %s\n", __LINE__, varName.c_str());
 						std::string tmp = findEqValueInConcat(arg02, len);
 						if (tmp.length() > 0 && std::find(ret.begin(), ret.end(), tmp) == ret.end()) {
@@ -4285,7 +4285,7 @@ std::vector<std::string> findEqualVar(
 				/* y = concat x z and |z| = 0 */
 				else if (std::find(ret.begin(), ret.end(), arg01) == ret.end() &&
 						arg02.find(varName) != std::string::npos) {
-					if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
+					if (arg02.find("(" + std::string(config.languageMap[CONCAT])) == 0){
 						std::string tmp = findEqValueInConcat(arg02, len);
 						if (tmp.compare(varName) == 0) {
 							__debugPrint(logFile, "%d adding %s\n", __LINE__, arg01.c_str());
@@ -4333,10 +4333,10 @@ bool findExistsingValue(
 		__debugPrint(logFile, "%d not found value %s yet\n", __LINE__, varName.c_str());
 		/* find value from Concat */
 		for (const auto& op : equalities){
-			if (op.args[1].name.find(std::string(languageMap[CONCAT])) == 0 &&
+			if (op.args[1].name.find(std::string(config.languageMap[CONCAT])) == 0 &&
 					std::find(eqVar.begin(), eqVar.end(), op.args[0].toString()) == eqVar.end()){
 				std::vector<std::pair<std::string, int>> tokens;
-				switch (languageVersion) {
+				switch (config.languageVersion) {
 				case 20:
 				case 25:
 					tokens = parseTerm20(op.args[1].toString());
@@ -4351,7 +4351,7 @@ bool findExistsingValue(
 				}
 				std::vector<std::string> tmpTokens;
 				for (const auto& token : tokens)
-					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0)
+					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(config.languageMap[CONCAT]) != 0)
 						tmpTokens.emplace_back(token.first);
 				unsigned pos = 0;
 				std::vector<int> tmpVal = getVarValue(op.args[0].toString(), len, strValue);
@@ -4424,31 +4424,31 @@ void formatOtherVars(
 				op.first.args[0].name.find("\"") == std::string::npos){
 			StringOP _op("=", op.first.args[0], op.first.args[1]);
 
-			if (op.first.args[1].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[SUBSTRING]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[SUBSTRING]) != std::string::npos)
 				continue;
 
-			if (op.first.args[1].toString().find(languageMap[REPLACE]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[REPLACE]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[REPLACE]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[REPLACE]) != std::string::npos)
 				continue;
 
-			if (op.first.args[1].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[REPLACEALL]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[REPLACEALL]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].args.size() > 0 && op.first.args[0].name.compare(languageMap[CONCAT]) != 0)
+			if (op.first.args[0].args.size() > 0 && op.first.args[0].name.compare(config.languageMap[CONCAT]) != 0)
 				continue;
 
-			if (op.first.args[1].args.size() > 0 && op.first.args[1].name.compare(languageMap[CONCAT]) != 0)
+			if (op.first.args[1].args.size() > 0 && op.first.args[1].name.compare(config.languageMap[CONCAT]) != 0)
 				continue;
 
-			if (op.first.args[0].name.find(std::string(languageMap[CONCAT])) == 0) {
+			if (op.first.args[0].name.find(std::string(config.languageMap[CONCAT])) == 0) {
 				_op.setArgs({op.first.args[1], op.first.args[0]});
 			}
 			equalities.emplace_back(_op);
@@ -4747,7 +4747,7 @@ std::map<std::string, std::string> formatResult(
 		}
 		std::string tmp = "";
 		for (unsigned i = 0; i < value.length(); ++i) {
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 				case 20:
 				case 25:
 					if (value[i] == '"')
@@ -4895,12 +4895,12 @@ bool Z3_run(
 	pclose(in);
 
 	/* collect length of all string variables*/
-	std::string lengthFile = std::string(TMPDIR) + "/" + WITHLENGH + getFileNameFromFileDir(orgInput);
+	std::string lengthFile = std::string(TMPDIR) + "/" + WITHLENGH + getFileNameFromFileDir(config.orgInput);
 #ifdef PRINTTEST_UNDERAPPROX
 	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 
-	if (sat && getModel) {
+	if (sat && config.getModel) {
 		bool completion = true;
 		std::map<std::string, std::string> results = formatResult(len_results, str_results, completion);
 		if (completion == false)
@@ -4911,11 +4911,11 @@ bool Z3_run(
 		return false;
 #endif
 		printSatisfyingAssignments(decodeResultMap(results), len_results);
-		if (beReviewed) {
+		if (config.beReviewed) {
 			/* read & copy the input file */
-			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
+			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(config.orgInput);
 			addConstraintsToSMTFile(nonGrm, _equalMap, createSatisfyingAssignments(_equalMap, len_results, results), lengthFile);
-			verifyResult(languageVersion, lengthFile, verifyingSolver, true);
+			verifyResult(config.languageVersion, lengthFile, config.verifyingSolver, true);
 		}
 		else {
 			sat = true;
@@ -5001,10 +5001,10 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 	for (const auto& s : _carryOnConstraints){
 		std::string tmp = s;
 		while (true){
-			size_t pos = tmp.find("(" + std::string(languageMap[LENGTH]) + " ");
+			size_t pos = tmp.find("(" + std::string(config.languageMap[LENGTH]) + " ");
 			if (pos != std::string::npos){
 				std::string _tmp = tmp.substr(0, pos) + LENPREFIX;
-				for (unsigned i = pos + std::string(languageMap[LENGTH]).length() + 2; i < tmp.length(); ++i)
+				for (unsigned i = pos + std::string(config.languageMap[LENGTH]).length() + 2; i < tmp.length(); ++i)
 					if (tmp[i] != ')')
 						_tmp = _tmp + tmp[i];
 					else {
@@ -5083,7 +5083,7 @@ void addConnectedVarToEQmap(){
  */
 void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
-		if (op.first.name.compare(languageMap[CONTAINS]) == 0 && op.second.compare(FALSETR) == 0){
+		if (op.first.name.compare(config.languageMap[CONTAINS]) == 0 && op.second.compare(FALSETR) == 0){
 			std::string arg02 = op.first.args[1].name;
 			if (arg02[0] == '"') {
 				notContainMap[std::make_pair(op.first.args[0].toString(), arg02.substr(1, arg02.length() - 2))] = false;
@@ -5377,7 +5377,7 @@ void setupDefaultChar(){
  */
 void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	for (const auto& op : rewriterStrMap)
-		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
+		if (op.first.name.compare(config.languageMap[SUBSTRING]) == 0)
 			createAnyway = false;
 
 	createNotContainMap(rewriterStrMap);
@@ -5540,9 +5540,9 @@ void updateRewriter(
 		if (allVariables.find(op.first.args[0].toString()) != allVariables.end() ||
 				allVariables.find(op.first.args[1].toString()) != allVariables.end() ||
 				(op.first.args.size() < 3 || allVariables.find(op.first.args[2].toString()) != allVariables.end()) ||
-				op.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-				op.first.args[0].name.find(languageMap[INDEXOF]) != std::string::npos ||
-				op.first.args[1].name.find(languageMap[INDEXOF]) != std::string::npos)
+				op.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+				op.first.args[0].name.find(config.languageMap[INDEXOF]) != std::string::npos ||
+				op.first.args[1].name.find(config.languageMap[INDEXOF]) != std::string::npos)
 			newRewriterStrMap[op.first] = op.second;
 		else {
 			StringOP tmp = op.first;
@@ -5581,8 +5581,8 @@ bool underapproxController(
 		bool &_lazy,
 		bool wellForm) {
 	printf("\nRunning Under Approximation\n");
-	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(orgInput);
-	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(orgInput);
+	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(config.orgInput);
+	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(config.orgInput);
 	/* init varLength */
 	clock_t t;
 	t = clock();
@@ -5675,7 +5675,7 @@ bool underapproxController(
 	}
 
 	if (result == false) {
-		if (lazy == true && !prioritySearch) {
+		if (lazy == true && !config.prioritySearch) {
 			_lazy = false;
 			/* save underapprox state */
 			underapproxController(

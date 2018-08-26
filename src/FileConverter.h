@@ -10,16 +10,12 @@
 
 #include <regex>
 #include "Utils.h"
-
+#include "Config.h"
 
 static std::map<char, char> ENCODEMAP;
-
 static std::map<char, char> DECODEMAP;
 static int intVar = 0;
-extern bool getModel;
-extern std::map<int, std::string> languageMap;
-extern int languageVersion;
-extern char escapeChar;
+extern Config config;
 
 template< typename T >
 std::string int_to_hex( T i );

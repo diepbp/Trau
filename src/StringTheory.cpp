@@ -108,7 +108,6 @@ std::map<StringOP, StringOP> internalVarFunctionMap;
 
 std::vector<std::pair<std::pair<Z3_ast, Z3_ast>, int>> disequalityList;
 extern ConstraintSet constraintSet;
-extern bool printingConstraints;
 
 const std::string escapeDict[] = { "\\x00", "\\x01", "\\x02", "\\x03", "\\x04", "\\x05", "\\x06", "\\x07", "\\x08", "\\t", "\\n", "\\x0b", "\\x0c",
 		"\\r", "\\x0e", "\\x0f", "\\x10", "\\x11", "\\x12", "\\x13", "\\x14", "\\x15", "\\x16", "\\x17", "\\x18", "\\x19", "\\x1a", "\\x1b", "\\x1c",
@@ -578,7 +577,7 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 				case 20:
 				case 25:
 					if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
@@ -597,7 +596,7 @@ std::string getConstString(Z3_theory t, Z3_ast node){
 		std::string s = "";
 		for (unsigned i = 0 ; i < tmp.size(); ++i) {
 			s+= tmp[i];
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 			case 20:
 			case 25:
 				if (tmp[i] == '\\' && i != tmp.size() - 1 && tmp[i + 1] == '\\')
@@ -937,7 +936,7 @@ Z3_ast registerContain(Z3_theory t, Z3_ast str, Z3_ast subStr) {
 #endif
 
 	addContainRelation(t, str, subStr, containPairBoolMap[key]);
-	if (printingConstraints)
+	if (config.printingConstraints)
 		constraintSet.otherConstraints.emplace(createEqualConstraint(node_to_string(t, containPairBoolMap[key]), createContainConstraint(node_to_string(t, tmpStr), node_to_string(t, tmpSubStr))));
 	return containPairBoolMap[key];
 }
@@ -1107,60 +1106,60 @@ StringOP node_to_stringOP(Z3_theory t, Z3_ast node) {
 			ret.setName("or");
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[CONCAT]) != std::string::npos) {
-			ret.setName(languageMap[CONCAT]);
+		else if (typeStr.find("declare-fun " + config.languageMap[CONCAT]) != std::string::npos) {
+			ret.setName(config.languageMap[CONCAT]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[INDEXOF2]) != std::string::npos) {
-			ret.setName(languageMap[INDEXOF2]);
+		else if (typeStr.find("declare-fun " + config.languageMap[INDEXOF2]) != std::string::npos) {
+			ret.setName(config.languageMap[INDEXOF2]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[INDEXOF]) != std::string::npos) {
-			ret.setName(languageMap[INDEXOF]);
+		else if (typeStr.find("declare-fun " + config.languageMap[INDEXOF]) != std::string::npos) {
+			ret.setName(config.languageMap[INDEXOF]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[CONTAINS]) != std::string::npos) {
-			ret.setName(languageMap[CONTAINS]);
+		else if (typeStr.find("declare-fun " + config.languageMap[CONTAINS]) != std::string::npos) {
+			ret.setName(config.languageMap[CONTAINS]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[SUBSTRING]) != std::string::npos) {
-			ret.setName(languageMap[SUBSTRING]);
+		else if (typeStr.find("declare-fun " + config.languageMap[SUBSTRING]) != std::string::npos) {
+			ret.setName(config.languageMap[SUBSTRING]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[LASTINDEXOF]) != std::string::npos) {
-			ret.setName(languageMap[LASTINDEXOF]);
+		else if (typeStr.find("declare-fun " + config.languageMap[LASTINDEXOF]) != std::string::npos) {
+			ret.setName(config.languageMap[LASTINDEXOF]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[STARTSWITH]) != std::string::npos) {
-			ret.setName(languageMap[STARTSWITH]);
+		else if (typeStr.find("declare-fun " + config.languageMap[STARTSWITH]) != std::string::npos) {
+			ret.setName(config.languageMap[STARTSWITH]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[ENDSWITH]) != std::string::npos) {
-			ret.setName(languageMap[ENDSWITH]);
+		else if (typeStr.find("declare-fun " + config.languageMap[ENDSWITH]) != std::string::npos) {
+			ret.setName(config.languageMap[ENDSWITH]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[REPLACEALL]) != std::string::npos) {
-			ret.setName(languageMap[REPLACEALL]);
+		else if (typeStr.find("declare-fun " + config.languageMap[REPLACEALL]) != std::string::npos) {
+			ret.setName(config.languageMap[REPLACEALL]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[REPLACE]) != std::string::npos) {
-			ret.setName(languageMap[REPLACE]);
+		else if (typeStr.find("declare-fun " + config.languageMap[REPLACE]) != std::string::npos) {
+			ret.setName(config.languageMap[REPLACE]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[TOLOWER]) != std::string::npos) {
-			ret.setName(languageMap[TOLOWER]);
+		else if (typeStr.find("declare-fun " + config.languageMap[TOLOWER]) != std::string::npos) {
+			ret.setName(config.languageMap[TOLOWER]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[TOUPPER]) != std::string::npos) {
-			ret.setName(languageMap[TOUPPER]);
+		else if (typeStr.find("declare-fun " + config.languageMap[TOUPPER]) != std::string::npos) {
+			ret.setName(config.languageMap[TOUPPER]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[CHARAT]) != std::string::npos) {
-			ret.setName(languageMap[CHARAT]);
+		else if (typeStr.find("declare-fun " + config.languageMap[CHARAT]) != std::string::npos) {
+			ret.setName(config.languageMap[CHARAT]);
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[LENGTH]) != std::string::npos) {
-			ret.setName(languageMap[LENGTH]);
+		else if (typeStr.find("declare-fun " + config.languageMap[LENGTH]) != std::string::npos) {
+			ret.setName(config.languageMap[LENGTH]);
 			return ret;
 		}
 
@@ -1252,60 +1251,60 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 					ret = "(not" + ret + ")";
 					return ret;
 				}
-		else if (typeStr.find("declare-fun " + languageMap[CONCAT]) != std::string::npos) {
-			ret = "(" + languageMap[CONCAT] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[CONCAT]) != std::string::npos) {
+			ret = "(" + config.languageMap[CONCAT] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[INDEXOF2]) != std::string::npos) {
-			ret = "(" + languageMap[INDEXOF2] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[INDEXOF2]) != std::string::npos) {
+			ret = "(" + config.languageMap[INDEXOF2] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[INDEXOF]) != std::string::npos) {
-			ret = "(" + languageMap[INDEXOF] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[INDEXOF]) != std::string::npos) {
+			ret = "(" + config.languageMap[INDEXOF] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[CONTAINS]) != std::string::npos) {
-			ret = "(" + languageMap[CONTAINS] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[CONTAINS]) != std::string::npos) {
+			ret = "(" + config.languageMap[CONTAINS] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[SUBSTRING]) != std::string::npos) {
-			ret = "(" + languageMap[SUBSTRING] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[SUBSTRING]) != std::string::npos) {
+			ret = "(" + config.languageMap[SUBSTRING] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[LASTINDEXOF]) != std::string::npos) {
-			ret = "(" + languageMap[LASTINDEXOF] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[LASTINDEXOF]) != std::string::npos) {
+			ret = "(" + config.languageMap[LASTINDEXOF] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[STARTSWITH]) != std::string::npos) {
-			ret = "(" + languageMap[STARTSWITH] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[STARTSWITH]) != std::string::npos) {
+			ret = "(" + config.languageMap[STARTSWITH] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[ENDSWITH]) != std::string::npos) {
-			ret = "(" + languageMap[ENDSWITH] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[ENDSWITH]) != std::string::npos) {
+			ret = "(" + config.languageMap[ENDSWITH] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[REPLACEALL]) != std::string::npos) {
-			ret = "(" + languageMap[REPLACEALL] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[REPLACEALL]) != std::string::npos) {
+			ret = "(" + config.languageMap[REPLACEALL] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[REPLACE]) != std::string::npos) {
-			ret = "(" + languageMap[REPLACE] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[REPLACE]) != std::string::npos) {
+			ret = "(" + config.languageMap[REPLACE] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[TOLOWER]) != std::string::npos) {
-			ret = "(" + languageMap[TOLOWER] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[TOLOWER]) != std::string::npos) {
+			ret = "(" + config.languageMap[TOLOWER] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[TOUPPER]) != std::string::npos) {
-			ret = "(" + languageMap[TOUPPER] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[TOUPPER]) != std::string::npos) {
+			ret = "(" + config.languageMap[TOUPPER] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[CHARAT]) != std::string::npos) {
-			ret = "(" + languageMap[CHARAT] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[CHARAT]) != std::string::npos) {
+			ret = "(" + config.languageMap[CHARAT] + ret + ")";
 			return ret;
 		}
-		else if (typeStr.find("declare-fun " + languageMap[LENGTH]) != std::string::npos) {
-			ret = "(" + languageMap[LENGTH] + ret + ")";
+		else if (typeStr.find("declare-fun " + config.languageMap[LENGTH]) != std::string::npos) {
+			ret = "(" + config.languageMap[LENGTH] + ret + ")";
 			return ret;
 		}
 
@@ -1579,7 +1578,7 @@ std::set<char> collectChars(std::vector<std::string> constStrs) {
 				componentChars.insert(constStrs[i][j]);
 				state = 1;
 			}
-			else if (constStrs[i][j] == escapeChar && state == 1)  {
+			else if (constStrs[i][j] == config.escapeChar && state == 1)  {
 				state = 2;
 			}
 			else {
@@ -1629,63 +1628,63 @@ Z3_theory mk_theory(Z3_context ctx) {
 	Z3_symbol grammarSort_name = Z3_mk_string_symbol(ctx, "Grammar");
 	td->Grammar = Z3_theory_mk_sort(ctx, Th, grammarSort_name);
 
-	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, languageMap[CONCAT].c_str());
+	Z3_symbol concat_name = Z3_mk_string_symbol(ctx, config.languageMap[CONCAT].c_str());
 	Z3_sort concat_domain[2];
 	concat_domain[0] = td->String;
 	concat_domain[1] = td->String;
 	td->Concat = Z3_theory_mk_func_decl(ctx, Th, concat_name, 2, concat_domain, td->String);
 	//---------------------------
-	Z3_symbol length_name = Z3_mk_string_symbol(ctx, languageMap[LENGTH].c_str());
+	Z3_symbol length_name = Z3_mk_string_symbol(ctx, config.languageMap[LENGTH].c_str());
 	Z3_sort length_domain[1];
 	length_domain[0] = td->String;
 	td->Length = Z3_theory_mk_func_decl(ctx, Th, length_name, 1, length_domain, IntSort);
 	//---------------------------
-	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, languageMap[SUBSTRING].c_str());
+	Z3_symbol substring_name = Z3_mk_string_symbol(ctx, config.languageMap[SUBSTRING].c_str());
 	Z3_sort substring_domain[3];
 	substring_domain[0] = td->String;
 	substring_domain[1] = IntSort;
 	substring_domain[2] = IntSort;
 	td->SubString = Z3_theory_mk_func_decl(ctx, Th, substring_name, 3, substring_domain, td->String);
 	//---------------------------
-	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, languageMap[INDEXOF].c_str());
+	Z3_symbol indexof_name = Z3_mk_string_symbol(ctx, config.languageMap[INDEXOF].c_str());
 	Z3_sort indexof_domain[2];
 	indexof_domain[0] = td->String;
 	indexof_domain[1] = td->String;
 	td->Indexof = Z3_theory_mk_func_decl(ctx, Th, indexof_name, 2, indexof_domain, IntSort);
 	//---------------------------
-	Z3_symbol indexof2_name = Z3_mk_string_symbol(ctx, languageMap[INDEXOF2].c_str());
+	Z3_symbol indexof2_name = Z3_mk_string_symbol(ctx, config.languageMap[INDEXOF2].c_str());
 	Z3_sort indexof2_domain[3];
 	indexof2_domain[0] = td->String;
 	indexof2_domain[1] = td->String;
 	indexof2_domain[2] = IntSort;
 	td->Indexof2 = Z3_theory_mk_func_decl(ctx, Th, indexof2_name, 3, indexof2_domain, IntSort);
 	//---------------------------
-	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, languageMap[CONTAINS].c_str());
+	Z3_symbol contains_name = Z3_mk_string_symbol(ctx, config.languageMap[CONTAINS].c_str());
 	Z3_sort contains_domain[2];
 	contains_domain[0] = td->String;
 	contains_domain[1] = td->String;
 	td->Contains = Z3_theory_mk_func_decl(ctx, Th, contains_name, 2, contains_domain, BoolSort);
 	//---------------------------
-	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, languageMap[STARTSWITH].c_str());
+	Z3_symbol startsWith_name = Z3_mk_string_symbol(ctx, config.languageMap[STARTSWITH].c_str());
 	Z3_sort startsWith_domain[2];
 	startsWith_domain[0] = td->String;
 	startsWith_domain[1] = td->String;
 	td->StartsWith = Z3_theory_mk_func_decl(ctx, Th, startsWith_name, 2, startsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, languageMap[ENDSWITH].c_str());
+	Z3_symbol endsWith_name = Z3_mk_string_symbol(ctx, config.languageMap[ENDSWITH].c_str());
 	Z3_sort endsWith_domain[2];
 	endsWith_domain[0] = td->String;
 	endsWith_domain[1] = td->String;
 	td->EndsWith = Z3_theory_mk_func_decl(ctx, Th, endsWith_name, 2, endsWith_domain, BoolSort);
 	//---------------------------
-	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, languageMap[REPLACE].c_str());
+	Z3_symbol replace_name = Z3_mk_string_symbol(ctx, config.languageMap[REPLACE].c_str());
 	Z3_sort replace_domain[3];
 	replace_domain[0] = td->String;
 	replace_domain[1] = td->String;
 	replace_domain[2] = td->String;
 	td->Replace = Z3_theory_mk_func_decl(ctx, Th, replace_name, 3, replace_domain, td->String);
 	//---------------------------
-	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, languageMap[REPLACEALL].c_str());
+	Z3_symbol replaceAll_name = Z3_mk_string_symbol(ctx, config.languageMap[REPLACEALL].c_str());
 	Z3_sort replaceAll_domain[3];
 	replaceAll_domain[0] = td->String;
 	replaceAll_domain[1] = td->String;
@@ -1693,59 +1692,59 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->ReplaceAll = Z3_theory_mk_func_decl(ctx, Th, replaceAll_name, 3, replaceAll_domain, td->String);
 
 	//---------------------------
-	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, languageMap[LASTINDEXOF].c_str());
+	Z3_symbol lastIndexof_name = Z3_mk_string_symbol(ctx, config.languageMap[LASTINDEXOF].c_str());
 	Z3_sort lastIndexof_domain[2];
 	lastIndexof_domain[0] = td->String;
 	lastIndexof_domain[1] = td->String;
 	td->LastIndexof = Z3_theory_mk_func_decl(ctx, Th, lastIndexof_name, 2, lastIndexof_domain, IntSort);
 	//---------------------------
-	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, languageMap[CHARAT].c_str());
+	Z3_symbol charAt_name = Z3_mk_string_symbol(ctx, config.languageMap[CHARAT].c_str());
 	Z3_sort charAt_domain[2];
 	charAt_domain[0] = td->String;
 	charAt_domain[1] = IntSort;
 	td->CharAt = Z3_theory_mk_func_decl(ctx, Th, charAt_name, 2, charAt_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, languageMap[TOUPPER].c_str());
+	Z3_symbol toUpper_name = Z3_mk_string_symbol(ctx, config.languageMap[TOUPPER].c_str());
 	Z3_sort toUpper_domain[1];
 	toUpper_domain[0] = td->String;
 	td->ToUpper = Z3_theory_mk_func_decl(ctx, Th, toUpper_name, 1, toUpper_domain, td->String);
 
 	//---------------------------
-	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, languageMap[TOLOWER].c_str());
+	Z3_symbol toLower_name = Z3_mk_string_symbol(ctx, config.languageMap[TOLOWER].c_str());
 	Z3_sort toLower_domain[1];
 	toLower_domain[0] = td->String;
 	td->ToLower = Z3_theory_mk_func_decl(ctx, Th, toLower_name, 1, toLower_domain, td->String);
 
 	//===========================
 	// Str2Reg := String --> Regex
-	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, languageMap[STR2REG].c_str());
+	Z3_symbol str2Reg_name = Z3_mk_string_symbol(ctx, config.languageMap[STR2REG].c_str());
 	Z3_sort str2Reg_domain[1];
 	str2Reg_domain[0] = td->String;
 	td->Str2Reg = Z3_theory_mk_func_decl(ctx, Th, str2Reg_name, 1, str2Reg_domain, td->Regex);
 	//---------------------------
 	// RegexStar := Regex --> Regex
-	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, languageMap[REGEXSTAR].c_str());
+	Z3_symbol regexStar_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXSTAR].c_str());
 	Z3_sort regexStar_domain[1];
 	regexStar_domain[0] = td->Regex;
 	td->RegexStar = Z3_theory_mk_func_decl(ctx, Th, regexStar_name, 1, regexStar_domain, td->Regex);
 	//---------------------------
 	// RegexIn := String x Regex --> Bool
-	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, languageMap[REGEXIN].c_str());
+	Z3_symbol regexIn_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXIN].c_str());
 	Z3_sort regexIn_domain[2];
 	regexIn_domain[0] = td->String;
 	regexIn_domain[1] = td->Regex;
 	td->RegexIn = Z3_theory_mk_func_decl(ctx, Th, regexIn_name, 2, regexIn_domain, BoolSort);
 	//---------------------------
 	// RegexUnion := Regex x Regex --> Regex
-	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, languageMap[REGEXUNION].c_str());
+	Z3_symbol regexUnion_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXUNION].c_str());
 	Z3_sort regexUnion_domain[2];
 	regexUnion_domain[0] = td->Regex;
 	regexUnion_domain[1] = td->Regex;
 	td->RegexUnion = Z3_theory_mk_func_decl(ctx, Th, regexUnion_name, 2, regexUnion_domain, td->Regex);
 	//---------------------------
 	// RegexConcat := Regex x Regex --> Regex
-	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, languageMap[REGEXCONCAT].c_str());
+	Z3_symbol regexConcat_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXCONCAT].c_str());
 	Z3_sort regexConcat_domain[2];
 	regexConcat_domain[0] = td->Regex;
 	regexConcat_domain[1] = td->Regex;
@@ -1759,30 +1758,30 @@ Z3_theory mk_theory(Z3_context ctx) {
 	td->Unroll = Z3_theory_mk_func_decl(ctx, Th, unrollFunc_name, 2, unrollFunc_domain, td->String);
 	//---------------------------
 	// RegexPlus := Regex --> Regex
-	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, languageMap[REGEXPLUS].c_str());
+	Z3_symbol regexPlus_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXPLUS].c_str());
 	Z3_sort regexPlus_domain[1];
 	regexPlus_domain[0] = td->Regex;
 	td->RegexPlus = Z3_theory_mk_func_decl(ctx, Th, regexPlus_name, 1, regexPlus_domain, td->Regex);
 	//---------------------------
 	// RegexCharRange := String x String --> Regex
-	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, languageMap[REGEXCHARRANGE].c_str());
+	Z3_symbol regexCharRange_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXCHARRANGE].c_str());
 	Z3_sort regexCharRange_domain[2];
 	regexCharRange_domain[0] = td->String;
 	regexCharRange_domain[1] = td->String;
 	td->RegexCharRange = Z3_theory_mk_func_decl(ctx, Th, regexCharRange_name, 2, regexCharRange_domain, td->Regex);
 	//---------------------------
 	// RegexAll--> Regex
-	Z3_symbol regexAll_name = Z3_mk_string_symbol(ctx, languageMap[REGEXALL].c_str());
+	Z3_symbol regexAll_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXALL].c_str());
 	Z3_sort regexAll_domain[0];
 	td->RegexAll = Z3_theory_mk_func_decl(ctx, Th, regexAll_name, 0, regexAll_domain, td->Regex);
 	//---------------------------
 	// RegexAll--> Regex
-	Z3_symbol regexAllChar_name = Z3_mk_string_symbol(ctx, languageMap[REGEXALLCHAR].c_str());
+	Z3_symbol regexAllChar_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXALLCHAR].c_str());
 	Z3_sort regexAllChar_domain[0];
 	td->RegexAllChar = Z3_theory_mk_func_decl(ctx, Th, regexAllChar_name, 0, regexAllChar_domain, td->Regex);
 	//---------------------------
 	// RegexAll--> Regex
-	Z3_symbol regexNone_name = Z3_mk_string_symbol(ctx, languageMap[REGEXNONE].c_str());
+	Z3_symbol regexNone_name = Z3_mk_string_symbol(ctx, config.languageMap[REGEXNONE].c_str());
 	Z3_sort regexNone_domain[0];
 	td->RegexNone = Z3_theory_mk_func_decl(ctx, Th, regexNone_name, 0, regexNone_domain, td->Regex);
 
@@ -2040,7 +2039,7 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 			}
 		}
 	}
-	if (done == true || skipOverapprox == true) {
+	if (done == true || config.skipOverapprox == true) {
 		if (done)
 			__debugPrint(logFile, "%d Completed!\n", __LINE__);
 		return;
@@ -5983,7 +5982,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 	__debugPrint(logFile, "=============================================================\n");
 #endif
 
-	if (printingConstraints)
+	if (config.printingConstraints)
 		done = true;
 
 	calculateConcatLength(t);
@@ -6074,7 +6073,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			replaceAllStrMap.size() == 0 &&
 			replaceStrMap.size() == 0 &&
 			lengthEnable == false &&
-			skipOverapprox == false) {
+			config.skipOverapprox == false) {
 			bool skipQuickSolver = false;
 			for (const auto& n : rewriterStrMap)
 				if (n.first.name.compare("=") == 0 && n.second.compare(TRUESTR) != 0)
@@ -6094,7 +6093,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 //		tryUnderApprox = true;
 		std::set<std::string> _connectedVars;
 		std::set<char> _excludeSet;
-		bool _lazy = lazySearch ? true : false;
+		bool _lazy = config.lazySearch ? true : false;
 		Decision decision = Decision(
 						combinationOverVariables,
 						fullCombinationOverVariables,
@@ -6107,13 +6106,13 @@ Z3_bool Th_final_check(Z3_theory t) {
 				rewriterStrMap,
 				carryOnConstraints,
 				initLength,
-				inputFile,
+				config.inputFile,
 				_connectedVars,
 				_excludeSet,
 				_lazy,
 				false)) {
 			__debugPrint(logFile, "%d >> do not sat\n", __LINE__);
-			if (_lazy && prioritySearch) {
+			if (_lazy && config.prioritySearch) {
 				decisions.emplace_back(decision);
 				__debugPrint(logFile, "%d >> save the search\n", __LINE__);
 			}
@@ -6138,7 +6137,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			else {
 				/**/
 				Z3_ast negation;
-				if (aggresiveBoolRefinement) {
+				if (config.aggresiveBoolRefinement) {
 					/* refine boolVars */
 					std::set<Z3_ast> selectedBoolVars;
 					for (const auto& boolVar : boolVars) {
@@ -7930,7 +7929,7 @@ std::string createGenericLanguage(Z3_theory t, Z3_ast node) {
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::set<char> subCharSet = charSet[Z3_ast_to_string(ctx, tmpVariableNode)];
 
-	if (ourGrm.size() > 0) {
+	if (config.ourGrm.size() > 0) {
 		for (int i = '0'; i <= '9'; ++i)
 			subCharSet.insert(i);
 		for (int i = 'A'; i <= 'Z'; ++i)
@@ -8128,7 +8127,7 @@ bool collectContainValueInPositiveContext(
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP(languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = value;
+			rewriterStrMap[StringOP(config.languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = value;
 			return true;
 		}
 	}
@@ -8286,7 +8285,7 @@ void collectEqualValueInPositiveContext(
 
 	if (//astToString.find("$$") == std::string::npos && /* not internal vars */
 			astToString.find("a!") == std::string::npos && /* not internal vars */
-			astToString.find("(" + std::string(languageMap[LENGTH]) + " ") == std::string::npos && /* not length constraints */
+			astToString.find("(" + std::string(config.languageMap[LENGTH]) + " ") == std::string::npos && /* not length constraints */
 			astToString.find("(= ") != std::string::npos) { /* equality */
 		/* add this constraint */
 		if (astToString.find("(not ") == 0){
@@ -9403,7 +9402,7 @@ std::vector<std::string> lookUp_Grammar(std::string name){
 		printf("%d %s\n", __LINE__, tmpName.c_str());
 		throw std::runtime_error("CFG variable is incorrect\n");
 	}
-	return ourGrm["$" + tmpName.substr(1)];
+	return config.ourGrm["$" + tmpName.substr(1)];
 }
 
 /*
@@ -9723,7 +9722,7 @@ void check(Z3_theory t){
 	if (tryUnderApprox)
 		unknownResult = true;
 
-	if (result != Z3_L_TRUE && prioritySearch == true && decisions.size() > 0){
+	if (result != Z3_L_TRUE && config.prioritySearch == true && decisions.size() > 0){
 		bool resultBool = false;
 		unsigned pos = 0;
 		while (pos < decisions.size()){
@@ -9737,7 +9736,7 @@ void check(Z3_theory t){
 					decisions[pos].rewriterStrMap,
 					decisions[pos].carryOnConstraints,
 					decisions[pos].initLength,
-					inputFile,
+					config.inputFile,
 					_connectedVars,
 					_excludeSet,
 					_lazy,
@@ -9752,7 +9751,7 @@ void check(Z3_theory t){
 
 	if (unknownResult == true && result == Z3_L_FALSE)
 		result = Z3_L_UNDEF;
-	if (printingConstraints){
+	if (config.printingConstraints){
 		printf(">> Arithmetic Constraints\n");
 		for (const auto& s : constraintSet.arithmeticConstraints)
 			printf("%s\n", s.c_str());
@@ -9769,8 +9768,8 @@ void check(Z3_theory t){
 
 	else switch (result) {
 		case Z3_L_FALSE:
-			if (beReviewed) {
-				verifyResult(languageVersion, inputFile, verifyingSolver, false);
+			if (config.beReviewed) {
+				verifyResult(config.languageVersion, config.inputFile, config.verifyingSolver, false);
 			}
 			printf("================================================\n");
 			printf(">> UNSAT\n");
@@ -9797,14 +9796,14 @@ void check(Z3_theory t){
 }
 
 void overApproxController() {
-	if (!printingConstraints)
+	if (!config.printingConstraints)
 		printf("Running Over Approximation\n");
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "***********************************************\n");
 	__debugPrint(logFile, "*              Trau_theory                     *\n");
 	__debugPrint(logFile, "-----------------------------------------------\n");
 #endif
-	if (inputFile_converted == "") {
+	if (config.inputFile_converted == "") {
 		printf("No input file is provided.\n");
 		return;
 	}
@@ -9815,7 +9814,7 @@ void overApproxController() {
 	//  setAlphabet();
 
 	// load cstr from inputFile
-	Z3_ast fs = Z3_parse_smtlib2_file(ctx, inputFile_converted.c_str(), 0, 0, 0, 0, 0, 0);
+	Z3_ast fs = Z3_parse_smtlib2_file(ctx, config.inputFile_converted.c_str(), 0, 0, 0, 0, 0, 0);
 
 	// check input variable. Stop if invalid stuffs are found
 	checkInputVar(Th, fs);
