@@ -6168,7 +6168,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 									break;
 								}
 							if (!found) {
-								__debugPrint(logFile, "%d skipping %s\n", __LINE__, boolVarStr.c_str());
+								__debugPrint(logFile, "%d skipping %s because of %s\n", __LINE__, boolVarStr.c_str(), strValue.c_str());
 								continue;
 							}
 						}
@@ -6188,12 +6188,10 @@ Z3_bool Th_final_check(Z3_theory t) {
 									break;
 								}
 							if (!found) {
-								__debugPrint(logFile, "%d skipping %s\n", __LINE__, boolVarStr.c_str());
+								__debugPrint(logFile, "%d skipping %s because of %s\n", __LINE__, boolVarStr.c_str(), strValue.c_str());
 								continue;
 							}
 						}
-
-
 
 						for (const auto& node : nodes) {
 							std::string nodeStr = node_to_string(t, node);
@@ -8189,25 +8187,23 @@ bool collectIndexOf2ValueInPositiveContext(
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
 
 	for (const auto& it : indexOf2StrMap) {
-		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str());
+
 		if (boolStr.compare(it.second.first) == 0) {
 			if (boolValue) {
-
+				__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str());
 				rewriterStrMap[it.first] = it.second.second.second;
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 
 				if (carryOn.find(boolNode) != carryOn.end()) {
 					__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, carryOn[boolNode]));
-					carryOnConstraints.emplace(
-							Z3_ast_to_string(ctx, carryOn[boolNode]));
+					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 				}
 			} else {
 				rewriterStrMap[it.first] = "(- 1)";
-
+				__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str());
 				if (carryOn.find(boolNode) != carryOn.end()) {
 					__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, Z3_ast_to_string(ctx, carryOn[boolNode]));
-					carryOnConstraints.emplace(
-							Z3_ast_to_string(ctx, carryOn[boolNode]));
+					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 				}
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.second, "(- 1)"));
 			}

@@ -1040,7 +1040,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	}
 
 	andConstraints.emplace_back(createLessEqualConstraint(lenName, std::to_string(size)));
-//	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
 }
@@ -5234,7 +5234,7 @@ void initConnectingSize(bool prep = true){
 		sumConstLength = std::max(sumConstLength, (long) 2);
 		maxInt = std::max(maxInt, 1);
 
-		long tmp = maxInt + sumConstLength * varCount;
+		long tmp = maxInt + sumConstLength + varCount;
 		if (tmp < connectingSize) {
 			connectingSize = tmp;
 		}
@@ -5249,6 +5249,7 @@ void initConnectingSize(bool prep = true){
 			if (v.second == oldConnectingSize)
 				v.second = connectingSize;
 	}
+	__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, connectingSize);
 }
 
 /*
@@ -5338,14 +5339,14 @@ void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap){
 			}
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, s.first.c_str());
 	}
-	for (const auto& s : rewriterStrMap)
-		for (const auto& arg : s.first.args)
-			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
-				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
-				for (unsigned i = 0; i < arg.name.length(); ++i) {
-					excludeCharSet.emplace(arg.name[i]);
-				}
-			}
+//	for (const auto& s : rewriterStrMap)
+//		for (const auto& arg : s.first.args)
+//			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
+//				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
+//				for (unsigned i = 0; i < arg.name.length(); ++i) {
+//					excludeCharSet.emplace(arg.name[i]);
+//				}
+//			}
 }
 
 /*
@@ -5375,14 +5376,51 @@ void setupDefaultChar(){
 /*
  *
  */
+void removeSomeNotContain(std::map<StringOP, std::string> &rewriterStrMap){
+	std::map<StringOP, std::string> newRewriterStrMap;
+	for (const auto& element : rewriterStrMap){
+		bool adding = true;
+		if (element.first.name.compare(config.languageMap[CONTAINS]) == 0){
+			if (element.second.compare(FALSETR) == 0){
+				if (element.first.args[1].name[0] == '"'){
+					for (unsigned i = 1; i < element.first.args[1].name.length() - 1; ++i)
+						if (excludeCharSet.find(element.first.args[1].name[i]) == excludeCharSet.end()) {
+							adding = false;
+							break;
+						}
+					if (!adding) {
+						__debugPrint(logFile, "%d remove %s: %s vs %s\n", __LINE__, __FUNCTION__, element.first.args[0].name.c_str(), element.first.args[1].name.c_str());
+					}
+				}
+			}
+		}
+
+		if (adding) {
+			newRewriterStrMap[element.first] = element.second;
+		}
+	}
+	rewriterStrMap.clear();
+	rewriterStrMap = newRewriterStrMap;
+}
+
+/*
+ *
+ */
 void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
+	clock_t t;
+	t = clock();
 	for (const auto& op : rewriterStrMap)
 		if (op.first.name.compare(config.languageMap[SUBSTRING]) == 0)
 			createAnyway = false;
 
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
+	createConstMap();
+	initIncludeCharSet();
+	initExcludeCharSet(rewriterStrMap);
+	setupDefaultChar();
 
+	removeSomeNotContain(rewriterStrMap);
 
 	initConnectingSize(false);
 	collectConnectedVariables(rewriterStrMap);
@@ -5393,10 +5431,6 @@ void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	collectConnectedVariables(rewriterStrMap);
 	removeConnectedVarIfPossible();
 	addConnectedVarToEQmap();
-	createConstMap();
-	initIncludeCharSet();
-	initExcludeCharSet(rewriterStrMap);
-	setupDefaultChar();
 
 	refineEqualMap(rewriterStrMap);
 
@@ -5404,6 +5438,8 @@ void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	createAppearanceMap();
 	initConnectingSize();
 	removeConnectedVarsIfNotInEqualities();
+	t = clock() - t;
+	__debugPrint(logFile, "%d %s: Init: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 }
 
 /*
