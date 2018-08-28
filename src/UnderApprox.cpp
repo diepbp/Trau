@@ -5339,14 +5339,6 @@ void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap){
 			}
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, s.first.c_str());
 	}
-//	for (const auto& s : rewriterStrMap)
-//		for (const auto& arg : s.first.args)
-//			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
-//				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
-//				for (unsigned i = 0; i < arg.name.length(); ++i) {
-//					excludeCharSet.emplace(arg.name[i]);
-//				}
-//			}
 }
 
 /*
@@ -5363,10 +5355,23 @@ void initIncludeCharSet(){
 			includeCharSet.emplace(i);
 }
 
-void setupDefaultChar(){
+/*
+ *
+ */
+void setupDefaultChar(std::map<StringOP, std::string> rewriterStrMap){
 	defaultChar = 'a';
+	std::set<char> extraFilter;
+	for (const auto& s : rewriterStrMap)
+		for (const auto& arg : s.first.args)
+			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
+				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
+				for (unsigned i = 0; i < arg.name.length(); ++i) {
+					extraFilter.emplace(arg.name[i]);
+				}
+			}
 	for (const auto& ch : includeCharSet)
-		if (excludeCharSet.find(ch) == excludeCharSet.end()) {
+		if (excludeCharSet.find(ch) == excludeCharSet.end() &&
+				extraFilter.find(ch) == extraFilter.end()) {
 			defaultChar = ch;
 			break;
 		}
@@ -5418,7 +5423,7 @@ void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
 	createConstMap();
 	initIncludeCharSet();
 	initExcludeCharSet(rewriterStrMap);
-	setupDefaultChar();
+	setupDefaultChar(rewriterStrMap);
 
 	removeSomeNotContain(rewriterStrMap);
 

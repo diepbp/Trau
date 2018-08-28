@@ -126,7 +126,8 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 /*
  * (implies x) --> (implies false x)
  */
-void updateImplies(std::vector<std::pair<std::string, int>> &tokens);
+void updateImplies(std::vector<std::pair<std::string, int>> &tokens,
+		std::vector<std::string> &smtVarDefinition);
 
 /*
  * (RegexIn ...) --> TRUE

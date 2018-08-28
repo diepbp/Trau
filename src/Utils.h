@@ -529,6 +529,11 @@ std::string createArrayDefinition(std::string x);
 std::string createIntDefinition(std::string x);
 
 /*
+ *
+ */
+std::string createBoolDefinition(std::string x);
+
+/*
  * For all string variables
  * Change var name: xyz --> len_xyz
  * and change var type: string -> int

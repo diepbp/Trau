@@ -412,6 +412,13 @@ std::string createNewIntVar(){
 /*
  *
  */
+std::string createNewBoolVar(){
+	intVar++;
+	return "$$$___boolVar" + std::to_string(intVar);
+}
+/*
+ *
+ */
 std::string getStringFromRegexOP(StringOP op){
 
 	std::string tmp = "";
@@ -487,9 +494,10 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 }
 
 /*
- * (implies x) --> (implies false x)
+ * (implies x) --> (implies bool x)
  */
-void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
+void updateImplies(std::vector<std::pair<std::string, int>> &tokens,
+		std::vector<std::string> &smtVarDefinition){
 	int found = findTokens(tokens, 0, "implies", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int endCond = -1;
@@ -499,11 +507,13 @@ void updateImplies(std::vector<std::pair<std::string, int>> &tokens){
 		else {
 			endCond = found + 1;
 		}
-
-		tokens = replaceTokens(tokens, found + 1, endCond, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
+		std::string tmpVar = createNewBoolVar();
+		smtVarDefinition.push_back(createBoolDefinition(tmpVar));
+		tokens = replaceTokens(tokens, found + 1, endCond, tmpVar, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 
 		found = findTokens(tokens, endCond, "implies", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size()).c_str());
 }
 
 /*
@@ -1557,7 +1567,7 @@ void toLengthLine(
 			}
 			tokens[i].first = "\"" + s + "\"";
 		}
-	updateImplies(tokens);
+	updateImplies(tokens, smtVarDefinition);
 	updateRegexIn(tokens, rewriterStrMap, smtVarDefinition);
 	updateContain(tokens, rewriterStrMap);
 	updateCharAt(tokens, rewriterStrMap);

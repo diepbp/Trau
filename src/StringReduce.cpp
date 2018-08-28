@@ -1194,7 +1194,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 				std::make_pair(boolVar,
 						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
 								node_to_string(t, indexAst)));
-		__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
+		__debugPrint(logFile, "%d %s : = %s %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].first.c_str(), indexOfStrMap[tmpOp].second.first.c_str(),
 																						indexOfStrMap[tmpOp].second.second.c_str());
 		if (!canSkipExt(t, args[1])) {
 			//     args[0]  = x3 . x4
