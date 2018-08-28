@@ -24,8 +24,8 @@ public:
 	char escapeChar = ESCAPECHAR20;
 	int languageVersion = 20;
 	bool aggresiveBoolRefinement = true;
-	bool prioritySearch = false;
-	bool lazySearch = false;
+	bool prioritySearch = true;
+	bool lazySearch = true;
 	std::string verifyingSolver = "";
 	std::string trauVersion = "1.2";
 	bool writeLog = false;
@@ -189,7 +189,7 @@ public:
 			printf("%s ", s.c_str());
 		printf("!\n");
 		printf("\t -grm [..]\t\t\t specify the grammar file.\n");
-		printf("\t -doublecheck 	\t\t use the S3P string solver to double-check satisfying assignments.\n");
+		printf("\t -crosscheck 	\t\t  specify a string solver to either cross-check satisfying assignments produced by Trau if Trau returns SAT, or run with the input test if Trau returns UNSAT. S3 supports SMT2.0 language while CVC4 and Z3str3 support SMT2.5 and SMT2.6.\n");
 
 		printf("\n");
 	}
