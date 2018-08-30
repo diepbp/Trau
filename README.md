@@ -42,9 +42,9 @@ Command-line Usage
 	./Trau [option] fileName
 ```	
 The folllowing options are avaiable:
-- -language [smt2.0 | smt2.5 | smt2.6]: specify the input language. Trau officially supports SMT2.0 (default input language). SMT2.5, SMT2.6 are under the development. 
+- -language [smt2.0 | cvc4 | smt2.6]: specify the input language. Trau officially supports SMT2.0 (default input language). CVC4 language version, SMT2.6 are under the development. 
 - -model: print satisfying assignments if the result is SAT.
-- -crosscheck [s3 | cvc4 | z3str3]: specify a string solver to either cross-check satisfying assignments produced by Trau if Trau returns SAT, or run with the input test if Trau returns UNSAT. S3 supports SMT2.0 language while CVC4 and Z3str3 support SMT2.5 and SMT2.6. Note that, "-crosscheck cvc4" works only if CVC4 is installed and in your PATH.
+- -crosscheck [s3 | cvc4 | z3str3]: specify a string solver to either cross-check satisfying assignments produced by Trau if Trau returns SAT, or run with the input test if Trau returns UNSAT. S3 supports SMT2.0 language while CVC4 and Z3str3 support CVC4 language and SMT2.6. Note that, "-crosscheck cvc4" works only if CVC4 is installed and in your PATH.
 - -grm grammarFile: specify a grammar file.
 
 Running Example(s)

@@ -33,7 +33,7 @@ public:
 	std::map<int, std::string> languageMap = languageMap20;
 	std::map<std::string, std::vector<std::string>> ourGrm;
 
-	const std::vector<std::string> supportedLanguage = {"SMT2.0", "SMT2.5", "SMT2.6", "2.6","2.0", "2.5", "smt2.6","smt2.0", "smt2.5", "20", "25", "26"};
+	const std::vector<std::string> supportedLanguage = {"SMT2.0", "CVC4", "SMT2.6", "2.6","2.0", "cvc4", "smt2.6","smt2.0", "smt2.5", "20", "cvc4", "26"};
 	const std::vector<std::string> availableSolvers = {"cvc4", "z3str3", "s3"};
 
 	Config (){
@@ -76,7 +76,7 @@ public:
 						if (verifyingSolver.length() == 0)
 							verifyingSolver = "z3str3";
 					}
-					else if (language.find("2.5") != std::string::npos || language.find("25") != std::string::npos) {
+					else if (language.find("cvc4") != std::string::npos || language.find("CVC4") != std::string::npos) {
 						languageMap = languageMap25;
 						languageVersion = 25;
 						escapeChar = ESCAPECHAR25;
