@@ -151,7 +151,8 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements);
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p);
 
 /*
  *
@@ -330,7 +331,8 @@ std::vector<std::string> createSatisfyingAssignments(
 std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements);
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p);
 
 /*
  * print input
@@ -441,7 +443,9 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
  * Input: x . y
  * Output: flat . flat . flat . flat . flat . flat
  */
-std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string> list);
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int q);
 
 std::vector<std::string> createSetOfFlatVariables(int flatP);
 

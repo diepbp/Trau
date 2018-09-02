@@ -540,7 +540,8 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements){
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p = PMAX){
 	/* first base case */
 	clock_t t;
 	t = clock();
@@ -558,7 +559,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* because of "general" functions, we need to refine arrangements */
 	std::vector<Arrangment> possibleCases;
-	if (lhs_elements[0].first.find(FLATPREFIX) != std::string::npos ||
+	if ((lhs_elements[0].first.find(FLATPREFIX) != std::string::npos && lhs_elements.size() == QMAX)||
 			(lhs_elements.size() == 2 &&
 					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second % QMAX == 1) ||
 					  (lhs_elements[0].second % QCONSTMAX == -1 && lhs_elements[1].second % QCONSTMAX == 0)))) {
@@ -582,10 +583,6 @@ std::vector<std::string> collectAllPossibleArrangements(
 #endif
 	t = clock() - t;
 
-#ifdef PRINTTEST_UNDERAPPROX
-	__debugPrint(logFile, "\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, possibleCases.size());
-#endif
-
 	std::vector<std::string> cases;
 #if 0
 	/* 1 vs n, 1 vs 1, n vs 1 */
@@ -608,7 +605,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 			std::string tmp = possibleCases[i].
-					generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
+					generateSMT(p, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
@@ -1974,7 +1971,8 @@ std::vector<std::string> createSatisfyingAssignments(
 std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements){
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p = PMAX){
 #ifdef DEBUGLOG
 	__debugPrint(logFile, ">> equalities to SMT \n");
 	for (unsigned i = 0; i < lhs_elements.size(); ++i)
@@ -1994,7 +1992,9 @@ std::vector<std::string> equalityToSMT(
 	if (generatedEqualities.find(tmp01) == generatedEqualities.end()){
 		std::vector<std::string> cases = collectAllPossibleArrangements(
 				lhs, rhs,
-				lhs_elements, rhs_elements);
+				lhs_elements,
+				rhs_elements,
+				p);
 		generatedEqualities.emplace(tmp01);
 		return cases;
 	}
@@ -3045,11 +3045,14 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
 	__debugPrint(logFile, "%d leaving %s \n", __LINE__, __FUNCTION__);
 	return results;
 }
+
 /*
  * Input: x . y
  * Output: flat . flat . flat . flat . flat . flat
  */
-std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string> list){
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int q = QMAX){
 	std::vector<std::pair<std::string, int>> elements;
 
 	for (unsigned int k = 0; k < list.size(); ++k)
@@ -3079,7 +3082,52 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 		else {
 			if (varPieces.find(list[k]) == varPieces.end())
 				varPieces[list[k]] = 0;
-			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + q; ++j) { /* split variables into QMAX parts */
+				elements.emplace_back(std::make_pair(list[k], j));
+			}
+			varPieces[list[k]] += q;
+		}
+
+	return elements;
+}
+
+/*
+ * Input: x . y
+ * Output: flat . flat . flat . flat . flat . flat
+ */
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int p,
+		int q){
+	std::vector<std::pair<std::string, int>> elements;
+
+	for (unsigned k = 0; k < list.size(); ++k)
+		if (list[k][0] == '"') {
+			std::string content = list[k].substr(1, list[k].length() - 2);
+			if (!isRegexStr(list[k])) {
+				if (list[k].length() > SPLIT_LOWER_BOUND) /* const string */ {
+					if (varPieces.find(content) == varPieces.end())
+						varPieces[content] = 0;
+					for (int j = varPieces[content]; j < varPieces[content] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+						elements.emplace_back(std::make_pair(content, -(j + 1)));
+					}
+					varPieces[content] += QCONSTMAX;
+				}
+				else {
+					/* length < SPLIT_LOWER_BOUND */
+					elements.emplace_back(std::make_pair(content, -1));
+				}
+			}
+			else {
+				/* regex */
+				std::string content = list[k].substr(1, list[k].length() - 2);
+				elements.emplace_back(std::make_pair(content, REGEX_CODE));
+			}
+		}
+		else {
+			if (varPieces.find(list[k]) == varPieces.end())
+				varPieces[list[k]] = 0;
+			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QMAX; ++j) { /* split variables into QMAX parts */
 				elements.emplace_back(std::make_pair(list[k], j));
 			}
 			varPieces[list[k]] += QMAX;
@@ -3190,6 +3238,43 @@ unsigned findMaxP(std::vector<std::vector<std::string>> v){
 
 	return maxLocal;
 }
+
+/*
+ *
+ */
+void convertEqualities(int p, int q){
+	for (const auto& eqVar : fullEqualitiesMap)
+		for (const auto& eq : eqVar.second) {
+			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
+		}
+	const int flatP = 1;
+	for (const auto& it : equalitiesMap){
+		/* add an eq = flat . flat . flat, then other equalities will compare with it */
+		std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
+		std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat, q);
+		/* compare with others */
+		for (const auto& element: it.second) {
+			std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
+			std::vector<std::string> result = equalityToSMT(
+					sumStringVector(genericFlat),
+					sumStringVector(element),
+					lhs_elements,
+					rhs_elements,
+					p
+			);
+			if (result.size() != 0) {
+				/* sync result */
+				global_smtStatements.emplace_back(result);
+			}
+			else {
+				__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
+				/* trivial unsat */
+				trivialUnsat = true;
+			}
+		}
+	}
+}
+
 /*
  * Pthread
  * Each thread handles a part in the global map from start -> end
@@ -3200,13 +3285,6 @@ void convertEqualities(){
 
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
-//			bool willConvert = true;
-//			for (const auto& s : eq)
-//				if (s[0] == '"') {
-//					willConvert = false;
-//					break;
-//				}
-//			if (willConvert)
 			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
 		}
 
@@ -3242,10 +3320,6 @@ void convertEqualities(){
 						rhs_elements
 				);
 				t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 				if (result.size() != 0) {
 					/* sync result */
 					global_smtStatements.emplace_back(result);
@@ -3259,7 +3333,7 @@ void convertEqualities(){
 
 		}
 		else if (maxLocal > maxPConsidered) {
-			/* add an eq = flat . flat . flat, then other equalities will compare will it */
+			/* add an eq = flat . flat . flat, then other equalities will compare with it */
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
 			/* compare with others */
@@ -3273,10 +3347,6 @@ void convertEqualities(){
 						rhs_elements
 				);
 				t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 				if (result.size() != 0) {
 					/* sync result */
 					global_smtStatements.emplace_back(result);
@@ -3291,8 +3361,8 @@ void convertEqualities(){
 		else {
 
 			/* work as usual */
-			for (unsigned int i = 0; i < it->second.size(); ++i)
-				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
+			for (unsigned i = 0; i < it->second.size(); ++i)
+				for (unsigned j = i + 1; j < it->second.size(); ++j) {
 					/* optimize: find longest common prefix and posfix */
 					std::vector<std::string> lhs;
 					std::vector<std::string> rhs;
@@ -3314,10 +3384,6 @@ void convertEqualities(){
 							rhs_elements
 					);
 					t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 					if (result.size() != 0) {
 						/* sync result*/
 						global_smtStatements.emplace_back(result);
