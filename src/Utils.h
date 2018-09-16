@@ -486,6 +486,16 @@ std::string createLessConstraint(std::string x, std::string y);
 /*
  *
  */
+std::string createITEOperator(std::string x, std::string y, std::string z);
+
+/*
+ *
+ */
+std::string createImpliesOperator(std::string x, std::string y);
+
+/*
+ *
+ */
 std::string createPlusOperator(std::string x, std::string y);
 
 /*

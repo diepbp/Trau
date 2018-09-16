@@ -452,6 +452,14 @@ std::string createPlusOperator(std::string x, std::string y){
 	return "(+ " + x + " " + y + ")";
 }
 
+std::string createITEOperator(std::string x, std::string y, std::string z){
+	return "(ite " + x + " " + y + " " + z + ")";
+}
+
+std::string createImpliesOperator(std::string x, std::string y){
+	return "(implies " + x + " " + y + ")";
+}
+
 /*
  *
  */
