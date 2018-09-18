@@ -65,7 +65,8 @@ std::string refine_not_equality(std::string str){
 /*
  *
  */
-std::vector<std::pair<std::string, int>> replaceTokens(std::vector<std::pair<std::string, int>> tokens,
+std::vector<std::pair<std::string, int>> replaceTokens(
+		std::vector<std::pair<std::string, int>> tokens,
 		int start, int finish, std::string tokenName, int tokenType){
 	std::vector<std::pair<std::string, int>> tmp;
 	for (int i = 0; i < start; ++i)
@@ -147,7 +148,8 @@ int findTokens(std::vector<std::pair<std::string, int>> tokens, int startPos, st
 void formatOPByRewriter(StringOP &op,
 		std::map<StringOP, std::string> rewriterStrMap){
 	if (op.args.size() == 0){
-		if (op.name.find("$$_") == 0 || op.name.find(std::string(LENPREFIX) + "$$_") == 0) {
+		if (op.name.find("$$_") == 0 ||
+				op.name.find(std::string(LENPREFIX) + "$$_") == 0) {
 			for (const auto& opx : rewriterStrMap)
 				if (opx.second.compare(op.name) == 0) {
 					op = opx.first;
@@ -157,7 +159,8 @@ void formatOPByRewriter(StringOP &op,
 	}
 	else {
 		for (unsigned i = 0; i < op.args.size(); ++i) {
-			if (op.args[i].name.find("$$_") == 0 || op.args[i].name.find(std::string(LENPREFIX) + "$$_") == 0){
+			if (op.args[i].name.find("$$_") == 0 ||
+					op.args[i].name.find(std::string(LENPREFIX) + "$$_") == 0){
 				for (const auto& opx : rewriterStrMap)
 					if (opx.second.compare(op.args[i].name) == 0 &&
 							opx.first.toString().find("$$_") == std::string::npos) {
@@ -701,6 +704,7 @@ void updateReplace(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		formatOPByRewriter(op, rewriterStrMap);
 
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
@@ -735,23 +739,14 @@ void updateSubstring(
 		std::map<StringOP, std::string> rewriterStrMap) {
 
 	int found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	int indentCnt = 0;
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
-
-		int startAssignment = found - 2;
-		while (startAssignment >= 0) {
-			if ((tokens[startAssignment].first.compare("(") == 0 && tokens[startAssignment + 1].first.compare("=") == 0) ||
-					(tokens[startAssignment].first.compare("(") == 0 && tokens[startAssignment - 1].first.compare("assert") == 0)){
-				break;
-			}
-			else
-				startAssignment--;
-		}
 
 		StringOP op = findStringOP(tokens, found);
 		StringOP arg02 = op.args[2];
 		formatOPByRewriter(op, rewriterStrMap);
-		__debugPrint(logFile, "%d op = %s\n", __LINE__, op.toString().c_str());
+		__debugPrint(logFile, "%d %s %s\n", __LINE__, indent(indentCnt).c_str(), op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		std::string replacement = rewriterStrMap[op];
 
@@ -761,39 +756,8 @@ void updateSubstring(
 		else {
 			tokens = replaceTokens(tokens, found - 1, pos, replacement, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
-
-		std::vector<std::pair<std::string, int>> tmp;
-		for (int i = 0; i < startAssignment; ++i)
-			tmp.emplace_back(tokens[i]);
-
-		for (int i = startAssignment; i < (int)tokens.size(); ++i){
-			if (i == found - 1){
-				std::vector<std::pair<std::string, int>> tmpx;
-				switch (config.languageVersion) {
-				case 20:
-				case 25:
-					tmpx = parseTerm20(tokens[i].first);
-					break;
-
-				case 26:
-					tmpx = parseTerm26(tokens[i].first);
-					break;
-				default:
-					assert(false);
-					break;
-				}
-
-				tmp.insert(tmp.end(), tmpx.begin(), tmpx.end());
-			}
-			else
-				tmp.emplace_back(tokens[i]);
-
-		}
-//		__debugPrint(logFile, "%d op --> %s\n", __LINE__, rewriterStrMap[op].c_str());
-		tokens.clear();
-		tokens = tmp;
-
 		found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		indentCnt ++;
 	}
 }
 

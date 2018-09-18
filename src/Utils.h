@@ -358,6 +358,8 @@ std::string longestCommonHead(std::string a, std::string b);
 
 int lcd(int x, int y);
 
+string indent(int n);
+
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);
 
 /*

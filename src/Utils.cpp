@@ -53,6 +53,17 @@ int lcd(int x, int y) {
 
 	return x * y / x1;
 }
+
+/*
+ *
+ */
+string indent(int n){
+	string s = "";
+	for (int i = 0; i < n; ++i)
+		s = s + "  ";
+	return s;
+}
+
 /*
  * string to tokens
  */

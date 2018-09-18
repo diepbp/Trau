@@ -8165,7 +8165,8 @@ bool collectIndexOfValueInPositiveContext(
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else {
-				rewriterStrMap[it.first] = "(- 1)";
+				rewriterStrMap[it.first] = it.second.second.first;
+				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.second, "(- 1)"));
 			}
 			return true;
@@ -8196,7 +8197,7 @@ bool collectIndexOf2ValueInPositiveContext(
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 				}
 			} else {
-				rewriterStrMap[it.first] = "(- 1)";
+				rewriterStrMap[it.first] = it.second.second.second;
 				__debugPrint(logFile, "%d *** %s ***: %s vs %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str(), node_to_string(t, boolNode).c_str());
 				if (carryOn.find(boolNode) != carryOn.end()) {
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
