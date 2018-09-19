@@ -1656,16 +1656,50 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		Z3_ast and_item[3];
 		and_item[0] = Z3_mk_eq(ctx, args[0],
 				mk_concat(t, ts0, mk_concat(t, ts1, ts2, update), update));
-		and_item[1] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
-		and_item[2] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
+		and_item[1] = Z3_mk_ite(ctx,
+							Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+							Z3_mk_ite(ctx,
+								Z3_mk_le(ctx, args[1], mk_length(t, args[0])),
+								Z3_mk_eq(ctx, args[1], mk_length(t, ts0)),
+								Z3_mk_eq(ctx, mk_length(t, ts0), mk_length(t, args[0]))),
+							Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
 
-		/* convert to string, prepare for replaceStrMap */
-		std::string tmp = "(and " + createEqualConstraint(
-										std::string(LENPREFIX) + node_to_string(t, ts0),
-										arg01Str) +
+		std::string str01 = createITEOperator(
+								createLessEqualConstraint("0", node_to_string(t, args[1])),
+								createITEOperator(
+									createLessEqualConstraint(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, args[0])),
+									createEqualConstraint(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts0)),
+									createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), std::string(LENPREFIX) + node_to_string(t, args[0]))),
+								createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+		Z3_ast * items = new Z3_ast[2];
+		items[0] = args[1];
+		items[1] = args[2];
+
+		Z3_ast * otherItems = new Z3_ast[2];
+		otherItems[0] = args[1];
+		otherItems[1] = mk_length(t, ts1);
+		and_item[2] = Z3_mk_ite(ctx,
+				Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+				Z3_mk_ite(ctx,
+						Z3_mk_ge(ctx,
+							mk_length(t, args[0]),
+							Z3_mk_add(ctx, 2, items)),
+						Z3_mk_eq(ctx, args[2], mk_length(t, ts1)),
+						Z3_mk_eq(ctx, Z3_mk_add(ctx, 2, otherItems), mk_length(t, args[0]))),
+				Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
+		std::string str02 = createITEOperator(
+								createLessEqualConstraint("0", node_to_string(t, args[1])),
+								createITEOperator(
+									createLessEqualConstraint(
+										createPlusOperator(node_to_string(t, args[1]), node_to_string(t, args[2])),
+										std::string(LENPREFIX) + node_to_string(t, args[0])),
+									createEqualConstraint(node_to_string(t, args[2]), std::string(LENPREFIX) + node_to_string(t, ts1)),
 									createEqualConstraint(
-										std::string(LENPREFIX) + node_to_string(t, ts1),
-										arg02Str) + ")";
+										createPlusOperator(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+										std::string(LENPREFIX) + node_to_string(t, args[0]))),
+								createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+		/* convert to string, prepare for replaceStrMap */
+		std::string tmp = "(and " + str01 + " " + str02 + ")";
 
 		subStrStrMap[StringOP(config.languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
@@ -1676,12 +1710,39 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		// substring from 0
 		Z3_ast ands[2];
 		ands[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
-		ands[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
+
+		Z3_ast * items = new Z3_ast[2];
+		items[0] = args[1];
+		items[1] = args[2];
+
+		Z3_ast * otherItems = new Z3_ast[2];
+		otherItems[0] = args[1];
+		otherItems[1] = mk_length(t, ts1);
+		ands[1] = Z3_mk_ite(ctx,
+				Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+				Z3_mk_ite(ctx,
+						Z3_mk_ge(ctx,
+							mk_length(t, args[0]),
+							Z3_mk_add(ctx, 2, items)),
+						Z3_mk_eq(ctx, args[2], mk_length(t, ts1)),
+						Z3_mk_eq(ctx, Z3_mk_add(ctx, 2, otherItems), mk_length(t, args[0]))),
+				Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
+
+		std::string str02 = createITEOperator(
+										createLessEqualConstraint("0", node_to_string(t, args[1])),
+										createITEOperator(
+											createLessEqualConstraint(
+												createPlusOperator(node_to_string(t, args[1]), node_to_string(t, args[2])),
+												std::string(LENPREFIX) + node_to_string(t, args[0])),
+											createEqualConstraint(node_to_string(t, args[2]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+											createEqualConstraint(
+												createPlusOperator(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+												std::string(LENPREFIX) + node_to_string(t, args[0]))),
+										createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+
 		subStrStrMap[StringOP(config.languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), createEqualConstraint(
-													std::string(LENPREFIX) + (std::string) node_to_string(t, ts1),
-													arg02Str));
+				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), str02);
 		breakdownAssert = Z3_mk_and(ctx, 2, ands);
 
 		if (config.printingConstraints) {
