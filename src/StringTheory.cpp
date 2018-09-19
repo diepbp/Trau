@@ -4097,7 +4097,8 @@ void Th_new_diseq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 	__debugPrint(logFile, "New disequality: %s ", Z3_ast_to_string(c, n1));
 	__debugPrint(logFile, "!= %s\n", Z3_ast_to_string(c, n2));
 
-	if (isConcatFunc(t, n1)) {
+	if (isConcatFunc(t, n1) &&
+			(isStrVariable(t, n2) || isConstStr(t, n2) || isAutomatonFunc(t, n2))) {
 		Z3_ast tmp = mk_internal_string_var(t);
 		std::vector<Z3_ast> tmpList;
 		tmpList.push_back(Z3_mk_eq(c, n1, tmp));
@@ -4106,7 +4107,8 @@ void Th_new_diseq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 		addAxiom(t, Z3_mk_implies(c, Z3_mk_not(c, Z3_mk_eq(c, n1, n2)), mk_and_fromVector(t, tmpList)), __LINE__, true);
 		disequalityList.emplace_back(std::make_pair(std::make_pair(tmp, n2), sLevel));
 	}
-	else if (isConcatFunc(t, n2)){
+	else if (isConcatFunc(t, n2) &&
+			(isStrVariable(t, n1) || isConstStr(t, n1) || isAutomatonFunc(t, n1))){
 		Z3_ast tmp = mk_internal_string_var(t);
 		std::vector<Z3_ast> tmpList;
 		tmpList.push_back(Z3_mk_eq(c, n2, tmp));
