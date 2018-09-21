@@ -593,7 +593,10 @@ void updateContain(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
-		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		if (rewriterStrMap.find(op) == rewriterStrMap.end()){
+			__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
+			assert(false);
+		}
 		if (rewriterStrMap[op].compare(TRUESTR) == 0)
 			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
 		else

@@ -201,6 +201,11 @@ typedef struct _AutomatonStringData
   */
  void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
 
+ /*
+  *
+  */
+ std::string node2Lenconstraint(Z3_theory t, Z3_ast node);
+
  StringOP node_to_stringOP(Z3_theory t, Z3_ast node);
 
  std::string node_to_string(Z3_theory t, Z3_ast node);

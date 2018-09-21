@@ -2200,6 +2200,7 @@ void sumConstString(){
 
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	sumConstLength = 0;
+	std::map<std::string, bool> tmpMap;
 	for (const auto& _eq :  equalitiesMap) {
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (const auto& vt : _eq.second){
@@ -2208,8 +2209,10 @@ void sumConstString(){
 			/* push to map */
 			for (const auto& s : vt) {
 				if (s[0] == '\"') {
-					if (_eq.second.size() > 1)
+					if (_eq.second.size() > 1 && tmpMap.find(s) == tmpMap.end() ){
 						sumConstLength += s.length() - 2;
+						tmpMap[s] = true;
+					}
 					/* prevent the case: (abc)*  + def */
 					if (isRegexStr(s) || isUnionStr(s)) {
 						std::vector<std::string> localElements;
@@ -2328,8 +2331,11 @@ void createConstMap(){
 	for (const auto _eq : equalitiesMap) {
 		if (_eq.first[0] == '"') {
 			std::string content = _eq.first.substr(1, _eq.first.length() - 2);
+			if (constMap.find(content) == constMap.end()) {
+				sumConstLength += content.length();
+				__debugPrint(logFile, "%d %s: %ld\n", __LINE__, content.c_str(), sumConstLength);
+			}
 			constMap[content] = "const_" + std::to_string(constCnt++);
-			sumConstLength += content.length();
 		}
 		for (const auto v: _eq.second){
 
@@ -2344,8 +2350,12 @@ void createConstMap(){
 					if (isRegexStr(content)) {
 						sumConstLength = CONNECTINGSIZE * 2;
 					}
-					else
-						sumConstLength += content.length();
+					else {
+						if (constMap.find(content) == constMap.end()) {
+							sumConstLength += content.length();
+							__debugPrint(logFile, "%d %s: %ld\n", __LINE__, content.c_str(), sumConstLength);
+						}
+					}
 					if (constMap.find(content) == constMap.end()) {
 						__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
 						constMap[content] = "const_" + std::to_string(constCnt++);
@@ -5064,28 +5074,41 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 	std::set<std::string> ret;
 
 	for (const auto& s : _carryOnConstraints){
-		std::string tmp = s;
-		while (true){
-			size_t pos = tmp.find("(" + std::string(config.languageMap[LENGTH]) + " ");
-			if (pos != std::string::npos){
-				std::string _tmp = tmp.substr(0, pos) + LENPREFIX;
-				for (unsigned i = pos + std::string(config.languageMap[LENGTH]).length() + 2; i < tmp.length(); ++i)
-					if (tmp[i] != ')')
-						_tmp = _tmp + tmp[i];
-					else {
-						_tmp = _tmp + tmp.substr(i + 1);
-						break;
-					}
-				tmp = _tmp;
-			}
-			else {
-				ret.emplace(tmp);
-				break;
-			}
+		std::vector<std::pair<std::string, int>> tokens;
+		switch (config.languageVersion) {
+		case 20:
+		case 25:
+			tokens = parseTerm20(s);
+			break;
+
+		case 26:
+			tokens = parseTerm26(s);
+			break;
+		default:
+			assert(false);
+			break;
+		}
+
+		int found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		while (found != -1) {
+			int endCond = findCorrespondRightParentheses(found - 1, tokens);
+			for (int i = found + 1 ; i < endCond; ++i)
+				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM)
+					tokens[i].first = LENPREFIX + tokens[i].first;
+			std::vector<std::pair<std::string, int>> tmp;
+			for (int i = 0; i < found; ++i)
+				tmp.emplace_back(tokens[i]);
+			tmp.push_back(std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
+			tmp.push_back(std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
+			for (int i = found + 1; i < (int)tokens.size(); ++i)
+				tmp.emplace_back(tokens[i]);
+			tokens.clear();
+			tokens = tmp;
+			found = findTokens(tokens, found, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
 	}
 
-	displayListString(ret, " reformat _carryOnConstraints");
+	displayListString(ret, " reformat carryOnConstraints");
 	return ret;
 }
 

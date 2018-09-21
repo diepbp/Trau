@@ -1029,6 +1029,32 @@ void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList) 
 }
 
 /*
+ *
+ */
+std::string node2Lenconstraint(Z3_theory t, Z3_ast node){
+	if (isStrVariable(t, node)){
+		return std::string(LENPREFIX) + node_to_string(t, node);
+	}
+	else if (isConcatFunc(t, node)){
+		std::string ret = "";
+		std::vector<Z3_ast> nodeList;
+		collectNodesInConcat(t, node, nodeList);
+		for (const auto& n : nodeList){
+			if (isStrVariable(t, n))
+				ret = ret + std::string(LENPREFIX) + node_to_string(t, n) + " ";
+			else if (isDetAutomatonFunc(t, n))
+				ret = ret + std::to_string(node_to_string(t, n).length() - 2) + " ";
+			else if (isNonDetAutomatonFunc(t, n))
+				assert(false);
+		}
+		return "(+ " + ret.substr(0, ret.length() - 1) + ")";
+	}
+	else
+		assert(false);
+	return "";
+}
+
+/*
  * only collect leaf, string format
  */
 StringOP node_to_stringOP(Z3_theory t, Z3_ast node) {
@@ -2523,7 +2549,7 @@ int calculateAutomatonSize(Z3_theory t, Z3_ast node){
 		str = customizeString(str);
 		if (str.find("*") == std::string::npos  && str.find("|") == std::string::npos) {
 			int cnt = 0;
-			for (unsigned int i = 0; i < str.size(); ++i){
+			for (unsigned i = 0; i < str.size(); ++i){
 				if ((str[i] >= 'a' && str[i] <= 'z') ||
 						(str[i] >= 'A' && str[i] <= 'Z') ||
 						(str[i] >= '0' && str[i] <= '9'))
@@ -5336,7 +5362,8 @@ bool parikhCheckContain(
 				(isConstStr(t, contain.first.second) || isDetAutomatonFunc(t, contain.first.second))){
 			/* should check eq of contain.first.second as well */
 			std::string str = getConstString(t, contain.first.second);
-			assert(boolValues.find(contain.second) != boolValues.end());
+			if (boolValues.find(contain.second) != boolValues.end())
+				return true;
 
 			if (boolValues[contain.second] == false) {
 				__debugPrint(logFile, "%d not contain: %s\n", __LINE__, str.c_str());
@@ -8179,14 +8206,13 @@ bool collectIndexOfValueInPositiveContext(
 	for (const auto& it : indexOfStrMap) {
 		if (boolStr.compare(it.second.first) == 0){
 			if (boolValue) {
-				rewriterStrMap[it.first] = it.second.second.first;
+				rewriterStrMap[it.first] = it.second.second.second;
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
 			else {
-				rewriterStrMap[it.first] = it.second.second.first;
-				carryOnConstraints.emplace(createEqualConstraint(it.second.second.first, it.second.second.second));
+				rewriterStrMap[it.first] = it.second.second.second;
 				carryOnConstraints.emplace(createEqualConstraint(it.second.second.second, "(- 1)"));
 			}
 			return true;

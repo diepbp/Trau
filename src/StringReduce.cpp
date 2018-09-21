@@ -35,6 +35,7 @@ extern bool lengthEnable;
 extern ConstraintSet constraintSet;
 extern std::map<StringOP, StringOP> internalVarFunctionMap;
 
+static std::map<Z3_ast, Z3_ast> concatMapping;
 std::set<std::string> setOfEqualities;
 
 //std::map<std::string, std::set<char>> charSet;
@@ -1399,7 +1400,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar,
 													std::make_pair(node_to_string(t, addNode),
 																	node_to_string(t, indexAst)));
-		carryOn[boolAst] = Z3_mk_eq(ctx, mk_length(t, x0), args[2]);
+
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
@@ -1407,7 +1408,9 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::vector<Z3_ast> tmpVector04 = {Z3_mk_eq(ctx, boolAst, mk_and_fromVector(t, tmpVector03)),
 											Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch)};
 		breakdownAssert = mk_and_fromVector(t, tmpVector04);
-
+		carryOn[boolAst] = Z3_mk_ite(ctx, Z3_mk_ge(ctx, mk_length(t, args[0]), args[2]),
+										  Z3_mk_eq(ctx, mk_length(t, x0), args[2]),
+										  Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
 		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseBranch));
@@ -1962,7 +1965,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "\n*** %s ***:", __FUNCTION__);
 #endif
-
+	std::vector<Z3_ast> encodedConstraints;
+	std::vector<Z3_ast> rewrittenConstraints;
 	// Convert the tricky "string" representation to string constant
 	int convertedFlag = 0;
 	Z3_ast * convertedArgs = new Z3_ast[n];
@@ -1973,11 +1977,34 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			convertedFlag = 1;
 			convertedArgs[i] = mk_str_value(t,
 					convertInputTrickyConstStr(symbolStr).c_str());
-		} else {
+		} else if (isConcatFunc(t, args[i]) &&
+						(d == td->SubString ||
+						d == td->Indexof ||
+						d == td->Indexof2 ||
+						d == td->LastIndexof ||
+						d == td->StartsWith ||
+						d == td->EndsWith ||
+						d == td->ToLower ||
+						d == td->ToUpper ||
+						d == td->Replace ||
+						d == td->ReplaceAll ||
+						d == td->Contains ||
+						d == td->CharAt ||
+						d == td->RegexIn)) {
+			Z3_ast tmpVar;
+			if (concatMapping.find(args[i]) != concatMapping.end())
+				tmpVar = concatMapping[args[i]];
+			else {
+				tmpVar = mk_internal_string_var(t);
+				concatMapping[args[i]] = tmpVar;
+				internalVarFunctionMap[node_to_stringOP(t, tmpVar)] = node_to_stringOP(t, args[i]);
+			}
+			rewrittenConstraints.emplace_back(Z3_mk_eq(ctx, tmpVar, args[i]));
+			convertedArgs[i] = tmpVar;
+			__debugPrint(logFile, "%d converted %s to %s\n", __LINE__, node_to_string(t, args[i]).c_str(), node_to_string(t, tmpVar).c_str());
+		} else
 			convertedArgs[i] = args[i];
-		}
 	}
-	std::vector<Z3_ast> encodedConstraints;
 
 	for (int i = 0; i < n; ++i)
 		if (isConcatFunc(t, convertedArgs[i])){
@@ -2042,6 +2069,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		printZ3Node(t, convertedArgs[0]);
 		__debugPrint(logFile, " )");
 #endif
+		if (rewrittenConstraints.size() > 0)
+			Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		if (getNodeType(t, convertedArgs[0]) == my_Z3_ConstStr) {
 			int size = getConstStrValue(t, convertedArgs[0]).size();
 			*result = mk_int(ctx, size);
@@ -2162,8 +2191,10 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 
 		if (tmpRes != NULL) {
 			if (otherAssert != NULL) {
-				Z3_assert_cnstr(ctx, otherAssert);
+				rewrittenConstraints.emplace_back(otherAssert);
 			}
+			Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
+
 			*result = tmpRes;
 			return Z3_TRUE;
 		}
@@ -2293,7 +2324,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		printZ3Node(t, breakDownAst);
 		__debugPrint(logFile, "\n\n");
 #endif
-		Z3_assert_cnstr(ctx, breakDownAst);
+		if (breakDownAst != NULL)
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2325,7 +2358,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2359,7 +2393,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2393,7 +2428,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2429,7 +2465,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2463,7 +2500,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2512,7 +2550,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2560,7 +2599,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2594,7 +2634,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
@@ -2629,7 +2670,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 #endif
 		// when quick path is taken, breakDownAst == NULL;
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
@@ -2654,7 +2696,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "\n\n");
 #endif
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
@@ -2679,7 +2722,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		__debugPrint(logFile, "\n\n");
 #endif
 		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+			rewrittenConstraints.emplace_back(breakDownAst);
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
