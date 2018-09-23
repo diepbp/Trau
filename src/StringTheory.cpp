@@ -8175,7 +8175,6 @@ bool collectCharAtInPositiveContext(
 		if (boolStr.compare(it.second.first) == 0){
 			if (boolValue) {
 				rewriterStrMap[it.first] = it.second.second;
-				__debugPrint(logFile, "%d %s: %s -> %s\n", __LINE__, __FUNCTION__, it.first.toString().c_str(), it.second.second.c_str());
 
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
