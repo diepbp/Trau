@@ -5089,23 +5089,38 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 			break;
 		}
 
-		int found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		int found = findTokens(tokens, 0, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		while (found != -1) {
 			int endCond = findCorrespondRightParentheses(found - 1, tokens);
 			for (int i = found + 1 ; i < endCond; ++i)
 				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM)
 					tokens[i].first = LENPREFIX + tokens[i].first;
-			std::vector<std::pair<std::string, int>> tmp;
-			for (int i = 0; i < found; ++i)
-				tmp.emplace_back(tokens[i]);
-			tmp.push_back(std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM));
-			tmp.push_back(std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
-			for (int i = found + 1; i < (int)tokens.size(); ++i)
-				tmp.emplace_back(tokens[i]);
-			tokens.clear();
-			tokens = tmp;
+			tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			found = findTokens(tokens, found, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		}
+
+		found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		while (found != -1) {
+			int endCond = findCorrespondRightParentheses(found - 1, tokens);
+			for (int i = found + 1 ; i < endCond; ++i)
+				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
+						tokens[i].first.find(LENPREFIX) != 0 &&
+						allVariables.find(tokens[i].first) != allVariables.end())
+					tokens[i].first = LENPREFIX + tokens[i].first;
+			tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			tokens.insert(tokens.begin() + found + 1, std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
 			found = findTokens(tokens, found, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
+
+		// sum tokens
+		std::string tmp = tokens[0].first;
+
+		for (unsigned i = 1; i < tokens.size(); ++i){
+			if (tokens[i].first.compare(")") != 0 && tokens[i - 1].first.compare("(") != 0)
+				tmp += " ";
+			tmp += tokens[i].first;
+		}
+		ret.insert(tmp);
 	}
 
 	displayListString(ret, " reformat carryOnConstraints");
