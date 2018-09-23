@@ -4113,6 +4113,19 @@ std::string customizeString(std::string s) {
 }
 
 /**
+ *
+ */
+bool areMemberOfContaintsConstrain(std::vector<Z3_ast> nodeList){
+	if (nodeList.size() == 3){
+		for (const auto& nodes : indexOf_toAstMap){
+			if (nodes.second[0] == nodeList[0] && nodes.second[1] == nodeList[2]){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+/**
    \brief Callback: invoked when <tt>n1 = n2</tt> is false in the logical context.
 
    Z3 will only invoke this callback using expressions \c n1 and \c n2 s.t.
@@ -4125,22 +4138,36 @@ void Th_new_diseq(Z3_theory t, Z3_ast n1, Z3_ast n2) {
 
 	if (isConcatFunc(t, n1) &&
 			(isStrVariable(t, n2) || isConstStr(t, n2) || isAutomatonFunc(t, n2))) {
-		Z3_ast tmp = mk_internal_string_var(t);
-		std::vector<Z3_ast> tmpList;
-		tmpList.push_back(Z3_mk_eq(c, n1, tmp));
-		tmpList.push_back(Z3_mk_not(c, Z3_mk_eq(c, n2, tmp)));
+		std::vector<Z3_ast> nodeList; collectNodesInConcat(t, n1, nodeList);
+		/* check if the constraint is contains-constraint*/
+		if (areMemberOfContaintsConstrain(nodeList)) {
+			__debugPrint(logFile, "%d skip %s\n", __LINE__, __FUNCTION__);
+		}
+		else {
+			Z3_ast tmp = mk_internal_string_var(t);
+			std::vector<Z3_ast> tmpList;
+			tmpList.push_back(Z3_mk_eq(c, n1, tmp));
+			tmpList.push_back(Z3_mk_not(c, Z3_mk_eq(c, n2, tmp)));
 
-		addAxiom(t, Z3_mk_implies(c, Z3_mk_not(c, Z3_mk_eq(c, n1, n2)), mk_and_fromVector(t, tmpList)), __LINE__, true);
-		disequalityList.emplace_back(std::make_pair(std::make_pair(tmp, n2), sLevel));
+			addAxiom(t, Z3_mk_implies(c, Z3_mk_not(c, Z3_mk_eq(c, n1, n2)), mk_and_fromVector(t, tmpList)), __LINE__, true);
+			disequalityList.emplace_back(std::make_pair(std::make_pair(tmp, n2), sLevel));
+		}
 	}
 	else if (isConcatFunc(t, n2) &&
 			(isStrVariable(t, n1) || isConstStr(t, n1) || isAutomatonFunc(t, n1))){
-		Z3_ast tmp = mk_internal_string_var(t);
-		std::vector<Z3_ast> tmpList;
-		tmpList.push_back(Z3_mk_eq(c, n2, tmp));
-		tmpList.push_back(Z3_mk_not(c, Z3_mk_eq(c, n1, tmp)));
-		addAxiom(t, Z3_mk_implies(c, Z3_mk_not(c, Z3_mk_eq(c, n1, n2)), mk_and_fromVector(t, tmpList)), __LINE__, true);
-		disequalityList.emplace_back(std::make_pair(std::make_pair(n1, tmp), sLevel));
+		std::vector<Z3_ast> nodeList; collectNodesInConcat(t, n2, nodeList);
+		/* check if the constraint is contains-constraint*/
+		if (areMemberOfContaintsConstrain(nodeList)) {
+			__debugPrint(logFile, "%d skip %s\n", __LINE__, __FUNCTION__);
+		}
+		else {
+			Z3_ast tmp = mk_internal_string_var(t);
+			std::vector<Z3_ast> tmpList;
+			tmpList.push_back(Z3_mk_eq(c, n2, tmp));
+			tmpList.push_back(Z3_mk_not(c, Z3_mk_eq(c, n1, tmp)));
+			addAxiom(t, Z3_mk_implies(c, Z3_mk_not(c, Z3_mk_eq(c, n1, n2)), mk_and_fromVector(t, tmpList)), __LINE__, true);
+			disequalityList.emplace_back(std::make_pair(std::make_pair(n1, tmp), sLevel));
+		}
 	}
 	disequalityList.emplace_back(std::make_pair(std::make_pair(n1, n2), sLevel));
 }

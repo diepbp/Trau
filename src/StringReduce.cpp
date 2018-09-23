@@ -1323,7 +1323,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		Z3_ast indexAst = mk_internal_int_var(t);
 
 		// condAst = |arg0| >= arg2
-		Z3_ast condAst_arg0 = Z3_mk_ge(ctx, mk_length(t, args[0]), args[2]);
+		Z3_ast condAst_arg0 = Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]);
 		if (config.printingConstraints)
 							constraintSet.arithmeticConstraints.emplace(
 									node_to_string(t, condAst_arg0));
@@ -1408,7 +1408,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::vector<Z3_ast> tmpVector04 = {Z3_mk_eq(ctx, boolAst, mk_and_fromVector(t, tmpVector03)),
 											Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch)};
 		breakdownAssert = mk_and_fromVector(t, tmpVector04);
-		carryOn[boolAst] = Z3_mk_ite(ctx, Z3_mk_ge(ctx, mk_length(t, args[0]), args[2]),
+		carryOn[boolAst] = Z3_mk_ite(ctx, Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]),
 										  Z3_mk_eq(ctx, mk_length(t, x0), args[2]),
 										  Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
 		if (config.printingConstraints) {
