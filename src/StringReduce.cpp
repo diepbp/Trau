@@ -2175,7 +2175,6 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		Z3_ast otherAssert = NULL;
 		Z3_ast tmpRes = NULL;
 		tmpRes = reduce_regexIn(t, convertedArgs, otherAssert);
-
 #ifdef DEBUGLOG
 		printZ3Node(t, tmpRes);
 		__debugPrint(logFile, "\n");
@@ -2193,11 +2192,13 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			if (otherAssert != NULL) {
 				rewrittenConstraints.emplace_back(otherAssert);
 			}
-			Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
-
+			if (rewrittenConstraints.size() > 0)
+				Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
+			__debugPrint(logFile, "%d get here: %s\n", __LINE__, node_to_string(t, tmpRes).c_str());
 			*result = tmpRes;
 			return Z3_TRUE;
 		}
+		__debugPrint(logFile, "%d get here: error\n", __LINE__);
 		return Z3_FALSE;
 	}
 
