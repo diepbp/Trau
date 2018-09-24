@@ -5785,7 +5785,7 @@ bool underapproxController(
 			!hasInequalities(orgRewriterStrMap)) {
 		toLengthFile(nonGrm, true, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
-			printf(">> UNSAT\n");
+			printf("unsat\n");
 			result = false;
 			goto endLabel;
 		}
@@ -5797,7 +5797,7 @@ bool underapproxController(
 			regexCnt = 0;
 			toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
-				printf(">> UNSAT\n");
+				printf("unsat\n");
 				goto endLabel;
 			}
 			writeOutput_basic(output);
@@ -5808,7 +5808,7 @@ bool underapproxController(
 		toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
-			printf(">> UNSAT\n");
+			printf("unsat\n");
 			goto endLabel;
 		}
 		else {
