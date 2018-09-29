@@ -1962,9 +1962,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
-#ifdef DEBUGLOG
 	__debugPrint(logFile, "\n*** %s ***:", __FUNCTION__);
-#endif
 	std::vector<Z3_ast> encodedConstraints;
 	std::vector<Z3_ast> rewrittenConstraints;
 	// Convert the tricky "string" representation to string constant
