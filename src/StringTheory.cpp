@@ -4778,6 +4778,19 @@ std::set<Z3_ast> collectConnectedVars(Z3_theory t){
 					ret.emplace(n);
 		}
 
+	for (const auto& node : endsWithPairBoolMap) {
+		if (isVariable(t, node.first.first))
+			ret.emplace(node.first.first);
+		if (isVariable(t, node.first.second))
+			ret.emplace(node.first.second);
+	}
+
+	for (const auto& node : startsWithPairBoolMap) {
+		if (isVariable(t, node.first.first))
+			ret.emplace(node.first.first);
+		if (isVariable(t, node.first.second))
+			ret.emplace(node.first.second);
+	}
 	displayListNode(t, ret,  "list of connectedVar");
 	return ret;
 }

@@ -782,8 +782,6 @@ std::string create_constraints_EndsWith(
 	if (str01[0] == '\"')
 		isConst_01 = true;
 
-	assert(isConst_00 || isConst_01);
-
 	std::vector<std::string> orConstraints;
 	std::vector<std::string> andConstraints;
 
@@ -822,8 +820,28 @@ std::string create_constraints_EndsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		/* do not handle this case*/
-		assert(false);
+		assert(connectedVariables.find(str00) != connectedVariables.end());
+		assert(connectedVariables.find(str01) != connectedVariables.end());
+
+		std::string arr00 = generateVarArray(str00);
+		std::string arr01 = generateVarArray(str01);
+		std::string len00 = generateVarLength(str00);
+		std::string len01 = generateVarLength(str01);
+
+		int bound = connectedVariables[str01];
+		for (int i = 0; i < bound; ++i){
+			andConstraints.emplace_back(createEqualConstraint(std::to_string(i), generateVarLength(str01)));
+			for (int j = i; j > 0; --j){
+				andConstraints.emplace_back(
+						createEqualConstraint(createSelectConstraint(arr00, "(- " + len00 + " " + std::to_string(j) + ")"),
+											  createSelectConstraint(arr01, std::to_string(i - j))));
+			}
+			orConstraints.emplace_back(andConstraint(andConstraints));
+			andConstraints.clear();
+		}
+		andConstraints.emplace_back(createLessEqualConstraint(len01, len00));
+		andConstraints.emplace_back(orConstraint(orConstraints));
+		ret = andConstraint(andConstraints);
 	}
 
 	if (boolValue.compare(FALSETR) == 0)
