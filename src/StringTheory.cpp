@@ -3637,9 +3637,7 @@ bool checkCylicity(Z3_theory t, Z3_ast node){
 }
 
 Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndependence) {
-#ifdef DEBUGLOG
 	__debugPrint(logFile, "\n>> @%d Eval Intersection size = %d\n", __LINE__, (int)list.size());
-#endif
 
 	Z3_context ctx = Z3_theory_get_context(t);
 	Automaton ret(UNKNOWN_AUTOMATON);
@@ -3650,18 +3648,21 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 
 	/* step 1: collect all elements to be evaluated */
 	std::vector<Z3_ast> elements_filtered;
+	std::vector<Z3_ast> singleNodes;
 	for (std::vector<Z3_ast>::iterator it = list.begin(); it != list.end(); ++it) {
 		if (isStrVariable(t, *it)) {
-			// skip
 		}
 		else if (isConcatFunc(t, *it)) {
 			// prevent duplicate concat: e.g. concat (a, b) and concat(a, c) where b == c
 			Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *it), 0);
 			Z3_ast arg11 = Z3_get_app_arg(ctx, Z3_to_app(ctx, *it), 1);
+			if (std::find(list.begin(), list.end(), arg00) != list.end())
+				continue;
 
-
+			if (std::find(list.begin(), list.end(), arg11) != list.end())
+				continue;
 			bool add = true;
-			for (unsigned int i = 0; i < elements_filtered.size(); ++i)
+			for (unsigned i = 0; i < elements_filtered.size(); ++i)
 				if (isConcatFunc(t, elements_filtered[i])) {
 					Z3_ast arg0 = Z3_get_app_arg(ctx, Z3_to_app(ctx, elements_filtered[i]), 0);
 					Z3_ast arg1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, elements_filtered[i]), 1);
@@ -3683,9 +3684,7 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 		}
 	}
 
-#ifdef DEBUGLOG
 	__debugPrint(logFile, ">> @%d at Number of elements: %ld \n", __LINE__, elements_filtered.size());
-#endif
 
 //	/* skip the case y vs x y x*/
 //	for (unsigned i = 0; i < elements_filtered.size(); ++i)
