@@ -671,6 +671,7 @@ void updateEndsWith(
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -1537,12 +1538,12 @@ void toLengthLine(
 	updateImplies(tokens, smtVarDefinition);
 	updateRegexIn(tokens, rewriterStrMap, smtVarDefinition);
 	updateContain(tokens, rewriterStrMap);
+	updateEndsWith(tokens, rewriterStrMap);
+	updateStartsWith(tokens, rewriterStrMap);
 	updateCharAt(tokens, rewriterStrMap);
 	updateLastIndexOf(tokens, rewriterStrMap);
 	updateIndexOf2(tokens, rewriterStrMap);
 	updateIndexOf(tokens, rewriterStrMap);
-	updateEndsWith(tokens, rewriterStrMap);
-	updateStartsWith(tokens, rewriterStrMap);
 	updateReplace(tokens, rewriterStrMap);
 	updateReplaceAll(tokens, rewriterStrMap);
 

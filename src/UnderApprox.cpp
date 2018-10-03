@@ -1382,7 +1382,9 @@ void handle_StartsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(config.languageMap[STARTSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[STARTSWITH]) == 0 &&
+				(s.first.args[0].toString()[0] != '(') &&
+				(s.first.args[1].toString()[0] != '(')){
 			global_smtStatements.push_back({create_constraints_StartsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1395,7 +1397,9 @@ void handle_EndsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(config.languageMap[ENDSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[ENDSWITH]) == 0 &&
+			(s.first.args[0].toString()[0] != '(') &&
+			(s.first.args[1].toString()[0] != '(')){
 			global_smtStatements.push_back({create_constraints_EndsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1678,7 +1682,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			defines.emplace_back(createIntDefinition(lenTmp));
 			defines.emplace_back(createIntDefinition(iterTmp));
 			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
-//			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
+			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
 			constraints.emplace_back(createAssert(createEqualConstraint("1", iterTmp)));
 			lenX = lenX + createMultiplyOperator(lenTmp, iterTmp) + " ";
 

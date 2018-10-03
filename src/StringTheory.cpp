@@ -3857,7 +3857,6 @@ bool crossCheck(Z3_theory t, std::vector<Z3_ast> v1, Z3_ast node) {
 #ifdef DEBUGLOG
 	__debugPrint(logFile, "@%d at __%s: After all: \n", __LINE__, __FILE__);
 	if (!value.isUnknown()) {
-		__debugPrint(logFile, "%s\n", value.toString().c_str());
 	}
 	else {
 		__debugPrint(logFile, "uNkNoWn\n");
@@ -8493,7 +8492,6 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 
 	Z3_context ctx = Z3_theory_get_context(t);
 	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, node_to_string(t, ctxAssign).c_str());
 	std::vector<Z3_ast> ret;
 
 	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {

@@ -704,6 +704,7 @@ public:
 	 *
 	 */
 	std::string generateFlatIter(std::pair<std::string, int> a){
+
 		std::string result = "";
 		if (a.second >= 0) {
 			/* simpler version */
@@ -1927,10 +1928,11 @@ public:
 						}
 					else
 						for (int i = start; i < finish; ++i) {
+							unrollMode ?
 							locationConstraint.emplace_back(createEqualConstraint(
 									createSelectConstraint(tmp01,
 											createPlusOperator(std::to_string(i - start), startPos)),
-									std::to_string(v[i])));
+									std::to_string(v[i]))) :
 							locationConstraint.emplace_back(createEqualConstraint(
 									createSelectConstraint(tmp01,
 										createModOperator(
