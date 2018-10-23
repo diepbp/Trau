@@ -7,8 +7,8 @@
 #include "Utils.h"
 
 std::string longestCommonTail(std::string a, std::string b){
-	unsigned int posA = a.length() - 1;
-	unsigned int posB = b.length() - 1;
+	int posA = (int)a.length() - 1;
+	int posB = (int)b.length() - 1;
 	std::string ret = "";
 	while(posA >= 0 && posB >= 0){
 		if (a[posA] == b[posB]){
@@ -53,6 +53,17 @@ int lcd(int x, int y) {
 
 	return x * y / x1;
 }
+
+/*
+ *
+ */
+string indent(int n){
+	string s = "";
+	for (int i = 0; i < n; ++i)
+		s = s + "  ";
+	return s;
+}
+
 /*
  * string to tokens
  */
@@ -452,6 +463,14 @@ std::string createPlusOperator(std::string x, std::string y){
 	return "(+ " + x + " " + y + ")";
 }
 
+std::string createITEOperator(std::string x, std::string y, std::string z){
+	return "(ite " + x + " " + y + " " + z + ")";
+}
+
+std::string createImpliesOperator(std::string x, std::string y){
+	return "(implies " + x + " " + y + ")";
+}
+
 /*
  *
  */
@@ -515,6 +534,26 @@ std::string createArrayDefinition(std::string x){
  */
 std::string createIntDefinition(std::string x){
 	return "(declare-const " + x + " Int)";
+}
+
+/*
+ *
+ */
+std::string createBoolDefinition(std::string x){
+	return "(declare-const " + x + " Bool)";
+}
+
+/*
+ * For all string variables
+ * Change var name: xyz --> len_xyz
+ * and change var type: string -> int
+ */
+std::string redefineStringVar(std::string var){
+	return "(declare-const len_" + var + " Int)";
+}
+
+std::string redefineOtherVar(std::string var, std::string type){
+	return "(declare-const " + var + " " + type + ")";
 }
 
 /*
@@ -707,3 +746,171 @@ void formatMultiplyOP(StringOP &opx){
 	}
 }
 
+
+/*
+ *
+ */
+int Z3_reviews(std::string fileName){
+	std::string cmd = std::string(Z3VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("Z3 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					return Trau_UNSAT;
+				}
+				if (line.find("sat") == 0) {
+					return Trau_SAT;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: Z3 returns unknown\n");
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+int CVC4_reviews(std::string fileName){
+	std::string cmd = std::string(CVC4VERIFIER) + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("CVC4 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find("unsat") == 0) {
+					return Trau_UNSAT;
+				}
+				if (line.find("sat") == 0) {
+					return Trau_SAT;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+	printf("Warning: CVC4 returns unknown\n");
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+int S3_reviews(std::string fileName){
+	std::string cmd = std::string(S3VERIFIER) + " -f " + fileName;
+
+	FILE* in = popen(cmd.c_str(), "r");
+	if (!in)
+		throw std::runtime_error("S3 failed!");
+
+	std::map<std::string, std::string> results;
+	char buffer[5000];
+	try {
+		while (!feof(in)) {
+			std::string line = "";
+			if (fgets(buffer, 5000, in) != NULL) {
+				line = buffer;
+				if (line.find(">> UNSAT") == 0){
+					return Trau_UNSAT;
+				}
+				else if (line.find(">> SAT") == 0) {
+					return Trau_SAT;
+				}
+				else if (line.find("unknown function/constant") != std::string::npos){
+					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
+					std::string funcName = "";
+					while (line[pos] != ' ' && line[pos] != '"' && pos < line.length())
+						funcName += line[pos++];
+					printf("Warning: S3P does not support some functions: %s\n", funcName.c_str());
+					return Trau_Unknown;
+				}
+			}
+
+		}
+
+	} catch (...) {
+		pclose(in);
+		throw;
+	}
+	pclose(in);
+
+	return Trau_Unknown;
+}
+
+/*
+ *
+ */
+void verifyResult(
+		int languageVersion,
+		std::string fileName,
+		std::string verifyingSolver,
+		bool result){
+	int sat;
+	switch (languageVersion) {
+	case 20:
+		if (verifyingSolver.compare("s3") == 0) {
+			sat = S3_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by S3P: successful.\n");
+			}
+			else
+				assert(false);
+		}
+		else {
+			printf("\n %s cannot check the test.\n", verifyingSolver.c_str());
+		}
+		break;
+	case 25:
+
+	case 26:
+		if (verifyingSolver.compare("cvc4") == 0){
+			sat = CVC4_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+			}
+			else
+				assert(false);
+		}
+		else if (verifyingSolver.compare("z3str3") == 0){
+			sat = Z3_reviews(fileName);
+			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
+				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+			}
+			else
+				assert(false);
+		}
+		else {
+			printf("\n %s cannot check the test.\n", verifyingSolver.c_str());
+		}
+		break;
+		break;
+	default:
+		break;
+	}
+}

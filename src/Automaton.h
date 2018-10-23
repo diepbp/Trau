@@ -10,7 +10,7 @@
 
 #include "Transition.h"
 #include "Z3Utils.h"
-
+#include "Utils.h"
 
 #define UNKNOWN_AUTOMATON "uNkNoWn"
 #define LABELN				256

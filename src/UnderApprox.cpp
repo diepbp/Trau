@@ -540,7 +540,8 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements){
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p = PMAX){
 	/* first base case */
 	clock_t t;
 	t = clock();
@@ -558,7 +559,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* because of "general" functions, we need to refine arrangements */
 	std::vector<Arrangment> possibleCases;
-	if (lhs_elements[0].first.find(FLATPREFIX) != std::string::npos ||
+	if ((lhs_elements[0].first.find(FLATPREFIX) != std::string::npos && lhs_elements.size() == QMAX)||
 			(lhs_elements.size() == 2 &&
 					 ((connectedVariables.find(lhs_elements[0].first) != connectedVariables.end() && lhs_elements[1].second % QMAX == 1) ||
 					  (lhs_elements[0].second % QCONSTMAX == -1 && lhs_elements[1].second % QCONSTMAX == 0)))) {
@@ -582,10 +583,6 @@ std::vector<std::string> collectAllPossibleArrangements(
 #endif
 	t = clock() - t;
 
-#ifdef PRINTTEST_UNDERAPPROX
-	__debugPrint(logFile, "\n%d Calculating all possible cases: %.3f seconds, %ld cases.\n", __LINE__, ((float)t)/CLOCKS_PER_SEC, possibleCases.size());
-#endif
-
 	std::vector<std::string> cases;
 #if 0
 	/* 1 vs n, 1 vs 1, n vs 1 */
@@ -602,16 +599,17 @@ std::vector<std::string> collectAllPossibleArrangements(
 
 	/* 1 vs n, 1 vs 1, n vs 1 */
 	for (unsigned i = 0; i < possibleCases.size(); ++i) {
-		arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
+//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 			std::string tmp = possibleCases[i].
-					generateSMT(PMAX, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
+					generateSMT(p, lhs_str, rhs_str, lhs_elements, rhs_elements, connectedVariables);
 
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
-				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
+//				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
 				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
@@ -670,7 +668,7 @@ bool canSkipNotContain(
 	for (const auto& var : equalitiesMap)
 			for (const auto& _eq : var.second) {
 				if (std::find(_eq.begin(), _eq.end(), v) != _eq.end()) {
-					StringOP opTmp(languageMap[CONTAINS], var.first, arg);
+					StringOP opTmp(config.languageMap[CONTAINS], var.first, arg);
 					if (rewriterStrMap[opTmp].compare(FALSETR) == 0) {
 						__debugPrint(logFile, "%d *** %s ***: Contains - %s - %s\n", __LINE__, __FUNCTION__, v.c_str(), arg.c_str());
 						return true;
@@ -727,7 +725,7 @@ std::string create_constraints_StartsWith(
 	else if (isConst_01){
 		/* (length a >= ... && ...) */
 		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + std::to_string(str01.length() - 2) + ")");
-		for (unsigned int i = 1; i < str01.length() - 1; ++i) {
+		for (unsigned i = 1; i < str01.length() - 1; ++i) {
 			andConstraints.emplace_back("(= (select " +
 					generateVarArray(str00) + " " +
 					std::to_string(i - 1) + ") " +
@@ -784,8 +782,6 @@ std::string create_constraints_EndsWith(
 	if (str01[0] == '\"')
 		isConst_01 = true;
 
-	assert(isConst_00 || isConst_01);
-
 	std::vector<std::string> orConstraints;
 	std::vector<std::string> andConstraints;
 
@@ -824,8 +820,28 @@ std::string create_constraints_EndsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		/* do not handle this case*/
-		assert(false);
+		assert(connectedVariables.find(str00) != connectedVariables.end());
+		assert(connectedVariables.find(str01) != connectedVariables.end());
+
+		std::string arr00 = generateVarArray(str00);
+		std::string arr01 = generateVarArray(str01);
+		std::string len00 = generateVarLength(str00);
+		std::string len01 = generateVarLength(str01);
+
+		int bound = connectedVariables[str01];
+		for (int i = 0; i < bound; ++i){
+			andConstraints.emplace_back(createEqualConstraint(std::to_string(i), generateVarLength(str01)));
+			for (int j = i; j > 0; --j){
+				andConstraints.emplace_back(
+						createEqualConstraint(createSelectConstraint(arr00, "(- " + len00 + " " + std::to_string(j) + ")"),
+											  createSelectConstraint(arr01, std::to_string(i - j))));
+			}
+			orConstraints.emplace_back(andConstraint(andConstraints));
+			andConstraints.clear();
+		}
+		andConstraints.emplace_back(createLessEqualConstraint(len01, len00));
+		andConstraints.emplace_back(orConstraint(orConstraints));
+		ret = andConstraint(andConstraints);
 	}
 
 	if (boolValue.compare(FALSETR) == 0)
@@ -979,6 +995,20 @@ std::string create_constraints_ReplaceAll(
  *
  */
 std::string create_constraints_NOTContain(std::string var, std::string value){
+	__debugPrint(logFile, "%d *** %s ***: %s vs %s\n", __LINE__, __FUNCTION__, var.c_str(), value.c_str());
+
+	bool found = false;
+	for (unsigned i = 0; i < value.length(); ++i)
+		if (excludeCharSet.find(value[i]) != excludeCharSet.end()) {
+			found = true;
+			break;
+		}
+
+	if (!found) {
+		__debugPrint(logFile, "%d skip %s: %s vs %s\n", __LINE__, __FUNCTION__, var.c_str(), value.c_str());
+		return TRUESTR;
+	}
+
 	std::string lenName = generateVarLength(var);
 	std::string arrName = generateVarArray(var);
 
@@ -1004,7 +1034,11 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 			arrayRhs.c_str());
 	__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 #endif
-	assert(connectedVariables.find(var) != connectedVariables.end());
+//	return TRUESTR;
+	if (connectedVariables.find(var) == connectedVariables.end()){
+		__debugPrint(logFile, "%d %s: %s was removed in removeConnectedVarsIfNotInEqualities\n", __LINE__, __FUNCTION__, var.c_str());
+		return TRUESTR;
+	}
 
 	int size = std::max(findVariableSize(var) * MAXQ, connectedVariables[var]);
 	for (unsigned i = value.length() - 2; i <= (unsigned)size; ++i){
@@ -1021,7 +1055,7 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 	}
 
 	andConstraints.emplace_back(createLessEqualConstraint(lenName, std::to_string(size)));
-//	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
+	__debugPrint(logFile, "%d *** %s ***: %s\n%s\n", __LINE__, __FUNCTION__, value.c_str(), andConstraint(andConstraints).c_str());
 
 	return andConstraint(andConstraints);
 }
@@ -1059,8 +1093,8 @@ std::string create_constraints_equal(
 		return createEqualConstraint(len01, std::to_string((int)str00.length() - 2));
 	}
 	else {
-		bool concat00 = str00.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
-		bool concat01 = str01.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
+		bool concat00 = str00.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
 		if (!concat00 && !concat01) {
 			/* x = y */
 
@@ -1077,11 +1111,13 @@ std::string create_constraints_equal(
 				str01 = tmp;
 			}
 			std::vector<std::pair<std::string, int>> tokens;
-			switch (languageVersion) {
+			switch (config.languageVersion) {
 			case 20:
+			case 25:
 				tokens = parseTerm20(str01);
 				break;
-			case 25:
+
+			case 26:
 				tokens = parseTerm26(str01);
 				break;
 			default:
@@ -1090,7 +1126,7 @@ std::string create_constraints_equal(
 			}
 			std::string tmp = "";
 			for (const auto& s : tokens)
-				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(languageMap[CONCAT]) != 0) {
+				if (s.first.compare("(") != 0 && s.first.compare(")") != 0 && s.first.compare(config.languageMap[CONCAT]) != 0) {
 					if (s.first[0] != '"')
 						tmp = tmp + generateVarLength(s.first) + " ";
 					else
@@ -1161,8 +1197,8 @@ std::string create_constraints_NOTEqual(
 
 	}
 	else {
-		bool concat00 = str00.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
-		bool concat01 = str01.find("(" + std::string(languageMap[CONCAT])) != std::string::npos;
+		bool concat00 = str00.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
+		bool concat01 = str01.find("(" + std::string(config.languageMap[CONCAT])) != std::string::npos;
 		if (!concat00 && !concat01) {
 			/* x != y */
 
@@ -1269,19 +1305,23 @@ std::string create_constraints_ToUpper(std::string str00, std::string str01){
 void handle_NOTContains(
 		std::map<StringOP, std::string> rewriterStrMap){
 	std::map<std::pair<std::string, std::string>, bool> done;
+	for (const auto& c : excludeCharSet) {
+		__debugPrint(logFile, "%d %c\n", __LINE__, c);
+	}
+
 	for (const auto& element : rewriterStrMap){
-		if (element.first.name.compare(languageMap[CONTAINS]) == 0){
+		if (element.first.name.compare(config.languageMap[CONTAINS]) == 0){
 			if (element.second.compare(FALSETR) == 0){
-				if (element.first.args[0].name.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[CONCAT]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[REPLACE]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[REPLACE]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[TOUPPER]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[TOUPPER]) != std::string::npos ||
-						element.first.args[0].name.find(languageMap[TOLOWER]) != std::string::npos ||
-						element.first.args[1].name.find(languageMap[TOLOWER]) != std::string::npos ||
+				if (element.first.args[0].name.find(config.languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[CONCAT]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[REPLACE]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[TOUPPER]) != std::string::npos ||
+						element.first.args[0].name.find(config.languageMap[TOLOWER]) != std::string::npos ||
+						element.first.args[1].name.find(config.languageMap[TOLOWER]) != std::string::npos ||
 						element.first.args[1].name.find("Automata") != std::string::npos)
 					continue;
 				if (canSkipNotContain(element.first.args[0].toString(), element.first.args[1].toString(), rewriterStrMap)){
@@ -1295,7 +1335,6 @@ void handle_NOTContains(
 						done.find(std::make_pair(element.first.args[0].name, value02)) == done.end()) {
 
 					global_smtStatements.push_back({create_constraints_NOTContain(element.first.args[0].name, value02)});
-
 					done[std::make_pair(element.first.args[0].name, value02)] = true;
 				}
 				else if (value02.compare(NOTFOUND) == 0 && value01.compare(NOTFOUND) != 0 &&
@@ -1333,7 +1372,6 @@ void handle_NOTEqual(
 				}
 			}
 		}
-
 	}
 }
 
@@ -1344,7 +1382,9 @@ void handle_StartsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[STARTSWITH]) == 0 &&
+				(s.first.args[0].toString()[0] != '(') &&
+				(s.first.args[1].toString()[0] != '(')){
 			global_smtStatements.push_back({create_constraints_StartsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1357,7 +1397,9 @@ void handle_EndsWith(
 		std::map<StringOP, std::string> rewriterStrMap){
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[STARTSWITH]) == 0){
+		if (s.first.name.compare(config.languageMap[ENDSWITH]) == 0 &&
+			(s.first.args[0].toString()[0] != '(') &&
+			(s.first.args[1].toString()[0] != '(')){
 			global_smtStatements.push_back({create_constraints_EndsWith(s.first.args[0].toString(), s.first.args[1].toString(), s.second)});
 		}
 	}
@@ -1369,7 +1411,7 @@ void handle_EndsWith(
  */
 void handle_Replace(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[REPLACE]) == 0){
+		if (s.first.name.compare(config.languageMap[REPLACE]) == 0){
 		}
 	}
 }
@@ -1394,7 +1436,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
 	}
 
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[REPLACEALL]) == 0){
+		if (s.first.name.compare(config.languageMap[REPLACEALL]) == 0){
 			std::vector<std::string> args = {s.first.args[0].toString(), s.first.args[1].toString(), s.first.args[2].toString()};
 			global_smtStatements.push_back({create_constraints_ReplaceAll(args, s.second, eqToStr)});
 		}
@@ -1405,7 +1447,7 @@ void handle_ReplaceAll(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare(languageMap[TOUPPER]) == 0){
+		if (s.second.compare(config.languageMap[TOUPPER]) == 0){
 			global_smtStatements.push_back({create_constraints_ToUpper(s.first.args[0].toString(), s.first.args[1].toString())});
 		}
 	}
@@ -1416,7 +1458,7 @@ void handle_ToUpper(std::map<StringOP, std::string> rewriterStrMap){
  */
 void handle_ToLower(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto& s : rewriterStrMap) {
-		if (s.second.compare(languageMap[TOLOWER]) == 0){
+		if (s.second.compare(config.languageMap[TOLOWER]) == 0){
 			global_smtStatements.push_back({create_constraints_ToLower(s.first.args[0].name, s.first.args[1].name)});
 		}
 	}
@@ -1640,7 +1682,7 @@ void create_constraints_strVar(std::vector<std::string> &defines, std::vector<st
 			defines.emplace_back(createIntDefinition(lenTmp));
 			defines.emplace_back(createIntDefinition(iterTmp));
 			constraints.emplace_back(createAssert(createLessEqualConstraint(ZERO, lenTmp)));
-//			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
+			constraints.emplace_back(createAssert(createLessConstraint(ZERO, iterTmp)));
 			constraints.emplace_back(createAssert(createEqualConstraint("1", iterTmp)));
 			lenX = lenX + createMultiplyOperator(lenTmp, iterTmp) + " ";
 
@@ -1920,7 +1962,7 @@ std::vector<std::string> createSatisfyingAssignments(
 				tokens[1].find(FLATPREFIX) == std::string::npos) {
 			if (tokens[1].substr(0, std::string(LENPREFIX).length()).compare(LENPREFIX) == 0) {
 				std::string tmp = def.substr(std::string(LENPREFIX).length());
-				additionalAssertions.emplace_back("(assert (= (" + std::string(languageMap[LENGTH]) + " " + tokens[1].substr(std::string(LENPREFIX).length()) +") " + value + "))\n");
+				additionalAssertions.emplace_back("(assert (= (" + std::string(config.languageMap[LENGTH]) + " " + tokens[1].substr(std::string(LENPREFIX).length()) +") " + value + "))\n");
 			}
 			else {
 				if (value[0] != '-')
@@ -1950,7 +1992,8 @@ std::vector<std::string> createSatisfyingAssignments(
 std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements){
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p = PMAX){
 #ifdef DEBUGLOG
 	__debugPrint(logFile, ">> equalities to SMT \n");
 	for (unsigned i = 0; i < lhs_elements.size(); ++i)
@@ -1970,7 +2013,9 @@ std::vector<std::string> equalityToSMT(
 	if (generatedEqualities.find(tmp01) == generatedEqualities.end()){
 		std::vector<std::string> cases = collectAllPossibleArrangements(
 				lhs, rhs,
-				lhs_elements, rhs_elements);
+				lhs_elements,
+				rhs_elements,
+				p);
 		generatedEqualities.emplace(tmp01);
 		return cases;
 	}
@@ -2041,7 +2086,7 @@ std::string collectConst(std::string str) {
 		else {
 			/* "abc"_number */
 
-			for (unsigned i = str.length() - 1; i >= 0; --i)
+			for (int i = (int)str.length() - 1; i >= 0; --i)
 				if (str[i] == '_') {
 					assert (str[i - 1] == '\"');
 					extra = str.substr(i);
@@ -2154,10 +2199,10 @@ std::string sumStringVector(std::vector<std::string> list){
  * Remove common prefix and suffix
  */
 std::string stringDiff(std::string a, std::string b){
-	unsigned pre = 0, suf = a.length() - 1;
+	int pre = 0, suf = a.length() - 1;
 	while (pre < a.length() && pre < b.length() && a[pre] == b[pre])
 		++pre;
-	while (suf >= 0 && a[suf] == b[b.length() - (a.length() - suf)])
+	while (suf >= 0 && a[suf] == b[(int)b.length() - ((int)a.length() - suf)])
 		--suf;
 
 	if (pre >= suf)
@@ -2177,6 +2222,7 @@ void sumConstString(){
 
 	std::map<std::string, std::vector<std::vector<std::string>>> new_eqMap;
 	sumConstLength = 0;
+	std::map<std::string, bool> tmpMap;
 	for (const auto& _eq :  equalitiesMap) {
 		std::vector<std::vector<std::string>> tmp_vector;
 		for (const auto& vt : _eq.second){
@@ -2185,8 +2231,10 @@ void sumConstString(){
 			/* push to map */
 			for (const auto& s : vt) {
 				if (s[0] == '\"') {
-					if (_eq.second.size() > 1)
+					if (_eq.second.size() > 1 && tmpMap.find(s) == tmpMap.end() ){
 						sumConstLength += s.length() - 2;
+						tmpMap[s] = true;
+					}
 					/* prevent the case: (abc)*  + def */
 					if (isRegexStr(s) || isUnionStr(s)) {
 						std::vector<std::string> localElements;
@@ -2305,8 +2353,11 @@ void createConstMap(){
 	for (const auto _eq : equalitiesMap) {
 		if (_eq.first[0] == '"') {
 			std::string content = _eq.first.substr(1, _eq.first.length() - 2);
+			if (constMap.find(content) == constMap.end()) {
+				sumConstLength += content.length();
+				__debugPrint(logFile, "%d %s: %ld\n", __LINE__, content.c_str(), sumConstLength);
+			}
 			constMap[content] = "const_" + std::to_string(constCnt++);
-			sumConstLength += content.length();
 		}
 		for (const auto v: _eq.second){
 
@@ -2321,8 +2372,12 @@ void createConstMap(){
 					if (isRegexStr(content)) {
 						sumConstLength = CONNECTINGSIZE * 2;
 					}
-					else
-						sumConstLength += content.length();
+					else {
+						if (constMap.find(content) == constMap.end()) {
+							sumConstLength += content.length();
+							__debugPrint(logFile, "%d %s: %ld\n", __LINE__, content.c_str(), sumConstLength);
+						}
+					}
 					if (constMap.find(content) == constMap.end()) {
 						__debugPrint(logFile, "%d %s: add const to map: %s\n", __LINE__, __FUNCTION__, content.c_str());
 						constMap[content] = "const_" + std::to_string(constCnt++);
@@ -2344,7 +2399,7 @@ void addToConnectedVar(StringOP op, std::map<std::string, int> &connectedVarSet,
 			 connectedVarSet[op.name] = std::max(length, connectedVarSet[op.name]);
 		 __debugPrint(logFile, ">> %d connectedVarSet @ %s: %d\n", __LINE__, op.name.c_str(),  connectedVarSet[op.name]);
 	 }
-	 else if (op.name.compare(languageMap[CONCAT]) == 0){
+	 else if (op.name.compare(config.languageMap[CONCAT]) == 0){
 		 for (unsigned i = 0 ; i < op.args.size(); ++i)
 			 addToConnectedVar(op.args[i], connectedVarSet, length);
 	 }
@@ -2432,19 +2487,19 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 	/* from rewriterMap */
 	for (const auto& s : rewriterStrMap) {
-		if (s.first.name.compare(languageMap[CHARAT]) == 0 ||
-				s.first.name.compare(languageMap[STARTSWITH]) == 0 ||
-				s.first.name.compare(languageMap[ENDSWITH]) == 0 ||
-				s.first.name.compare(languageMap[REPLACE]) == 0 ||
-				s.first.name.compare(languageMap[REPLACEALL]) == 0 ||
-				(s.first.name.compare(languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
-				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(languageMap[TOUPPER]) == 0 || s.second.compare(languageMap[TOLOWER]) == 0))){
+		if (s.first.name.compare(config.languageMap[CHARAT]) == 0 ||
+				s.first.name.compare(config.languageMap[STARTSWITH]) == 0 ||
+				s.first.name.compare(config.languageMap[ENDSWITH]) == 0 ||
+				s.first.name.compare(config.languageMap[REPLACE]) == 0 ||
+				s.first.name.compare(config.languageMap[REPLACEALL]) == 0 ||
+				(s.first.name.compare(config.languageMap[CONTAINS]) == 0 && s.second.compare(FALSETR) == 0) ||
+				(s.first.name.compare("=") == 0 && (s.second.compare(FALSETR) == 0 || s.second.compare(config.languageMap[TOUPPER]) == 0 || s.second.compare(config.languageMap[TOLOWER]) == 0))){
 			StringOP op = s.first;
 
 //			__debugPrint(logFile, "%d %s -> %s -- %s\n", __LINE__, op.toString().c_str(), s.first.arg01.c_str(), s.first.arg02.c_str());
 
-			if (s.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-					s.first.args[1].name.find(languageMap[SUBSTRING]) != std::string::npos ||
+			if (s.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+					s.first.args[1].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
 					s.first.args[1].name.find("Automata") != std::string::npos )
 				continue;
 
@@ -2485,7 +2540,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 				}
 			}
 
-			if (s.first.name.compare(languageMap[CHARAT]) == 0){
+			if (s.first.name.compare(config.languageMap[CHARAT]) == 0){
 				if (s.first.args[0].name[0] != '\"') {
 					__debugPrint(logFile, "%d Adding %s to connectedVar\n", __LINE__, s.first.args[0].name.c_str());
 					addToConnectedVar(s.first.args[0], connectedVarSet, connectingSize);
@@ -2495,7 +2550,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 
 			/* add all variables to the connected var set*/
 			if (s.first.args[0].name[0] != '\"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(config.languageMap[STARTSWITH]) == 0) {
 					if (s.first.args[1].name[0] == '"')
 						addToConnectedVar(s.first.args[0], connectedVarSet, s.first.args[1].name.length() - 2);
 					else
@@ -2507,7 +2562,7 @@ void collectConnectedVariables(std::map<StringOP, std::string> rewriterStrMap){
 			}
 
 			if (s.first.args[1].name[0] != '"') {
-				if (s.first.name.compare("=") == 0 || s.first.name.compare(languageMap[STARTSWITH]) == 0) {
+				if (s.first.name.compare("=") == 0 || s.first.name.compare(config.languageMap[STARTSWITH]) == 0) {
 					if (s.first.args[0].name[0] == '"')
 						addToConnectedVar(s.first.args[1], connectedVarSet, s.first.args[0].name.length() - 2);
 					else
@@ -2876,6 +2931,8 @@ bool similarVector(
 		){
 	if (equalVector(a, b))
 		return true;
+	else
+		return false;
 
 	unsigned posB = 0;
 	for (unsigned i = 0; i < a.size(); ++i){
@@ -3019,11 +3076,14 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
 	__debugPrint(logFile, "%d leaving %s \n", __LINE__, __FUNCTION__);
 	return results;
 }
+
 /*
  * Input: x . y
  * Output: flat . flat . flat . flat . flat . flat
  */
-std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string> list){
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int q = QMAX){
 	std::vector<std::pair<std::string, int>> elements;
 
 	for (unsigned int k = 0; k < list.size(); ++k)
@@ -3053,7 +3113,52 @@ std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string>
 		else {
 			if (varPieces.find(list[k]) == varPieces.end())
 				varPieces[list[k]] = 0;
-			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + q; ++j) { /* split variables into QMAX parts */
+				elements.emplace_back(std::make_pair(list[k], j));
+			}
+			varPieces[list[k]] += q;
+		}
+
+	return elements;
+}
+
+/*
+ * Input: x . y
+ * Output: flat . flat . flat . flat . flat . flat
+ */
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int p,
+		int q){
+	std::vector<std::pair<std::string, int>> elements;
+
+	for (unsigned k = 0; k < list.size(); ++k)
+		if (list[k][0] == '"') {
+			std::string content = list[k].substr(1, list[k].length() - 2);
+			if (!isRegexStr(list[k])) {
+				if (list[k].length() > SPLIT_LOWER_BOUND) /* const string */ {
+					if (varPieces.find(content) == varPieces.end())
+						varPieces[content] = 0;
+					for (int j = varPieces[content]; j < varPieces[content] + QCONSTMAX; ++j) { /* split variables into QMAX parts */
+						elements.emplace_back(std::make_pair(content, -(j + 1)));
+					}
+					varPieces[content] += QCONSTMAX;
+				}
+				else {
+					/* length < SPLIT_LOWER_BOUND */
+					elements.emplace_back(std::make_pair(content, -1));
+				}
+			}
+			else {
+				/* regex */
+				std::string content = list[k].substr(1, list[k].length() - 2);
+				elements.emplace_back(std::make_pair(content, REGEX_CODE));
+			}
+		}
+		else {
+			if (varPieces.find(list[k]) == varPieces.end())
+				varPieces[list[k]] = 0;
+			for (int j = varPieces[list[k]]; j < varPieces[list[k]] + QMAX; ++j) { /* split variables into QMAX parts */
 				elements.emplace_back(std::make_pair(list[k], j));
 			}
 			varPieces[list[k]] += QMAX;
@@ -3164,6 +3269,43 @@ unsigned findMaxP(std::vector<std::vector<std::string>> v){
 
 	return maxLocal;
 }
+
+/*
+ *
+ */
+void convertEqualities(int p, int q){
+	for (const auto& eqVar : fullEqualitiesMap)
+		for (const auto& eq : eqVar.second) {
+			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
+		}
+	const int flatP = 1;
+	for (const auto& it : equalitiesMap){
+		/* add an eq = flat . flat . flat, then other equalities will compare with it */
+		std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
+		std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat, q);
+		/* compare with others */
+		for (const auto& element: it.second) {
+			std::vector<std::pair<std::string, int>> rhs_elements = createEquality(element);
+			std::vector<std::string> result = equalityToSMT(
+					sumStringVector(genericFlat),
+					sumStringVector(element),
+					lhs_elements,
+					rhs_elements,
+					p
+			);
+			if (result.size() != 0) {
+				/* sync result */
+				global_smtStatements.emplace_back(result);
+			}
+			else {
+				__debugPrint(logFile, "%d trivialUnsat = true\n", __LINE__);
+				/* trivial unsat */
+				trivialUnsat = true;
+			}
+		}
+	}
+}
+
 /*
  * Pthread
  * Each thread handles a part in the global map from start -> end
@@ -3174,13 +3316,6 @@ void convertEqualities(){
 
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
-//			bool willConvert = true;
-//			for (const auto& s : eq)
-//				if (s[0] == '"') {
-//					willConvert = false;
-//					break;
-//				}
-//			if (willConvert)
 			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
 		}
 
@@ -3216,10 +3351,6 @@ void convertEqualities(){
 						rhs_elements
 				);
 				t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 				if (result.size() != 0) {
 					/* sync result */
 					global_smtStatements.emplace_back(result);
@@ -3233,7 +3364,7 @@ void convertEqualities(){
 
 		}
 		else if (maxLocal > maxPConsidered) {
-			/* add an eq = flat . flat . flat, then other equalities will compare will it */
+			/* add an eq = flat . flat . flat, then other equalities will compare with it */
 			std::vector<std::string> genericFlat = createSetOfFlatVariables(flatP);
 			std::vector<std::pair<std::string, int>> lhs_elements = createEquality(genericFlat);
 			/* compare with others */
@@ -3247,10 +3378,6 @@ void convertEqualities(){
 						rhs_elements
 				);
 				t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-				__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 				if (result.size() != 0) {
 					/* sync result */
 					global_smtStatements.emplace_back(result);
@@ -3265,8 +3392,8 @@ void convertEqualities(){
 		else {
 
 			/* work as usual */
-			for (unsigned int i = 0; i < it->second.size(); ++i)
-				for (unsigned int j = i + 1; j < it->second.size(); ++j) {
+			for (unsigned i = 0; i < it->second.size(); ++i)
+				for (unsigned j = i + 1; j < it->second.size(); ++j) {
 					/* optimize: find longest common prefix and posfix */
 					std::vector<std::string> lhs;
 					std::vector<std::string> rhs;
@@ -3288,10 +3415,6 @@ void convertEqualities(){
 							rhs_elements
 					);
 					t = clock() - t;
-
-#ifdef PRINTTEST_UNDERAPPROX
-					__debugPrint(logFile, "%d Convert to SMT: %.3f seconds.\n\n", __LINE__, ((float)t)/CLOCKS_PER_SEC);
-#endif
 					if (result.size() != 0) {
 						/* sync result*/
 						global_smtStatements.emplace_back(result);
@@ -3784,7 +3907,7 @@ void forwardPropagate(
 }
 
 /*
- *
+ * note that, value can be wrong because we removed some not-contain constraints.
  */
 std::vector<int> createString(
 		std::string name,
@@ -3808,6 +3931,16 @@ std::vector<int> createString(
 			__debugPrint(logFile, "%d", val[i]);
 	__debugPrint(logFile, "\n");
 
+	/* check if the value is usable or not */
+	bool usable = true;
+	for (const auto& str : notContainMap)
+		if (str.second == false && str.first.first.compare(name) == 0){
+			if (value.find(str.first.second) != std::string::npos) {
+				usable = false;
+				break;
+			}
+		}
+
 	/* update values found by the solver & previous iterations */
 	/* collect iter */
 //	assert(iters.size() == QMAX);
@@ -3821,11 +3954,11 @@ std::vector<int> createString(
 //					val[pos + j * iters[i].first + k] = value[pos + k];
 //		pos += iters[i].first;
 //	}
-
-	for (int i = 0; i < lenVar; ++i)
-		if (val[i] == 0)
-			if (i < (int)value.length())
-				val[i] = value[i];
+	if (usable)
+		for (int i = 0; i < lenVar; ++i)
+			if (val[i] == 0)
+				if (i < (int)value.length())
+					val[i] = value[i];
 
 	bool canAssign = false;
 	for (int i = 0; i < lenVar; ++i)
@@ -3839,7 +3972,7 @@ std::vector<int> createString(
 	if (canAssign || assignAnyway) {
 		for (int i = 0; i < lenVar; ++i)
 			if (val[i] == 0)
-				val[i] = DEFAULT_CHAR;
+				val[i] = defaultChar;
 	}
 	else {
 		/* cannot assign because we do not know anything */
@@ -4108,11 +4241,13 @@ std::string findEqValueInConcat(
 		std::string concat,
 		std::map<std::string, int> len){
 	std::vector<std::pair<std::string, int>> tokens;
-	switch (languageVersion) {
+	switch (config.languageVersion) {
 	case 20:
+	case 25:
 		tokens = parseTerm20(concat);
 		break;
-	case 25:
+
+	case 26:
 		tokens = parseTerm26(concat);
 		break;
 	default:
@@ -4131,7 +4266,7 @@ std::string findEqValueInConcat(
 					return "";
 			}
 		}
-		else if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0 &&
+		else if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(config.languageMap[CONCAT]) != 0 &&
 				getVarLength(token.first, len) > 0) {
 			if (ret.length() == 0)
 				ret = token.first;
@@ -4154,7 +4289,7 @@ std::map<std::string, int> createSimpleEqualMap(
 	for (const auto& op : equalities){
 		std::string arg01 = op.args[0].toString();
 		std::string arg02 = op.args[1].toString();
-		if (op.args[1].name.compare(languageMap[CONCAT]) == 0){
+		if (op.args[1].name.compare(config.languageMap[CONCAT]) == 0){
 			arg02 = findEqValueInConcat(arg02, len);
 		}
 
@@ -4218,12 +4353,12 @@ std::vector<std::string> findEqualVar(
 		for (const auto& op : equalities) {
 			std::string arg01 = op.args[0].toString();
 			std::string arg02 = op.args[1].toString();
-			assert(arg01.find("(" + std::string(languageMap[CONCAT])) != 0);
+			assert(arg01.find("(" + std::string(config.languageMap[CONCAT])) != 0);
 
 			if (arg01.compare(varName) == 0) {
 				if (std::find(ret.begin(), ret.end(), arg02) == ret.end()) {
 					/* x = concat y z and |z| = 0 */
-					if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
+					if (arg02.find("(" + std::string(config.languageMap[CONCAT])) == 0){
 						__debugPrint(logFile, "%d varname: %s\n", __LINE__, varName.c_str());
 						std::string tmp = findEqValueInConcat(arg02, len);
 						if (tmp.length() > 0 && std::find(ret.begin(), ret.end(), tmp) == ret.end()) {
@@ -4247,7 +4382,7 @@ std::vector<std::string> findEqualVar(
 				/* y = concat x z and |z| = 0 */
 				else if (std::find(ret.begin(), ret.end(), arg01) == ret.end() &&
 						arg02.find(varName) != std::string::npos) {
-					if (arg02.find("(" + std::string(languageMap[CONCAT])) == 0){
+					if (arg02.find("(" + std::string(config.languageMap[CONCAT])) == 0){
 						std::string tmp = findEqValueInConcat(arg02, len);
 						if (tmp.compare(varName) == 0) {
 							__debugPrint(logFile, "%d adding %s\n", __LINE__, arg01.c_str());
@@ -4295,14 +4430,16 @@ bool findExistsingValue(
 		__debugPrint(logFile, "%d not found value %s yet\n", __LINE__, varName.c_str());
 		/* find value from Concat */
 		for (const auto& op : equalities){
-			if (op.args[1].name.find(std::string(languageMap[CONCAT])) == 0 &&
+			if (op.args[1].name.find(std::string(config.languageMap[CONCAT])) == 0 &&
 					std::find(eqVar.begin(), eqVar.end(), op.args[0].toString()) == eqVar.end()){
 				std::vector<std::pair<std::string, int>> tokens;
-				switch (languageVersion) {
+				switch (config.languageVersion) {
 				case 20:
+				case 25:
 					tokens = parseTerm20(op.args[1].toString());
 					break;
-				case 25:
+
+				case 26:
 					tokens = parseTerm26(op.args[1].toString());
 					break;
 				default:
@@ -4311,7 +4448,7 @@ bool findExistsingValue(
 				}
 				std::vector<std::string> tmpTokens;
 				for (const auto& token : tokens)
-					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(languageMap[CONCAT]) != 0)
+					if (token.first.compare("(") != 0 && token.first.compare(")") != 0 && token.first.compare(config.languageMap[CONCAT]) != 0)
 						tmpTokens.emplace_back(token.first);
 				unsigned pos = 0;
 				std::vector<int> tmpVal = getVarValue(op.args[0].toString(), len, strValue);
@@ -4384,31 +4521,31 @@ void formatOtherVars(
 				op.first.args[0].name.find("\"") == std::string::npos){
 			StringOP _op("=", op.first.args[0], op.first.args[1]);
 
-			if (op.first.args[1].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[SUBSTRING]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[SUBSTRING]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[SUBSTRING]) != std::string::npos)
 				continue;
 
-			if (op.first.args[1].toString().find(languageMap[REPLACE]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[REPLACE]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[REPLACE]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[REPLACE]) != std::string::npos)
 				continue;
 
-			if (op.first.args[1].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+			if (op.first.args[1].toString().find(config.languageMap[REPLACEALL]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].toString().find(languageMap[REPLACEALL]) != std::string::npos)
+			if (op.first.args[0].toString().find(config.languageMap[REPLACEALL]) != std::string::npos)
 				continue;
 
-			if (op.first.args[0].args.size() > 0 && op.first.args[0].name.compare(languageMap[CONCAT]) != 0)
+			if (op.first.args[0].args.size() > 0 && op.first.args[0].name.compare(config.languageMap[CONCAT]) != 0)
 				continue;
 
-			if (op.first.args[1].args.size() > 0 && op.first.args[1].name.compare(languageMap[CONCAT]) != 0)
+			if (op.first.args[1].args.size() > 0 && op.first.args[1].name.compare(config.languageMap[CONCAT]) != 0)
 				continue;
 
-			if (op.first.args[0].name.find(std::string(languageMap[CONCAT])) == 0) {
+			if (op.first.args[0].name.find(std::string(config.languageMap[CONCAT])) == 0) {
 				_op.setArgs({op.first.args[1], op.first.args[0]});
 			}
 			equalities.emplace_back(_op);
@@ -4677,6 +4814,7 @@ std::map<std::string, std::string> formatResult(
 
 	formatRegexes(indexes, lenVector, lenInt, finalStrValue, completion);
 	formatOtherVars(indexes, strValue, lenVector, lenInt, iterInt, finalStrValue, completion);
+
 	std::map<std::string, std::string> finalResult;
 	for (const auto& var : finalStrValue){
 		int varLength = getVarLength(var.first, lenInt);
@@ -4705,27 +4843,33 @@ std::map<std::string, std::string> formatResult(
 			}
 		}
 		std::string tmp = "";
-		for (unsigned int i = 0; i < value.length(); ++i)
-			if (languageVersion == 20) {
-				if (value[i] == '\"')
-					tmp = tmp + "\\\"";
-				else if (value[i] == '\\')
-					tmp = tmp + "\\\\";
-				else if (value[i] == 9) // tab
-					tmp = tmp + "\\t";
-				else if (value[i] < 32 || value[i] > 126)
-					tmp = tmp + 'a';
-				else
-					tmp = tmp + value[i];
+		for (unsigned i = 0; i < value.length(); ++i) {
+			switch (config.languageVersion) {
+				case 20:
+				case 25:
+					if (value[i] == '"')
+						tmp = tmp + "\\\"";
+					else if (value[i] == '\\')
+						tmp = tmp + "\\\\";
+					else if (value[i] == 9) // tab
+						tmp = tmp + "\\t";
+					else if (value[i] < 32 || value[i] > 126)
+						tmp = tmp + defaultChar;
+					else
+						tmp = tmp + value[i];
+					break;
+				case 26:
+					if (value[i] == '"')
+						tmp = tmp + """";
+					else if (value[i] < 32 || value[i] > 126)
+						tmp = tmp + defaultChar;
+					else
+						tmp = tmp + value[i];
+					break;
+				default:
+					break;
 			}
-			else if (languageVersion == 25){
-				if (value[i] == '"')
-					tmp = tmp + """";
-				else if (value[i] < 32 || value[i] > 126)
-					tmp = tmp + 'a';
-				else
-					tmp = tmp + value[i];
-			}
+		}
 		finalResult[var.first] = tmp;
 	}
 
@@ -4768,6 +4912,7 @@ bool Z3_run(
 			sat = true;
 		}
 		else {
+			sat = false;
 			return sat;
 		}
 
@@ -4794,13 +4939,13 @@ bool Z3_run(
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
 								if (elseValue > 'z' || elseValue < '!')
-									elseValue = DEFAULT_CHAR;
+									elseValue = defaultChar;
 								break;
 							}
 							else {
 								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
 								if (tmpNum > 'z' || tmpNum < '!')
-									tmpNum = DEFAULT_CHAR;
+									tmpNum = defaultChar;
 								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}
 						}
@@ -4847,12 +4992,12 @@ bool Z3_run(
 	pclose(in);
 
 	/* collect length of all string variables*/
-	std::string lengthFile = std::string(TMPDIR) + "/w_l_" + getFileNameFromFileDir(orgInput);
+	std::string lengthFile = std::string(TMPDIR) + "/" + WITHLENGH + getFileNameFromFileDir(config.orgInput);
 #ifdef PRINTTEST_UNDERAPPROX
 	__debugPrint(logFile, "%d output with length: %s\n", __LINE__, lengthFile.c_str());
 #endif
 
-	if (sat && getModel) {
+	if (sat && config.getModel) {
 		bool completion = true;
 		std::map<std::string, std::string> results = formatResult(len_results, str_results, completion);
 		if (completion == false)
@@ -4863,17 +5008,11 @@ bool Z3_run(
 		return false;
 #endif
 		printSatisfyingAssignments(decodeResultMap(results), len_results);
-		if (beReviewed) {
+		if (config.beReviewed) {
 			/* read & copy the input file */
-			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
+			std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(config.orgInput);
 			addConstraintsToSMTFile(nonGrm, _equalMap, createSatisfyingAssignments(_equalMap, len_results, results), lengthFile);
-
-			sat = S3_reviews(lengthFile);
-			if (sat == true) {
-				printf("\nDouble-checked by S3P: successful.\n");
-			}
-			else
-				assert(false);
+			verifyResult(config.languageVersion, lengthFile, config.verifyingSolver, true);
 		}
 		else {
 			sat = true;
@@ -4882,48 +5021,6 @@ bool Z3_run(
 	return sat;
 }
 
-/*
- *
- */
-bool S3_reviews(std::string fileName){
-	std::string cmd = std::string(VERIFIER) + " -f " + fileName;
-
-	FILE* in = popen(cmd.c_str(), "r");
-	if (!in)
-		throw std::runtime_error("S3 failed!");
-
-	std::map<std::string, std::string> results;
-	char buffer[5000];
-	std::string result = "";
-	try {
-		while (!feof(in)) {
-			std::string line = "";
-			if (fgets(buffer, 5000, in) != NULL) {
-				line = buffer;
-				if (line.substr(0, 8).compare(">> UNSAT") == 0) {
-					__debugPrint(logFile, "%d %s\n", __LINE__, line.c_str());
-					assert(false);
-				}
-				else if (line.find("unknown function/constant") != std::string::npos){
-					unsigned pos = line.find("unknown function/constant") + std::string("unknown function/constant").length() + 1;
-					std::string funcName = "";
-					while (line[pos] != ' ' && line[pos] != '"' && pos < line.length())
-						funcName += line[pos++];
-					printf("Warning: S3P does not support some functions: %s\n", funcName.c_str());
-					break;
-				}
-			}
-
-		}
-
-	} catch (...) {
-		pclose(in);
-		throw;
-	}
-	pclose(in);
-
-	return true;
-}
 
 /*
  * Pthread Caller
@@ -4971,16 +5068,23 @@ void pthreadController(){
 /*
  *
  */
-void reset(){
+void reset(bool wellForm){
+
+	includeCharSet.clear();
+	excludeCharSet.clear();
+	appearanceMap.clear();
+	fullEqualitiesMap.clear();
+	notContainMap.clear();
+
+
 	generatedEqualities.clear();
 	varPieces.clear();
-	notContainMap.clear();
 	smtLenConstraints.clear();
 	smtVarDefinition.clear();
 	global_smtStatements.clear();
 	connectedVariables.clear();
-	appearanceMap.clear();
-	fullEqualitiesMap.clear();
+
+
 	trivialUnsat = false;
 	unknownResult = false;
 }
@@ -4992,28 +5096,56 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 	std::set<std::string> ret;
 
 	for (const auto& s : _carryOnConstraints){
-		std::string tmp = s;
-		while (true){
-			size_t pos = tmp.find("(" + std::string(languageMap[LENGTH]) + " ");
-			if (pos != std::string::npos){
-				std::string _tmp = tmp.substr(0, pos) + LENPREFIX;
-				for (unsigned i = pos + std::string(languageMap[LENGTH]).length() + 2; i < tmp.length(); ++i)
-					if (tmp[i] != ')')
-						_tmp = _tmp + tmp[i];
-					else {
-						_tmp = _tmp + tmp.substr(i + 1);
-						break;
-					}
-				tmp = _tmp;
-			}
-			else {
-				ret.emplace(tmp);
-				break;
-			}
+		std::vector<std::pair<std::string, int>> tokens;
+		switch (config.languageVersion) {
+		case 20:
+		case 25:
+			tokens = parseTerm20(s);
+			break;
+
+		case 26:
+			tokens = parseTerm26(s);
+			break;
+		default:
+			assert(false);
+			break;
 		}
+
+		int found = findTokens(tokens, 0, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		while (found != -1) {
+			int endCond = findCorrespondRightParentheses(found - 1, tokens);
+			for (int i = found + 1 ; i < endCond; ++i)
+				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM)
+					tokens[i].first = LENPREFIX + tokens[i].first;
+			tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			found = findTokens(tokens, found, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		}
+
+		found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		while (found != -1) {
+			int endCond = findCorrespondRightParentheses(found - 1, tokens);
+			for (int i = found + 1 ; i < endCond; ++i)
+				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
+						tokens[i].first.find(LENPREFIX) != 0 &&
+						allVariables.find(tokens[i].first) != allVariables.end())
+					tokens[i].first = LENPREFIX + tokens[i].first;
+			tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			tokens.insert(tokens.begin() + found + 1, std::make_pair("0", antlrcpptest::SMTLIB26Lexer::NUMERAL));
+			found = findTokens(tokens, found, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		}
+
+		// sum tokens
+		std::string tmp = tokens[0].first;
+
+		for (unsigned i = 1; i < tokens.size(); ++i){
+			if (tokens[i].first.compare(")") != 0 && tokens[i - 1].first.compare("(") != 0)
+				tmp += " ";
+			tmp += tokens[i].first;
+		}
+		ret.insert(tmp);
 	}
 
-	displayListString(ret, " reformat _carryOnConstraints");
+	displayListString(ret, " reformat carryOnConstraints");
 	return ret;
 }
 
@@ -5076,7 +5208,7 @@ void addConnectedVarToEQmap(){
  */
 void createNotContainMap(std::map<StringOP, std::string> rewriterStrMap){
 	for (const auto op : rewriterStrMap)
-		if (op.first.name.compare(languageMap[CONTAINS]) == 0 && op.second.compare(FALSETR) == 0){
+		if (op.first.name.compare(config.languageMap[CONTAINS]) == 0 && op.second.compare(FALSETR) == 0){
 			std::string arg02 = op.first.args[1].name;
 			if (arg02[0] == '"') {
 				notContainMap[std::make_pair(op.first.args[0].toString(), arg02.substr(1, arg02.length() - 2))] = false;
@@ -5227,7 +5359,7 @@ void initConnectingSize(bool prep = true){
 		sumConstLength = std::max(sumConstLength, (long) 2);
 		maxInt = std::max(maxInt, 1);
 
-		long tmp = maxInt + sumConstLength * varCount;
+		long tmp = maxInt + sumConstLength + varCount;
 		if (tmp < connectingSize) {
 			connectingSize = tmp;
 		}
@@ -5242,6 +5374,7 @@ void initConnectingSize(bool prep = true){
 			if (v.second == oldConnectingSize)
 				v.second = connectingSize;
 	}
+	__debugPrint(logFile, "%d *** %s ***: %d\n", __LINE__, __FUNCTION__, connectingSize);
 }
 
 /*
@@ -5289,31 +5422,154 @@ void removeConnectedVarIfPossible(){
 		}
 }
 
+void removeConnectedVarsIfNotInEqualities(){
+	std::map<std::string, int> newConnectedVars;
+	for (const auto& var : connectedVariables) {
+		bool found = false;
+		for (const auto& var02 : equalitiesMap){
+			if (var.first.compare(var02.first) == 0){
+				found = true;
+				break;
+			}
+
+			for (const auto& v : var02.second) {
+				if (std::find(v.begin(), v.end(), var.first) != v.end()) {
+					found = true;
+					break;
+				}
+			}
+			if (found)
+				break;
+		}
+		if (found)
+			newConnectedVars[var.first] = var.second;
+		else {
+			__debugPrint(logFile, "%d %s: remove %s from connectedVars\n", __LINE__, __FUNCTION__, var.first.c_str());
+		}
+	}
+
+	connectedVariables.clear();
+	connectedVariables = newConnectedVars;
+
+}
+
 /*
  *
  */
-void init(std::map<StringOP, std::string> rewriterStrMap){
+void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap){
+	for (const auto& s : constMap){
+		if (!isRegexStr(s.first))
+			for (unsigned i = 0; i < s.first.length(); ++i) {
+				excludeCharSet.emplace(s.first[i]);
+			}
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, s.first.c_str());
+	}
+}
+
+/*
+ *
+ */
+void initIncludeCharSet(){
+	for (const auto& s : constMap){
+		if (isRegexStr(s.first))
+			for (unsigned i = 0; i < s.first.length(); ++i)
+				includeCharSet.emplace(s.first[i]);
+	}
+	if (includeCharSet.size() == 0)
+		for (unsigned i = 32; i <= 126; ++i)
+			includeCharSet.emplace(i);
+}
+
+/*
+ *
+ */
+void setupDefaultChar(std::map<StringOP, std::string> rewriterStrMap){
+	defaultChar = 'a';
+	std::set<char> extraFilter;
+	for (const auto& s : rewriterStrMap)
+		for (const auto& arg : s.first.args)
+			if (arg.name[0] == '"' && !isRegexStr(arg.name)){
+				__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, arg.name.c_str());
+				for (unsigned i = 0; i < arg.name.length(); ++i) {
+					extraFilter.emplace(arg.name[i]);
+				}
+			}
+	for (const auto& ch : includeCharSet)
+		if (excludeCharSet.find(ch) == excludeCharSet.end() &&
+				extraFilter.find(ch) == extraFilter.end()) {
+			defaultChar = ch;
+			break;
+		}
+	__debugPrint(logFile, "%d *** %s ***: defaultChar = %c\n", __LINE__, __FUNCTION__, defaultChar);
+}
+
+/*
+ *
+ */
+void removeSomeNotContain(std::map<StringOP, std::string> &rewriterStrMap){
+	std::map<StringOP, std::string> newRewriterStrMap;
+	for (const auto& element : rewriterStrMap){
+		bool adding = true;
+		if (element.first.name.compare(config.languageMap[CONTAINS]) == 0){
+			if (element.second.compare(FALSETR) == 0){
+				if (element.first.args[1].name[0] == '"'){
+					for (unsigned i = 1; i < element.first.args[1].name.length() - 1; ++i)
+						if (excludeCharSet.find(element.first.args[1].name[i]) == excludeCharSet.end()) {
+							adding = false;
+							break;
+						}
+					if (!adding) {
+						__debugPrint(logFile, "%d remove %s: %s vs %s\n", __LINE__, __FUNCTION__, element.first.args[0].name.c_str(), element.first.args[1].name.c_str());
+					}
+				}
+			}
+		}
+
+		if (adding) {
+			newRewriterStrMap[element.first] = element.second;
+		}
+	}
+	rewriterStrMap.clear();
+	rewriterStrMap = newRewriterStrMap;
+}
+
+/*
+ *
+ */
+void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm){
+	clock_t t;
+	t = clock();
 	for (const auto& op : rewriterStrMap)
-		if (op.first.name.compare(languageMap[SUBSTRING]) == 0)
+		if (op.first.name.compare(config.languageMap[SUBSTRING]) == 0)
 			createAnyway = false;
 
 	createNotContainMap(rewriterStrMap);
 	sumConstString();
-	initConnectingSize(false);
+	createConstMap();
+	initIncludeCharSet();
+	initExcludeCharSet(rewriterStrMap);
+	setupDefaultChar(rewriterStrMap);
 
+	removeSomeNotContain(rewriterStrMap);
+
+	initConnectingSize(false);
 	collectConnectedVariables(rewriterStrMap);
-	refineEqualMap(rewriterStrMap); /* this is the simplies version of eq map, before adding connected var to eq map */
+	/* this is the simplies version of eq map, before adding connected var to eq map */
+	refineEqualMap(rewriterStrMap);
 
 	/*collect var --> update --> collect again */
 	collectConnectedVariables(rewriterStrMap);
 	removeConnectedVarIfPossible();
 	addConnectedVarToEQmap();
-	createConstMap();
+
 	refineEqualMap(rewriterStrMap);
 
 	updateFullEqualMap();
 	createAppearanceMap();
 	initConnectingSize();
+	removeConnectedVarsIfNotInEqualities();
+	t = clock() - t;
+	__debugPrint(logFile, "%d %s: Init: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 }
 
 /*
@@ -5443,15 +5699,16 @@ void updateRewriter(
 			}
 			continue;
 		}
+
 #if 1
 		newRewriterStrMap[op.first] = op.second;
 #else
 		if (allVariables.find(op.first.args[0].toString()) != allVariables.end() ||
 				allVariables.find(op.first.args[1].toString()) != allVariables.end() ||
 				(op.first.args.size() < 3 || allVariables.find(op.first.args[2].toString()) != allVariables.end()) ||
-				op.first.args[0].name.find(languageMap[SUBSTRING]) != std::string::npos ||
-				op.first.args[0].name.find(languageMap[INDEXOF]) != std::string::npos ||
-				op.first.args[1].name.find(languageMap[INDEXOF]) != std::string::npos)
+				op.first.args[0].name.find(config.languageMap[SUBSTRING]) != std::string::npos ||
+				op.first.args[0].name.find(config.languageMap[INDEXOF]) != std::string::npos ||
+				op.first.args[1].name.find(config.languageMap[INDEXOF]) != std::string::npos)
 			newRewriterStrMap[op.first] = op.second;
 		else {
 			StringOP tmp = op.first;
@@ -5485,20 +5742,26 @@ bool underapproxController(
 		std::set<std::string> _carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
-		bool _lazy) {
+		std::set<std::string> &_connectedVars,
+		std::set<char> &_excludeSet,
+		bool &_lazy,
+		bool wellForm) {
 	printf("\nRunning Under Approximation\n");
-	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM);
-	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT);
+	std::string nonGrm = std::string(TMPDIR) + "/" + std::string(NONGRM) + getFileNameFromFileDir(config.orgInput);
+	std::string output = std::string(TMPDIR) + "/" + std::string(OUTPUT) + getFileNameFromFileDir(config.orgInput);
 	/* init varLength */
-	varLength.clear();
-	varLength.insert(_currentLength.begin(), _currentLength.end());
+	clock_t t;
+	t = clock();
+	if (!wellForm) {
+		varLength.clear();
+		varLength.insert(_currentLength.begin(), _currentLength.end());
+		parseEqualityMap(_equalMap, _fullEqualMap);
+		staticIntegerAnalysis(fileDir);
+	}
 
-	/* init equalMap */
-	parseEqualityMap(_equalMap, _fullEqualMap);
-	staticIntegerAnalysis(fileDir);
-	reset();
-	lazy = _lazy;
+	reset(wellForm);
 	fullEqualitiesMap = _fullEqualMap;
+	lazy = _lazy;
 
 	init(rewriterStrMap);
 	updateRewriter(rewriterStrMap);
@@ -5531,19 +5794,22 @@ bool underapproxController(
 	}
 
 	toNonGRMFile(fileDir, nonGrm, equalitiesMap, constMap);
+	t = clock() - t;
+	__debugPrint(logFile, "%d %s: Prep: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 
 	/* init regexCnt */
 	regexCnt = 0;
 
 	bool result = false;
-	std::string cmd = std::string(Z3_PATH) + "-smt2 " + output;
+	std::string cmd = std::string(Z3_PATH) + output;
 	if (connectedVariables.size() == 0 &&
 			equalitiesMap.size() == 0 &&
 			!hasInequalities(orgRewriterStrMap)) {
 		toLengthFile(nonGrm, true, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		if (trivialUnsat) {
-			printf(">> UNSAT\n");
-			return false;
+			printf("unsat\n");
+			result = false;
+			goto endLabel;
 		}
 
 		writeOutput_basic(output);
@@ -5553,8 +5819,8 @@ bool underapproxController(
 			regexCnt = 0;
 			toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 			if (trivialUnsat) {
-				printf(">> UNSAT\n");
-				return false;
+				printf("unsat\n");
+				goto endLabel;
 			}
 			writeOutput_basic(output);
 			result = Z3_run(cmd, _fullEqualMap);
@@ -5564,8 +5830,8 @@ bool underapproxController(
 		toLengthFile(nonGrm, false, carryOnConstraints, orgRewriterStrMap, regexCnt, smtVarDefinition, smtLenConstraints);
 		pthreadController();
 		if (trivialUnsat) {
-			printf(">> UNSAT\n");
-			return false;
+			printf("unsat\n");
+			goto endLabel;
 		}
 		else {
 			printf(">> Generated SMT\n\n");
@@ -5575,16 +5841,36 @@ bool underapproxController(
 	}
 
 	if (result == false) {
-		if (lazy == true) {
-			underapproxController(_equalMap,
+		if (lazy == true && !config.prioritySearch) {
+			_lazy = false;
+			/* save underapprox state */
+			underapproxController(
+					_equalMap,
 					_fullEqualMap,
 					rewriterStrMap,
 					_carryOnConstraints,
 					_currentLength,
-					fileDir, false);
+					fileDir,
+					_connectedVars,
+					_excludeSet,
+					_lazy,
+					true);
 		}
+		else
+			/* exit as usual */
+			goto endLabel;
 	}
+
+	endLabel: if (result == false) {
+		_lazy = lazy;
+		_connectedVars.clear();
+		for (const auto& var : connectedVariables) {
+			_connectedVars.emplace(var.first);
+		}
+		_excludeSet.clear();
+		_excludeSet = excludeCharSet;
+	}
+
 	return result;
 }
-
 

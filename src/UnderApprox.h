@@ -10,20 +10,16 @@
 
 #include "Arrangement.h"
 #include "FileConverter.h"
-#include "Utils.h"
-
-#define OUTPUT "output.smt2"
-#define NONGRM "_nogrm.smt2"
+#include "Config.h"
 
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
-#define DEFAULT_CHAR 'a'
 #define REGEX_BOUND 10
 
-extern std::string orgInput;
-extern bool getModel;
-extern bool beReviewed;
+extern bool unknownResult;
+
+extern Config config;
 
 static std::map<std::string, std::vector<std::vector<std::string>>> equalitiesMap;
 static std::map<std::string, std::vector<std::vector<std::string>>> fullEqualitiesMap;
@@ -57,11 +53,10 @@ static int maxInt = -1;
 static long sumInt = -1;
 static long sumConstLength = 0;
 static bool lazy = true;
-extern bool unknownResult;
-extern std::map<int, std::string> languageMap;
-extern int languageVersion;
 static std::set<std::string> generatedEqualities;
-
+static std::set<char> includeCharSet;
+static std::set<char> excludeCharSet;
+static char defaultChar;
 /*
  * get value from eq map
  */
@@ -156,7 +151,8 @@ Arrangment manuallyCreate_arrangment(
 std::vector<std::string> collectAllPossibleArrangements(
 		std::string lhs_str, std::string rhs_str,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements);
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p);
 
 /*
  *
@@ -335,7 +331,8 @@ std::vector<std::string> createSatisfyingAssignments(
 std::vector<std::string> equalityToSMT(
 		std::string lhs, std::string rhs,
 		std::vector<std::pair<std::string, int>> lhs_elements,
-		std::vector<std::pair<std::string, int>> rhs_elements);
+		std::vector<std::pair<std::string, int>> rhs_elements,
+		int p);
 
 /*
  * print input
@@ -446,7 +443,9 @@ std::vector<std::vector<std::string>> combineConstStr(std::vector<std::vector<st
  * Input: x . y
  * Output: flat . flat . flat . flat . flat . flat
  */
-std::vector<std::pair<std::string, int>> createEquality(std::vector<std::string> list);
+std::vector<std::pair<std::string, int>> createEquality(
+		std::vector<std::string> list,
+		int q);
 
 std::vector<std::string> createSetOfFlatVariables(int flatP);
 
@@ -636,11 +635,6 @@ bool Z3_run(
 		bool finalCall);
 
 /*
- *
- */
-bool S3_reviews(std::string fileName);
-
-/*
  * Pthread Caller
  */
 void pthreadController();
@@ -648,7 +642,7 @@ void pthreadController();
 /*
  *
  */
-void reset();
+void reset(bool wellform = false);
 
 /*
  * replace all "Length " by "len_"
@@ -685,7 +679,22 @@ void initConnectingSize(bool prep);
 /*
  *
  */
-void init(std::map<StringOP, std::string> rewriterStrMap);
+void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap);
+
+/*
+ *
+ */
+void initIncludeCharSet();
+
+/*
+ *
+ */
+void setupDefaultChar(std::map<StringOP, std::string> rewriterStrMap);
+
+/*
+ *
+ */
+void init(std::map<StringOP, std::string> rewriterStrMap, bool wellForm = false);
 
 void additinalHandling(std::map<std::string, std::string> rewriterStrMap);
 
@@ -718,6 +727,9 @@ bool underapproxController(
 		std::set<std::string> carryOnConstraints,
 		std::map<std::string, int> _currentLength,
 		std::string fileDir,
-		bool lazy = true);
+		std::set<std::string> &_connectedVars,
+		std::set<char> &_excludeSet,
+		bool &_lazy,
+		bool wellForm = false);
 
 #endif /* UNDERAPPROX_H_ */

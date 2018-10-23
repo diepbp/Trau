@@ -53,8 +53,10 @@
 #define SPLIT_LOWER_BOUND 3
 #define CONNECTINGSIZE 300
 
-#define Z3_PATH "z3 "
-#define VERIFIER "verifier/run.py "
+#define Z3_PATH "z3 -smt2 "
+#define S3VERIFIER "verifier/run.py "
+#define Z3VERIFIER "z3 smt.string_solver=z3str3 "
+#define CVC4VERIFIER "cvc4 -L smt --strings-exp "
 
 #ifdef DEBUGLOG
 #define __debugPrint(_fp, _format, ...) { fprintf( (_fp), (_format), ##__VA_ARGS__); fflush( (_fp) ); }
@@ -124,14 +126,14 @@ const static std::map<int, std::string> languageMap25 = {
 	{LENGTH, "str.len"},
 	{CONCAT, "str.++"},
 	{SUBSTRING, "str.substr"},
-	{INDEXOF, "str.indexof"},
-	{LASTINDEXOF, "LastIndexof"},
+	{INDEXOF, "str.indexof0"},
+	{LASTINDEXOF, "str.lastindexof"},
 	{STARTSWITH, "str.prefixof"},
 	{ENDSWITH, "str.suffixof"},
-	{TOUPPER, "ToUpper"},
-	{TOLOWER, "ToLower"},
+	{TOUPPER, "str.toupper"},
+	{TOLOWER, "str.tolower"},
 	{REPLACE, "str.replace"},
-	{REPLACEALL, "ReplaceAll"},
+	{REPLACEALL, "str.replaceall"},
 	{CONTAINS, "str.contains"},
 	{CHARAT, "str.at"},
 	{STR2REG, "str.to.re"},
@@ -144,11 +146,49 @@ const static std::map<int, std::string> languageMap25 = {
 	{REGEXALL, "re.all"},
 	{REGEXALLCHAR, "re.allchar"},
 	{REGEXNONE, "re.none"},
-	{INDEXOF2, "str.indexof2"},
+	{INDEXOF2, "str.indexof"},
 };
 
+const static std::map<int, std::string> languageMap26 = {
+	{LENGTH, "str.len"},
+	{CONCAT, "str.++"},
+	{SUBSTRING, "str.substr"},
+	{INDEXOF, "str.indexof0"},
+	{LASTINDEXOF, "str.lastindexof"},
+	{STARTSWITH, "str.prefixof"},
+	{ENDSWITH, "str.suffixof"},
+	{TOUPPER, "str.toupper"},
+	{TOLOWER, "str.tolower"},
+	{REPLACE, "str.replace"},
+	{REPLACEALL, "str.replaceall"},
+	{CONTAINS, "str.contains"},
+	{CHARAT, "str.at"},
+	{STR2REG, "str.to.re"},
+	{REGEXSTAR, "re.*"},
+	{REGEXPLUS, "re.+"},
+	{REGEXCHARRANGE, "re.range"},
+	{REGEXIN, "str.in.re"},
+	{REGEXUNION, "re.union"},
+	{REGEXCONCAT, "re.++"},
+	{REGEXALL, "re.all"},
+	{REGEXALLCHAR, "re.allchar"},
+	{REGEXNONE, "re.none"},
+	{INDEXOF2, "str.indexof"},
+};
+
+const static std::set<char> escapeCharacter20 = {'\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v'};
+const static std::set<char> escapeCharacter25 = {'\a', '\b', '\e', '\f', '\n', '\r', '\t', '\v'};
+const static std::set<char> escapeCharacter26 = {'"'};
+
 const static char ESCAPECHAR20 = '\\';
-const static char ESCAPECHAR25 = '"';
+const static char ESCAPECHAR25 = '\\';
+const static char ESCAPECHAR26 = '"';
+
+enum {
+	Trau_SAT = 1,
+	Trau_UNSAT = 2,
+	Trau_Unknown = 3
+};
 
 #define TRUESTR "true"
 #define FALSETR "false"
@@ -157,6 +197,8 @@ const static char ESCAPECHAR25 = '"';
 #define ITERSUFFIX "__iter"
 #define ZERO "0"
 #define REGEXSUFFIX "_10000"
+extern FILE * logFile;
+extern FILE * logAxiom;
 
 struct ConstraintSet{
 	std::set<std::string> arithmeticConstraints;
@@ -307,36 +349,16 @@ inline bool operator <(StringOP const& x, StringOP const& y) {
 			return b1 < 0;
 
 	}
-//	if (x.args.size() > 0) {
-//		int b1 = x.args[0].toString().compare(y.args[0].toString());
-//
-//		if (b1 != 0)
-//			return b1 < 0;
-//
-//		if (x.args.size() > 1) {
-//			int b2 = x.args[1].toString().compare(y.args[1].toString());
-//
-//			if (b2 != 0)
-//				return b2 < 0;
-//		}
-//	}
-//
-//	int b3 = x.arg03.compare(y.arg03);
-//
-//	if (b3 != 0)
-//		return b3 < 0;
-
     return false;
 }
-
-extern FILE * logFile;
-extern FILE * logAxiom;
 
 std::string longestCommonTail(std::string a, std::string b);
 
 std::string longestCommonHead(std::string a, std::string b);
 
 int lcd(int x, int y);
+
+string indent(int n);
 
 std::vector<std::string> parse_string_language(std::string s, std::string delimiters);
 
@@ -466,6 +488,16 @@ std::string createLessConstraint(std::string x, std::string y);
 /*
  *
  */
+std::string createITEOperator(std::string x, std::string y, std::string z);
+
+/*
+ *
+ */
+std::string createImpliesOperator(std::string x, std::string y);
+
+/*
+ *
+ */
 std::string createPlusOperator(std::string x, std::string y);
 
 /*
@@ -511,6 +543,23 @@ std::string createIntDefinition(std::string x);
 /*
  *
  */
+std::string createBoolDefinition(std::string x);
+
+/*
+ * For all string variables
+ * Change var name: xyz --> len_xyz
+ * and change var type: string -> int
+ */
+std::string redefineStringVar(std::string var);
+
+/*
+ *
+ */
+std::string redefineOtherVar(std::string var, std::string type);
+
+/*
+ *
+ */
 std::string createContainConstraint(std::string x, std::string y);
 
 /*
@@ -543,5 +592,27 @@ void formatPlusOP(StringOP &opx);
  */
 void formatMultiplyOP(StringOP &opx);
 
+/*
+ *
+ */
+int Z3_reviews(std::string fileName);
 
+/*
+ *
+ */
+int CVC4_reviews(std::string fileName);
+
+/*
+ *
+ */
+int S3_reviews(std::string fileName);
+
+/*
+ *
+ */
+void verifyResult(
+		int languageVersion,
+		std::string fileName,
+		std::string verifyingSolver,
+		bool result);
 #endif /* UTILS_H_ */

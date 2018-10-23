@@ -32,10 +32,10 @@ extern std::map<Z3_ast, Z3_ast> carryOn;
 
 extern int nondeterministicCounter;
 extern bool lengthEnable;
-extern bool printingConstraints;
 extern ConstraintSet constraintSet;
 extern std::map<StringOP, StringOP> internalVarFunctionMap;
 
+static std::map<Z3_ast, Z3_ast> concatMapping;
 std::set<std::string> setOfEqualities;
 
 //std::map<std::string, std::set<char>> charSet;
@@ -249,7 +249,7 @@ std::string exportNodeName(Z3_theory t, Z3_ast node) {
 			|| isNonDetAutomatonFunc(t, node)) {
 		return "\"" + getConstString(t, node) + "\"";
 	} else if (isConcatFunc(t, node)) {
-		return "(" + std::string(languageMap[CONCAT]) + " "
+		return "(" + std::string(config.languageMap[CONCAT]) + " "
 				+ exportNodeName(t,
 						Z3_get_app_arg(ctx, Z3_to_app(ctx, node), 0)) + " "
 				+ exportNodeName(t,
@@ -275,8 +275,8 @@ StringOP convertStrOPToArithmeticOP(StringOP op){
 	if (op.args.size() == 0)
 		return op;
 	else {
-		if (op.name.compare(languageMap[LENGTH]) == 0){
-			if (op.args[0].name.compare(languageMap[CONCAT]) == 0){
+		if (op.name.compare(config.languageMap[LENGTH]) == 0){
+			if (op.args[0].name.compare(config.languageMap[CONCAT]) == 0){
 				std::vector<StringOP> args;
 				std::vector<StringOP> q;
 				q.emplace_back(op.args[0]);
@@ -290,7 +290,7 @@ StringOP convertStrOPToArithmeticOP(StringOP op){
 							args.push_back(StringOP(LENPREFIX + curr.args[i].name));
 						}
 						else {
-							assert (curr.args[i].name.compare(languageMap[CONCAT]) == 0);
+							assert (curr.args[i].name.compare(config.languageMap[CONCAT]) == 0);
 							q.emplace_back(curr.args[i]);
 						}
 				}
@@ -355,11 +355,11 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 				std::string substr2 = arg0Str.substr(index2);
 				arg0Str = substr0 + arg2Str + substr2;
 			}
-			replaceAllStrMap[StringOP(languageMap[REPLACEALL],
+			replaceAllStrMap[StringOP(config.languageMap[REPLACEALL],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),	node_to_stringOP(t, args[2])})] = std::to_string(arg0Str.length());
 			return mk_str_value(t, arg0Str.c_str());
 		} else {
-			replaceAllStrMap[StringOP(languageMap[REPLACEALL],
+			replaceAllStrMap[StringOP(config.languageMap[REPLACEALL],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),	node_to_stringOP(t, args[2])})] = std::to_string(arg0Str.length());
 			return args[0];
 		}
@@ -391,7 +391,7 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 		// condAst = Contains(args[0], args[1])
 		Z3_ast condAst_arg00 = registerContain(t, args[0], args[1]);
 		std::string boolName = Z3_ast_to_string(ctx, condAst_arg00);
-		replaceAllStrMap[StringOP(languageMap[REPLACEALL],
+		replaceAllStrMap[StringOP(config.languageMap[REPLACEALL],
 				{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),	node_to_stringOP(t, args[2])})] = boolName;
 
 		bool update = true;
@@ -542,25 +542,15 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 			indexOf_toAstMap[std::make_pair(x2, args[1])] = {x3, x4};
 		}
 
-		thenItems01.push_back(
-				Z3_mk_eq(ctx, result,
-						mk_concat(t, x1,
-								mk_concat(t,
-										mk_binary_app(ctx,
-												td->NonDet_AutomataDef,
-												mk_str_value(t,
-														arg02Plus.c_str()),
-												mk_int(ctx,
-														nondeterministicCounter++)),
-										mk_concat(t, x3,
-												mk_concat(t,
-														mk_binary_app(ctx,
-																td->NonDet_AutomataDef,
-																mk_str_value(t,
-																		arg02Plus.c_str()),
-																mk_int(ctx,
-																		nondeterministicCounter++)),
-														x4, update), update),
+		Z3_ast nonDet01 = mk_binary_app(ctx, td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nonDet02 = mk_binary_app(ctx, td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+					mk_int(ctx, nondeterministicCounter++));
+		thenItems01.push_back( Z3_mk_eq(ctx, result, mk_concat(t, x1,
+														mk_concat(t, nonDet01,
+																	mk_concat(t, x3, mk_concat(t, nonDet02, x4, update), update),
 										update), update)));
 		thenItems01.push_back(Z3_mk_not(ctx, condAst_x4));
 
@@ -634,35 +624,27 @@ Z3_ast reduce_replaceAll(Z3_theory t, Z3_ast const args[],
 			indexOf_toAstMap[std::make_pair(x4, args[1])] = {x5, x6};
 		}
 
+		Z3_ast nondet03 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nondet04 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
+		Z3_ast nondet05 = mk_binary_app(ctx,
+				td->NonDet_AutomataDef,
+				mk_str_value(t, arg02Plus.c_str()),
+				mk_int(ctx, nondeterministicCounter++));
 		thenItems02.push_back(
 				Z3_mk_eq(ctx, result,
 						mk_concat(t, x1,
-								mk_concat(t,
-										mk_binary_app(ctx,
-												td->NonDet_AutomataDef,
-												mk_str_value(t,
-														arg02Plus.c_str()),
-												mk_int(ctx,
-														nondeterministicCounter++)),
+								mk_concat(t, nondet03,
 										mk_concat(t, x3,
-												mk_concat(t,
-														mk_binary_app(ctx,
-																td->NonDet_AutomataDef,
-																mk_str_value(t,
-																		arg02Plus.c_str()),
-																mk_int(ctx,
-																		nondeterministicCounter++)),
+												mk_concat(t, nondet04,
 														mk_concat(t, x5,
 																mk_concat(t,
-																		mk_binary_app(
-																				ctx,
-																				td->NonDet_AutomataDef,
-																				mk_str_value(
-																						t,
-																						arg02Plus.c_str()),
-																				mk_int(
-																						ctx,
-																						nondeterministicCounter++)),
+																		nondet05,
 																		x6,
 																		update),
 																update),
@@ -705,11 +687,11 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 			std::string substr0 = arg0Str.substr(0, index1);
 			std::string substr2 = arg0Str.substr(index2);
 			std::string replaced = substr0 + arg2Str + substr2;
-			replaceStrMap[StringOP(languageMap[REPLACE],
+			replaceStrMap[StringOP(config.languageMap[REPLACE],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2])})] = TRUESTR;
 			return mk_str_value(t, replaced.c_str());
 		} else {
-			replaceStrMap[StringOP(languageMap[REPLACE],
+			replaceStrMap[StringOP(config.languageMap[REPLACE],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),	node_to_stringOP(t, args[2])})] = FALSETR;
 			return args[0];
 		}
@@ -738,7 +720,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 
 		Z3_ast condAst_arg0 = registerContain(t, args[0], args[1]);
 		std::string boolName = Z3_ast_to_string(ctx, condAst_arg0);
-		replaceStrMap[StringOP(languageMap[REPLACE], node_to_stringOP(t, args[0]),
+		replaceStrMap[StringOP(config.languageMap[REPLACE], node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2]))] =
 				boolName;
 
@@ -751,13 +733,13 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, args[0],
 						mk_concat(t, x1, mk_concat(t, args[1], x2, update),
 								update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		Z3_ast condAst_x1 = registerContain(t, x1, args[1]);
 		thenItems.push_back(Z3_mk_not(ctx, condAst_x1));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -776,28 +758,28 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 
 			thenItems.push_back(
 					Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.stringConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.arithmeticConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			Z3_ast condAst_x3 = registerContain(t, x3, args[1]);
 			thenItems.push_back(Z3_mk_not(ctx, condAst_x3));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x1, condAst_x3));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x3, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -806,7 +788,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 		} else {
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x1, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -817,7 +799,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, result,
 						mk_concat(t, x1, mk_concat(t, args[2], x2, update),
 								update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -827,7 +809,7 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0,
 				mk_and_fromVector(t, thenItems), elseBranch);
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseBranch));
 			constraintSet.otherConstraints.emplace(
@@ -942,7 +924,7 @@ Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[],
 		Z3_ast breakdown = Z3_mk_eq(ctx, args[0],
 				mk_concat(t, ts0, mk_concat(t, args[1], ts1, update), update));
 		breakdownAssert = Z3_mk_eq(ctx, reduceAst, breakdown);
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, breakdown));
 			constraintSet.otherConstraints.emplace(
@@ -984,12 +966,12 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 			reduceAst = Z3_mk_false(ctx);
 		} else {
 			if (arg0Str.substr(0, arg1Str.length()) == arg1Str) {
-				startsWithStrMap[StringOP(languageMap[STARTSWITH],
+				startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
 						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 						TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
-				startsWithStrMap[StringOP(languageMap[STARTSWITH],
+				startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
 						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 						FALSETR;
 				reduceAst = Z3_mk_false(ctx);
@@ -1001,7 +983,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		Z3_ast ts1 = mk_internal_string_var(t);
 
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
-		startsWithStrMap[StringOP(languageMap[STARTSWITH],
+		startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
 				{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 				boolVar;
 		// boolVar = startswith(arg[0], arg[1])
@@ -1009,12 +991,12 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		std::vector<Z3_ast> ands;
 		bool update;
 		ands.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, ts0, ts1, update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
 		ands.push_back(Z3_mk_eq(ctx, mk_length(t, ts0), mk_length(t, args[1])));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
@@ -1022,7 +1004,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts0, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx))));
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 			constraintSet.stringConstraints.emplace(
@@ -1039,7 +1021,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		breakdownAssert = Z3_mk_ite(ctx,
 				Z3_mk_ge(ctx, mk_length(t, args[0]), mk_length(t, args[1])),
 				then1, Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx)));
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t,
 							Z3_mk_ge(ctx, mk_length(t, args[0]),
@@ -1069,12 +1051,12 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		} else {
 			if (arg0Str.substr(arg0Str.length() - arg1Str.length(),
 					arg1Str.length()) == arg1Str) {
-				endsWithStrMap[StringOP(languageMap[ENDSWITH],
+				endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
 						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 						TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
-				endsWithStrMap[StringOP(languageMap[ENDSWITH],
+				endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
 						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 						FALSETR;
 				reduceAst = Z3_mk_false(ctx);
@@ -1085,7 +1067,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
-		endsWithStrMap[StringOP(languageMap[ENDSWITH],
+		endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
 				{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 				boolVar;
 		// boolVar = endswith(arg[0], arg[1])
@@ -1093,12 +1075,12 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		std::vector<Z3_ast> ands;
 		bool update;
 		ands.push_back(Z3_mk_eq(ctx, args[0], mk_concat(t, ts0, ts1, update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
 		ands.push_back(Z3_mk_eq(ctx, mk_length(t, ts1), mk_length(t, args[1])));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
@@ -1106,7 +1088,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts1, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx))));
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 			constraintSet.stringConstraints.emplace(
@@ -1123,7 +1105,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		breakdownAssert = Z3_mk_ite(ctx,
 				Z3_mk_ge(ctx, mk_length(t, args[0]), mk_length(t, args[1])),
 				then1, Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx)));
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, breakdownAssert));
 			constraintSet.arithmeticConstraints.emplace(
@@ -1150,12 +1132,12 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 		std::string arg1Str = getConstStrValue(t, args[1]);
 		if (arg0Str.find(arg1Str) != std::string::npos) {
 			int index = arg0Str.find(arg1Str);
-			indexOfStrMap[StringOP(languageMap[INDEXOF],
+			indexOfStrMap[StringOP(config.languageMap[INDEXOF],
 					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
-			indexOfStrMap[StringOP(languageMap[INDEXOF],
+			indexOfStrMap[StringOP(config.languageMap[INDEXOF],
 					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
@@ -1192,28 +1174,28 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, args[0],
 						mk_concat(t, x1, mk_concat(t, args[1], x2, update),
 								update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		Z3_ast condAst_x1 = registerContain(t, x1, args[1]);
 		thenItems.push_back(Z3_mk_not(ctx, condAst_x1));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		//  indexAst = |x1|
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
-		StringOP tmpOp = StringOP(languageMap[INDEXOF], {node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])});
+		StringOP tmpOp = StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])});
 		indexOfStrMap[tmpOp] =
 				std::make_pair(boolVar,
 						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
 								node_to_string(t, indexAst)));
-		__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
+		__debugPrint(logFile, "%d %s : = %s %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].first.c_str(), indexOfStrMap[tmpOp].second.first.c_str(),
 																						indexOfStrMap[tmpOp].second.second.c_str());
 		if (!canSkipExt(t, args[1])) {
 			//     args[0]  = x3 . x4
@@ -1233,28 +1215,28 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 
 			thenItems.push_back(
 					Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.stringConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.arithmeticConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			Z3_ast condAst_x3 = registerContain(t, x3, args[1]);
 			thenItems.push_back(Z3_mk_not(ctx, condAst_x3));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x1, condAst_x3));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x3, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1263,7 +1245,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 		} else {
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x1, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = {x1, x2};
@@ -1275,7 +1257,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0,
 				mk_and_fromVector(t, thenItems), elseBranch);
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseBranch));
 			constraintSet.otherConstraints.emplace(
@@ -1307,12 +1289,12 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		if (arg0Str.find(arg1Str) != std::string::npos) {
 			int index = arg0Str.find(arg1Str);
 			index += pos;
-			indexOf2StrMap[StringOP(languageMap[INDEXOF2],
+			indexOf2StrMap[StringOP(config.languageMap[INDEXOF2],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2])})] =
 					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
-			indexOf2StrMap[StringOP(languageMap[INDEXOF2],
+			indexOf2StrMap[StringOP(config.languageMap[INDEXOF2],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]), node_to_stringOP(t, args[2])})] =
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
@@ -1341,8 +1323,8 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		Z3_ast indexAst = mk_internal_int_var(t);
 
 		// condAst = |arg0| >= arg2
-		Z3_ast condAst_arg0 = Z3_mk_ge(ctx, mk_length(t, args[0]), args[2]);
-		if (printingConstraints)
+		Z3_ast condAst_arg0 = Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]);
+		if (config.printingConstraints)
 							constraintSet.arithmeticConstraints.emplace(
 									node_to_string(t, condAst_arg0));
 
@@ -1356,15 +1338,14 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::string arg02Str = Z3_ast_to_string(ctx, args[2]);
 		if (arg02Str.compare("0") == 0){
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = indexOf_toAstMap[std::make_pair(x1, args[1])];
-			StringOP tmpOp = StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
+			StringOP tmpOp = StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, x1),
 					node_to_stringOP(t, args[1])});
-			indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
+			indexOf2StrMap[StringOP(config.languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 					node_to_stringOP(t, args[1]),
 					node_to_stringOP(t, args[2])})] = indexOfStrMap[tmpOp];
-
 			__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
 																				indexOfStrMap[tmpOp].second.second.c_str());
-			indexOfStrMap.erase(StringOP(languageMap[INDEXOF], {node_to_stringOP(t, x1),
+			indexOfStrMap.erase(StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, x1),
 							node_to_stringOP(t, args[1])}));
 			std::vector<Z3_ast> tmpVector = {Z3_mk_eq(ctx, args[0], x1), breakdownAssert};
 			breakdownAssert = mk_and_fromVector(t, tmpVector);
@@ -1375,7 +1356,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		thenItems.push_back(
 				Z3_mk_eq(ctx, args[0],
 						mk_concat(t, x0, x1, update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1384,7 +1365,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, mk_length(t, x0), args[2]));
 		__debugPrint(logFile, "%d zzzzzz: %s\n", __LINE__,  Z3_ast_to_string(ctx, thenItems[thenItems.size() - 1]) );
 
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1404,7 +1385,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 						mk_and_fromVector(t, tmpVector01),
 						mk_and_fromVector(t, tmpVector02)));
 
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1414,12 +1395,12 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 
 		indexOf2_toAstMap[std::make_pair(std::make_pair(args[0], args[1]), args[2])] = {x0, x1};
 
-		indexOf2StrMap[StringOP(languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
+		indexOf2StrMap[StringOP(config.languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]),
 				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar,
 													std::make_pair(node_to_string(t, addNode),
 																	node_to_string(t, indexAst)));
-		carryOn[boolAst] = Z3_mk_eq(ctx, mk_length(t, x0), args[2]);
+
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
@@ -1427,8 +1408,10 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::vector<Z3_ast> tmpVector04 = {Z3_mk_eq(ctx, boolAst, mk_and_fromVector(t, tmpVector03)),
 											Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch)};
 		breakdownAssert = mk_and_fromVector(t, tmpVector04);
-
-		if (printingConstraints) {
+		carryOn[boolAst] = Z3_mk_ite(ctx, Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]),
+										  Z3_mk_eq(ctx, mk_length(t, x0), args[2]),
+										  Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
+		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseBranch));
 			constraintSet.otherConstraints.emplace(
@@ -1452,12 +1435,12 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 		std::string arg1Str = getConstStrValue(t, args[1]);
 		if (arg0Str.rfind(arg1Str) != std::string::npos) {
 			int index = arg0Str.rfind(arg1Str);
-			lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
+			lastIndexOfStrMap[StringOP(config.languageMap[LASTINDEXOF],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
-			lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
+			lastIndexOfStrMap[StringOP(config.languageMap[LASTINDEXOF],
 					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
@@ -1487,7 +1470,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 		// true branch
 		std::vector<Z3_ast> thenItems;
 		thenItems.push_back(Z3_mk_ge(ctx, indexAst, mk_int(ctx, 0)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1496,23 +1479,23 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, args[0],
 						mk_concat(t, x1, mk_concat(t, args[1], x2, update),
 								update)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.stringConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		thenItems.push_back(Z3_mk_eq(ctx, indexAst, mk_length(t, x1)));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
 		//  x2 doesn't contain args[1]
 		Z3_ast condAst_x2 = registerContain(t, x2, args[1]);
 		thenItems.push_back(Z3_mk_not(ctx, condAst_x2));
-		if (printingConstraints)
+		if (config.printingConstraints)
 			constraintSet.otherConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
-		lastIndexOfStrMap[StringOP(languageMap[LASTINDEXOF],
+		lastIndexOfStrMap[StringOP(config.languageMap[LASTINDEXOF],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 				std::make_pair(boolVar,
 						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
@@ -1531,28 +1514,28 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 			Z3_ast tmpLen = Z3_mk_add(ctx, 2, tmpLenItems);
 			thenItems.push_back(
 					Z3_mk_eq(ctx, args[0], mk_concat(t, x3, x4, update)));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.stringConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_eq(ctx, mk_length(t, x3), tmpLen));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.arithmeticConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			Z3_ast condAst_x4 = registerContain(t, x4, args[1]);
 			thenItems.push_back(Z3_mk_not(ctx, condAst_x4));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x2, condAst_x4));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x4, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1561,7 +1544,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 			carryOn[condAst_arg0] = Z3_mk_eq(ctx, mk_length(t, x3), tmpLen);
 		} else {
 			thenItems.push_back(Z3_mk_implies(ctx, condAst_x2, condAst_arg0));
-			if (printingConstraints)
+			if (config.printingConstraints)
 				constraintSet.otherConstraints.emplace(
 						node_to_string(t, thenItems[thenItems.size() - 1]));
 
@@ -1574,7 +1557,7 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0,
 				mk_and_fromVector(t, thenItems), elseItems);
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseItems));
 			constraintSet.otherConstraints.emplace(
@@ -1636,11 +1619,11 @@ Z3_ast reduce_charAt(Z3_theory t, Z3_ast const args[],
 				Z3_mk_eq(ctx, mk_int(ctx, 1), mk_length(t, ts1))
 		};
 		carryOn[astBool] = mk_and_fromVector(t, carryOnArgs);
-		charAtStrMap[StringOP(languageMap[CHARAT], node_to_stringOP(t, args[0]),
+		charAtStrMap[StringOP(config.languageMap[CHARAT], node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]))] = std::make_pair(boolVar,
 				node_to_string(t, ts1));
 
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.stringConstraints.emplace(node_to_string(t, ands[0]));
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[1]));
@@ -1676,18 +1659,52 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		Z3_ast and_item[3];
 		and_item[0] = Z3_mk_eq(ctx, args[0],
 				mk_concat(t, ts0, mk_concat(t, ts1, ts2, update), update));
-		and_item[1] = Z3_mk_eq(ctx, args[1], mk_length(t, ts0));
-		and_item[2] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
+		and_item[1] = Z3_mk_ite(ctx,
+							Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+							Z3_mk_ite(ctx,
+								Z3_mk_le(ctx, args[1], mk_length(t, args[0])),
+								Z3_mk_eq(ctx, args[1], mk_length(t, ts0)),
+								Z3_mk_eq(ctx, mk_length(t, ts0), mk_length(t, args[0]))),
+							Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
 
-		/* convert to string, prepare for replaceStrMap */
-		std::string tmp = "(and " + createEqualConstraint(
-										std::string(LENPREFIX) + node_to_string(t, ts0),
-										arg01Str) +
+		std::string str01 = createITEOperator(
+								createLessEqualConstraint("0", node_to_string(t, args[1])),
+								createITEOperator(
+									createLessEqualConstraint(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, args[0])),
+									createEqualConstraint(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts0)),
+									createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), std::string(LENPREFIX) + node_to_string(t, args[0]))),
+								createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+		Z3_ast * items = new Z3_ast[2];
+		items[0] = args[1];
+		items[1] = args[2];
+
+		Z3_ast * otherItems = new Z3_ast[2];
+		otherItems[0] = args[1];
+		otherItems[1] = mk_length(t, ts1);
+		and_item[2] = Z3_mk_ite(ctx,
+				Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+				Z3_mk_ite(ctx,
+						Z3_mk_ge(ctx,
+							mk_length(t, args[0]),
+							Z3_mk_add(ctx, 2, items)),
+						Z3_mk_eq(ctx, args[2], mk_length(t, ts1)),
+						Z3_mk_eq(ctx, Z3_mk_add(ctx, 2, otherItems), mk_length(t, args[0]))),
+				Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
+		std::string str02 = createITEOperator(
+								createLessEqualConstraint("0", node_to_string(t, args[1])),
+								createITEOperator(
+									createLessEqualConstraint(
+										createPlusOperator(node_to_string(t, args[1]), node_to_string(t, args[2])),
+										std::string(LENPREFIX) + node_to_string(t, args[0])),
+									createEqualConstraint(node_to_string(t, args[2]), std::string(LENPREFIX) + node_to_string(t, ts1)),
 									createEqualConstraint(
-										std::string(LENPREFIX) + node_to_string(t, ts1),
-										arg02Str) + ")";
+										createPlusOperator(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+										std::string(LENPREFIX) + node_to_string(t, args[0]))),
+								createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+		/* convert to string, prepare for replaceStrMap */
+		std::string tmp = "(and " + str01 + " " + str02 + ")";
 
-		subStrStrMap[StringOP(languageMap[SUBSTRING],
+		subStrStrMap[StringOP(config.languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
 				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), tmp);
 
@@ -1696,15 +1713,42 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 		// substring from 0
 		Z3_ast ands[2];
 		ands[0] = Z3_mk_eq(ctx, args[0], mk_concat(t, ts1, ts2, update));
-		ands[1] = Z3_mk_eq(ctx, args[2], mk_length(t, ts1));
-		subStrStrMap[StringOP(languageMap[SUBSTRING],
+
+		Z3_ast * items = new Z3_ast[2];
+		items[0] = args[1];
+		items[1] = args[2];
+
+		Z3_ast * otherItems = new Z3_ast[2];
+		otherItems[0] = args[1];
+		otherItems[1] = mk_length(t, ts1);
+		ands[1] = Z3_mk_ite(ctx,
+				Z3_mk_ge(ctx, args[1], mk_int(ctx, 0)),
+				Z3_mk_ite(ctx,
+						Z3_mk_ge(ctx,
+							mk_length(t, args[0]),
+							Z3_mk_add(ctx, 2, items)),
+						Z3_mk_eq(ctx, args[2], mk_length(t, ts1)),
+						Z3_mk_eq(ctx, Z3_mk_add(ctx, 2, otherItems), mk_length(t, args[0]))),
+				Z3_mk_eq(ctx, mk_length(t, ts1), mk_int(ctx, 0)));
+
+		std::string str02 = createITEOperator(
+										createLessEqualConstraint("0", node_to_string(t, args[1])),
+										createITEOperator(
+											createLessEqualConstraint(
+												createPlusOperator(node_to_string(t, args[1]), node_to_string(t, args[2])),
+												std::string(LENPREFIX) + node_to_string(t, args[0])),
+											createEqualConstraint(node_to_string(t, args[2]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+											createEqualConstraint(
+												createPlusOperator(node_to_string(t, args[1]), std::string(LENPREFIX) + node_to_string(t, ts1)),
+												std::string(LENPREFIX) + node_to_string(t, args[0]))),
+										createEqualConstraint(std::string(LENPREFIX) + node_to_string(t, ts1), "0"));
+
+		subStrStrMap[StringOP(config.languageMap[SUBSTRING],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]),
-				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), createEqualConstraint(
-													std::string(LENPREFIX) + (std::string) node_to_string(t, ts1),
-													arg02Str));
+				node_to_stringOP(t, args[2]))] = std::make_pair(node_to_string(t, ts1), str02);
 		breakdownAssert = Z3_mk_and(ctx, 2, ands);
 
-		if (printingConstraints) {
+		if (config.printingConstraints) {
 			constraintSet.stringConstraints.emplace(node_to_string(t, ands[0]));
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[1]));
@@ -1918,10 +1962,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	Z3_context ctx = Z3_theory_get_context(t);
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
 
-#ifdef DEBUGLOG
 	__debugPrint(logFile, "\n*** %s ***:", __FUNCTION__);
-#endif
-
+	std::vector<Z3_ast> encodedConstraints;
+	std::vector<Z3_ast> rewrittenConstraints;
 	// Convert the tricky "string" representation to string constant
 	int convertedFlag = 0;
 	Z3_ast * convertedArgs = new Z3_ast[n];
@@ -1932,11 +1975,34 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			convertedFlag = 1;
 			convertedArgs[i] = mk_str_value(t,
 					convertInputTrickyConstStr(symbolStr).c_str());
-		} else {
+		} else if (isConcatFunc(t, args[i]) &&
+						(d == td->SubString ||
+						d == td->Indexof ||
+						d == td->Indexof2 ||
+						d == td->LastIndexof ||
+						d == td->StartsWith ||
+						d == td->EndsWith ||
+						d == td->ToLower ||
+						d == td->ToUpper ||
+						d == td->Replace ||
+						d == td->ReplaceAll ||
+						d == td->Contains ||
+						d == td->CharAt ||
+						d == td->RegexIn)) {
+			Z3_ast tmpVar;
+			if (concatMapping.find(args[i]) != concatMapping.end())
+				tmpVar = concatMapping[args[i]];
+			else {
+				tmpVar = mk_internal_string_var(t);
+				concatMapping[args[i]] = tmpVar;
+				internalVarFunctionMap[node_to_stringOP(t, tmpVar)] = node_to_stringOP(t, args[i]);
+			}
+			rewrittenConstraints.emplace_back(Z3_mk_eq(ctx, tmpVar, args[i]));
+			convertedArgs[i] = tmpVar;
+			__debugPrint(logFile, "%d converted %s to %s\n", __LINE__, node_to_string(t, args[i]).c_str(), node_to_string(t, tmpVar).c_str());
+		} else
 			convertedArgs[i] = args[i];
-		}
 	}
-	std::vector<Z3_ast> encodedConstraints;
 
 	for (int i = 0; i < n; ++i)
 		if (isConcatFunc(t, convertedArgs[i])){
@@ -1956,23 +2022,15 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// reduce app: Concat
 	//---------------------------------
 	if (d == td->Concat) {
+		__debugPrint(logFile, "%d Input: Concat(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Concat(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-#endif
 		bool updated = false;
 		Z3_ast tmp = mk_concat(t, convertedArgs[0], convertedArgs[1], updated);
 
 		// update children map
 
 		if (updated == false) {
-#ifdef DEBUGLOG
 			__debugPrint(logFile, "\nFalse update \n");
-#endif
 			delete[] convertedArgs;
 			return Z3_FALSE;
 		}
@@ -1983,11 +2041,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,
 				tmp);
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "\n convert to: ");
-		printZ3Node(t, *result);
-		__debugPrint(logFile, "\n\n");
-#endif
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		return Z3_TRUE;
 	}
 
@@ -1995,16 +2049,12 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// reduce app: Length
 	//---------------------------------
 	else if (d == td->Length) {
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Length( ");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, " )");
-#endif
+		__debugPrint(logFile, "%d Input: Length(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
+		if (rewrittenConstraints.size() > 0)
+			Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		if (getNodeType(t, convertedArgs[0]) == my_Z3_ConstStr) {
 			int size = getConstStrValue(t, convertedArgs[0]).size();
 			*result = mk_int(ctx, size);
-			__debugPrint(logFile, " --> %d\n", size);
 			delete[] convertedArgs;
 			return Z3_TRUE;
 		} else {
@@ -2025,11 +2075,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: Str2Reg
 	//------------------------------------------
 	else if (d == td->Str2Reg) {
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Str2Reg(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ")\n");
-#endif
+		__debugPrint(logFile, "%d Input: Str2Reg(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
 
 		if (!isConstStr(t, convertedArgs[0])) {
 			printf(
@@ -2041,19 +2087,12 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 
 		Z3_ast otherAssert = NULL;
 		*result = reduce_str2regex(t, d, convertedArgs, otherAssert);
-
-#ifdef DEBUGLOG
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (otherAssert != NULL) {
-			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, otherAssert);
-			__debugPrint(logFile, "\n");
-		}
-		__debugPrint(logFile, "\n");
-#endif
-
-		if (otherAssert != NULL) {
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, otherAssert).c_str());
 			Z3_assert_cnstr(ctx, otherAssert);
 		}
+
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2062,26 +2101,13 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: RegexConcat
 	//------------------------------------------
 	else if (d == td->RegexConcat) {
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "RegexConcat(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")\n");
-#endif
-
+		__debugPrint(logFile, "%d Input: RegexConcat(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 		Z3_ast otherAssert = NULL;
 		Z3_ast tmpRes = reduce_regexConcat(t, convertedArgs, otherAssert);
 		delete[] convertedArgs;
 
-#ifdef DEBUGLOG
-		if (tmpRes != NULL) {
-			__debugPrint(logFile, "   --------------> ");
-			printZ3Node(t, tmpRes);
-			__debugPrint(logFile, "\n");
-		}
-		__debugPrint(logFile, "\n");
-#endif
+		if (tmpRes != NULL)
+			__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, tmpRes).c_str());
 
 		if (tmpRes == NULL) {
 			return Z3_FALSE;
@@ -2095,35 +2121,26 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: RegexIn
 	//------------------------------------------
 	else if (d == td->RegexIn) {
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "RegexIn(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ") ==> ");
-#endif
+		__debugPrint(logFile, "%d Input: RegexIn(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 		Z3_ast otherAssert = NULL;
 		Z3_ast tmpRes = NULL;
 		tmpRes = reduce_regexIn(t, convertedArgs, otherAssert);
-
-#ifdef DEBUGLOG
-		printZ3Node(t, tmpRes);
-		__debugPrint(logFile, "\n");
-		if (otherAssert != NULL) {
-			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, otherAssert);
-			__debugPrint(logFile, "\n");
-		}
-		__debugPrint(logFile, "\n");
-#endif
 
 		delete[] convertedArgs;
 
 		if (tmpRes != NULL) {
 			if (otherAssert != NULL) {
-				Z3_assert_cnstr(ctx, otherAssert);
+				rewrittenConstraints.emplace_back(otherAssert);
 			}
+			if (rewrittenConstraints.size() > 0)
+				Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 			*result = tmpRes;
+
+			__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, tmpRes).c_str());
+			printZ3Node(t, tmpRes);
+			if (otherAssert != NULL) {
+				__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, otherAssert).c_str());
+			}
 			return Z3_TRUE;
 		}
 		return Z3_FALSE;
@@ -2133,27 +2150,17 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: RegexStar
 	//------------------------------------------
 	else if (d == td->RegexStar) {
-		Z3_ast otherAssert = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "RegexStar(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ") --> ");
-#endif
-		*result = reduce_regexStar(t, convertedArgs, otherAssert);
+		Z3_ast breakDownAst = NULL;
+		__debugPrint(logFile, "%d Input: RegexStar(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
+
+		*result = reduce_regexStar(t, convertedArgs, breakDownAst);
 		delete[] convertedArgs;
 
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
-		if (otherAssert != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, otherAssert);
-		}
-		__debugPrint(logFile, "\n\n");
-#endif
-
 		if (*result != NULL) {
-			if (otherAssert != NULL) {
-				Z3_assert_cnstr(ctx, otherAssert);
+			__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
+			if (breakDownAst != NULL) {
+				__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+				Z3_assert_cnstr(ctx, breakDownAst);
 			}
 			return Z3_TRUE;
 		}
@@ -2163,27 +2170,17 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: RegexPlus
 	//------------------------------------------
 	else if (d == td->RegexPlus) {
-		Z3_ast otherAssert = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "RegexPlus(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ") --> ");
-#endif
-		*result = reduce_regexPlus(t, convertedArgs, otherAssert);
+		Z3_ast breakDownAst = NULL;
+		__debugPrint(logFile, "%d Input: RegexPlus(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
+
+		*result = reduce_regexPlus(t, convertedArgs, breakDownAst);
 		delete[] convertedArgs;
 
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
-		if (otherAssert != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, otherAssert);
-		}
-		__debugPrint(logFile, "\n\n");
-#endif
-
 		if (*result != NULL) {
-			if (otherAssert != NULL) {
-				Z3_assert_cnstr(ctx, otherAssert);
+			__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
+			if (breakDownAst != NULL) {
+				__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+				Z3_assert_cnstr(ctx, breakDownAst);
 			}
 			return Z3_TRUE;
 		}
@@ -2194,31 +2191,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	// Reduce app: GrammarIn
 	//------------------------------------------
 	else if (d == td->GrammarIn) {
-		Z3_ast otherAssert = NULL;
+		Z3_ast breakDownAst = NULL;
 		Z3_ast tmpRes = NULL;
-		tmpRes = reduce_grammarIn(t, convertedArgs, otherAssert);
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "GrammarIn(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ") ==> ");
-		printZ3Node(t, tmpRes);
-		__debugPrint(logFile, "\n");
-		if (otherAssert != NULL) {
-			__debugPrint(logFile, "-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, otherAssert);
-			__debugPrint(logFile, "\n");
+		tmpRes = reduce_grammarIn(t, convertedArgs, breakDownAst);
+		__debugPrint(logFile, "%d Input: GrammarIn(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
+		if (breakDownAst != NULL) {
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
 		}
-		__debugPrint(logFile, "\n");
-#endif
 
 		delete[] convertedArgs;
 
 		if (tmpRes != NULL) {
-			if (otherAssert != NULL) {
-				Z3_assert_cnstr(ctx, otherAssert);
+			if (breakDownAst != NULL) {
+				Z3_assert_cnstr(ctx, breakDownAst);
 			}
 			*result = tmpRes;
 			return Z3_TRUE;
@@ -2231,28 +2217,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//---------------------------------
 	else if (d == td->SubString) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "SubString( ");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[2]);
-		__debugPrint(logFile, ")  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: SubString(%s, %s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str(), node_to_string(t, convertedArgs[2]).c_str());
 		encodedConstraints.emplace_back(reduce_subStr(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,
 				mk_ternary_app(ctx, td->SubString, convertedArgs[0],
 						convertedArgs[1], convertedArgs[2]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
-		__debugPrint(logFile, "\n-- ADD(@%d, Level %d):\n", __LINE__, sLevel);
-		printZ3Node(t, breakDownAst);
-		__debugPrint(logFile, "\n\n");
-#endif
-		Z3_assert_cnstr(ctx, breakDownAst);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
+		if (breakDownAst != NULL) {
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
+		}
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2262,29 +2240,19 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->Contains) {
 		Z3_ast breakDownAst = NULL;
+		__debugPrint(logFile, "%d Input: Contains(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Contains(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
 		encodedConstraints.emplace_back(reduce_contains(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->Contains, convertedArgs[0], convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2294,31 +2262,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->CharAt) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "CharAt(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: convertedArgs(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
 		encodedConstraints.emplace_back(reduce_charAt(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->CharAt, convertedArgs[0], convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2328,31 +2285,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->Indexof) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Indexof(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: Indexof(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
 		encodedConstraints.emplace_back(reduce_indexof(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->Indexof, convertedArgs[0], convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2362,33 +2308,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->Indexof2) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Indexof2(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[2]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: Indexof2(%s, %s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str(), node_to_string(t, convertedArgs[2]).c_str());
 
 		encodedConstraints.emplace_back(reduce_indexof2(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->Indexof2, convertedArgs[0],	convertedArgs[1], convertedArgs[2]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2398,31 +2331,20 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->LastIndexof) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "LastIndexof(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: LastIndexof(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
 		encodedConstraints.emplace_back(reduce_lastindexof(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->LastIndexof, convertedArgs[0], convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2432,31 +2354,35 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->EndsWith) {
 		Z3_ast breakDownAst = NULL;
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "EndsWith(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: EndsWith(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
+		Z3_ast tmp;
+		switch (config.languageVersion) {
+		case 20:
+			break;
+		case 25:
+		case 26:
+			/* swap args */
+			tmp = convertedArgs[0];
+			convertedArgs[0] = convertedArgs[1];
+			convertedArgs[1] = tmp;
+			break;
+		default:
+			assert(false);
+			break;
+		}
 
 		encodedConstraints.emplace_back(reduce_endswith(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->EndsWith, convertedArgs[0], convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2466,30 +2392,35 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->StartsWith) {
 		Z3_ast breakDownAst = NULL;
+		__debugPrint(logFile, "%d Input: StartsWith(%s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str());
 
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "StartsWith(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		Z3_ast tmp;
+		switch (config.languageVersion) {
+		case 20:
+			break;
+		case 25:
+		case 26:
+			/* swap args */
+			tmp = convertedArgs[0];
+			convertedArgs[0] = convertedArgs[1];
+			convertedArgs[1] = tmp;
+			break;
+		default:
+			assert(false);
+			break;
+		}
 
 		encodedConstraints.emplace_back(reduce_startswith(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_binary_app(ctx, td->StartsWith, convertedArgs[0],	convertedArgs[1]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2499,31 +2430,19 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->Replace) {
 		Z3_ast breakDownAst = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "Replace(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[2]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: Replace(%s, %s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str(), node_to_string(t, convertedArgs[2]).c_str());
 
 		encodedConstraints.emplace_back(reduce_replace(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->Replace, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
@@ -2533,82 +2452,58 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 	//------------------------------------------
 	else if (d == td->ReplaceAll) {
 		Z3_ast breakDownAst = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "ReplaceAll(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[1]);
-		__debugPrint(logFile, ", ");
-		printZ3Node(t, convertedArgs[2]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: ReplaceAll(%s, %s, %s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str(), node_to_string(t, convertedArgs[1]).c_str(), node_to_string(t, convertedArgs[2]).c_str());
 
 		encodedConstraints.emplace_back(reduce_replaceAll(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_ternary_app(ctx, td->ReplaceAll, convertedArgs[0], convertedArgs[1], convertedArgs[2]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		// when quick path is taken, breakDownAst == NULL;
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
 	} else if (d == td->ToLower) {
 		Z3_ast breakDownAst = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "ToLower(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: ToLower(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
+
 		encodedConstraints.emplace_back(reduce_toLower(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t, mk_unary_app(ctx, td->ToLower, convertedArgs[0]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
 	} else if (d == td->ToUpper) {
 		Z3_ast breakDownAst = NULL;
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "ToUpper(");
-		printZ3Node(t, convertedArgs[0]);
-		__debugPrint(logFile, ")");
-		__debugPrint(logFile, "  =>  ");
-#endif
+		__debugPrint(logFile, "%d Input: ToUpper(%s)\n", __LINE__, node_to_string(t, convertedArgs[0]).c_str());
+
 		encodedConstraints.emplace_back(reduce_toUpper(t, convertedArgs, breakDownAst));
 		*result = mk_and_fromVector(t, encodedConstraints);
 
 		internalVarFunctionMap[node_to_stringOP(t, *result)] = node_to_stringOP(t,	mk_unary_app(ctx, td->ToUpper, convertedArgs[0]));
-#ifdef DEBUGLOG
-		printZ3Node(t, *result);
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
-			__debugPrint(logFile, "\n-- ADD(@%d): \n", __LINE__);
-			printZ3Node(t, breakDownAst);
+			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
+			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-		__debugPrint(logFile, "\n\n");
-#endif
-		if (breakDownAst != NULL)
-			Z3_assert_cnstr(ctx, breakDownAst);
+
+		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 
 		return Z3_TRUE;
@@ -2623,11 +2518,9 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 
 	if (convertedFlag == 1) {
 		*result = Z3_mk_app(ctx, d, n, convertedArgs);
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "%d Others --> ", __LINE__);
-		printZ3Node(t, *result);
-		__debugPrint(logFile, "\n\n");
-#endif
+
+		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
+
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}
@@ -2644,7 +2537,7 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	/* write to file */
 	std::string tmp = createEqualConstraint(node_to_string(t, s1),
 			node_to_string(t, s2));
-	if (printingConstraints)
+	if (config.printingConstraints)
 		if (tmp.find("__cOnStStR_") == std::string::npos
 				&& !isNonDetAutomatonFunc(t, s1)
 				&& !isNonDetAutomatonFunc(t, s2)
@@ -2664,8 +2557,8 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	if (!(isStrVariable(t, s1)) && !isStrVariable(t, s2)) {
 		std::string tmp01 = Z3_ast_to_string(ctx, s1);
 		std::string tmp02 = Z3_ast_to_string(ctx, s2);
-		if (tmp01.find(languageMap[CHARAT]) != std::string::npos
-				|| tmp02.find(languageMap[CHARAT]) != std::string::npos) {
+		if (tmp01.find(config.languageMap[CHARAT]) != std::string::npos
+				|| tmp02.find(config.languageMap[CHARAT]) != std::string::npos) {
 			if (!isConstStr(t, s1) && isConstStr(t, s2)) {
 				throw std::runtime_error(
 						"CharAt function accepts a const letter only!");

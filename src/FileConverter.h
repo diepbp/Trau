@@ -10,16 +10,12 @@
 
 #include <regex>
 #include "Utils.h"
-
+#include "Config.h"
 
 static std::map<char, char> ENCODEMAP;
-
 static std::map<char, char> DECODEMAP;
 static int intVar = 0;
-extern bool getModel;
-extern std::map<int, std::string> languageMap;
-extern int languageVersion;
-extern char escapeChar;
+extern Config config;
 
 template< typename T >
 std::string int_to_hex( T i );
@@ -130,17 +126,16 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 /*
  * (implies x) --> (implies false x)
  */
-void updateImplies(std::vector<std::pair<std::string, int>> &tokens);
+void updateImplies(std::vector<std::pair<std::string, int>> &tokens,
+		std::vector<std::string> &smtVarDefinition);
 
 /*
  * (RegexIn ...) --> TRUE
  */
-void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
-
-/*
- * (RegexIn ...) --> TRUE
- */
-void updateRegexIn(std::vector<std::pair<std::string, int>> &tokens);
+void updateRegexIn(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition);
 
 /*
  * (Contain v1 v2) --> TRUE || FALSE

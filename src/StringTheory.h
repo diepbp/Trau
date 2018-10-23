@@ -10,7 +10,7 @@
 
 #include "Regex.h"
 #include "UnderApprox.h"
-#include "Utils.h"
+#include "Config.h"
 
 #define ARITH 0
 //#define PARIKH 1
@@ -23,41 +23,6 @@
 #define PRE_VALUE "$$vAlUe_"
 #define PRE_LANGUAGE "$$lAnG_"
 #define UNKNOWN_AUTOMATON "uNkNoWn"
-
-extern std::string inputFile;
-extern std::string inputFile_converted;
-
-extern std::map<std::string, int> variables;
-extern std::vector<std::vector<int>> graph;
-extern std::map<std::string, std::vector<std::string>> ourGrm;
-
-extern int value_count;
-extern int sLevel;
-// extern std::map<std::string, std::set<char>> charSet;
-extern Z3_ast emptyConstStr;
-
-extern const std::string escapeDict[];
-
-extern int numOfFlats;
-extern bool skipOverapprox;
-
-extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
-
-extern std::map<Z3_ast, std::vector<Z3_ast>> concrete_value_Map;
-extern std::map<Z3_ast, int> lang_value_Map;
-extern std::map<Z3_ast, Z3_ast> final_value_Map;
-extern std::map<std::vector<Z3_ast>, int> lang_value_Map1;
-extern std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
-extern std::set<Z3_ast> inputVarInLen;
-extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
-extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
-extern std::map<int, std::string> languageMap;
-extern char escapeChar;
-
-static std::map<std::string, std::set<char>> charSet;
-
-static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
-
 
 /**
    \brief Data-structure for storing theory specific data.
@@ -109,8 +74,6 @@ typedef struct _AutomatonStringData
  */
  typedef struct _AutomatonStringData AutomatonStringData;
 
-
-
  typedef enum
  {
 	 my_Z3_ConstStr,    // 0
@@ -124,6 +87,56 @@ typedef struct _AutomatonStringData
 	 my_Z3_Unknown,     // 9
 	 my_Z3_Grammar_Var  // 10
  } T_TheoryType;
+
+
+ struct Decision{
+ 	std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables;
+ 	std::map<std::string, std::vector<std::vector<std::string>>> fullCombinationOverVariables;
+ 	std::map<StringOP, std::string> rewriterStrMap;
+ 	std::set<std::string> carryOnConstraints;
+ 	std::map<std::string, int> initLength;
+
+ 	Decision (
+ 			std::map<std::string, std::vector<std::vector<std::string>>> _combinationOverVariables,
+ 				std::map<std::string, std::vector<std::vector<std::string>>> _fullCombinationOverVariables,
+ 				std::map<StringOP, std::string> _rewriterStrMap,
+ 				std::set<std::string> _carryOnConstraints,
+ 				std::map<std::string, int> _initLength):
+ 					combinationOverVariables(_combinationOverVariables),
+ 					fullCombinationOverVariables(_fullCombinationOverVariables),
+ 					rewriterStrMap(_rewriterStrMap),
+ 					carryOnConstraints(_carryOnConstraints),
+ 					initLength(_initLength){
+ 	}
+
+ 	Decision(){
+
+ 	}
+ };
+
+
+ extern std::map<std::string, int> variables;
+ extern std::vector<std::vector<int>> graph;
+ extern int value_count;
+ extern int sLevel;
+ extern Z3_ast emptyConstStr;
+ extern const std::string escapeDict[];
+ extern int numOfFlats;
+ extern std::map<Z3_ast, std::vector<Z3_ast>> children_Map;
+ extern std::map<Z3_ast, std::vector<Z3_ast>> concrete_value_Map;
+ extern std::map<Z3_ast, int> lang_value_Map;
+ extern std::map<Z3_ast, Z3_ast> final_value_Map;
+ extern std::map<std::vector<Z3_ast>, int> lang_value_Map1;
+ extern std::map<std::pair<Z3_ast, int>, Z3_ast> parikh_Node_map;
+ extern std::set<Z3_ast> inputVarInLen;
+ extern std::map<std::pair<Z3_ast, int>, Automaton> internalVarMap;
+ extern std::map<std::pair<Z3_ast, int>, std::string> tmpInternalVarMap;
+
+ extern Config config;
+
+ static std::map<std::string, std::set<char>> charSet;
+ static std::map<std::pair<Z3_ast, Z3_ast>, int> eqList;
+ static std::vector<Decision> decisions;
 
  std::set<std::string> createFlats(int p, int q, std::set<char> charSet);
 
@@ -187,6 +200,11 @@ typedef struct _AutomatonStringData
   * only collect leaf, z3_Ast format
   */
  void getNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> & nodeList);
+
+ /*
+  *
+  */
+ std::string node2Lenconstraint(Z3_theory t, Z3_ast node);
 
  StringOP node_to_stringOP(Z3_theory t, Z3_ast node);
 
@@ -450,24 +468,24 @@ typedef struct _AutomatonStringData
  /*
   * a contains "xyz" == false && b = x . "123xyz" . y && a == b --> false
   */
- void add_impliable_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addImpliableContains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *  a contains b && b contains c --> a contains c
   */
- void add_transitive_contains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addTransitiveContains(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *	x = replace a b c
   *	--> contain x y = contain a y if ...
   */
- void add_replace_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addReplaceConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * a = b && endwith a "abc" && endwith b "abce"  --> false
   * "abc" \in postfix(a) -> endwith a "c" = true *
   */
- void add_endsWith_consistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addEndsWithConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *  a contains c && a = b --> b contains c
@@ -479,7 +497,7 @@ typedef struct _AutomatonStringData
  /**
   * find all nodes that accept "node" as the prefix
   */
- std::set<Z3_ast> find_all_nodes_from_prefix(Z3_theory t, Z3_ast node);
+ std::set<Z3_ast> findAllNodesFromPrefix(Z3_theory t, Z3_ast node);
 
  /*
   * find prefix of a node
@@ -489,21 +507,21 @@ typedef struct _AutomatonStringData
  /*
   * find posfix of a node
   */
- std::set<Z3_ast> find_all_posfix_of_node(Z3_theory t, Z3_ast node);
+ std::set<Z3_ast> findPosfixOfNode(Z3_theory t, Z3_ast node);
 
  /*
   * |prefix_01| > |prefix_02|
   * prefix_01 not contain "s"
   * --> prefix_02 not contain "s"
   */
- void add_prefix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addPrefixRelation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * |posfix_01| > |posfix_02|
   * posfix_01 not contain "s"
   * --> posfix_02 not contain "s"
   */
- void add_posfix_relation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ void addPosfixRelation(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   * check satisfiable of 'nn1 = nn2'
@@ -610,7 +628,7 @@ typedef struct _AutomatonStringData
   /*
    *
    */
-  void collect_node_in_concat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list);
+  void collectNodesInConcat(Z3_theory t, Z3_ast node, std::vector<Z3_ast> &list);
  /*
   *
   */
@@ -624,7 +642,7 @@ typedef struct _AutomatonStringData
  /*
   * how many letters in a combination
   * */
- std::map<char, int> eval_parikh_lowerbound(
+ std::map<char, int> evalParikhLowerbound(
 		 Z3_theory t,
 		 std::vector<Z3_ast> list,
 		 std::map<Z3_ast, bool> boolValues);
@@ -632,7 +650,7 @@ typedef struct _AutomatonStringData
  /*
   * how many letters in a combination
   * */
- std::map<char, int> eval_parikh_fixedbound(
+ std::map<char, int> evalParikhFixedbound(
  		Z3_theory t,
  		std::vector<Z3_ast> list,
  		std::map<Z3_ast, bool> boolValues);
@@ -710,14 +728,14 @@ typedef struct _AutomatonStringData
  /*
   *
   */
- bool parikh_check_substr_basic(
+ bool parikhCheckSubstrBasic(
  		Z3_theory t,
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list);
  /*
   *
   */
- bool parikh_check_contain(
+ bool parikhCheckContain(
  		Z3_theory t,
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
@@ -729,7 +747,7 @@ typedef struct _AutomatonStringData
  /*
   *
   */
- bool parikh_check_regex(
+ bool parikhCheckRegex(
  		Z3_theory t,
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
@@ -739,7 +757,7 @@ typedef struct _AutomatonStringData
  /*
   * x = a . b . c = d . e . f --> possible or not
   */
- bool parikh_check_replaceall(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
+ bool parikhCheckReplaceall(Z3_theory t, std::vector<std::vector<Z3_ast>> list, std::map<Z3_ast, bool> boolValues);
 
  /**
   *
@@ -870,26 +888,31 @@ typedef struct _AutomatonStringData
  /**
   *
   */
-Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
+ Z3_ast negateEquality(Z3_theory t, Z3_ast nn1, Z3_ast nn2);
 
  /*
   *
   */
-  Z3_ast negatePositiveContext(Z3_theory t);
+ Z3_ast negatePositiveContext(Z3_theory t);
 
-  /*
-   *
-   */
-  Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
+ /*
+  *
+  */
+ Z3_ast negatePositiveContext(Z3_theory t, std::vector<Z3_ast> boolVars);
 
-  /*
-   * not(a = b = c = d)
-   */
-  Z3_ast negatePositiveEquality(
-  		Z3_theory t,
-  		Z3_ast node,
-  		std::vector<std::vector<Z3_ast>> list,
-  		std::map<Z3_ast, bool> boolValues);
+ /*
+  * negate all boolean variables
+  */
+ Z3_ast negatePositiveContext(Z3_theory t, std::set<Z3_ast> boolVars) ;
+
+ /*
+  * not(a = b = c = d)
+  */
+ Z3_ast negatePositiveEquality(
+		 Z3_theory t,
+		 Z3_ast node,
+		 std::vector<std::vector<Z3_ast>> list,
+		 std::map<Z3_ast, bool> boolValues);
 
  std::vector<Z3_ast> collectLanguageValue(Z3_theory t);
  std::vector<Z3_ast> collectStringValue(Z3_theory t);

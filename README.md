@@ -9,7 +9,7 @@ Before attempting to build Trau, you need to have the following installed and in
 
 Getting & Building Trau on MacOS and Linux
 ---------------------------------
-- Download the latest release of Trau. The git version can be unstable at some point.
+- Download the latest release/git version of Trau. The git version can be unstable at some point, but possibly more efficient. Please refer to [RELEASE NOTES](https://github.com/diepbp/FAT/blob/master/RELEASE%20NOTES) for more details.
 - Install a custom Z3-4.4.1.0.
 Extract z3-4.4.1.0.tar.gz and follow its README to install the custom Z3.
 
@@ -42,10 +42,10 @@ Command-line Usage
 	./Trau [option] fileName
 ```	
 The folllowing options are avaiable:
-- -language: specify the input language. Trau officially supports SMT2.0 (default input language). SMT2.5 is under the development. 
-- -model: print satisfying assignments if the result is SAT
-- -doublecheck: use the S3P string solver to cross-check satisfying assignments produced by Trau. This option is available only on Ubuntu.
-- -grm grammarFile: specify a grammar file
+- -language [smt2.0 | cvc4 | smt2.6]: specify the input language. Trau officially supports SMT2.0 (default input language). CVC4 language version, SMT2.6 are under the development. 
+- -model: print satisfying assignments if the result is SAT.
+- -crosscheck [s3 | cvc4 | z3str3]: specify a string solver to either cross-check satisfying assignments produced by Trau if Trau returns SAT, or run with the input test if Trau returns UNSAT. S3 supports SMT2.0 language while CVC4 and Z3str3 support CVC4 language and SMT2.6. Note that, "-crosscheck cvc4" works only if CVC4 is installed and in your PATH.
+- -grm grammarFile: specify a grammar file.
 
 Running Example(s)
 ---------------------------------
