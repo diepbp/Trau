@@ -752,7 +752,7 @@ void formatMultiplyOP(StringOP &opx){
  */
 int Z3_reviews(std::string fileName){
 	std::string cmd = std::string(Z3VERIFIER) + fileName;
-
+	__debugPrint(logFile, "%d %s: %s", __LINE__, __FILE__, cmd.c_str());
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
 		throw std::runtime_error("Z3 failed!");
@@ -767,7 +767,7 @@ int Z3_reviews(std::string fileName){
 				if (line.find("unsat") == 0) {
 					return Trau_UNSAT;
 				}
-				if (line.find("sat") == 0) {
+				else if (line.find("sat") == 0) {
 					return Trau_SAT;
 				}
 			}
@@ -788,7 +788,7 @@ int Z3_reviews(std::string fileName){
  */
 int CVC4_reviews(std::string fileName){
 	std::string cmd = std::string(CVC4VERIFIER) + fileName;
-
+	__debugPrint(logFile, "%d %s: %s", __LINE__, __FILE__, cmd.c_str());
 	FILE* in = popen(cmd.c_str(), "r");
 	if (!in)
 		throw std::runtime_error("CVC4 failed!");
@@ -803,7 +803,7 @@ int CVC4_reviews(std::string fileName){
 				if (line.find("unsat") == 0) {
 					return Trau_UNSAT;
 				}
-				if (line.find("sat") == 0) {
+				else if (line.find("sat") == 0) {
 					return Trau_SAT;
 				}
 			}
@@ -902,8 +902,9 @@ void verifyResult(
 			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
 				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
 			}
-			else
+			else {
 				assert(false);
+			}
 		}
 		else {
 			printf("\n %s cannot check the test.\n", verifyingSolver.c_str());

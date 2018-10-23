@@ -2200,7 +2200,7 @@ std::string sumStringVector(std::vector<std::string> list){
  */
 std::string stringDiff(std::string a, std::string b){
 	int pre = 0, suf = a.length() - 1;
-	while (pre < a.length() && pre < b.length() && a[pre] == b[pre])
+	while (pre < (int)a.length() && pre < (int)b.length() && a[pre] == b[pre])
 		++pre;
 	while (suf >= 0 && a[suf] == b[(int)b.length() - ((int)a.length() - suf)])
 		--suf;
@@ -5115,7 +5115,9 @@ std::set<std::string> reformatCarryOnConstraints(std::set<std::string> _carryOnC
 		while (found != -1) {
 			int endCond = findCorrespondRightParentheses(found - 1, tokens);
 			for (int i = found + 1 ; i < endCond; ++i)
-				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM)
+				if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
+						tokens[i].first.find(LENPREFIX) != 0 &&
+						allVariables.find(tokens[i].first) != allVariables.end())
 					tokens[i].first = LENPREFIX + tokens[i].first;
 			tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 			found = findTokens(tokens, found, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);

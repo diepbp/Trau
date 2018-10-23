@@ -1610,7 +1610,7 @@ public:
 			resultParts.emplace_back(strTmp);
 #else
 			if (!unrollMode){
-				for (int i = 0; i < content.length(); ++i){
+				for (int i = 0; i < (int)content.length(); ++i){
 					sprintf(strTmp, "(or (= (select %s %d) (select %s (mod (+ %d %s) %ld))) (< %s %d))",
 															arrayRhs.c_str(),
 															i,
@@ -2694,7 +2694,7 @@ public:
 		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
 		if (left_arr[i] == SUMFLAT && right_arr[j] == i){
 			/* check forward */
-			if (i < left_arr.size() - 1 &&
+			if (i < (int)left_arr.size() - 1 &&
 					lhs_elements[i + 1].first.compare(lhs_elements[i].first) == 0) {
 
 				if (left_arr[i + 1] == EMPTYFLAT){
@@ -2703,7 +2703,7 @@ public:
 				else if (left_arr[i + 1] == SUMFLAT){
 					return RIGHT_SUM;
 				}
-				else if (j + 1 < rhs_elements.size()){
+				else if (j + 1 < (int)rhs_elements.size()){
 					__debugPrint(logFile, "%d %d vs %d\n", __LINE__, left_arr[i + 1], right_arr[j + 1]);
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1){
@@ -2731,13 +2731,13 @@ public:
 		}
 		else if (left_arr[i] == j && right_arr[j] == i){
 			/* check forward */
-			if (i < left_arr.size() - 1 &&
+			if (i < (int)left_arr.size() - 1 &&
 					left_arr[i + 1] != SUMFLAT &&
 					lhs_elements[i + 1].first.compare(lhs_elements[i].first) == 0) {
 				if (left_arr[i + 1] == EMPTYFLAT){
 					return RIGHT_EMPTY;
 				}
-				else if (j + 1 < rhs_elements.size()){
+				else if (j + 1 < (int)rhs_elements.size()){
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1 &&
 							rhs_elements[j + 1].first.compare(rhs_elements[j].first) == 0){
@@ -2774,14 +2774,14 @@ public:
 		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
 		if (right_arr[j] == SUMFLAT && left_arr[i] == j){
 			/* check forward */
-			if (j < right_arr.size() - 1 &&
+			if (j < (int)right_arr.size() - 1 &&
 					rhs_elements[j + 1].first.compare(rhs_elements[j].first) == 0) {
 				if (right_arr[j + 1] == EMPTYFLAT){
 					return RIGHT_EMPTY;
 				}
 				else if (right_arr[j + 1] == SUMFLAT)
 					return RIGHT_SUM;
-				else if (i + 1 < lhs_elements.size()){
+				else if (i + 1 < (int)lhs_elements.size()){
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1){
 						return NONE;
@@ -2806,13 +2806,13 @@ public:
 		}
 		else if (left_arr[i] == j && right_arr[j] == i){
 			/* check forward */
-			if (i < left_arr.size() - 1 &&
+			if (i < (int)left_arr.size() - 1 &&
 					left_arr[i + 1] != SUMFLAT &&
 					lhs_elements[i + 1].first.compare(lhs_elements[i].first) == 0) {
 				if (left_arr[i + 1] == EMPTYFLAT){
 					return RIGHT_EMPTY;
 				}
-				else if (i + 1 < lhs_elements.size()){
+				else if (i + 1 < (int)lhs_elements.size()){
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1 &&
 							rhs_elements[j + 1].first.compare(rhs_elements[j].first) == 0){
@@ -3133,26 +3133,26 @@ public:
 		int startPos = 0;
 		int endPos = left_arr.size() - 1;
 		/* check lhs */
-		for (startPos = 0; startPos < left_arr.size(); ++startPos)
+		for (startPos = 0; startPos < (int)left_arr.size(); ++startPos)
 			if (left_arr[startPos] != EMPTYFLAT)
 				break;
 		for (endPos = (int)left_arr.size() - 1; endPos >= 0; --endPos)
 			if (left_arr[endPos] != EMPTYFLAT)
 				break;
-		for (unsigned int i = startPos; i < endPos; ++i)
+		for (int i = startPos; i < endPos; ++i)
 			if (left_arr[i] == EMPTYFLAT) {
 				// printArrangement("ERRORR");
 				return false;
 			}
 
 		/* check rhs */
-		for (startPos = 0; startPos < right_arr.size(); ++startPos)
+		for (startPos = 0; startPos < (int)right_arr.size(); ++startPos)
 			if (right_arr[startPos] != EMPTYFLAT)
 				break;
 		for (endPos = (int)right_arr.size() - 1; endPos >= 0; --endPos)
 			if (right_arr[endPos] != EMPTYFLAT)
 				break;
-		for (unsigned int i = startPos; i < endPos; ++i)
+		for (int i = startPos; i < endPos; ++i)
 			if (right_arr[i] == EMPTYFLAT) {
 				// printArrangement("ERRORR");
 				return false;

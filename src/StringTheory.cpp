@@ -5511,7 +5511,7 @@ bool parikhCheckReplaceall(
 		std::vector<Z3_ast> l00;
 		std::vector<Z3_ast> l01;
 		int start = 0, removeItems = 0;
-		while (start < list[0].size() && start < list[i].size())
+		while (start < (int)list[0].size() && start < (int)list[i].size())
 			if (list[0][start] == list[i][start])
 				++start;
 			else

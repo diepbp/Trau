@@ -1319,15 +1319,15 @@ void rewriteGRM(std::string s,
 	__debugPrint(logFile, "%d CFG constraint: %s\n", __LINE__, s.c_str());
 	/* step 1: collect var that is the next token after GrammarIn */
 	int pos = s.find("GrammarIn");
-	assert(pos != std::string::npos);
+	assert(pos != (int)std::string::npos);
 
 	assert(s[pos + 9] == ' ');
 	pos = pos + 9;
-	while (s[pos] == ' ' && pos < s.length())
+	while (s[pos] == ' ' && pos < (int)s.length())
 		pos++;
 
 	std::string varName = "";
-	while (s[pos] != ' ' && pos < s.length()) {
+	while (s[pos] != ' ' && pos < (int)s.length()) {
 		varName = varName + s[pos];
 		pos++;
 	}

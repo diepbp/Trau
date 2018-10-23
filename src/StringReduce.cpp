@@ -281,7 +281,7 @@ StringOP convertStrOPToArithmeticOP(StringOP op){
 				std::vector<StringOP> q;
 				q.emplace_back(op.args[0]);
 				int pos = 0;
-				while (pos < q.size()){
+				while (pos < (int)q.size()){
 					StringOP curr = q[pos];
 					pos ++;
 
@@ -2004,7 +2004,7 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			convertedArgs[i] = args[i];
 	}
 
-	for (int i = 0; i < n; ++i)
+	for (int i = 0; i < (int)n; ++i)
 		if (isConcatFunc(t, convertedArgs[i])){
 			Z3_ast n1 = Z3_get_app_arg(ctx, Z3_to_app(ctx, convertedArgs[i]), 0);
 			Z3_ast n2 = Z3_get_app_arg(ctx, Z3_to_app(ctx, convertedArgs[i]), 1);
