@@ -2529,7 +2529,7 @@ public:
 			int pMax,
 			std::map<std::string, int> connectedVariables,
 			bool optimizing){
-		__debugPrint(logFile, "%d %s: optimizing: %s\n", __LINE__, __FUNCTION__, optimizing? "true" : "false");
+//		__debugPrint(logFile, "%d %s: optimizing: %s\n", __LINE__, __FUNCTION__, optimizing? "true" : "false");
 		std::string result = "";
 
 		if (a.second < 0) { /* const string or regex */
@@ -2691,7 +2691,7 @@ public:
 			int i, int startPos, int j,
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements){
-		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
+//		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
 		if (left_arr[i] == SUMFLAT && right_arr[j] == i){
 			/* check forward */
 			if (i < (int)left_arr.size() - 1 &&
@@ -2720,7 +2720,7 @@ public:
 				else if (left_arr[i - 1] == SUMFLAT)
 					return LEFT_SUM;
 				else if (startPos > 0){
-					__debugPrint(logFile, "%d %d vs %d\n", __LINE__, left_arr[i - 1], right_arr[j - 1]);
+//					__debugPrint(logFile, "%d %d vs %d\n", __LINE__, left_arr[i - 1], right_arr[j - 1]);
 					if (left_arr[i - 1] == startPos - 1 &&
 							right_arr[startPos - 1] == i - 1 &&
 							lhs_elements[i - 1].first.compare(lhs_elements[i].first) == 0){
@@ -2771,7 +2771,7 @@ public:
 			int i, int startPos, int j,
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements){
-		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
+//		__debugPrint(logFile, "%d *** %s ***: %d: %d -> %d\n", __LINE__, __FUNCTION__, i, startPos, j);
 		if (right_arr[j] == SUMFLAT && left_arr[i] == j){
 			/* check forward */
 			if (j < (int)right_arr.size() - 1 &&
@@ -2878,7 +2878,7 @@ public:
 					/* select optimization mode */
 					int optimizing = canBeOptimized_LHS(i, startPos, j, lhs_elements, rhs_elements);
 
-					__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
+//					__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
 					switch (optimizing) {
 					case NONE:
 						break;
@@ -3011,7 +3011,7 @@ public:
 						assert (false);
 						break;
 					}
-					__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
+//					__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
 					std::string tmp = generateConstraint02(
 									rhs_elements[i],
 									elements,
@@ -3089,7 +3089,7 @@ public:
 					assert (false);
 					break;
 				}
-				__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
+//				__debugPrint(logFile, "%d optimizing mode: %d\n", __LINE__, optimizing);
 				std::string tmp = generateConstraint01(
 						lhs_str, rhs_str,
 						lhs_elements[i],

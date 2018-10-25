@@ -106,6 +106,11 @@ StringOP findStringOP(
 /*
  *
  */
+StringOP parseOP(std::string s);
+
+/*
+ *
+ */
 void updateEquality(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap

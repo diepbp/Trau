@@ -94,10 +94,40 @@ std::vector<std::pair<std::string, int>> replaceTokens(
 	}
 	else
 		tmp.push_back(std::make_pair(tokenName, tokenType));
+
 	for (int i = finish + 1; i < (int)tokens.size(); ++i)
 		tmp.emplace_back(tokens[i]);
 
 	return tmp;
+}
+
+/*
+ *
+ */
+void optimalReplaceTokens(
+		std::vector<std::pair<std::string, int>> &tokens,
+		int start, int finish, std::string tokenName, int tokenType){
+	tokens.erase(tokens.begin() + start, tokens.begin() + finish + 1);
+	if (tokenName[0] == '('){
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, tokenName.c_str());
+		std::vector<std::pair<std::string, int>> tokensTmp;
+		switch (config.languageVersion) {
+		case 20:
+		case 25:
+			tokensTmp = parseTerm20(tokenName);
+			break;
+
+		case 26:
+			tokensTmp = parseTerm26(tokenName);
+			break;
+		default:
+			assert(false);
+			break;
+		}
+		tokens.insert(tokens.begin() + start, tokensTmp.begin(), tokensTmp.end());
+	}
+	else
+		tokens.insert(tokens.begin() + start, std::make_pair(tokenName, tokenType));
 }
 
 /*
@@ -181,7 +211,6 @@ void formatOPByRewriter(StringOP &op,
 StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
 				int &startPos){
-//	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP ret;
 	if (tokens[startPos].second == antlrcpptest::SMTLIB26Lexer::OpenPar) {
 		int tmp = findCorrespondRightParentheses(startPos, tokens);
@@ -299,7 +328,6 @@ StringOP findOpArg(
 StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
 		int startPos){
-//	__debugPrint(logFile, "\n%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, startPos, tokens.size() - 1).c_str());
 	StringOP op(tokens[startPos].first);
 
 	while (true){
@@ -330,28 +358,24 @@ StringOP findStringOP(
 /*
  *
  */
-void updateEquality(
-		std::vector<std::pair<std::string, int>> &tokens,
-		std::map<StringOP, std::string> rewriterStrMap
-		){
-	int found = findTokens(tokens, 0, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-	while (found != -1) {
-		assert(tokens[found - 1].second == antlrcpptest::SMTLIB26Lexer::OpenPar);
-		StringOP op(findStringOP(tokens, found));
-		bool foundOp = false;
-		for (const auto& _op : rewriterStrMap) {
-			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
-				tokens = replaceTokens(tokens, found - 1, findCorrespondRightParentheses(found - 1, tokens), _op.second, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-				foundOp = true;
-				break;
-			}
+StringOP parseOP(std::string s){
+	std::vector<std::pair<std::string, int>> tokens;
+	switch (config.languageVersion) {
+		case 20:
+		case 25:
+			tokens = parseTerm20(s);
+			break;
+		case 26:
+			tokens = parseTerm26(s);
+			break;
+		default:
+			assert(false);
+			break;
 		}
-
-		if (foundOp)
-			found = findTokens(tokens, 0, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		else
-			found = findTokens(tokens, found + 1, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-	}
+	if (tokens.size() == 1)
+		return StringOP(tokens[0].first);
+	else
+		return StringOP(findStringOP(tokens, 0));
 }
 
 /*
@@ -400,7 +424,6 @@ bool isArithmeticOP(StringOP opx, std::set<std::string> otherVars){
 		if (otherVars.find(opx.args[1].name) != otherVars.end())
 			return true;
 	}
-//	__debugPrint(logFile, ">> %d not ArithmeticOP\n", __LINE__);
 	return false;
 }
 
@@ -462,12 +485,14 @@ std::string getStringFromRegexOP(StringOP op){
 	}
 	return tmp;
 }
+
 /*
  *
  */
 void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 		std::set<std::string> otherVars,
 		std::vector<std::string> &smtVarDefinition){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, "not", antlrcpptest::SMTLIB26Lexer::SYM_NOT);
 	while (found != -1) {
 		int endCond = -1;
@@ -494,6 +519,26 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
 			found = findTokens(tokens, found + 1, "not", antlrcpptest::SMTLIB26Lexer::SYM_NOT);
 		}
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ *
+ */
+void updateNot(
+		StringOP &op,
+		std::set<std::string> otherVars,
+		std::vector<std::string> &smtVarDefinition){
+	clock_t t = clock();
+	if (op.name.compare("not") == 0){
+		assert(op.args.size() == 1);
+		if (!isArithmeticOP(op.args[0], otherVars)){
+			std::string tmpVar = createNewIntVar();
+			smtVarDefinition.push_back(createIntDefinition(tmpVar));
+			op = StringOP("=", tmpVar, "0");
+		}
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -501,6 +546,7 @@ void updateNot(std::vector<std::pair<std::string, int>> &tokens,
  */
 void updateImplies(std::vector<std::pair<std::string, int>> &tokens,
 		std::vector<std::string> &smtVarDefinition){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, "implies", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int endCond = -1;
@@ -516,7 +562,22 @@ void updateImplies(std::vector<std::pair<std::string, int>> &tokens,
 
 		found = findTokens(tokens, endCond, "implies", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size()).c_str());
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (implies x) --> (implies bool x)
+ */
+void updateImplies(
+		StringOP &op,
+		std::vector<std::string> &smtVarDefinition){
+	clock_t t = clock();
+	if (op.name.compare("implies") == 0){
+		std::string tmpVar = createNewBoolVar();
+		smtVarDefinition.push_back(createBoolDefinition(tmpVar));
+		op = StringOP(tmpVar);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -582,28 +643,84 @@ void updateRegexIn(
 }
 
 /*
+ * (RegexIn ...) --> random
+ */
+void updateRegexIn(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::vector<std::string> &smtVarDefinition){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[REGEXIN]) == 0){
+		std::string tmp = getStringFromRegexOP(op.args[1]);
+		if (!isRegexStr(tmp)) {
+			StringOP opx = StringOP("=", op.args[0], "\"" + tmp + "\"");
+			__debugPrint(logFile, "%d %s\n", __LINE__, opx.toString().c_str());
+			if (rewriterStrMap.find(opx) != rewriterStrMap.end()) {
+				std::string tmpStr = rewriterStrMap[opx];
+				if (tmpStr.compare(TRUESTR) == 0)
+					op = parseOP(rewriterStrMap[opx]);
+				else if (tmpStr.compare(FALSETR) == 0)
+					op = parseOP(rewriterStrMap[opx]);
+				else
+					assert (false);
+			}
+			else {
+				std::string tmpVar = createNewIntVar();
+				smtVarDefinition.push_back(createIntDefinition(tmpVar));
+				op = StringOP("=", tmpVar, "0");
+			}
+		}
+		else {
+			std::string tmpVar = createNewIntVar();
+			smtVarDefinition.push_back(createIntDefinition(tmpVar));
+			op = StringOP("=", tmpVar, "0");
+		}
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+
+}
+/*
  * (Contains v1 v2) --> TRUE || FALSE
  */
 void updateContain(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
-
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op(findStringOP(tokens, found));
-		if (rewriterStrMap.find(op) == rewriterStrMap.end()){
-			__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, op.toString().c_str());
-			assert(false);
-		}
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		__debugPrint(logFile, "%d %s\n", __LINE__, op.toString().c_str());
+		/* using optimalReplaceToken */
 		if (rewriterStrMap[op].compare(TRUESTR) == 0)
-			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
+			optimalReplaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
+//			tokens = replaceTokens(tokens, found - 1, pos, TRUESTR, antlrcpptest::SMTLIB26Lexer::SYM_TRUE);
 		else
-			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
+			optimalReplaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
+//			tokens = replaceTokens(tokens, found - 1, pos, FALSETR, antlrcpptest::SMTLIB26Lexer::SYM_FALSE);
 
-		found = findTokens(tokens, 0, config.languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[CONTAINS], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (Contains v1 v2) --> TRUE || FALSE
+ */
+void updateContain(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[CONTAINS]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		if (rewriterStrMap[op].compare(TRUESTR) == 0)
+			op = StringOP(TRUESTR);
+		else
+			op = StringOP(FALSETR);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -612,6 +729,7 @@ void updateContain(
 void updateIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -620,8 +738,23 @@ void updateIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, config.languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[INDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (Indexof v1 v2) --> ....
+ */
+void updateIndexOf(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[INDEXOF]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -630,6 +763,7 @@ void updateIndexOf(
 void updateIndexOf2(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -637,8 +771,24 @@ void updateIndexOf2(
 		StringOP op(findStringOP(tokens, found));
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
-		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, config.languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		/* using optimalReplaceToken */
+		optimalReplaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[INDEXOF2], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (Indexof2 v1 v2 v3) --> ....
+ */
+void updateIndexOf2(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	if (op.name.compare(config.languageMap[INDEXOF2]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		__debugPrint(logFile, "%d %s: %s -> %s\n", __LINE__, __FUNCTION__, op.toString().c_str(), rewriterStrMap[op].c_str());
+		op = parseOP(rewriterStrMap[op]);
+		__debugPrint(logFile, "%d %s: %s -> %s\n", __LINE__, __FUNCTION__, op.toString().c_str(), rewriterStrMap[op].c_str());
 	}
 }
 
@@ -648,6 +798,7 @@ void updateIndexOf2(
 void updateLastIndexOf(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -656,8 +807,23 @@ void updateLastIndexOf(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, config.languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[LASTINDEXOF], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (LastIndexof v1 v2) --> ....
+ */
+void updateLastIndexOf(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[LASTINDEXOF]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -666,6 +832,7 @@ void updateLastIndexOf(
 void updateEndsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -675,8 +842,23 @@ void updateEndsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, config.languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[ENDSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (EndsWith v1 v2) --> ....
+ */
+void updateEndsWith(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[ENDSWITH]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -685,6 +867,7 @@ void updateEndsWith(
 void updateStartsWith(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -693,8 +876,23 @@ void updateStartsWith(
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		found = findTokens(tokens, 0, config.languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		found = findTokens(tokens, found, config.languageMap[STARTSWITH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (StartsWith v1 v2) --> ....
+ */
+void updateStartsWith(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[ENDSWITH]) == 0){
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -703,6 +901,7 @@ void updateStartsWith(
 void updateReplace(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -715,6 +914,22 @@ void updateReplace(
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		found = findTokens(tokens, found, config.languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * = x (Replace ...) --> true
+ */
+void updateReplace(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[REPLACE]) == 0){
+		formatOPByRewriter(op, rewriterStrMap);
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -723,6 +938,7 @@ void updateReplace(
 void updateReplaceAll(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1){
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
@@ -733,6 +949,22 @@ void updateReplaceAll(
 		tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		found = findTokens(tokens, found, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * = x (ReplaceAll ...) --> true
+ */
+void updateReplaceAll(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[REPLACEALL]) == 0){
+		formatOPByRewriter(op, rewriterStrMap);
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -741,16 +973,14 @@ void updateReplaceAll(
 void updateSubstring(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap) {
-
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-	int indentCnt = 0;
 	while (found != -1) {
 		int pos = findCorrespondRightParentheses(found - 1, tokens);
 
 		StringOP op = findStringOP(tokens, found);
-		StringOP arg02 = op.args[2];
 		formatOPByRewriter(op, rewriterStrMap);
-		__debugPrint(logFile, "%d %s %s\n", __LINE__, indent(indentCnt).c_str(), op.toString().c_str());
+		__debugPrint(logFile, "%d %s\n", __LINE__, op.toString().c_str());
 		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 		std::string replacement = rewriterStrMap[op];
 
@@ -760,8 +990,68 @@ void updateSubstring(
 		else {
 			tokens = replaceTokens(tokens, found - 1, pos, replacement, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
-		found = findTokens(tokens, 0, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
-		indentCnt ++;
+		found = findTokens(tokens, found, config.languageMap[SUBSTRING], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * (Substring a b c) --> c && rewriter map
+ */
+void updateSubstring(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap) {
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[SUBSTRING]) == 0){
+		formatOPByRewriter(op, rewriterStrMap);
+		assert(rewriterStrMap.find(op) != rewriterStrMap.end());
+		op = parseOP(rewriterStrMap[op]);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ *
+ */
+void updateEquality(
+		std::vector<std::pair<std::string, int>> &tokens,
+		std::map<StringOP, std::string> rewriterStrMap
+		){
+	clock_t t = clock();
+	int found = findTokens(tokens, 0, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	while (found != -1) {
+		assert(tokens[found - 1].second == antlrcpptest::SMTLIB26Lexer::OpenPar);
+		StringOP op(findStringOP(tokens, found));
+		bool foundOp = false;
+		for (const auto& _op : rewriterStrMap) {
+			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
+				tokens = replaceTokens(tokens, found - 1, findCorrespondRightParentheses(found - 1, tokens), _op.second, antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+				foundOp = true;
+				break;
+			}
+		}
+
+		if (foundOp)
+			found = findTokens(tokens, 0, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+		else
+			found = findTokens(tokens, found + 1, "=", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ *
+ */
+void updateEquality(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap) {
+	if (op.name.compare("=") == 0){
+		for (const auto& _op : rewriterStrMap) {
+			if (_op.first == op && _op.second.compare(FALSETR) == 0) {
+				op = StringOP(_op.second);
+				break;
+			}
+		}
 	}
 }
 
@@ -781,6 +1071,16 @@ void updateToUpper(std::vector<std::pair<std::string, int>> &tokens) {
 }
 
 /*
+ * ToUpper --> len = len
+ */
+void updateToUpper(StringOP &op) {
+	if (op.name.compare(config.languageMap[TOUPPER]) == 0){
+		op = op.args[0];
+		op.args.clear();
+	}
+}
+
+/*
  * ToLower --> len = len
  */
 void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
@@ -795,17 +1095,40 @@ void updateToLower(std::vector<std::pair<std::string, int>> &tokens) {
 	}
 }
 
+/*
+ * ToLower --> len = len
+ */
+void updateToLower(StringOP &op) {
+	if (op.name.compare(config.languageMap[TOLOWER]) == 0){
+		op = op.args[0];
+		op.args.clear();
+	}
+}
 
 /*
  * Concat --> +
  */
 void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace concat --> +
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		tokens[found] = std::make_pair("+", antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		found = findTokens(tokens, found, config.languageMap[CONCAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * Concat --> +
+ */
+void updateConcat(StringOP &op) {
+	// replace concat --> +
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[CONCAT]) == 0){
+		op.name = "+";
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -813,6 +1136,7 @@ void updateConcat(std::vector<std::pair<std::string, int>> &tokens) {
  */
 void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 	// replace Length --> ""
+	clock_t t = clock();
 	int found = findTokens(tokens, 0, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	while (found != -1) {
 		std::vector<std::pair<std::string, int>> tmp;
@@ -826,6 +1150,20 @@ void updateLength(std::vector<std::pair<std::string, int>> &tokens) {
 		tokens = tmp;
 		found = findTokens(tokens, found, config.languageMap[LENGTH], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * Length --> ""
+ */
+void updateLength(StringOP &op) {
+	// replace Length --> ""
+	clock_t t = clock();
+	if (op.name.compare(config.languageMap[LENGTH]) == 0){
+		op.name = "+";
+		op.args.emplace_back(StringOP("0"));
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*
@@ -840,6 +1178,17 @@ void updateConst(std::vector<std::pair<std::string, int>> &tokens) {
 			tokens[i].first = std::to_string(tokens[i].first.length() - 2);
 			tokens[i].second = antlrcpptest::SMTLIB26Lexer::NUMERAL;
 		}
+	}
+}
+
+/*
+ * "abcdef" --> 6
+ */
+void updateConst(StringOP &op) {
+	/* replace const --> its length */
+	if (op.name[0] == '"' && !isRegexStr(op.name) && !isUnionStr(op.name)){
+		op.name = std::to_string(op.name.length() - 2);
+		op.args.clear();
 	}
 }
 
@@ -859,9 +1208,21 @@ void updateStr2Regex(std::vector<std::pair<std::string, int>> &tokens){
 }
 
 /*
+ * (Str2Reg x)--> x
+ */
+void updateStr2Regex(StringOP &op){
+	if (op.name.compare(config.languageMap[STR2REG]) == 0){
+		op.name = op.args[0].toString();
+		op.args.clear();
+	}
+}
+
+/*
  *
  */
-void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &regexCnt){
+void updateRegexStar(
+		std::vector<std::pair<std::string, int>> &tokens,
+		int &regexCnt){
 	std::string regexPrefix = "__regex_";
 
 	int found = findTokens(tokens, 0, config.languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -878,6 +1239,18 @@ void updateRegexStar(std::vector<std::pair<std::string, int>> &tokens, int &rege
 
 		tokens = replaceTokens(tokens, found, pos - 1, addingTokens);
 		found = findTokens(tokens, pos, config.languageMap[REGEXSTAR], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+	}
+}
+
+/*
+ *
+ */
+void updateRegexStar(
+		StringOP &op,
+		int &regexCnt){
+	std::string regexPrefix = "__regex_";
+	if (op.name.compare(config.languageMap[REGEXSTAR]) == 0){
+		op = StringOP("*", op.args[0], regexPrefix + std::to_string(regexCnt++));
 	}
 }
 
@@ -909,7 +1282,20 @@ void updateRegexPlus(
 /*
  *
  */
-void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
+void updateRegexPlus(
+		StringOP &op,
+		int &regexCnt){
+	std::string regexPrefix = "__regex_";
+	if (op.name.compare(config.languageMap[REGEXPLUS]) == 0){
+		op = StringOP("*", op.args[0], regexPrefix + std::to_string(regexCnt++));
+	}
+}
+
+/*
+ *
+ */
+void updateCharAt(
+		std::vector<std::pair<std::string, int>> &tokens,
 		std::map<StringOP, std::string> rewriterStrMap){
 	// replace CharAt --> select
 	int found = findTokens(tokens, 0, config.languageMap[CHARAT], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
@@ -927,17 +1313,109 @@ void updateCharAt(std::vector<std::pair<std::string, int>> &tokens,
 }
 
 /*
+ *
+ */
+void updateCharAt(
+		StringOP &op,
+		std::map<StringOP, std::string> rewriterStrMap){
+	if (op.name.compare(config.languageMap[CHARAT]) == 0){
+		formatOPByRewriter(op, rewriterStrMap);
+		op = parseOP(rewriterStrMap[op]);
+	}
+}
+
+/*
  * xyz --> len_xyz
  */
 void updateVariables(
 		std::vector<std::pair<std::string, int>> &tokens,
 		std::vector<std::string> strVars) {
+	clock_t t = clock();
 	for (unsigned i = 0; i < tokens.size(); ++i) {
 		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM &&
 				((std::find(strVars.begin(), strVars.end(), tokens[i].first) != strVars.end()) ||
 				tokens[i].first.find("$$_str") == 0)) {
 			tokens[i].first = LENPREFIX + tokens[i].first;
 		}
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ * xyz --> len_xyz
+ */
+void updateVariables(
+		StringOP &op,
+		std::vector<std::string> strVars) {
+	clock_t t = clock();
+	if ((std::find(strVars.begin(), strVars.end(), op.name) != strVars.end()) ||
+			op.name.find("$$_str") == 0){
+		op.name = LENPREFIX + op.name;
+	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+}
+
+/*
+ *
+ */
+void updateOP(
+		StringOP &op,
+		std::vector<std::string> strVars,
+		std::map<StringOP, std::string> rewriterStrMap,
+		std::set<std::string> otherVars,
+		std::vector<std::string> &smtVarDefinition,
+		int &regexCnt){
+	if (op.name.compare("implies") == 0)
+		updateImplies(op, smtVarDefinition);
+	else if (op.name.compare(config.languageMap[REGEXIN]) == 0)
+		updateRegexIn(op, rewriterStrMap, smtVarDefinition);
+	else if (op.name.compare(config.languageMap[CONTAINS]) == 0)
+		updateContain(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[ENDSWITH]) == 0)
+		updateEndsWith(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[STARTSWITH]) == 0)
+		updateStartsWith(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[CHARAT]) == 0)
+		updateCharAt(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[LASTINDEXOF]) == 0)
+		updateLastIndexOf(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[INDEXOF2]) == 0)
+		updateIndexOf2(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[INDEXOF]) == 0)
+		updateIndexOf(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[REPLACE]) == 0)
+		updateReplace(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[REPLACEALL]) == 0)
+		updateReplaceAll(op, rewriterStrMap);
+	else if (op.name.compare(config.languageMap[TOUPPER]) == 0)
+		updateToUpper(op);
+	else if (op.name.compare(config.languageMap[TOLOWER]) == 0)
+		updateToLower(op);
+	else if (op.name.compare(config.languageMap[SUBSTRING]) == 0)
+		updateSubstring(op, rewriterStrMap);
+	else if (op.name.compare("=") == 0)
+		updateEquality(op, rewriterStrMap);
+	else if (op.name.compare("not") == 0){
+		updateNot(op, otherVars, smtVarDefinition);
+	}
+	else if (op.name[0] == '"' && !isRegexStr(op.name) && !isUnionStr(op.name))
+		updateConst(op); /* "abcdef" --> 6 */
+	else if (op.name.compare(config.languageMap[STR2REG]) == 0)
+		updateStr2Regex(op);
+	else if (op.name.compare(config.languageMap[REGEXSTAR]) == 0)
+		updateRegexStar(op, regexCnt);
+	else if (op.name.compare(config.languageMap[REGEXPLUS]) == 0)
+		updateRegexPlus(op, regexCnt);
+	else if (op.name.compare(config.languageMap[CONCAT]) == 0)
+		updateConcat(op); /* Concat --> + */
+	else if (op.name.compare(config.languageMap[LENGTH]) == 0)
+		updateLength(op); /* Length --> "" */
+	else if ((std::find(strVars.begin(), strVars.end(), op.name) != strVars.end()) ||
+			op.name.find("$$_str") == 0)
+		updateVariables(op, strVars); /* xyz --> len_xyz */
+
+	for (unsigned i = 0; i < op.args.size(); ++i){
+		updateOP(op.args[i], strVars, rewriterStrMap, otherVars, smtVarDefinition, regexCnt);
 	}
 }
 
@@ -1535,6 +2013,8 @@ void toLengthLine(
 			}
 			tokens[i].first = "\"" + s + "\"";
 		}
+
+#if 1
 	updateImplies(tokens, smtVarDefinition);
 	updateRegexIn(tokens, rewriterStrMap, smtVarDefinition);
 	updateContain(tokens, rewriterStrMap);
@@ -1563,8 +2043,15 @@ void toLengthLine(
 	updateLength(tokens); /* Length --> "" */
 	updateVariables(tokens, strVars); /* xyz --> len_xyz */
 
-//	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, sumTokens(tokens, 0, tokens.size() - 1).c_str());
 	smtLenConstraints.emplace_back(sumTokens(tokens, 0, tokens.size() - 1) + "\n");
+#else
+	clock_t t = clock();
+	StringOP op(findStringOP(tokens, 2));
+	__debugPrint(logFile, "%d %s parsing time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
+	updateOP(op, strVars, rewriterStrMap, otherVar, smtVarDefinition, regexCnt);
+	__debugPrint(logFile, "%d output: %s\n", __LINE__, op.toString().c_str());
+	smtLenConstraints.emplace_back(op.toString() + "\n");
+#endif
 }
 
 /*

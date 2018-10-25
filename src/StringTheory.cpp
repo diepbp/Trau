@@ -874,6 +874,11 @@ void addContainRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode)
 		else
 			ss = getConstStrValue(t, subStr);
 
+		/* leng = 0 --> !contains */
+		if (ss.length() > 0){
+			addAxiom(t, Z3_mk_implies(ctx, Z3_mk_eq(ctx, mk_length(t, str), mk_int(ctx, 0)), Z3_mk_not(ctx, boolNode)),__LINE__, true);
+		}
+
 		for (std::map<std::pair<Z3_ast, Z3_ast>, Z3_ast>::iterator it = containPairBoolMap.begin(); it != containPairBoolMap.end(); ++it) {
 			if (isDetAutomatonFunc(t, it->first.second) && it->first.first == str && it->second != boolNode) {
 				Z3_ast arg00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, it->first.second), 0);
@@ -8304,10 +8309,6 @@ bool collectLastIndexOfValueInPositiveContext(
 		std::set<std::string> &carryOnConstraints){
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
-	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
-		printZ3Node(t, boolNode);
-		__debugPrint(logFile, "\n");
-	__debugPrint(logFile, "%d size of last indexof: %ld\n", __LINE__, lastIndexOfStrMap.size());
 
 	for (const auto& it : lastIndexOfStrMap) {
 
@@ -8357,7 +8358,7 @@ void collectEqualValueInPositiveContext(
 	Z3_context ctx = Z3_theory_get_context(t);
 
 	std::string astToString = Z3_ast_to_string(ctx, argAst);
-	__debugPrint(logFile, "%d * %s *: %s\n", __LINE__, __FUNCTION__, astToString.c_str());
+//	__debugPrint(logFile, "%d * %s *: %s\n", __LINE__, __FUNCTION__, astToString.c_str());
 
 	if (//astToString.find("$$") == std::string::npos && /* not internal vars */
 			astToString.find("a!") == std::string::npos && /* not internal vars */
@@ -8457,7 +8458,7 @@ bool collectReplaceAllValueInPositiveContext(
 
 	Z3_context ctx = Z3_theory_get_context(t);
 	std::string boolStr = Z3_ast_to_string(ctx, boolNode);
-	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
+//	__debugPrint(logFile, "%d *** %s ***: ", __LINE__, __FUNCTION__);
 	printZ3Node(t, boolNode);
 	__debugPrint(logFile, "\n");
 	for (const auto& it : replaceAllStrMap) {

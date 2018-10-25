@@ -610,7 +610,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 			if (tmp.length() > 0) {
 				cases.emplace_back(tmp);
 //				arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Correct case");
-				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
+//				__debugPrint(logFile, "%d %s\n", __LINE__, tmp.c_str());
 			}
 			else {
 			}
@@ -5797,7 +5797,7 @@ bool underapproxController(
 
 	toNonGRMFile(fileDir, nonGrm, equalitiesMap, constMap);
 	t = clock() - t;
-	__debugPrint(logFile, "%d %s: Prep: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
+	__debugPrint(logFile, "%d %s: Prep time: %.3f s\n", __LINE__, __FUNCTION__, ((float)t)/CLOCKS_PER_SEC);
 
 	/* init regexCnt */
 	regexCnt = 0;

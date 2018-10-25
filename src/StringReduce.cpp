@@ -805,7 +805,8 @@ Z3_ast reduce_replace(Z3_theory t, Z3_ast const args[],
 
 		// -----------------------
 		// false branch
-		Z3_ast elseBranch = Z3_mk_eq(ctx, result, args[0]);
+		Z3_ast ands[2] = {Z3_mk_eq(ctx, result, args[0]), Z3_mk_not(ctx, condAst_x1)};
+		Z3_ast elseBranch = Z3_mk_and(ctx, 2, ands);
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0,
 				mk_and_fromVector(t, thenItems), elseBranch);
@@ -967,12 +968,12 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		} else {
 			if (arg0Str.substr(0, arg1Str.length()) == arg1Str) {
 				startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
-						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+						node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 						TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
 				startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
-						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+						node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 						FALSETR;
 				reduceAst = Z3_mk_false(ctx);
 			}
@@ -984,7 +985,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
 		startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
-				{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 				boolVar;
 		// boolVar = startswith(arg[0], arg[1])
 		// --------------------------------------------
@@ -1052,12 +1053,12 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 			if (arg0Str.substr(arg0Str.length() - arg1Str.length(),
 					arg1Str.length()) == arg1Str) {
 				endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
-						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+						node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 						TRUESTR;
 				reduceAst = Z3_mk_true(ctx);
 			} else {
 				endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
-						{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+						node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 						FALSETR;
 				reduceAst = Z3_mk_false(ctx);
 			}
@@ -1068,7 +1069,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		Z3_ast ts1 = mk_internal_string_var(t);
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
 		endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
-				{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 				boolVar;
 		// boolVar = endswith(arg[0], arg[1])
 		// --------------------------------------------
@@ -1143,7 +1144,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			return mk_int(ctx, -1);
 		}
 	} else {
-		/* check if the contraint is handled */
+		/* check if the constrain is handled */
 		std::vector<Z3_ast> tmpInternalVars;
 		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1])) != indexOf_toAstMap.end())
 			tmpInternalVars = indexOf_toAstMap[std::make_pair(args[0], args[1])];
@@ -1190,7 +1191,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, thenItems[thenItems.size() - 1]));
 
-		StringOP tmpOp = StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])});
+		StringOP tmpOp = StringOP(config.languageMap[INDEXOF], node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]));
 		indexOfStrMap[tmpOp] =
 				std::make_pair(boolVar,
 						std::make_pair(LENPREFIX + std::string(node_to_string(t, x1)),
@@ -1209,8 +1210,7 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 					x4 = tmpInternalVars[3];
 				}
 			}
-			Z3_ast adds[3] = { mk_length(t, x1), mk_length(t, args[1]), mk_int(
-					ctx, -1) };
+			Z3_ast adds[3] = {mk_length(t, x1), mk_length(t, args[1]), mk_int(ctx, -1)};
 			Z3_ast tmpLen = Z3_mk_add(ctx, 3, adds);
 
 			thenItems.push_back(
@@ -1253,7 +1253,8 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 
 		// -----------------------
 		// false branch
-		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
+		Z3_ast ands[2] = {Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)), Z3_mk_not(ctx, condAst_x1)};
+		Z3_ast elseBranch = Z3_mk_and(ctx, 2, ands);
 
 		breakdownAssert = Z3_mk_ite(ctx, condAst_arg0,
 				mk_and_fromVector(t, thenItems), elseBranch);
@@ -1338,15 +1339,15 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		std::string arg02Str = Z3_ast_to_string(ctx, args[2]);
 		if (arg02Str.compare("0") == 0){
 			indexOf_toAstMap[std::make_pair(args[0], args[1])] = indexOf_toAstMap[std::make_pair(x1, args[1])];
-			StringOP tmpOp = StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, x1),
-					node_to_stringOP(t, args[1])});
+			StringOP tmpOp = StringOP(config.languageMap[INDEXOF], node_to_stringOP(t, x1),
+					node_to_stringOP(t, args[1]));
 			indexOf2StrMap[StringOP(config.languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 					node_to_stringOP(t, args[1]),
 					node_to_stringOP(t, args[2])})] = indexOfStrMap[tmpOp];
 			__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
 																				indexOfStrMap[tmpOp].second.second.c_str());
-			indexOfStrMap.erase(StringOP(config.languageMap[INDEXOF], {node_to_stringOP(t, x1),
-							node_to_stringOP(t, args[1])}));
+			indexOfStrMap.erase(StringOP(config.languageMap[INDEXOF], node_to_stringOP(t, x1),
+							node_to_stringOP(t, args[1])));
 			std::vector<Z3_ast> tmpVector = {Z3_mk_eq(ctx, args[0], x1), breakdownAssert};
 			breakdownAssert = mk_and_fromVector(t, tmpVector);
 			return tmpAst;
@@ -1436,12 +1437,12 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 		if (arg0Str.rfind(arg1Str) != std::string::npos) {
 			int index = arg0Str.rfind(arg1Str);
 			lastIndexOfStrMap[StringOP(config.languageMap[LASTINDEXOF],
-					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 					std::make_pair("", std::make_pair(std::to_string(index), std::to_string(index)));
 			return mk_int(ctx, index);
 		} else {
 			lastIndexOfStrMap[StringOP(config.languageMap[LASTINDEXOF],
-					{node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1])})] =
+					node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}

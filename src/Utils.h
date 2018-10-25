@@ -247,6 +247,21 @@ struct StringOP{
 		args.emplace_back(arg03);
 	};
 
+	StringOP(std::string _name, std::string arg01): name(_name){
+		args.emplace_back(StringOP(arg01));
+	};
+
+	StringOP(std::string _name, std::string arg01, std::string arg02): name(_name){
+		args.emplace_back(StringOP(arg01));
+		args.emplace_back(StringOP(arg02));
+	};
+
+	StringOP(std::string _name, std::string arg01, std::string arg02, std::string arg03): name(_name){
+		args.emplace_back(StringOP(arg01));
+		args.emplace_back(StringOP(arg02));
+		args.emplace_back(StringOP(arg03));
+	};
+
 	StringOP(std::string _name, std::vector<StringOP> _args): name(_name), args(_args) {
 
 	}
@@ -276,13 +291,9 @@ struct StringOP{
 		if (args.size() != a.args.size())
 			return false;
 
-		for (unsigned i = 0 ; i < args.size(); ++i)
+		for (int i = (int)args.size() - 1 ; i >= 0 ; --i)
 			if (args[i].toString().compare(a.args[i].toString()) != 0)
 				return false;
-
-//		if (arg03.length() > 0)
-//			if (arg03.compare(a.arg03) != 0)
-//				return false;
 
 		return true;
 	}
@@ -295,13 +306,9 @@ struct StringOP{
 		if (args.size() != a.args.size())
 			return false;
 
-		for (unsigned i = 0 ; i < args.size(); ++i)
+		for (int i = (int)args.size() - 1 ; i >= 0 ; --i)
 			if (args[i].toString().compare(a.args[i].toString()) != 0)
 				return false;
-
-//		if (arg03.length() > 0)
-//			if (arg03.compare(a.arg03) != 0)
-//				return false;
 
 		return true;
 	}
@@ -311,7 +318,8 @@ struct StringOP{
 	 */
 	StringOP& operator=(StringOP const& copy){
 		name = copy.name;
-		args = copy.args;
+		args.clear();
+		args.insert(args.begin(), copy.args.begin(), copy.args.end());
 		return *this;
 	}
 
