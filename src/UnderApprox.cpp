@@ -581,7 +581,6 @@ std::vector<std::string> collectAllPossibleArrangements(
 	/* general cases */
 	handleCase_n_n(lhs_elements, rhs_elements);
 #endif
-	t = clock() - t;
 
 	std::vector<std::string> cases;
 #if 0
@@ -1796,8 +1795,6 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 			assert(constMap.find(x.substr(1, x.length() - 2)) != constMap.end());
 		}
 	}
-
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, lenX.c_str());
 
 	return lenX;
 }
@@ -3313,7 +3310,7 @@ void convertEqualities(int p, int q){
 //void *convertEqualities(void *tid){
 void convertEqualities(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-
+	clock_t t = clock();
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
 			global_smtStatements.push_back({createLengthConstraintForAssignment(eqVar.first, eq)});
@@ -3428,6 +3425,7 @@ void convertEqualities(){
 		}
 
 	}
+	__debugPrint(logFile, "%d %s time: %.3f s\n", __LINE__, __FUNCTION__, ((float)(clock() - t))/CLOCKS_PER_SEC);
 }
 
 /*

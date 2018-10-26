@@ -2225,7 +2225,6 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 				mk_ternary_app(ctx, td->SubString, convertedArgs[0],
 						convertedArgs[1], convertedArgs[2]));
 
-		__debugPrint(logFile, ">> %d %s\n", __LINE__, node_to_string(t, *result).c_str());
 		if (breakDownAst != NULL) {
 			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
 			rewrittenConstraints.emplace_back(breakDownAst);

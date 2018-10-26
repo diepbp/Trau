@@ -2291,7 +2291,6 @@ public:
 		bool isConstA = a.second < 0;
 		bool isConstB = b.second < 0;
 
-		__debugPrint(logFile, "%d %s: %s = %s\n", __LINE__, __FUNCTION__, a.first.c_str(), b.first.c_str());
 		std::string nameA = "";
 		std::string nameB = "";
 		if (optimizing){
@@ -2704,7 +2703,6 @@ public:
 					return RIGHT_SUM;
 				}
 				else if (j + 1 < (int)rhs_elements.size()){
-					__debugPrint(logFile, "%d %d vs %d\n", __LINE__, left_arr[i + 1], right_arr[j + 1]);
 					if (left_arr[i + 1] == j + 1 &&
 							right_arr[j + 1] == i + 1){
 						return RIGHT_EQUAL;
@@ -2847,7 +2845,6 @@ public:
 			std::vector<std::pair<std::string, int>> lhs_elements,
 			std::vector<std::pair<std::string, int>> rhs_elements,
 			std::map<std::string, int> connectedVariables){
-		__debugPrint(logFile, "%d %s \n", __LINE__, __FUNCTION__);
 		std::vector<std::string> result_element;
 
 		bool checkLeft[lhs_elements.size()];

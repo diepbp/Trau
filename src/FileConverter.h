@@ -94,7 +94,7 @@ void formatOPByRewriter(StringOP &op,
  */
 StringOP findOpArg(
 		std::vector<std::pair<std::string, int>> tokens,
-				int &startPos);
+		int &startPos);
 
 /*
  *
@@ -103,6 +103,21 @@ StringOP findStringOP(
 		std::vector<std::pair<std::string, int>> tokens,
 		int startPos);
 
+/*
+ *
+ */
+StringOP findStringOP(
+		std::vector<std::pair<std::string, int>> tokens,
+		int startPos,
+		int &endPos);
+
+/*
+ *
+ */
+StringOP findStringOP_nonRecursive(
+		std::vector<std::pair<std::string, int>> tokens,
+		int startPos,
+		int &endPos);
 /*
  *
  */

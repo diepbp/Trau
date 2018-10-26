@@ -194,7 +194,6 @@ int findCorrespondRightParentheses(int leftParentheses, std::string str){
  *
  */
 int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<std::string, int>> tokens){
-	assert (tokens[leftParentheses].second == antlrcpptest::SMTLIB26Lexer::OpenPar);
 	int cnt = 1;
 	for (unsigned i = leftParentheses + 1 ; i < tokens.size(); ++i)
 		if (tokens[i].second == antlrcpptest::SMTLIB26Lexer::OpenPar)
