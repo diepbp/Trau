@@ -679,6 +679,11 @@ void initConnectingSize(bool prep);
 /*
  *
  */
+std::vector<std::string> removeConnectedVarsIfNotInEqualities();
+
+/*
+ *
+ */
 void initExcludeCharSet(std::map<StringOP, std::string> rewriterStrMap);
 
 /*
