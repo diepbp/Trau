@@ -623,4 +623,10 @@ void verifyResult(
 		std::string fileName,
 		std::string verifyingSolver,
 		bool result);
+
+/*
+ * Given a flat,
+ * generate its array name
+ */
+std::string generateVarLength(std::string a);
 #endif /* UTILS_H_ */

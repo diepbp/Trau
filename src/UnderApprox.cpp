@@ -628,20 +628,6 @@ std::string generateVarArray(std::string a){
 }
 
 /*
- * Given a flat,
- * generate its array name
- */
-std::string generateVarLength(std::string a){
-	if (a.length() > 0 && a[0] == '"') {
-		if (isConstStr(a))
-			return std::to_string(a.length() - 2);
-		else
-			return "(- 1)";
-	}
-	return LENPREFIX + a;
-}
-
-/*
  *
  */
 int findVariableSize(std::string v){
@@ -824,28 +810,30 @@ std::string create_constraints_EndsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		assert(connectedVariables.find(str00) != connectedVariables.end());
-		assert(connectedVariables.find(str01) != connectedVariables.end());
+		if (connectedVariables.find(str00) != connectedVariables.end() &&
+				connectedVariables.find(str01) != connectedVariables.end()) {
+			std::string arr00 = generateVarArray(str00);
+			std::string arr01 = generateVarArray(str01);
+			std::string len00 = generateVarLength(str00);
+			std::string len01 = generateVarLength(str01);
 
-		std::string arr00 = generateVarArray(str00);
-		std::string arr01 = generateVarArray(str01);
-		std::string len00 = generateVarLength(str00);
-		std::string len01 = generateVarLength(str01);
-
-		int bound = connectedVariables[str01];
-		for (int i = 0; i < bound; ++i){
-			andConstraints.emplace_back(createEqualConstraint(std::to_string(i), generateVarLength(str01)));
-			for (int j = i; j > 0; --j){
-				andConstraints.emplace_back(
-						createEqualConstraint(createSelectConstraint(arr00, "(- " + len00 + " " + std::to_string(j) + ")"),
-											  createSelectConstraint(arr01, std::to_string(i - j))));
+			int bound = connectedVariables[str01];
+			for (int i = 0; i < bound; ++i){
+				andConstraints.emplace_back(createEqualConstraint(std::to_string(i), generateVarLength(str01)));
+				for (int j = i; j > 0; --j){
+					andConstraints.emplace_back(
+							createEqualConstraint(createSelectConstraint(arr00, "(- " + len00 + " " + std::to_string(j) + ")"),
+									createSelectConstraint(arr01, std::to_string(i - j))));
+				}
+				orConstraints.emplace_back(andConstraint(andConstraints));
+				andConstraints.clear();
 			}
-			orConstraints.emplace_back(andConstraint(andConstraints));
-			andConstraints.clear();
+			andConstraints.emplace_back(createLessEqualConstraint(len01, len00));
+			andConstraints.emplace_back(orConstraint(orConstraints));
+			ret = andConstraint(andConstraints);
 		}
-		andConstraints.emplace_back(createLessEqualConstraint(len01, len00));
-		andConstraints.emplace_back(orConstraint(orConstraints));
-		ret = andConstraint(andConstraints);
+		else
+			ret = TRUESTR;
 	}
 
 	if (boolValue.compare(FALSETR) == 0)
@@ -1066,6 +1054,44 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 		std::vector<std::string> andConstraints;
 		andConstraints.emplace_back(createLessConstraint("0", generateVarLength(value)));
 
+		if (connectedVariables.find(var) != connectedVariables.end() &&
+				connectedVariables.find(value) != connectedVariables.end()){
+
+			std::string arrVar = generateVarArray(var);
+			std::string arrValue = generateVarArray(value);
+			std::string lenValue = generateVarLength(value);
+			if (equalitiesMap.find(var) != equalitiesMap.end()) {
+				for (int j = 0; j < connectedVariables[var]; ++j){
+					std::vector<std::string> andConstraints01;
+					andConstraints01.emplace_back(createLessEqualConstraint(createPlusOperator(generateVarLength(value), std::to_string(j)), generateVarLength(var)));
+					for (int i = 0; i < connectedVariables[value]; ++i){
+						std::vector<string> tmp;
+						tmp.emplace_back(createEqualConstraint(
+								createSelectConstraint(arrValue, std::to_string(i)),
+								createSelectConstraint(arrVar, std::to_string(i + j))));
+						tmp.emplace_back(createLessConstraint(lenValue, std::to_string(i + 1)));
+						andConstraints01.emplace_back(orConstraint(tmp));
+					}
+					andConstraints.emplace_back(createNotOperator(andConstraint(andConstraints01)));
+				}
+			}
+			else {
+				std::vector<std::string> orConstraints01;
+				for (int j = 0; j < connectedVariables[value]; ++j){
+					std::vector<std::string> andConstraints01;
+					for (int i = 0; i < connectedVariables[var]; ++i){
+						andConstraints01.emplace_back(
+								createNotOperator(
+										createEqualConstraint(
+												createSelectConstraint(arrVar, std::to_string(i)),
+												createSelectConstraint(arrValue, std::to_string(j)))));
+					}
+					orConstraints01.emplace_back(andConstraint(andConstraints01));
+				}
+				andConstraints.emplace_back(orConstraint(orConstraints01));
+			}
+		}
+		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
 		return andConstraint(andConstraints);
 	}
 }
@@ -1360,8 +1386,8 @@ void handle_NOTContains(
 				}
 				else {
 					__debugPrint(logFile, "%d *** %s ***: 2-vars contain %s -- %s\n", __LINE__, __FUNCTION__, element.first.args[0].toString().c_str(), element.first.args[1].toString().c_str());
-//					global_smtStatements.push_back({create_constraints_NOTContain(element.first.args[0].name, element.first.args[1].name)});
-//					done[std::make_pair(element.first.args[0].name, element.first.args[1].name)] = true;
+					global_smtStatements.push_back({create_constraints_NOTContain(element.first.args[0].name, element.first.args[1].name)});
+					done[std::make_pair(element.first.args[0].name, element.first.args[1].name)] = true;
 				}
 			}
 		}
@@ -3875,7 +3901,7 @@ void forwardPropagate(
 					__debugPrint(logFile, "%d", value[i]);
 			__debugPrint(logFile, "\n");
 			strValue[getVarName(var.first)] = value;
-//			forwardPropagate(var.first, len, strValue, completion);
+			forwardPropagate(var.first, len, strValue, completion);
 
 			/* update peers */
 			if (var.second.size() > 1) {
@@ -4952,13 +4978,13 @@ bool Z3_run(
 							tokens = parse_string_language(buffer, " (),.=");
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
-								if (elseValue > 'z' || elseValue < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end())
+								if (elseValue > 'z' || elseValue < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end()) //
 									elseValue = defaultChar;
 								break;
 							}
 							else {
 								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
-								if (tmpNum > 'z' || tmpNum < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end())
+								if (tmpNum > 'z' || tmpNum < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end()) //
 									tmpNum = defaultChar;
 								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}

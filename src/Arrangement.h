@@ -1669,7 +1669,7 @@ public:
 	/*
 	 * (a|b|c)*_xxx --> range <a, c>
 	 */
-	std::pair<int, int> collect_char_range(std::string str){
+	std::pair<int, int> collectCharRange(std::string str){
 		std::vector<std::string> components = collectAlternativeComponents(parse_regex_content(str));
 		std::vector<int> tmpList;
 		for (const auto& s : components)
@@ -1682,7 +1682,7 @@ public:
 			return std::make_pair(-1, -1);
 
 		std::sort(tmpList.begin(), tmpList.end());
-		for (unsigned int i = 0; i < tmpList.size() - 1; ++i)
+		for (unsigned i = 0; i < tmpList.size() - 1; ++i)
 			if (tmpList[i] + 1 != tmpList[i + 1]) {
 				return std::make_pair(-1, -1);
 			}
@@ -1779,7 +1779,7 @@ public:
 #else
 		std::vector<std::string> andConstraints;
 		andConstraints.emplace_back(createLessEqualConstraint(regex_length, std::to_string(connectingSize)));
-		std::pair<int, int> charRange = collect_char_range(elementNames[regexPos].first);
+		std::pair<int, int> charRange = collectCharRange(elementNames[regexPos].first);
 		if (charRange.first != -1) {
 			if (!unrollMode) {
 				for (int i = 0; i < pMax; ++i) {

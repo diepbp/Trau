@@ -291,6 +291,11 @@ typedef struct _AutomatonStringData
  Z3_ast registerEndsWith(Z3_theory t, Z3_ast str, Z3_ast subStr);
 
  /*
+  *
+  */
+ std::vector<Z3_ast> registerCharAt(Z3_theory t, Z3_ast str, Z3_ast at);
+
+ /*
   * contains A, "abc" --> contains A, "a"
   */
  void addContainRelation(Z3_theory t, Z3_ast str, Z3_ast subStr, Z3_ast boolNode);
@@ -1017,8 +1022,9 @@ typedef struct _AutomatonStringData
  bool collectEndsWithValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
- 		std::string boolValue,
- 		std::map<StringOP, std::string> &rewriterStrMap);
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
  /*
   *
@@ -1033,8 +1039,9 @@ typedef struct _AutomatonStringData
  bool collectStartsWithValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
- 		std::string boolValue,
- 		std::map<StringOP, std::string> &rewriterStrMap);
+ 		bool boolValue,
+ 		std::map<StringOP, std::string> &rewriterStrMap,
+		std::set<std::string> &carryOnConstraints);
 
  /*
   *

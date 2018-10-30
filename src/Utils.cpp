@@ -212,8 +212,8 @@ int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<st
 std::vector<std::string> collectAlternativeComponents(std::string str){
 	std::vector<std::string> result;
 	int counter = 0;
-	unsigned int startPos = 0;
-	for (unsigned int j = 0; j < str.length(); ++j) {
+	unsigned startPos = 0;
+	for (unsigned j = 0; j < str.length(); ++j) {
 		if (str[j] == ')'){
 			counter--;
 		}
@@ -913,4 +913,18 @@ void verifyResult(
 	default:
 		break;
 	}
+}
+
+/*
+ * Given a flat,
+ * generate its array name
+ */
+std::string generateVarLength(std::string a){
+	if (a.length() > 0 && a[0] == '"') {
+		if (isConstStr(a))
+			return std::to_string(a.length() - 2);
+		else
+			return "(- 1)";
+	}
+	return LENPREFIX + a;
 }
