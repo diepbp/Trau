@@ -482,7 +482,7 @@ std::string getStringFromRegexOP(StringOP op){
 			std::string tmp01 = "";
 			for (unsigned j = 0; j < op.args.size(); ++j)
 				tmp01 = tmp01 + "(" + getStringFromRegexOP(op.args[j]) + ")|";
-			tmp = tmp = tmp + tmp01.substr(0, tmp.length() - 1);
+			tmp = tmp = tmp + tmp01.substr(0, tmp.length() - 2);
 		}
 	}
 	else if (op.name.compare(config.languageMap[REGEXCONCAT]) == 0) {
@@ -629,7 +629,7 @@ void updateRegexIn(
 				tokens = replaceTokens(tokens, found, pos, addingTokens); /* found at ( */
 			}
 		}
-		else if (isUnionStr(tmp)){
+		else if (!isRegexStr(tmp) && isUnionStr(tmp)){
 			std::vector<std::string> unionStrs = collectAlternativeComponents(tmp);
 			__debugPrint(logFile, "%d %s: %ld components\n", __LINE__, tmp.c_str(), unionStrs.size());
 			std::set<int> unionLens;
