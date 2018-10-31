@@ -1816,6 +1816,9 @@ std::string createLengthConstraintForAssignment(std::string x, std::vector<std::
 				cnt ++;
 			}
 		}
+		else {
+			lenX = lenX + " 0";
+		}
 	}
 
 	/* (+ sum(len_y)) */
@@ -3646,6 +3649,8 @@ void syncConst(
 	for (const auto& var : equalitiesMap){
 		/* init value */
 		if (var.first[0] == '"') {
+			if (var.first.length() <= 2)
+				continue;
 			if (!isRegexStr(var.first) && !isUnionStr(var.first)){
 				std::vector<int> tmp;
 				for (int i = 0; i < getVarLength(var.first, len); ++i)
@@ -3681,6 +3686,8 @@ void syncConst(
 			for (const auto& s : eq){
 				int lengthS = getVarLength(s, len);
 				if (s[0] == '"') {
+					if (s.length() <= 2)
+						continue;
 					if (!isRegexStr(s) && !isUnionStr(s)) {
 						/* assign value directly */
 						std::vector<int> tmpValue;
@@ -3736,7 +3743,6 @@ void syncConst(
 
 	for (const auto& s : propagatingList) {
 		__debugPrint(logFile, "%d propagating %s\n", __LINE__, s.c_str())
-//		if (s[0] == '"')
 			forwardPropagate(s, len, strValue, completion);
 		if (s[0] == '"' || equalitiesMap[s].size() > 1)
 			backwardPropagarate(s, len, strValue, completion);
@@ -3767,12 +3773,13 @@ int getVarLength(
 		std::map<std::string, int> len){
 	if (newlyUpdate[0] == '"'){
 		std::string tmp = newlyUpdate.substr(1, newlyUpdate.length() - 2);
+		if (tmp.length() == 0)
+			return 0;
 		tmp = constMap[tmp];
 		assert(len.find(tmp) != len.end());
 		return len[tmp];
 	}
 	else {
-//		__debugPrint(logFile, "%d %s : %s\n", __LINE__, __FUNCTION__, newlyUpdate.c_str());
 		assert(len.find(newlyUpdate) != len.end());
 		return len[newlyUpdate];
 	}
@@ -3901,7 +3908,7 @@ void forwardPropagate(
 					__debugPrint(logFile, "%d", value[i]);
 			__debugPrint(logFile, "\n");
 			strValue[getVarName(var.first)] = value;
-			forwardPropagate(var.first, len, strValue, completion);
+//			forwardPropagate(var.first, len, strValue, completion);
 
 			/* update peers */
 			if (var.second.size() > 1) {
@@ -5293,7 +5300,6 @@ void createAppearanceMap(){
  * */
 void updateFullEqualMap(){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
-	printEqualMap(fullEqualitiesMap);
 	std::map<std::string, std::vector<std::vector<std::string>>> tmpMap;
 	for (const auto& eqVar : fullEqualitiesMap)
 		for (const auto& eq : eqVar.second) {
@@ -5323,7 +5329,12 @@ void updateFullEqualMap(){
 						willAdd = false;
 						break;
 					}
-					else tmp01.emplace_back(tmp[i]);
+					else
+						tmp01.emplace_back(tmp[i]);
+
+				if (tmp01.size() == 0 && (tmp.size() > 0 && tmp[0][0] == '"' && tmp[0].length() == 2))
+					tmp01.emplace_back(tmp[0]);
+
 				if (tmp01.size() == 0)
 					willAdd = false;
 

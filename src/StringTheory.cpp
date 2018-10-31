@@ -5814,11 +5814,11 @@ void collectCombinationOverVariables(Z3_theory t,
 	std::map<Z3_ast, bool> boolMapValues;
 	for (const auto& b : boolValues){
 		std::string tmp = Z3_ast_to_string(ctx, b);
-		if (isVariable(t, b))
+		if (isNonStringVariable(t, b))
 			boolMapValues[b] = true;
 		else {
 			Z3_ast v =  Z3_get_app_arg(ctx, Z3_to_app(ctx, b), 0);
-			assert(isVariable(t, v));
+			assert(isNonStringVariable(t, v));
 			boolMapValues[v] = false;
 		}
 	}
@@ -8550,17 +8550,23 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 
 		for (int i = 0; i < argCount; i++) {
 			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
-			if (isVariable(t, argAst)) {
+			if (isNonStringVariable(t, argAst)) {
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				if (astToString.find("$$_bool") != std::string::npos)
 					ret.emplace_back(argAst);
+				else {
+					ret.emplace_back(argAst);
+				}
 			}
 			else if (Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 1){
 				Z3_ast argAst_01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-				if (isVariable(t, argAst_01)) {
+				if (isNonStringVariable(t, argAst_01)) {
 					std::string astToString = Z3_ast_to_string(ctx, argAst_01);
 					if (astToString.find("$$_bool") != std::string::npos)
 						ret.emplace_back(argAst);
+					else {
+						ret.emplace_back(argAst);
+					}
 				}
 			}
 		}
@@ -8592,7 +8598,7 @@ void collectBoolValueInPositiveContext(
 		else
 			boolVars.emplace_back(Z3_mk_not(ctx, boolNode));
 	}
-	else if (isVariable(t, boolNode)) {
+	else if (isNonStringVariable(t, boolNode)) {
 		if (value)
 			boolVars.emplace_back(boolNode);
 		else
@@ -8659,8 +8665,8 @@ void collectDataInPositiveContext(
 			bool found01 = false, found02 = false, found03 = false, found04 = false, found05 = false, found06 = false, found07 = false, found08 = false, found09 = false;
 			if (type == my_Z3_Var) {
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
+				collectBoolValueInPositiveContext(t, argAst, boolVars, true);
 				if (astToString.find("$$_bool") != std::string::npos) {
-					collectBoolValueInPositiveContext(t, argAst, boolVars, true);
 					found01 = collectContainValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
 					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found09 = collectIndexOf2ValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
@@ -8671,14 +8677,11 @@ void collectDataInPositiveContext(
 					found07 = collectReplaceAllValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found08 = collectCharAtInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 				}
-				else {
-					collectBoolValueInPositiveContext(t, argAst, boolVars, true);
-				}
 			}
 
 			else if (type == my_Z3_Func && Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 1) {
 				Z3_ast boolNode = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
-				if (isVariable(t, boolNode)){
+				if (isNonStringVariable(t, boolNode)){
 					collectBoolValueInPositiveContext(t, boolNode, boolVars, false);
 					std::string astToString = Z3_ast_to_string(ctx, boolNode);
 					if (astToString.find("$$_bool") != std::string::npos) {
@@ -8698,6 +8701,11 @@ void collectDataInPositiveContext(
 			if (!(found01 || found02 || found03 || found04 || found05 || found06 || found07 || found08 || found09)){
 				collectEqualValueInPositiveContext(t, argAst, rewriterStrMap);
 			}
+		}
+		for (const auto& boolVar: boolVars) {
+			std::string tmp = node_to_string(t, boolVar);
+			if (tmp.find("$$_bool") == std::string::npos)
+				carryOnConstraints.emplace(tmp);
 		}
 	}
 	else
@@ -9234,6 +9242,18 @@ void apply_unit_axiom_for_parents_of(Z3_theory t, Z3_ast n) {
 		n_prime = Z3_theory_get_eqc_next(t, n_prime);
 	}
 	while (n_prime != n);
+}
+
+/*
+ *
+ */
+bool isNonStringVariable(Z3_theory t, Z3_ast n) {
+	T_TheoryType nodeType = getNodeType(t, n);
+
+	if (nodeType == my_Z3_Var)
+		return true;
+	else
+		return false;
 }
 
 /*

@@ -1158,6 +1158,8 @@ typedef struct _AutomatonStringData
   */
  void apply_unit_axiom_for_parents_of(Z3_theory t, Z3_ast n);
 
+ bool isNonStringVariable(Z3_theory t, Z3_ast n);
+
  bool isVariable(Z3_theory t, Z3_ast n);
 
  bool isStrVariable(Z3_theory t, Z3_ast n);
