@@ -1004,12 +1004,11 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
-		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
-		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts0, args[1])};
-		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
-
+//		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
+//		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts0, args[1])};
+//		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
 		ands.push_back(
-				Z3_mk_ite(ctx, Z3_mk_or(ctx, 2, trueBranch),
+				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts0, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx))));
 		if (config.printingConstraints) {
@@ -1093,11 +1092,11 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands01[ands01.size() - 1]));
 
-		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
-		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts1, args[1])};
-		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
+//		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
+//		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts1, args[1])};
+//		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
 		ands01.push_back(
-				Z3_mk_ite(ctx, Z3_mk_or(ctx, 2, trueBranch),
+				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts1, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_false(ctx))));
 		if (config.printingConstraints) {
@@ -1711,7 +1710,7 @@ Z3_ast reduce_subStr(Z3_theory t, Z3_ast const args[],
 										generateVarLength(node_to_string(t, args[0]))),
 									createEqualConstraint(node_to_string(t, args[2]), generateVarLength(node_to_string(t, ts1))),
 									createEqualConstraint(
-										createPlusOperator(node_to_string(t, args[1]), generateVarLength(node_to_string(t, ts0))),
+										createPlusOperator(node_to_string(t, args[1]), generateVarLength(node_to_string(t, ts1))),
 										generateVarLength(node_to_string(t, args[0])))),
 								createEqualConstraint(generateVarLength(node_to_string(t, ts1)), "0"));
 		/* convert to string, prepare for replaceStrMap */

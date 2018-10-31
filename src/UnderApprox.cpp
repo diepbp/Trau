@@ -4978,13 +4978,13 @@ bool Z3_run(
 							tokens = parse_string_language(buffer, " (),.=");
 							if (tokens[0].compare("ite") != 0) {
 								elseValue = std::atoi(tokens[0].c_str());
-								if (elseValue > 'z' || elseValue < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end()) //
+								if (elseValue > 'z' || elseValue < '!') // || excludeCharSet.find((char)elseValue) == excludeCharSet.end()
 									elseValue = defaultChar;
 								break;
 							}
 							else {
 								int tmpNum = std::atoi(tokens[tokens.size() - 1].c_str());
-								if (tmpNum > 'z' || tmpNum < '!' || excludeCharSet.find((char)elseValue) == excludeCharSet.end()) //
+								if (tmpNum > 'z' || tmpNum < '!') // || excludeCharSet.find((char)elseValue) == excludeCharSet.end()
 									tmpNum = defaultChar;
 								valueMap[std::atoi(tokens[2].c_str())] = tmpNum;
 							}

@@ -8368,10 +8368,12 @@ bool collectEndsWithValueInPositiveContext(
 		if (boolStr.compare(s.second) == 0){
 			if (boolValue){
 				rewriterStrMap[s.first] = TRUESTR;
-				std::string tmp = "(or (and " +
-										createEqualConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
-										createEqualConstraint("0", generateVarLength(s.first.args[1].toString())) + ") " +
-										createLessConstraint("0", generateVarLength(s.first.args[1].toString())) + ")";
+//				std::string tmp = "(or (and " +
+//										createEqualConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
+//										createEqualConstraint("0", generateVarLength(s.first.args[1].toString())) + ") (and " +
+//										createLessConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
+//										createLessConstraint("0", generateVarLength(s.first.args[1].toString())) + "))";
+				std::string tmp = createLessEqualConstraint(generateVarLength(s.first.args[1].toString()), generateVarLength(s.first.args[0].toString()));
 				carryOnConstraints.emplace(tmp);
 			}
 			else {
@@ -8450,10 +8452,12 @@ bool collectStartsWithValueInPositiveContext(
 		if (boolStr.compare(s.second) == 0){
 			if (boolValue){
 				rewriterStrMap[s.first] = TRUESTR;
-				std::string tmp = "(or (and " +
-						createEqualConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
-						createEqualConstraint("0", generateVarLength(s.first.args[1].toString())) + ") " +
-						createLessConstraint("0", generateVarLength(s.first.args[1].toString())) + ")";
+//				std::string tmp = "(or (and " +
+//						createEqualConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
+//						createEqualConstraint("0", generateVarLength(s.first.args[1].toString())) + ") (and " +
+//						createLessConstraint("0", generateVarLength(s.first.args[0].toString())) +
+//						createLessConstraint("0", generateVarLength(s.first.args[1].toString())) + "))";
+				std::string tmp = createLessEqualConstraint(generateVarLength(s.first.args[1].toString()), generateVarLength(s.first.args[0].toString()));
 				carryOnConstraints.emplace(tmp);
 			}
 			else {
