@@ -366,8 +366,8 @@ public:
 				}
 				else
 					values.emplace(elementNames[currentSplit.size()].first);
-				__debugPrint(logFile, "%d %s -> values size = %ld\n", __LINE__, elementNames[currentSplit.size()].first.c_str(),
-						values.size());
+//				__debugPrint(logFile, "%d %s -> values size = %ld\n", __LINE__, elementNames[currentSplit.size()].first.c_str(),
+//						values.size());
 				for (const auto& value : values) {
 					std::string constValue = str.substr(pos, value.length());
 					if (constValue.compare(value) == 0) {
@@ -1474,9 +1474,10 @@ public:
 									arrayRhs.c_str());
 							__debugPrint(logFile, "%d %s\n", __LINE__, strTmp);
 #endif
+							int localSplit = connectedVariables[elementNames[i].first];
 							std::vector<std::string> possibleCases; /* sublen = 0 || sublen = 1 || .. */
 							if (!unrollMode) {
-								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+								for (int j = 0; j <= std::min(localSplit, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 									subpossibleCases.emplace_back(createEqualConstraint(subLen, std::to_string(j)));
 									for (int k = 0; k < j; ++k){
@@ -1491,7 +1492,7 @@ public:
 							}
 							/* clone to optimise length of generated string */
 							else if (lhs_zero && rhs_zero) {
-								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+								for (int j = 0; j <= std::min(localSplit, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 									subpossibleCases.emplace_back(createEqualConstraint(subLen, std::to_string(j)));
 									for (int k = 0; k < j; ++k){
@@ -1503,7 +1504,7 @@ public:
 								}
 							}
 							else if (lhs_zero && !rhs_zero){
-								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+								for (int j = 0; j <= std::min(localSplit, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 									subpossibleCases.emplace_back(createEqualConstraint(subLen, std::to_string(j)));
 									for (int k = 0; k < j; ++k){
@@ -1515,7 +1516,7 @@ public:
 								}
 							}
 							else if (!lhs_zero && rhs_zero){
-								for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+								for (int j = 0; j <= std::min(localSplit, (int)content.length()); j++){
 									std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 									subpossibleCases.emplace_back(createEqualConstraint(subLen, std::to_string(j)));
 									for (int k = 0; k < j; ++k){
@@ -1526,7 +1527,7 @@ public:
 									possibleCases.emplace_back(andConstraint(subpossibleCases));
 								}
 							}
-							else for (int j = 0; j <= std::min(LOCALSPLITMAX, (int)content.length()); j++){
+							else for (int j = 0; j <= std::min(localSplit, (int)content.length()); j++){
 								std::vector<std::string> subpossibleCases; /*at_0 = x && at_1 == y && ..*/
 								subpossibleCases.emplace_back(createEqualConstraint(subLen, std::to_string(j)));
 								for (int k = 0; k < j; ++k){
@@ -1536,6 +1537,7 @@ public:
 								}
 								possibleCases.emplace_back(andConstraint(subpossibleCases));
 							}
+							possibleCases.push_back(createLessConstraint(std::to_string(std::min(localSplit, (int)content.length())), subLen));
 							resultParts.emplace_back(orConstraint(possibleCases));
 						}
 					}
