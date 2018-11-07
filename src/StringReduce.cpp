@@ -898,7 +898,11 @@ Z3_ast reduce_contains(Z3_theory t, Z3_ast const args[],
 			reduceAst = Z3_mk_true(ctx);
 		else
 			reduceAst = Z3_mk_false(ctx);
-	} else {
+	}
+	else if (args[0] == args[1]){
+		reduceAst = Z3_mk_true(ctx);
+	}
+	else {
 		std::vector<Z3_ast> tmpInternalVars;
 		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1]))
 				!= indexOf_toAstMap.end())
@@ -981,7 +985,10 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
-	} else {
+	}
+	else if (args[0] == args[1])
+			reduceAst = Z3_mk_true(ctx);
+	else {
 		Z3_ast resBoolVar = registerStartsWith(t, args[0], args[1]);
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
@@ -989,7 +996,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
 		startsWithStrMap[StringOP(config.languageMap[STARTSWITH],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
-				boolVar;
+						boolVar;
 		// boolVar = startswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> ands;
@@ -1004,9 +1011,6 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands[ands.size() - 1]));
 
-//		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
-//		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts0, args[1])};
-//		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
 		ands.push_back(
 				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts0, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
@@ -1038,6 +1042,7 @@ Z3_ast reduce_startswith(Z3_theory t, Z3_ast const args[],
 		}
 		reduceAst = resBoolVar;
 	}
+
 	return reduceAst;
 }
 
@@ -1069,14 +1074,17 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 				reduceAst = Z3_mk_false(ctx);
 			}
 		}
-	} else {
+	}
+	else if (args[0] == args[1])
+			reduceAst = Z3_mk_true(ctx);
+	else {
 		Z3_ast resBoolVar = registerEndsWith(t, args[0], args[1]);
 		Z3_ast ts0 = mk_internal_string_var(t);
 		Z3_ast ts1 = mk_internal_string_var(t);
 		std::string boolVar = Z3_ast_to_string(ctx, resBoolVar);
 		endsWithStrMap[StringOP(config.languageMap[ENDSWITH],
 				node_to_stringOP(t, args[0]), node_to_stringOP(t, args[1]))] =
-				boolVar;
+						boolVar;
 		// boolVar = endswith(arg[0], arg[1])
 		// --------------------------------------------
 		std::vector<Z3_ast> ands01;
@@ -1092,9 +1100,6 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, ands01[ands01.size() - 1]));
 
-//		std::vector<Z3_ast> ands02 = {Z3_mk_eq(ctx, mk_length(t, args[0]), mk_int(ctx, 0)), Z3_mk_eq(ctx, mk_length(t, args[1]), mk_int(ctx, 0))};
-//		std::vector<Z3_ast> ands03 = {Z3_mk_gt(ctx, mk_length(t, args[1]), mk_int(ctx, 0)), Z3_mk_eq(ctx, ts1, args[1])};
-//		Z3_ast trueBranch[2] = {mk_and_fromVector(t, ands03), mk_and_fromVector(t, ands02)};
 		ands01.push_back(
 				Z3_mk_ite(ctx, Z3_mk_eq(ctx, ts1, args[1]),
 						Z3_mk_eq(ctx, resBoolVar, Z3_mk_true(ctx)),
@@ -1125,6 +1130,7 @@ Z3_ast reduce_endswith(Z3_theory t, Z3_ast const args[],
 		}
 		reduceAst = resBoolVar;
 	}
+
 	return reduceAst;
 }
 
@@ -1152,7 +1158,11 @@ Z3_ast reduce_indexof(Z3_theory t, Z3_ast const args[],
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
-	} else {
+	}
+	else if (args[0] == args[1]){
+		return mk_int(ctx, 0);
+	}
+	else {
 		/* check if the constrain is handled */
 		std::vector<Z3_ast> tmpInternalVars;
 		if (indexOf_toAstMap.find(std::make_pair(args[0], args[1])) != indexOf_toAstMap.end())
@@ -1309,7 +1319,15 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
-	} else {
+	}
+	else if (args[0] == args[1] && node_to_string(t, args[2])[0] >= '0' && node_to_string(t, args[2])[0] <= '9' ) {
+		std::string tmp =  node_to_string(t, args[2]);
+		if (tmp.compare("0") == 0)
+			return mk_int(ctx, 0);
+		else
+			return mk_int(ctx, -1);
+	}
+	else {
 		/* check if the contraint is handled */
 		std::vector<Z3_ast> tmpInternalVars;
 		if (indexOf2_toAstMap.find(std::make_pair(std::make_pair(args[0], args[1]), args[2])) != indexOf2_toAstMap.end())
@@ -1335,8 +1353,8 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		// condAst = |arg0| >= arg2
 		Z3_ast condAst_arg0 = Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]);
 		if (config.printingConstraints)
-							constraintSet.arithmeticConstraints.emplace(
-									node_to_string(t, condAst_arg0));
+			constraintSet.arithmeticConstraints.emplace(
+					node_to_string(t, condAst_arg0));
 
 		// -----------------------
 		bool update;
@@ -1354,9 +1372,9 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 					node_to_stringOP(t, args[1]),
 					node_to_stringOP(t, args[2])})] = indexOfStrMap[tmpOp];
 			__debugPrint(logFile, "%d %s : = %s %s",  __LINE__, __FUNCTION__, indexOfStrMap[tmpOp].second.first.c_str(),
-																				indexOfStrMap[tmpOp].second.second.c_str());
+					indexOfStrMap[tmpOp].second.second.c_str());
 			indexOfStrMap.erase(StringOP(config.languageMap[INDEXOF], node_to_stringOP(t, x1),
-							node_to_stringOP(t, args[1])));
+					node_to_stringOP(t, args[1])));
 			std::vector<Z3_ast> tmpVector = {Z3_mk_eq(ctx, args[0], x1), breakdownAssert};
 			breakdownAssert = mk_and_fromVector(t, tmpVector);
 			return tmpAst;
@@ -1391,7 +1409,7 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 
 		std::vector<Z3_ast> tmpVector02 = {incorrectCase, Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)) };
 		thenItems.push_back(
-						Z3_mk_ite(ctx, cond,
+				Z3_mk_ite(ctx, cond,
 						mk_and_fromVector(t, tmpVector01),
 						mk_and_fromVector(t, tmpVector02)));
 
@@ -1408,19 +1426,19 @@ Z3_ast reduce_indexof2(Z3_theory t, Z3_ast const args[],
 		indexOf2StrMap[StringOP(config.languageMap[INDEXOF2], {node_to_stringOP(t, args[0]),
 				node_to_stringOP(t, args[1]),
 				node_to_stringOP(t, args[2])})] = std::make_pair(boolVar,
-													std::make_pair(node_to_string(t, addNode),
-																	node_to_string(t, indexAst)));
+						std::make_pair(node_to_string(t, addNode),
+								node_to_string(t, indexAst)));
 
 		// -----------------------
 		// false branch
 		Z3_ast elseBranch = Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1));
 		std::vector<Z3_ast> tmpVector03 = {cond, condAst_arg0};
 		std::vector<Z3_ast> tmpVector04 = {Z3_mk_eq(ctx, boolAst, mk_and_fromVector(t, tmpVector03)),
-											Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch)};
+				Z3_mk_ite(ctx, condAst_arg0, mk_and_fromVector(t, thenItems), elseBranch)};
 		breakdownAssert = mk_and_fromVector(t, tmpVector04);
 		carryOn[boolAst] = Z3_mk_ite(ctx, Z3_mk_gt(ctx, mk_length(t, args[0]), args[2]),
-										  Z3_mk_eq(ctx, mk_length(t, x0), args[2]),
-										  Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
+				Z3_mk_eq(ctx, mk_length(t, x0), args[2]),
+				Z3_mk_eq(ctx, indexAst, mk_int(ctx, -1)));
 		if (config.printingConstraints) {
 			constraintSet.arithmeticConstraints.emplace(
 					node_to_string(t, elseBranch));
@@ -1455,7 +1473,11 @@ Z3_ast reduce_lastindexof(Z3_theory t, Z3_ast const args[],
 					std::make_pair("", std::make_pair("-1", "-1"));
 			return mk_int(ctx, -1);
 		}
-	} else {
+	}
+	else if (args[0] == args[1]) {
+		return mk_int(ctx, 0);
+	}
+	else {
 		std::vector<Z3_ast> tmpInternalVars;
 		if (lastIndexOf_toAstMap.find(std::make_pair(args[0], args[1]))
 				!= lastIndexOf_toAstMap.end())
@@ -2436,8 +2458,8 @@ int Th_reduce_app(Z3_theory t, Z3_func_decl d, unsigned n, Z3_ast const args[],
 			__debugPrint(logFile, ">> %d Add %s\n", __LINE__, node_to_string(t, breakDownAst).c_str());
 			rewrittenConstraints.emplace_back(breakDownAst);
 		}
-
-		Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
+		if (rewrittenConstraints.size() > 0)
+			Z3_assert_cnstr(ctx, mk_and_fromVector(t, rewrittenConstraints));
 		delete[] convertedArgs;
 		return Z3_TRUE;
 	}

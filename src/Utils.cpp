@@ -893,7 +893,7 @@ void verifyResult(
 		if (verifyingSolver.compare("cvc4") == 0){
 			sat = CVC4_reviews(fileName);
 			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
-				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+				printf("\nCross-checked by %s: successful.\n", verifyingSolver.c_str());
 			}
 			else
 				assert(false);
@@ -901,7 +901,7 @@ void verifyResult(
 		else if (verifyingSolver.compare("z3str3") == 0){
 			sat = Z3_reviews(fileName);
 			if ((sat == Trau_SAT && result) || (sat == Trau_UNSAT && !result) || sat == Trau_Unknown) {
-				printf("\nDouble-checked by %s: successful.\n", verifyingSolver.c_str());
+				printf("\nCross-checked by %s: successful.\n", verifyingSolver.c_str());
 			}
 			else {
 				assert(false);

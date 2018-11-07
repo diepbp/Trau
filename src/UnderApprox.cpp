@@ -722,33 +722,42 @@ std::string create_constraints_StartsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		for (int j = 0; j <= std::min(connectingSize, 50); ++j) {
-			/* length b = j*/
-			andConstraints.emplace_back("(= " + generateVarLength(str01) + " " + std::to_string(j) + ")");
-			for (int i = 0; i < j; ++i) {
-				andConstraints.emplace_back("(= (select " +
-						generateVarArray(str00) + " " +
-						std::to_string(i) + ") " +
-						"(select " +
-						generateVarArray(str01) + " " +
-						std::to_string(i) + "))");
-			}
-			orConstraints.emplace_back(andConstraint(andConstraints));
-			andConstraints.clear();
-		}
-		ret = orConstraint(orConstraints);
-		andConstraints.clear();
-		andConstraints.emplace_back("(>= " + generateVarLength(str00) + " " + generateVarLength(str01) + ")");
-		andConstraints.emplace_back(ret);
+		if (str00.compare(str01) == 0)
+			ret = TRUESTR;
+		else if (connectedVariables.find(str00) != connectedVariables.end() &&
+				connectedVariables.find(str01) != connectedVariables.end()) {
+			std::string arr00 = generateVarArray(str00);
+			std::string arr01 = generateVarArray(str01);
+			std::string len00 = generateVarLength(str00);
+			std::string len01 = generateVarLength(str01);
 
-		ret = andConstraint(andConstraints);
+			int bound = connectedVariables[str01];
+			for (int i = 0; i < bound; ++i){
+				andConstraints.emplace_back(createEqualConstraint(std::to_string(i), generateVarLength(str01)));
+				for (int j = 0; j < i; ++j){
+					andConstraints.emplace_back(
+							createEqualConstraint(createSelectConstraint(arr00, std::to_string(j)),
+									createSelectConstraint(arr01, std::to_string(j))));
+				}
+				orConstraints.emplace_back(andConstraint(andConstraints));
+				andConstraints.clear();
+			}
+			andConstraints.emplace_back(createLessEqualConstraint(len01, len00));
+			andConstraints.emplace_back(orConstraint(orConstraints));
+			ret = andConstraint(andConstraints);
+		}
+		else {
+//			ret = TRUESTR;
+		}
 	}
-	if (!isConst_00)
-		ret = "(and \t(not " + ret + ")" +
-					"\t(< " + generateVarLength(str00) + " " + std::to_string(std::min(connectingSize, 50)) + "))";
-	else
-		ret = "(and \t(not " + ret + "))";
-	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
+
+	if (boolValue.compare(FALSETR) == 0) {
+		if (ret.length() > 0)
+			ret = "(not " + ret + ")";
+		else {
+			ret = TRUESTR;
+		}
+	}
 	return ret;
 }
 
@@ -808,7 +817,9 @@ std::string create_constraints_EndsWith(
 		ret = andConstraint(andConstraints);
 	}
 	else {
-		if (connectedVariables.find(str00) != connectedVariables.end() &&
+		if (str00.compare(str01) == 0)
+			ret = TRUESTR;
+		else if (connectedVariables.find(str00) != connectedVariables.end() &&
 				connectedVariables.find(str01) != connectedVariables.end()) {
 			std::string arr00 = generateVarArray(str00);
 			std::string arr01 = generateVarArray(str01);
@@ -830,12 +841,18 @@ std::string create_constraints_EndsWith(
 			andConstraints.emplace_back(orConstraint(orConstraints));
 			ret = andConstraint(andConstraints);
 		}
-		else
-			ret = TRUESTR;
+		else {
+//			ret = TRUESTR;
+		}
 	}
 
-	if (boolValue.compare(FALSETR) == 0)
-		ret = "(not " + ret + ")";
+	if (boolValue.compare(FALSETR) == 0) {
+		if (ret.length() > 0)
+			ret = "(not " + ret + ")";
+		else {
+			ret = TRUESTR;
+		}
+	}
 	__debugPrint(logFile, "%d >> %s\n", __LINE__, ret.c_str());
 	return ret;
 }
@@ -1048,6 +1065,9 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 
 		return andConstraint(andConstraints);
 	}
+	else if (var.compare(value) == 0) {
+		return FALSETR;
+	}
 	else {
 		std::vector<std::string> andConstraints;
 		andConstraints.emplace_back(createLessConstraint("0", generateVarLength(value)));
@@ -1092,6 +1112,8 @@ std::string create_constraints_NOTContain(std::string var, std::string value){
 		__debugPrint(logFile, "%d %s: %s\n", __LINE__, __FUNCTION__, andConstraint(andConstraints).c_str());
 		return andConstraint(andConstraints);
 	}
+
+
 }
 
 /*
@@ -5534,6 +5556,7 @@ std::vector<std::string> removeConnectedVarsIfNotInEqualities(){
 	std::vector<std::string> removedConnectedVars;
 	for (const auto& var : connectedVariables) {
 		bool found = false;
+
 		for (const auto& var02 : equalitiesMap){
 			if (var.first.compare(var02.first) == 0){
 				found = true;
