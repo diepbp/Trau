@@ -200,13 +200,13 @@ public:
 		if (isUnionStr(lhs)){
 			std::vector<std::string> componentsLhs = collectAlternativeComponents(lhs);
 			std::vector<int> ret;
+			__debugPrint(logFile, "%d >> componentsRhs size = %ld , lhs size = %ld, ret size = %ld\n", __LINE__, componentsRhs.size(), componentsLhs.size(), ret.size());
 			for (const auto& r : componentsRhs)
 				for (const auto& l: componentsLhs)
-					for (unsigned i = 0; i <= l.length() - r.length(); ++i) {
+					for (int i = 0; i < (int)l.length() - (int)r.length(); ++i) {
 						if (l.substr(i, r.length()).compare(r) == 0)
 							ret.emplace_back(i);
 					}
-			__debugPrint(logFile, "%d >> componentsRhs size = %ld , lhs size = %ld, ret size = %ld\n", __LINE__, componentsRhs.size(), componentsLhs.size(), ret.size());
 			return ret;
 		}
 
@@ -510,8 +510,6 @@ public:
 		else if (currentSplit.size() >= elementNames.size()) {
 			return;
 		}
-
-		assert(!isUnionStr(elementNames[currentSplit.size()].first) || isRegexStr(elementNames[currentSplit.size()].first));
 
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {

@@ -265,6 +265,8 @@ std::string orConstraint(std::vector<std::string> possibleCases){
 	else if (possibleCases.size() == 1){
 		result = *possibleCases.begin();
 	}
+	else
+		result = FALSETR;
 	return result;
 }
 

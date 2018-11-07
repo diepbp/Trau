@@ -4427,7 +4427,13 @@ void extendVariableToFindAllPossibleEqualities(
 								levelMap);
 					}
 					else {
-						allEqPossibilities[arg0].push_back({arg0});
+						if (isConcatFunc(t, arg0)){
+							std::vector<Z3_ast> tmp;
+							collectNodesInConcat(t, arg0, tmp);
+							allEqPossibilities[arg0].push_back(tmp);
+						}
+						else
+							allEqPossibilities[arg0].push_back({arg0});
 					}
 
 				}
@@ -4437,7 +4443,13 @@ void extendVariableToFindAllPossibleEqualities(
 					levelMap[arg0] = 0;
 					if (non_root.find(Z3_ast_to_string(ctx, arg0)) != non_root.end())
 						non_root.erase(Z3_ast_to_string(ctx, arg0));
-					arg0_eq = {{arg0}};
+					if (isConcatFunc(t, arg0)){
+						std::vector<Z3_ast> tmp;
+						collectNodesInConcat(t, arg0, tmp);
+						arg1_eq.push_back(tmp);
+					}
+					else
+						arg1_eq = {{arg0}};
 				}
 			}
 			else { /* automaton */
@@ -4458,7 +4470,13 @@ void extendVariableToFindAllPossibleEqualities(
 								levelMap);
 					}
 					else {
-						allEqPossibilities[arg1].push_back({arg1});
+						if (isConcatFunc(t, arg1)){
+							std::vector<Z3_ast> tmp;
+							collectNodesInConcat(t, arg1, tmp);
+							allEqPossibilities[arg1].push_back(tmp);
+						}
+						else
+							allEqPossibilities[arg1].push_back({arg1});
 					}
 				}
 				if (allEqPossibilities[arg1].size() < 200)
@@ -4467,7 +4485,13 @@ void extendVariableToFindAllPossibleEqualities(
 					levelMap[arg1] = 0;
 					if (non_root.find(Z3_ast_to_string(ctx, arg1)) != non_root.end())
 						non_root.erase(Z3_ast_to_string(ctx, arg1));
-					arg1_eq = {{arg1}};
+					if (isConcatFunc(t, arg1)){
+						std::vector<Z3_ast> tmp;
+						collectNodesInConcat(t, arg1, tmp);
+						arg1_eq.push_back(tmp);
+					}
+					else
+						arg1_eq = {{arg1}};
 				}
 			}
 			else { /* automaton */
@@ -4511,7 +4535,6 @@ void extendVariableToFindAllPossibleEqualities(
 			else
 				__debugPrint(logFile, "%d skipped\n", __LINE__);
 		}
-
 	fullEqPossibilities[node] = result;
 	std::vector<std::vector<Z3_ast>> refined_result;
 	std::vector<std::vector<Z3_ast>> notAdded;
@@ -5918,8 +5941,11 @@ void collectCombinationOverVariables(Z3_theory t,
 		else if (isConcatFunc(t, eqVar.first))
 			continue;
 
-		for (const auto& _eq : eqVar.second)
-			fullCombinationOverVariables[varName].emplace_back(vectorAst2vectorString(t, _eq));
+		for (const auto& _eq : eqVar.second) {
+			std::vector<std::string> tmp = vectorAst2vectorString(t, _eq);
+			if (tmp.size() > 0)
+				fullCombinationOverVariables[varName].emplace_back(tmp);
+		}
 
 		/* update eq for its friends */
 		std::vector<Z3_ast> eqNode = collect_eqc(t, eqVar.first);

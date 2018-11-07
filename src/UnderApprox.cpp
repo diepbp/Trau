@@ -689,8 +689,6 @@ std::string create_constraints_StartsWith(
 	if (str01[0] == '"')
 		isConst_01 = true;
 
-	assert(isConst_00 || isConst_01);
-
 	std::vector<std::string> orConstraints;
 	std::vector<std::string> andConstraints;
 
@@ -731,9 +729,9 @@ std::string create_constraints_StartsWith(
 				andConstraints.emplace_back("(= (select " +
 						generateVarArray(str00) + " " +
 						std::to_string(i) + ") " +
-						"(= (select " +
+						"(select " +
 						generateVarArray(str01) + " " +
-						std::to_string(i) + ") " + ")");
+						std::to_string(i) + "))");
 			}
 			orConstraints.emplace_back(andConstraint(andConstraints));
 			andConstraints.clear();
@@ -5009,12 +5007,65 @@ bool Z3_run(
 						str_results[array_map[name]] = valueStr;
 					}
 					else if (name.find(ARRPREFIX) != std::string::npos){
+						__debugPrint(logFile, "%d %s\n", __LINE__, buffer);
 						/* array map */
 						if (fgets(buffer, 9900, in) == NULL)
 							assert(false);
 						tokens = parse_string_language(buffer, " (),.\n\t\r");
-						assert(tokens.size() == 3);
-						array_map[tokens[2]] = name;
+						if (tokens.size() == 3) {
+							// z3 < 4.8
+							array_map[tokens[2]] = name;
+						}
+						else {
+							// z3 >= 4.8
+							std::string valueStr = "";
+							std::map<int, int> valueMap;
+							int elseValue = 'a';
+							int localMax = 0;
+
+							while (true){
+								if (tokens[0].compare("lambda") == 0 && tokens.size() > 3){
+									// (lambda ((x!1 Int)) 77))
+									if (tokens.size() == 4)
+										valueMap[0] = std::atoi(tokens[tokens.size() - 1].c_str());
+									else {
+										for (unsigned i = 0; i < tokens.size(); ++i){
+											if (tokens[i].compare("ite") == 0){
+												valueMap[std::atoi(tokens[i + 3].c_str())] = valueMap[std::atoi(tokens[i + 4].c_str())];
+												localMax = std::atoi(tokens[i + 3].c_str());
+												if (tokens[i + 5][0] >= '0' && tokens[i + 5][0] <= '9')
+													elseValue = std::atoi(tokens[i + 5].c_str());
+											}
+										}
+									}
+									break;
+								}
+								else {
+									for (unsigned i = 0; i < tokens.size(); ++i){
+										if (tokens[i].compare("ite") == 0){
+											valueMap[std::atoi(tokens[i + 3].c_str())] = valueMap[std::atoi(tokens[i + 4].c_str())];
+											localMax = std::atoi(tokens[i + 3].c_str());
+										}
+										if (tokens[i + 5][0] >= '0' && tokens[i + 5][0] <= '9')
+											elseValue = std::atoi(tokens[i + 5].c_str());
+									}
+									if (tokens[0].compare("ite") == 0)
+										break;
+								}
+
+								if (fgets(buffer, 9900, in) == NULL)
+									assert(false);
+								tokens = parse_string_language(buffer, " (),.=");
+							}
+
+							for (unsigned j = 0; j <= localMax; ++ j) {
+								if (valueMap.find(j) != valueMap.end())
+									valueStr = valueStr + (char)valueMap[j];
+								else
+									valueStr = valueStr + (char)elseValue;
+							}
+							str_results[name] = valueStr;
+						}
 					}
 					else {
 						/* len value */
