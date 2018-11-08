@@ -2248,9 +2248,15 @@ std::string encodeSpecialChars(std::string constStr){
 							strTmp += ENCODEMAP[constStr[i + 1]];
 							i++;
 						}
+						else if (constStr[i + 1] >= '0' && constStr[i + 1] <= '9'){
+							strTmp += constStr[i + 1];
+							i++;
+						}
 						else {
-							strTmp += constStr[i];
-							strTmp += constStr[i];
+//							strTmp += constStr[i];
+//							strTmp += constStr[i];
+							strTmp += constStr[i + 1];
+							i++;
 						}
 					}
 					else {
