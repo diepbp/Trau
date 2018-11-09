@@ -38,17 +38,6 @@ std::string getPossibleValue(std::string s){
 	return NOTFOUND;
 }
 
-bool isEqualVector(std::vector<std::string> a, std::vector<std::string> b) {
-
-	if (a.size() != b.size())
-		return false;
-	for (unsigned int i = 0; i < a.size(); ++i)
-		if (a[i].compare(b[i]) != 0)
-			return false;
-
-	return true;
-}
-
 std::vector<std::string> find_eq_class(std::string var){
 	std::vector<std::string> ret;
 	for (const auto& v : equalitiesMap) {
@@ -59,7 +48,7 @@ std::vector<std::string> find_eq_class(std::string var){
 				bool found = false;
 				for (const auto& l01 :equalitiesMap[var]){
 					/* compare two vectors */
-					if (isEqualVector(l00, l01)) {
+					if (equalVector(l00, l01)) {
 						found = true;
 						break;
 					}
@@ -2748,6 +2737,9 @@ void refineEqualMap(std::map<StringOP, std::string> rewriterStrMap){
 				(tmp_vector.size() == 1 && connectedVariables.find(varEq.first) != connectedVariables.end())){
 			if (backup.size() > 0) {
 				tmp_vector.emplace_back(backup);
+
+				// if this var also in rewriter map
+
 			}
 		}
 

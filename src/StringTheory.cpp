@@ -6078,7 +6078,9 @@ void reformatInternalVarFunctionMap(){
 /*
  * change each internal variable by corresponding function
  */
-void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
+void reformatRewriterMap(
+		std::map<StringOP, std::string> &rewriterMap,
+		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables){
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 
 	reformatInternalVarFunctionMap();
@@ -6091,7 +6093,6 @@ void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap){
 		}
 		tmp = StringOP(op.first.name, args);
 		ret[tmp] = op.second;
-
 	}
 
 	for (const auto& op : internalVarFunctionMap)
@@ -6177,7 +6178,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 		std::vector<Z3_ast> boolVars;
 
 		collectDataInPositiveContext(t, boolVars, rewriterStrMap, carryOnConstraints);
-		reformatRewriterMap(rewriterStrMap);
+		reformatRewriterMap(rewriterStrMap, combinationOverVariables);
 
 		for (const auto& elem : internalVarFunctionMap){
 			__debugPrint(logFile, "%d internalVarFunctionMap \t%s: %s\n", __LINE__, elem.first.toString().c_str(), elem.second.toString().c_str());
@@ -8260,11 +8261,21 @@ bool collectCharAtInPositiveContext(
 bool collectContainValueInPositiveContext(
 		Z3_theory t,
 		Z3_ast boolNode,
-		std::string value,
+		bool value,
 		std::map<StringOP, std::string> &rewriterStrMap){
 	for (const auto& it : containPairBoolMap) {
 		if (it.second == boolNode) {
-			rewriterStrMap[StringOP(config.languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = value;
+			if (value) {
+				rewriterStrMap[StringOP(config.languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = TRUESTR;
+			}
+			else {
+				rewriterStrMap[StringOP(config.languageMap[CONTAINS], node_to_stringOP(t, it.first.first), node_to_stringOP(t, it.first.second))] = FALSETR;
+				std::vector<Z3_ast> eqNodes = collect_eqc(t, it.first.first);
+				for (const auto& n : eqNodes)
+					if (isStrVariable(t, n)){
+						rewriterStrMap[StringOP(config.languageMap[CONTAINS], node_to_stringOP(t, n), node_to_stringOP(t, it.first.second))] = FALSETR;
+					}
+			}
 			return true;
 		}
 	}
@@ -8394,11 +8405,6 @@ bool collectEndsWithValueInPositiveContext(
 		if (boolStr.compare(s.second) == 0){
 			if (boolValue){
 				rewriterStrMap[s.first] = TRUESTR;
-//				std::string tmp = "(or (and " +
-//										createEqualConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
-//										createEqualConstraint("0", generateVarLength(s.first.args[1].toString())) + ") (and " +
-//										createLessConstraint("0", generateVarLength(s.first.args[0].toString())) + " " +
-//										createLessConstraint("0", generateVarLength(s.first.args[1].toString())) + "))";
 				std::string tmp = createLessEqualConstraint(generateVarLength(s.first.args[1].toString()), generateVarLength(s.first.args[0].toString()));
 				carryOnConstraints.emplace(tmp);
 			}
@@ -8548,12 +8554,13 @@ bool collectReplaceAllValueInPositiveContext(
 				if (carryOn.find(boolNode) != carryOn.end())
 					carryOnConstraints.emplace(Z3_ast_to_string(ctx, carryOn[boolNode]));
 			}
-			else
+			else {
 				for (const auto& opx : internalVarFunctionMap)
 					if (opx.second == it.first) {
 						rewriterStrMap[it.first] = opx.first.toString();
 						break;
 					}
+			}
 			return true;
 		}
 	}
@@ -8693,7 +8700,7 @@ void collectDataInPositiveContext(
 				std::string astToString = Z3_ast_to_string(ctx, argAst);
 				collectBoolValueInPositiveContext(t, argAst, boolVars, true);
 				if (astToString.find("$$_bool") != std::string::npos) {
-					found01 = collectContainValueInPositiveContext(t, argAst, TRUESTR, rewriterStrMap);
+					found01 = collectContainValueInPositiveContext(t, argAst, true, rewriterStrMap);
 					found02 = collectIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found09 = collectIndexOf2ValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
 					found03 = collectLastIndexOfValueInPositiveContext(t, argAst, true, rewriterStrMap, carryOnConstraints);
@@ -8711,7 +8718,7 @@ void collectDataInPositiveContext(
 					collectBoolValueInPositiveContext(t, boolNode, boolVars, false);
 					std::string astToString = Z3_ast_to_string(ctx, boolNode);
 					if (astToString.find("$$_bool") != std::string::npos) {
-						found01 = collectContainValueInPositiveContext(t, boolNode, FALSETR, rewriterStrMap);
+						found01 = collectContainValueInPositiveContext(t, boolNode, false, rewriterStrMap);
 						found02 = collectIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found09 = collectIndexOf2ValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);
 						found03 = collectLastIndexOfValueInPositiveContext(t, boolNode, false, rewriterStrMap, carryOnConstraints);

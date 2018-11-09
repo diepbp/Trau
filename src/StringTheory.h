@@ -789,7 +789,9 @@ typedef struct _AutomatonStringData
  /*
   * change each internal variable by corresponding function
   */
- void reformatRewriterMap(std::map<StringOP, std::string> &rewriterMap);
+ void reformatRewriterMap(
+ 		std::map<StringOP, std::string> &rewriterMap,
+ 		std::map<std::string, std::vector<std::vector<std::string>>> combinationOverVariables);
 
  /**
    \brief Callback: invoked before Z3 starts building a model.
@@ -975,7 +977,7 @@ typedef struct _AutomatonStringData
  bool collectContainValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
- 		std::string value,
+ 		bool value,
  		std::map<StringOP, std::string> &rewriterStrMap);
 
  /*
