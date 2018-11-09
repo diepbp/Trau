@@ -18,7 +18,10 @@ static int intVar = 0;
 extern Config config;
 
 template< typename T >
-std::string int_to_hex( T i );
+std::string int2hex( T i );
+
+template< typename T >
+int hex2int(T s);
 
 /*
  * For all string variables

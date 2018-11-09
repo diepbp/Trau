@@ -8,11 +8,19 @@
 #include "FileConverter.h"
 
 template< typename T >
-std::string int_to_hex( T i )
+std::string int2hex( T i )
 {
 	std::stringstream stream;
 	stream << "_x" << std::setfill('0') << std::setw(2) << std::hex << i;
 	return stream.str();
+}
+
+template< typename T >
+int hex2int(T s){
+	unsigned int x;
+	std::stringstream ss;
+	ss << std::hex << s;
+	ss >> x;
 }
 
 /*
@@ -1822,6 +1830,25 @@ std::set<char> getUsedChars(std::string str){
 						result.emplace('\t');
 					else if (str[i + 1] == 'v')
 						result.emplace('\v');
+					else if (str[i + 1] == 'x') {
+						char c01 = str[i + 2];
+						char c02 = str[i + 3];
+						std::string s = "" + c01;
+						s += c02;
+						i += 3;
+						int value = hex2int(s);
+						result.emplace((char)value);
+					}
+					else if (str[i + 1] == '"' ||
+							str[i + 1] == '\'' ||
+							str[i + 1] == '\\') {
+						result.emplace(str[i + 1]);
+						i++;
+					}
+					else if (str[i + 1] >= '0' && str[i + 1] <= '9'){
+						result.emplace(str[i + 1]);
+						i++;
+					}
 					else
 						result.emplace(str[i + 1]);
 					i++;
@@ -2241,6 +2268,15 @@ std::string encodeSpecialChars(std::string constStr){
 						} else if (constStr[i + 1] == 'v') {
 							strTmp += ENCODEMAP['\v'];
 							i++;
+						}
+						else if (constStr[i + 1] == 'x') {
+							char c01 = constStr[i + 2];
+							char c02 = constStr[i + 3];
+							std::string s = "" + c01;
+							s += c02;
+							i += 3;
+							int value = hex2int(s);
+							strTmp += (char)value;
 						}
 						else if (constStr[i + 1] == '"' ||
 								constStr[i + 1] == '\'' ||
@@ -2734,7 +2770,7 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 std::string encodeHex(std::string constStr){
 	std::string newStr = "__cOnStStR_";
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
-		newStr = newStr + int_to_hex((int)constStr[i]);
+		newStr = newStr + int2hex((int)constStr[i]);
 		if (constStr[i] == '\\' && constStr[i + 1] == '\\')
 			++i;
 	}
