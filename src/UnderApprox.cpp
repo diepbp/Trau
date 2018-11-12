@@ -3655,7 +3655,6 @@ void syncConst(
 		std::map<std::string, int> len,
 		std::map<std::string, std::vector<int>> &strValue,
 		bool &completion){
-	printEqualMap(equalitiesMap);
 	__debugPrint(logFile, "%d *** %s ***\n", __LINE__, __FUNCTION__);
 	std::set<std::string> propagatingList;
 	for (const auto& var : equalitiesMap){
@@ -3693,7 +3692,6 @@ void syncConst(
 		bool update = false;
 		std::vector<int> tmp = getVarValue(var.first, len, strValue);
 		for (const auto& eq : var.second){
-			__debugPrint(logFile, "%d varName = %s\n", __LINE__, var.first.c_str());
 			int pos = 0;
 			for (const auto& s : eq){
 				int lengthS = getVarLength(s, len);
@@ -3755,7 +3753,7 @@ void syncConst(
 
 	for (const auto& s : propagatingList) {
 		__debugPrint(logFile, "%d propagating %s\n", __LINE__, s.c_str())
-			forwardPropagate(s, len, strValue, completion);
+		forwardPropagate(s, len, strValue, completion);
 		if (s[0] == '"' || equalitiesMap[s].size() > 1)
 			backwardPropagarate(s, len, strValue, completion);
 		if (completion == false) {
@@ -3920,7 +3918,7 @@ void forwardPropagate(
 					__debugPrint(logFile, "%d", value[i]);
 			__debugPrint(logFile, "\n");
 			strValue[getVarName(var.first)] = value;
-//			forwardPropagate(var.first, len, strValue, completion);
+			forwardPropagate(var.first, len, strValue, completion);
 
 			/* update peers */
 			if (var.second.size() > 1) {
@@ -4080,7 +4078,7 @@ void backwardPropagarate(
 		__debugPrint(logFile, "%d step 0: size = %ld\n", __LINE__, eq.size());
 		for (const auto& var : eq) {
 			int lengthVar = getVarLength(var, len);
-			__debugPrint(logFile, "%d step 0.1: var = %s (len = %d @ %d) \n", __LINE__, var.c_str(), lengthVar, lengthVar + pos);
+//			__debugPrint(logFile, "%d step 0.1: var = %s (len = %d @ %d) \n", __LINE__, var.c_str(), lengthVar, lengthVar + pos);
 			if (var[0] == '"') {
 				if (isRegexStr(var) || isUnionStr(var)) {
 					bool update = false;
