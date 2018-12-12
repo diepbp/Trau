@@ -2110,55 +2110,57 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 		return;
 	}
 
-	if (!checkContainConsistency(t, nn1, nn2)){
-		return;
-	}
-
-//	addPrefixRelation(t, nn1, nn2);
-//	addPosfixRelation(t, nn1, nn2);
-//	implyEqualityForConcatMember(t, nn1, nn2);
-
-	addEndsWithConsistency(t, nn1, nn2);
-	addReplaceConsistency(t, nn1, nn2);
-
-	if (consideredVars.size() > 0) {
-		std::vector<std::pair<Z3_ast, int>> langVal;
-
-		// collect language values index
-		for (unsigned int i = 0; i < consideredVars.size(); ++i) {
-			int index = collectSingleLanguage_index(t, consideredVars[i]);
-			if (index <= 0)
-				return;
-			langVal.emplace_back(std::make_pair(consideredVars[i], index));
+	if (!isNonDetAutomatonFunc(t, nn1) && !isNonDetAutomatonFunc(t, nn2)){
+		if (!checkContainConsistency(t, nn1, nn2)){
+			return;
 		}
 
-		// have enough indices
-		if ((isVariable(t, nn1) && isAutomatonFunc(t, nn2)) || (isVariable(t, nn2) && isAutomatonFunc(t, nn1))) {
-			Automaton ton01 = getPreCalculatedValue(t, nn1);
-			if (ton01.isConst()) {
-				__debugPrint(logFile, "@%d Update value at cb_new_eq \n", __LINE__);
-				if (isVariable(t, nn1))
-					final_value_Map[nn1] = nn2;
-				else
-					final_value_Map[nn2] = nn1;
+		//	addPrefixRelation(t, nn1, nn2);
+		//	addPosfixRelation(t, nn1, nn2);
+		//	implyEqualityForConcatMember(t, nn1, nn2);
+
+		addEndsWithConsistency(t, nn1, nn2);
+		addReplaceConsistency(t, nn1, nn2);
+
+		if (consideredVars.size() > 0) {
+			std::vector<std::pair<Z3_ast, int>> langVal;
+
+			// collect language values index
+			for (unsigned int i = 0; i < consideredVars.size(); ++i) {
+				int index = collectSingleLanguage_index(t, consideredVars[i]);
+				if (index <= 0)
+					return;
+				langVal.emplace_back(std::make_pair(consideredVars[i], index));
+			}
+
+			// have enough indices
+			if ((isVariable(t, nn1) && isAutomatonFunc(t, nn2)) || (isVariable(t, nn2) && isAutomatonFunc(t, nn1))) {
+				Automaton ton01 = getPreCalculatedValue(t, nn1);
+				if (ton01.isConst()) {
+					__debugPrint(logFile, "@%d Update value at cb_new_eq \n", __LINE__);
+					if (isVariable(t, nn1))
+						final_value_Map[nn1] = nn2;
+					else
+						final_value_Map[nn2] = nn1;
+					return;
+				}
+
+				Z3_ast toAssert;
+
+				//prevent to repeat extension
+				// TODO bring to the beginning
+				if (lang_value_Map2.find(langVal) != lang_value_Map2.end()) {
+					toAssert = lang_value_Map2[langVal];
+				}
+				else {
+					toAssert = extendEqualVars_Automata(t, langVal);
+					lang_value_Map2[langVal] = toAssert;
+				}
+
+				if (toAssert != NULL)
+					addAxiom_Theory(t, toAssert, __LINE__, true);
 				return;
 			}
-
-			Z3_ast toAssert;
-
-			//prevent to repeat extension
-			// TODO bring to the beginning
-			if (lang_value_Map2.find(langVal) != lang_value_Map2.end()) {
-				toAssert = lang_value_Map2[langVal];
-			}
-			else {
-				toAssert = extendEqualVars_Automata(t, langVal);
-				lang_value_Map2[langVal] = toAssert;
-			}
-
-			if (toAssert != NULL)
-				addAxiom_Theory(t, toAssert, __LINE__, true);
-			return;
 		}
 	}
 
@@ -3419,9 +3421,9 @@ Automaton updateNode(Z3_theory t, Z3_ast node, bool &success) {
 				}
 				else {
 					success = true;
-					updateInternalVarMap(node, ton);
+					updateInternalVarMap(node, oldVal);
 					updateInternalVarMap_independence(node, ton);
-					return oldVal;
+					return ton;
 				}
 			}
 
@@ -3471,7 +3473,6 @@ Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence) {
 				return ton;
 
 			if (ton.isError()) {
-				//				ret.name = UNKNOWN_AUTOMATON;
 				return ton;
 			}
 
@@ -3510,7 +3511,6 @@ Automaton evalNode(Z3_theory t, Z3_ast node, bool isIndependence) {
 		}
 	}
 	else {
-		//		ret.name = UNKNOWN_AUTOMATON;
 		return ret;
 	}
 
@@ -3593,7 +3593,10 @@ Automaton evalConcat(Z3_theory t, Z3_ast arg00, Z3_ast arg01, bool isIndependenc
 		return ton01;
 	if (ton01.isError())
 		return ret;
-	return ton00.Concat(known, ton01);
+	if (ton00.isGeneric && ton01.isGeneric)
+		return ton00;
+	else
+		return ton00.Concat(known, ton01);
 }
 
 /*
@@ -3703,7 +3706,7 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 		}
 	}
 
-	__debugPrint(logFile, ">> @%d at Number of elements: %ld \n", __LINE__, elements_filtered.size());
+	__debugPrint(logFile, ">> @%d Number of elements: %ld \n", __LINE__, elements_filtered.size());
 
 //	/* skip the case y vs x y x*/
 //	for (unsigned i = 0; i < elements_filtered.size(); ++i)
@@ -3729,6 +3732,9 @@ Automaton evalIntersection(Z3_theory t, std::vector<Z3_ast> list, bool isIndepen
 			return ton;
 		else if (!ton.isUnknown()) {
 			elements.emplace_back(ton);
+		}
+		else if (ton.isUnknown() && languageDefined == true){
+			return ton;
 		}
 	}
 
