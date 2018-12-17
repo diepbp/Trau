@@ -2193,7 +2193,7 @@ public:
 			std::map<std::string, int> connectedVariables,
 			bool optimizing,
 			int pMax = PMAX){
-
+		__debugPrint(logFile, "%d ** %s **: %s\n", __LINE__, __FUNCTION__, a.first.c_str());
 		/* (and ...) */
 		std::vector<std::string> possibleCases;
 
@@ -2249,7 +2249,7 @@ public:
 			}
 			else if (elementNames[i].second >= 0 &&
 					connectedVariables.find(elementNames[i].first) != connectedVariables.end()){
-//				__debugPrint(logFile, "%d case 6\n", __LINE__);
+				__debugPrint(logFile, "%d case 6\n", __LINE__);
 				if (elementNames[i].second % QMAX == 1 && i > 0)
 					continue;
 
@@ -2312,9 +2312,10 @@ public:
 			if (connectedVariables.find(b.first) != connectedVariables.end() &&
 					connectedVariables.find(a.first) != connectedVariables.end()){
 
-				std::vector<std::pair<std::string, int>> elements;
-				if (!optimizing)
-					result = result + " " + unrollConnectedVariable(b, elements, rhs_str, lhs_str, connectedVariables, optimizing, pMax);
+				if (!optimizing) {
+					__debugPrint(logFile, "%d generateConstraint01: connectedVar %s == connectedVar %s", __LINE__, a.first.c_str(), b.first.c_str());
+					result = result + " " + unrollConnectedVariable(b, {a}, rhs_str, lhs_str, connectedVariables, optimizing, pMax);
+				}
 				else {
 					std::string tmp = "";
 					std::string arrA = generateFlatArray(a, "");
