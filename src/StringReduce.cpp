@@ -2624,11 +2624,10 @@ Z3_bool cb_reduce_eq(Z3_theory t, Z3_ast s1, Z3_ast s2, Z3_ast * r) {
 	}
 
 	AutomatonStringData * td = (AutomatonStringData*) Z3_theory_get_ext_data(t);
-	std::string s1_str = customizeString(Z3_ast_to_string(ctx, s1));
-	std::string s2_str = customizeString(Z3_ast_to_string(ctx, s2));
+	std::string s1_str = customizeString(node_to_string(t, s1));
+	std::string s2_str = customizeString(node_to_string(t, s2));
 
-	__debugPrint(logFile, "\n%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__,
-			s1_str.c_str(), s2_str.c_str());
+	__debugPrint(logFile, "\n%d *** %s ***: %s = %s\n", __LINE__, __FUNCTION__, s1_str.c_str(), s2_str.c_str());
 	Z3_ast s1_new = s1;
 	Z3_ast s2_new = s2;
 

@@ -1848,10 +1848,10 @@ std::set<char> getUsedChars(std::string str){
 						i += 3;
 						int value = (int)strtol(s.c_str(), NULL, 16);
 
-						if (value == config.escapeChar)
+						if (ENCODEMAP.find((char)value) != ENCODEMAP.end())
+							result.emplace(ENCODEMAP[(char)value]);
+						else
 							result.emplace((char)value);
-
-						result.emplace((char)value);
 					}
 					else if (str[i + 1] == '"' ||
 							str[i + 1] == '\'' ||
@@ -2295,11 +2295,10 @@ std::string encodeSpecialChars(std::string constStr){
 							i += 3;
 							int value = (int)strtol(s.c_str(), NULL, 16);
 
-							if (value == config.escapeChar)
+							if (ENCODEMAP.find((char)value) != ENCODEMAP.end())
+								strTmp += ENCODEMAP[(char)value];
+							else
 								strTmp += (char)value;
-							else if (value == '"')
-								strTmp += config.escapeChar;
-							strTmp += (char)value;
 							__debugPrint(logFile, "%d current str: %d --> %s\n", __LINE__, value, strTmp.c_str());
 						}
 						else if (constStr[i + 1] == '"' ||
@@ -2791,13 +2790,17 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
  *
  */
 std::string encodeHex(std::string constStr){
-	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, constStr.c_str());
+
 	std::string newStr = "__cOnStStR_";
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
-		newStr = newStr + int2hex((int)constStr[i]);
-		if (constStr[i] == '\\' && constStr[i + 1] == '\\')
-			++i;
+		if (constStr[i] == config.escapeChar) {
+			if (constStr[i + 1] == config.escapeChar)
+				newStr = newStr + int2hex((int)constStr[i]);
+		}
+		else
+			newStr = newStr + int2hex((int)constStr[i]);
 	}
+	__debugPrint(logFile, "%d *** %s ***: %s --> %s\n", __LINE__, __FUNCTION__, constStr.c_str(), newStr.c_str());
 	return newStr;
 }
 

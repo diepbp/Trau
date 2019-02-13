@@ -9606,7 +9606,15 @@ std::string str2RegexStr(std::string str) {
 	for (int i = 0; i < len; i++) {
 		char nc = str[i];
 		// 12 special chars
-		if (nc == '\\' || nc == '^' || nc == '$' || nc == '.' || nc == '|' || nc == '?'
+		if (nc == '\\'){
+			if (i< len - 1 && str[i + 1] == '\\'){
+				res.append(1, '\\');
+				res.append(1, '\\');
+				++i;
+				continue;
+			}
+		}
+		else if (nc == '^' || nc == '$' || nc == '.' || nc == '|' || nc == '?'
 				|| nc == '*' || nc == '+' || nc == '(' || nc == ')' || nc == '[' || nc == '{') {
 			res.append(1, '\\');
 		}
