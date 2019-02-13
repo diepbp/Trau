@@ -1843,10 +1843,14 @@ std::set<char> getUsedChars(std::string str){
 					else if (str[i + 1] == 'x') {
 						char c01 = str[i + 2];
 						char c02 = str[i + 3];
-						std::string s = "" + c01;
-						s += c02;
+						std::string s(1, c01);
+						s = s + c02;
 						i += 3;
-						int value = hex2int(s);
+						int value = (int)strtol(s.c_str(), NULL, 16);
+
+						if (value == config.escapeChar)
+							result.emplace((char)value);
+
 						result.emplace((char)value);
 					}
 					else if (str[i + 1] == '"' ||
@@ -2248,6 +2252,7 @@ void toLengthLine(
  *
  */
 std::string encodeSpecialChars(std::string constStr){
+	__debugPrint(logFile, "%d *** %s ***: %s %c\n", __LINE__, __FUNCTION__, constStr.c_str(), config.escapeChar);
 	std::string strTmp = "";
 
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i){
@@ -2255,6 +2260,7 @@ std::string encodeSpecialChars(std::string constStr){
 			case 25:
 			case 20:
 				if (constStr[i] == config.escapeChar) {
+					__debugPrint(logFile, "%d current str: %s\n", __LINE__, strTmp.c_str());
 					if (i < constStr.length() - 1) {
 						if (constStr[i + 1] == 'a') {
 							strTmp += ENCODEMAP['\a'];
@@ -2284,11 +2290,17 @@ std::string encodeSpecialChars(std::string constStr){
 						else if (constStr[i + 1] == 'x') {
 							char c01 = constStr[i + 2];
 							char c02 = constStr[i + 3];
-							std::string s = "" + c01;
-							s += c02;
+							std::string s(1, c01);
+							s = s + c02;
 							i += 3;
-							int value = hex2int(s);
+							int value = (int)strtol(s.c_str(), NULL, 16);
+
+							if (value == config.escapeChar)
+								strTmp += (char)value;
+							else if (value == '"')
+								strTmp += config.escapeChar;
 							strTmp += (char)value;
+							__debugPrint(logFile, "%d current str: %d --> %s\n", __LINE__, value, strTmp.c_str());
 						}
 						else if (constStr[i + 1] == '"' ||
 								constStr[i + 1] == '\'' ||
@@ -2301,8 +2313,6 @@ std::string encodeSpecialChars(std::string constStr){
 							i++;
 						}
 						else {
-//							strTmp += constStr[i];
-//							strTmp += constStr[i];
 							strTmp += constStr[i + 1];
 							i++;
 						}
@@ -2338,7 +2348,7 @@ std::string encodeSpecialChars(std::string constStr){
 				break;
 		}
 	}
-
+	__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, strTmp.c_str());
 	return '"' + strTmp + '"';
 }
 
@@ -2747,6 +2757,7 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
 			}
 			else if (token.second == antlrcpptest::SMTLIB26Lexer::STRING) /* string */{
 				std::string tmp = encodeSpecialChars(token.first);
+				__debugPrint(logFile, "%d >> %s: %s\n", __LINE__, __FUNCTION__, tmp.c_str());
 				constStr.emplace(tmp);
 				listTokens.emplace_back(tmp);
 			}
@@ -2780,6 +2791,7 @@ void encodeSpecialChars(std::string inputFile, std::string outFile){
  *
  */
 std::string encodeHex(std::string constStr){
+	__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, constStr.c_str());
 	std::string newStr = "__cOnStStR_";
 	for (unsigned i = 1 ; i < constStr.length() - 1; ++i) {
 		newStr = newStr + int2hex((int)constStr[i]);

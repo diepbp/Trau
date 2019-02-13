@@ -9555,6 +9555,12 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
 			ret = ret + "~" + (char)i;
 		return ret.substr(1);
 	}
+	else if (regexFuncDecl == td->RegexAll){
+		return "(.*)";
+	}
+	else if (regexFuncDecl == td->RegexAllChar){
+		return "(.)";
+	}
 	else {
 		return "__Contain_Vars__";
 	}

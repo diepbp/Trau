@@ -1815,7 +1815,11 @@ Z3_ast reduce_regexStar(Z3_theory t, Z3_ast const args[],
 	Z3_func_decl funcDecl = Z3_get_app_decl(ctx, arg1_func_app);
 	if (funcDecl == td->RegexStar) {
 		return args[0];
-	} else
+	}
+	else if (funcDecl == td->RegexAllChar){
+		return Z3_mk_app(ctx, td->RegexAll, 0, NULL);
+	}
+	else
 		return NULL;
 }
 
