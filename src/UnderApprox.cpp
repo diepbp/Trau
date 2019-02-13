@@ -1883,10 +1883,11 @@ void writeOutput02(std::string outFile){
 		out.flush();
 	}
 
-	for (const auto& s : constraints) {
-		out << s << std::endl;
-		out.flush();
-	}
+	for (const auto& s : constraints)
+		if (s.size() > 0){
+			out << s << std::endl;
+			out.flush();
+		}
 
 	/* repeated variables */
 	for (unsigned int i = 0; i < repeatedVariableConstraints.size(); ++i) {
@@ -1897,7 +1898,8 @@ void writeOutput02(std::string outFile){
 	/* assertions for flat automata*/
 	for (const auto& s : global_smtStatements){
 		if (s.size() == 1) {
-			out << "(assert " << s[0] << " )\n";
+			if (s[0].size() > 1)
+				out << "(assert " << s[0] << " )\n";
 		}
 		else {
 			out << "(assert " << orConstraint(s) << " )\n";

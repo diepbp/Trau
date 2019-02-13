@@ -427,7 +427,7 @@ public:
 				for (unsigned i = 0; i < std::min(value.length(), str.length()); ++i) {
 					if (values.size() > 1)
 						__debugPrint(logFile, "%d passed value: %s\n", __LINE__, value.c_str());
-					std::string tmp00 = value.substr(i);
+					std::string tmp00 = value.substr(value.length() - i, i);
 					std::string tmp01 = str.substr(0, i);
 					if (tmp00.compare(tmp01) == 0){
 						currentSplit.emplace_back(tmp00.length());
@@ -1336,7 +1336,7 @@ public:
 			std::string &subLen){
 		int partCnt = 1;
 		std::vector<std::string> addElements;
-		addElements.emplace_back(generateFlatSize(elementNames[pos]));
+		addElements.emplace_back(createMultiplyOperator(generateFlatSize(elementNames[pos]), generateFlatIter(elementNames[pos])));
 		unsigned int j = pos + 1;
 		for (j = pos + 1; j < elementNames.size(); ++j)
 			if (elementNames[j].second > elementNames[j - 1].second &&

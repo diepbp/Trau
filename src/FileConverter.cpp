@@ -1051,7 +1051,12 @@ void updateReplace(
 		}
 		else {
 			assert(rewriterStrMap.find(op) != rewriterStrMap.end());
-			tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			if (rewriterStrMap.find(op) != rewriterStrMap.end()){
+				if (rewriterStrMap[op][0] != '"')
+					tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+				else
+					tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::STRING);
+			}
 			found = findTokens(tokens, found, config.languageMap[REPLACE], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
 	}
@@ -1100,7 +1105,12 @@ void updateReplaceAll(
 		}
 		else {
 			assert(rewriterStrMap.find(op) != rewriterStrMap.end());
-			tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+			if (rewriterStrMap.find(op) != rewriterStrMap.end()){
+				if (rewriterStrMap[op][0] != '"')
+					tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
+				else
+					tokens = replaceTokens(tokens, found - 1, pos, rewriterStrMap[op], antlrcpptest::SMTLIB26Lexer::STRING);
+			}
 			found = findTokens(tokens, found, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
 	}
@@ -2204,6 +2214,8 @@ void toLengthLine(
 	updateIndexOf(tokens, rewriterStrMap);
 	updateReplace(tokens, rewriterStrMap);
 	updateReplaceAll(tokens, rewriterStrMap);
+
+	__debugPrint(logFile, "%d %s: %ld\n", __LINE__, __FUNCTION__, tokens.size());
 
 	updateToUpper(tokens);
 	updateToLower(tokens);

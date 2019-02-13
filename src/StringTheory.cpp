@@ -6231,7 +6231,7 @@ Z3_bool Th_final_check(Z3_theory t) {
 			}
 		}
 
-//		tryUnderApprox = true;
+		tryUnderApprox = true;
 		std::set<std::string> _connectedVars;
 		std::set<char> _excludeSet;
 		bool _lazy = config.lazySearch ? true : false;

@@ -53,9 +53,9 @@
 #define SPLIT_LOWER_BOUND 3
 #define CONNECTINGSIZE 300
 
-#define Z3_PATH "z3 -smt2 "
+#define Z3_PATH "/usr/local/bin/z3 -smt2 "
 #define S3VERIFIER "verifier/run.py "
-#define Z3VERIFIER "z3 smt.string_solver=z3str3 "
+#define Z3VERIFIER "/usr/local/bin/z3 smt.string_solver=z3str3 "
 #define CVC4VERIFIER "cvc4 -L smt --strings-exp "
 
 #ifdef DEBUGLOG
