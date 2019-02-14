@@ -357,7 +357,7 @@ public:
 		for (int i = 32; i <= 126; ++i)
 			if (tobeEncoded.find((char)i) == tobeEncoded.end())
 				tmp = tmp + (char)i + "|";
-		if (s.find(tmp) != std::string::npos)
+		if (s.find(tmp.substr(0, tmp.length() - 1)) != std::string::npos)
 			return true;
 		else
 			return false;
@@ -493,7 +493,7 @@ public:
 			std::string regexContent = "";
 			RegEx re;
 			bool canCompile = false;
-			if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
+			if (elementNames[currentSplit.size()].second == REGEX_CODE && !(isRegexAll(elementNames[currentSplit.size()].first) || isRegexChar(elementNames[currentSplit.size()].first))) /* regex */ {
 				regexContent = parse_regex_full_content(elementNames[currentSplit.size()].first);
 				if (regexContent.find('|') != std::string::npos) {
 					assert(regexContent.find('&') == std::string::npos);
@@ -508,14 +508,14 @@ public:
 				unsigned length = i;
 				if (elementNames[currentSplit.size()].second == REGEX_CODE && isRegexAll(elementNames[currentSplit.size()].first)){
 					currentSplit.emplace_back(length);
-										collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
-										currentSplit.pop_back();
+					collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+					currentSplit.pop_back();
 				}
 				else if (elementNames[currentSplit.size()].second == REGEX_CODE && isRegexChar(elementNames[currentSplit.size()].first)){
 					if (length == 1){
 						currentSplit.emplace_back(length);
-										collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
-										currentSplit.pop_back();
+						collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
 					}
 				}
 				else if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
@@ -574,9 +574,8 @@ public:
 		}
 
 		unsigned int regexLen = str.length();
-		if (isRegexAll(str))
+		if (isRegexAll(str) || isRegexChar(str))
 			regexLen = 1;
-
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {
 			/* compare text, check whether the string can start from the location pos in text */
@@ -642,7 +641,9 @@ public:
 				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
-						collectAllPossibleSplits_regex((pos + i) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.emplace_back(elementNames[currentSplit.size()].first.length() - i);
+						collectAllPossibleSplits_regex((pos + elementNames[currentSplit.size()].first.length()) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
+						currentSplit.pop_back();
 						currentSplit.pop_back();
 					}
 				}
@@ -907,9 +908,7 @@ public:
 			}
 			else for (unsigned i = 0; i <= lhs.first.length(); ++i) {
 				std::vector<int> curr;
-
 				collectAllPossibleSplits_const(0, lhs.first.substr(0, i), 10, alias, curr, allPossibleSplits);
-
 			}
 		}
 		else {
@@ -1815,6 +1814,11 @@ public:
 			std::string extraConstraint = "" /* length = ? */
 			) {
 		assert (elementNames[regexPos].second < 0);
+		if (isRegexAll(elementNames[regexPos].first))
+			return "true";
+		else if (isRegexChar(elementNames[regexPos].first)){
+			return createEqualConstraint(generateFlatSize(elementNames[regexPos], rhs_str), "1");
+		}
 		bool unrollMode = pMax == PMAX;
 
 		std::vector<std::string> locationConstraint;
@@ -2542,8 +2546,6 @@ public:
 		}
 
 		else if (isConstA) {
-			/* size = size && it = 1*/
-			assert(a.second != REGEX_CODE);
 			/* record characters for some special variables */
 			if (connectedVariables.find(b.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
@@ -2558,9 +2560,6 @@ public:
 		}
 
 		else { /* isConstB */
-			/* size = size && it = 1*/
-			/* record characters for some special variables */
-			assert(a.second != REGEX_CODE);
 			if (connectedVariables.find(a.first) != connectedVariables.end()){
 				std::vector<std::pair<std::string, int>> elements;
 				if (optimizing) {
