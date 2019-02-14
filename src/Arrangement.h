@@ -194,6 +194,9 @@ public:
 	 */
 	std::vector<int> regex_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs) {
 		__debugPrint(logFile, "%d *** %s ***: %s = %s at %d\n", __LINE__, __FUNCTION__, lhs.c_str(), rhs.c_str(), posLhs);
+		if ((isRegexChar(lhs) || isRegexAll(lhs)) && (isRegexChar(rhs) || isRegexAll(rhs))){
+			return {0};
+		}
 		/* extend string if it is short */
 		rhs = parse_regex_content(rhs);
 		std::vector<std::string> componentsRhs = collectAlternativeComponents(rhs);
@@ -255,7 +258,15 @@ public:
 	 * (lhs)* = .* rhs .* where rhs starts at posLhs
 	 */
 	bool const_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs){
-
+		if (isRegexAll(lhs)){
+			return true;
+		}
+		else if (isRegexChar(lhs)){
+			if (rhs.length() == 1)
+				return true;
+			else
+				return false;
+		}
 		/* extend string if it is short */
 		std::string initialLhs = lhs;
 		while (rhs.length() + posLhs > initialLhs.length()) /* make sure that | initialLhs | > | rhs | */
@@ -271,9 +282,15 @@ public:
 	 * (lhs)* = .* rhs.-2 .* where rhs starts at posLHS
 	 */
 	std::vector<int> tail_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs){
-
 		std::vector<int> potentialPos;
-		for (int i = 0; i <= (int)rhs.length(); ++i) {
+		if (isRegexAll(lhs)){
+			for (int i = 0; i <= (int)rhs.length(); ++i)
+				potentialPos.push_back(i);
+		}
+		else if (isRegexChar(lhs)){
+			potentialPos.push_back(1);
+		}
+		else for (int i = 0; i <= (int)rhs.length(); ++i) {
 			/* length = i */
 			std::string tmpRhs = rhs.substr(i);
 
@@ -295,7 +312,14 @@ public:
 	std::vector<int> head_in_regex_at_pos(std::string lhs, std::string rhs, int posLhs){
 
 		std::vector<int> potentialPos;
-		for (int i = 0; i <= (int)rhs.length(); ++i) {
+		if (isRegexAll(lhs)){
+			for (int i = 0; i <= (int)rhs.length(); ++i)
+				potentialPos.push_back(i);
+		}
+		else if (isRegexChar(lhs)){
+			potentialPos.push_back(1);
+		}
+		else for (int i = 0; i <= (int)rhs.length(); ++i) {
 			/* length = i */
 			std::string tmpRhs = rhs.substr(0, i);
 
@@ -311,6 +335,32 @@ public:
 				return potentialPos;
 		}
 		return potentialPos;
+	}
+
+	bool isRegexAll(std::string s){
+		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
+		std::string tmp = "";
+		for (int i = 32; i <= 126; ++i)
+			if (tobeEncoded.find((char)i) == tobeEncoded.end())
+				tmp = tmp + (char)i + "|";
+		tmp =  "(" + tmp.substr(0, tmp.length() - 1) + ")*";
+//		__debugPrint(logFile, "%d %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp.c_str(), s.c_str());
+		if (s.find(tmp) != std::string::npos)
+			return true;
+		else
+			return false;
+	}
+
+	bool isRegexChar(std::string s){
+		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
+		std::string tmp = "";
+		for (int i = 32; i <= 126; ++i)
+			if (tobeEncoded.find((char)i) == tobeEncoded.end())
+				tmp = tmp + (char)i + "|";
+		if (s.find(tmp) != std::string::npos)
+			return true;
+		else
+			return false;
 	}
 
 	/*
@@ -456,7 +506,19 @@ public:
 
 			for (unsigned i = 0; i <= textLeft; ++i) {
 				unsigned length = i;
-				if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
+				if (elementNames[currentSplit.size()].second == REGEX_CODE && isRegexAll(elementNames[currentSplit.size()].first)){
+					currentSplit.emplace_back(length);
+										collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+										currentSplit.pop_back();
+				}
+				else if (elementNames[currentSplit.size()].second == REGEX_CODE && isRegexChar(elementNames[currentSplit.size()].first)){
+					if (length == 1){
+						currentSplit.emplace_back(length);
+										collectAllPossibleSplits_const(pos + length, str, pMax, elementNames, currentSplit, allPossibleSplits);
+										currentSplit.pop_back();
+					}
+				}
+				else if (elementNames[currentSplit.size()].second == REGEX_CODE) /* regex */ {
 					std::string regexValue = str.substr(pos, length);
 					if (canCompile == true) {
 						if (re.MatchAll(regexValue) == true) {
@@ -511,12 +573,16 @@ public:
 			return;
 		}
 
+		unsigned int regexLen = str.length();
+		if (isRegexAll(str))
+			regexLen = 1;
+
 		/* special case for const: regex = .* const .* */
 		if (elementNames[currentSplit.size()].second == -1 && QCONSTMAX == 1) {
 			/* compare text, check whether the string can start from the location pos in text */
 			if (const_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos)) {
 				currentSplit.emplace_back(elementNames[currentSplit.size()].first.length());
-				collectAllPossibleSplits_regex((pos + elementNames[currentSplit.size() - 1].first.length()) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+				collectAllPossibleSplits_regex((pos + elementNames[currentSplit.size() - 1].first.length()) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
 		}
@@ -530,7 +596,7 @@ public:
 			int length = elementNames[currentSplit.size()].first.length() - currentSplit[currentSplit.size() - 1]; /* this part gets all const string remaining */
 
 			currentSplit.emplace_back(length);
-			collectAllPossibleSplits_regex((pos + length) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+			collectAllPossibleSplits_regex((pos + length) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 			currentSplit.pop_back();
 		}
 
@@ -542,7 +608,7 @@ public:
 			std::vector<int> tail = tail_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
 			for (unsigned i = 0 ; i < tail.size(); ++i) {
 				currentSplit.emplace_back(tail[i]);
-				collectAllPossibleSplits_regex((pos + tail[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+				collectAllPossibleSplits_regex((pos + tail[i]) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
 		}
@@ -556,7 +622,7 @@ public:
 			std::vector<int> head = head_in_regex_at_pos(str, elementNames[currentSplit.size()].first, pos);
 			for (unsigned i = 0 ; i < head.size(); ++i) {
 				currentSplit.emplace_back(head[i]);
-				collectAllPossibleSplits_regex((pos + head[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+				collectAllPossibleSplits_regex((pos + head[i]) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
 		}
@@ -576,7 +642,7 @@ public:
 				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
-						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						collectAllPossibleSplits_regex((pos + i) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
 				}
@@ -586,7 +652,7 @@ public:
 				if (canProcess) {
 					for (unsigned i = 1 ; i <= elementNames[currentSplit.size()].first.length(); ++i) { /* cannot be empty */
 						currentSplit.emplace_back(i);
-						collectAllPossibleSplits_regex((pos + i) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						collectAllPossibleSplits_regex((pos + i) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
 				}
@@ -607,7 +673,7 @@ public:
 			/* loop ? */
 			bool loop = false;
 			if (regexPos.size() > 0 &&
-					regexPos[regexPos.size() - 1] * contentLength % str.length() == 0) {
+					regexPos[regexPos.size() - 1] * contentLength % regexLen == 0) {
 				loop = true;
 			}
 			__debugPrint(logFile, "%d loop = %d, regexPos size = %ld, contentLength = %d\n", __LINE__, loop ? 1 : 0, regexPos.size(), contentLength);
@@ -621,17 +687,17 @@ public:
 				if (loop == true) /* assign value < 0 */
 					for (unsigned i = 0 ; i < regexPos.size(); ++i) {
 						/* because of loop, do not care about 0 iteration */
-						int tmp = (contentLength * regexPos[i]) % str.length();
+						int tmp = (contentLength * regexPos[i]) % regexLen;
 						if (tmp == 0)
 							currentSplit.emplace_back(MINUSZERO);
 						else
 							currentSplit.emplace_back(-tmp);
-						collectAllPossibleSplits_regex((pos + contentLength * regexPos[i]) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+						collectAllPossibleSplits_regex((pos + contentLength * regexPos[i]) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
 					}
 				else
 					for (unsigned i = 0 ; i < regexPos.size(); ++i) { /* assign value >= 0 */
-						int tmp = (pos + contentLength * regexPos[i]) % str.length();
+						int tmp = (pos + contentLength * regexPos[i]) % regexLen;
 						currentSplit.emplace_back(contentLength * regexPos[i]);
 						collectAllPossibleSplits_regex(tmp, str, pMax, elementNames, currentSplit, allPossibleSplits);
 						currentSplit.pop_back();
@@ -640,13 +706,13 @@ public:
 		}
 
 		else {
-			for (unsigned i = 0; i < str.length(); ++i) { /* assign value < 0 because it can iterate many times */
+			for (unsigned i = 0; i < regexLen; ++i) { /* assign value < 0 because it can iterate many times */
 				int length = i;
 				if (length == 0)
 					currentSplit.emplace_back(MINUSZERO);
 				else
 					currentSplit.emplace_back(- length);
-				collectAllPossibleSplits_regex((pos + length) % str.length(), str, pMax, elementNames, currentSplit, allPossibleSplits);
+				collectAllPossibleSplits_regex((pos + length) % regexLen, str, pMax, elementNames, currentSplit, allPossibleSplits);
 				currentSplit.pop_back();
 			}
 		}
@@ -852,7 +918,7 @@ public:
 		}
 
 		/* print test */
-		__debugPrint(logFile, "%d *** %s *** ", __LINE__, __FUNCTION__);
+		__debugPrint(logFile, "%d *** %s ***: %s ", __LINE__, __FUNCTION__, lhs.first.c_str());
 		for (unsigned int i = 0; i < allPossibleSplits.size(); ++i){
 			splitPrintTest(allPossibleSplits[i], "Accepted");
 		}
@@ -1191,7 +1257,8 @@ public:
 			std::vector<int> split,
 			std::string lhs, std::string rhs,
 			bool optimizing){
-		__debugPrint(logFile, "%d const|regex = const + ...\n", __LINE__);
+//		__debugPrint(logFile, "%d *** %s ***: const|regex (%s) = const  + ...\n", __LINE__, __FUNCTION__, a.first.c_str());
+
 		int totalLength = 0;
 		for (unsigned j = 0; j < split.size(); ++j)
 			if (split[j] > 0 && split[j] != MINUSZERO)

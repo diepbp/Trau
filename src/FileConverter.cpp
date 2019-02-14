@@ -1845,13 +1845,9 @@ std::set<char> getUsedChars(std::string str){
 						char c02 = str[i + 3];
 						std::string s(1, c01);
 						s = s + c02;
-						i += 3;
+						i += 2;
 						int value = (int)strtol(s.c_str(), NULL, 16);
-
-						if (ENCODEMAP.find((char)value) != ENCODEMAP.end())
-							result.emplace(ENCODEMAP[(char)value]);
-						else
-							result.emplace((char)value);
+						result.emplace((char)value);
 					}
 					else if (str[i + 1] == '"' ||
 							str[i + 1] == '\'' ||
@@ -1876,8 +1872,9 @@ std::set<char> getUsedChars(std::string str){
 					break;
 			}
 		}
-		else
+		else {
 			result.emplace(str[i]);
+		}
 	}
 
 	return result;
@@ -2299,7 +2296,6 @@ std::string encodeSpecialChars(std::string constStr){
 								strTmp += ENCODEMAP[(char)value];
 							else
 								strTmp += (char)value;
-							__debugPrint(logFile, "%d current str: %d --> %s\n", __LINE__, value, strTmp.c_str());
 						}
 						else if (constStr[i + 1] == '"' ||
 								constStr[i + 1] == '\'' ||

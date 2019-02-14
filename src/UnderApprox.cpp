@@ -588,7 +588,7 @@ std::vector<std::string> collectAllPossibleArrangements(
 	for (unsigned i = 0; i < possibleCases.size(); ++i) {
 
 		if (passNotContainMapReview(possibleCases[i], lhs_elements, rhs_elements)) {
-//			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
+			arrangements[std::make_pair(lhs_elements.size() - 1, rhs_elements.size() - 1)][i].printArrangement("Checking case");
 			possibleCases[i].constMap.clear();
 			possibleCases[i].constMap.insert(constMap.begin(), constMap.end());
 			std::string tmp = possibleCases[i].

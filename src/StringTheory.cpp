@@ -7406,16 +7406,12 @@ Z3_ast createLanguageAxiom(Z3_theory t, Z3_ast node, std::string language){
 	std::string prefix_var = "$$" + std::string(Z3_ast_to_string(ctx, node)) + "_" + std::to_string(sLevel) + "!!";
 
 	Z3_ast langNode = mk_binary_app(ctx, td->NonDet_AutomataDef, mk_str_value(t, (prefix_var + language).c_str()), mk_int(ctx, nondeterministicCounter++));
-
+	__debugPrint(logFile, "@%d Finish * %s *: %s\n", __LINE__, __FUNCTION__, language.c_str());
 	if (string_automaton_Map.find(language) == string_automaton_Map.end()) {
 		// create automata
 		RegEx re;
 		re.Compile(language);
 		string_automaton_Map[language] = re.CreateAutomaton("known");
-
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "@%d Finish * %s *: %s\n", __LINE__, __FUNCTION__, language.c_str());
-#endif
 	}
 	internalVarMap[std::make_pair(langNode, 0)] = string_automaton_Map[language];
 
@@ -9556,10 +9552,20 @@ std::string getStdRegexStr(Z3_theory t, Z3_ast regex) {
 		return ret.substr(1);
 	}
 	else if (regexFuncDecl == td->RegexAll){
-		return "(.*)";
+		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
+		std::string tmp = "";
+		for (int i = 32; i <= 126; ++i)
+			if (tobeEncoded.find((char)i) == tobeEncoded.end())
+				tmp = tmp + "(" + (char)i + ")~";
+		return "(" + tmp.substr(0, tmp.length() - 1) + ")*";
 	}
 	else if (regexFuncDecl == td->RegexAllChar){
-		return "(.)";
+		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
+		std::string tmp = "";
+		for (int i = 32; i <= 126; ++i)
+			if (tobeEncoded.find((char)i) == tobeEncoded.end())
+				tmp = tmp + "(" + (char)i + ")~";
+		return tmp.substr(0, tmp.length() - 1);
 	}
 	else {
 		return "__Contain_Vars__";
