@@ -2817,7 +2817,6 @@ void optimizeFlatAutomaton(std::string &s){
 	std::string org = s;
 	std::string tmp = s.substr(1, s.length() - 3);
 	std::set<std::string> ret = extendComponent(tmp);
-	displayListString(ret, " *** optimizeFlatAutomaton ***");
 	assert(ret.size() > 0);
 	s = "";
 	for (const auto& it: ret){
