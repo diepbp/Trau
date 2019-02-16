@@ -91,7 +91,7 @@ bool passNotContainMapReview(
 
 			for (unsigned int j = 0; j < rhs_elements.size(); ++j)
 				if (a.right_arr[j] == (int)i) {
-					if (rhs_elements[j].second < 0) {
+					if (rhs_elements[j].second < 0 && rhs_elements[j].second != REGEX_CODE) {
 						std::string strContent = "";
 						if (isRegexStr(rhs_elements[j].first)) {
 							if (rhs_elements[j].first.find('+') != std::string::npos)
@@ -115,7 +115,7 @@ bool passNotContainMapReview(
 
 			for (unsigned int j = 0; j < lhs_elements.size(); ++j)
 				if (a.left_arr[j] == (int)i) {
-					if (lhs_elements[j].second < 0)
+					if (lhs_elements[j].second < 0 && lhs_elements[j].second != REGEX_CODE)
 						for (const auto notContain : notContainMap)
 							if (notContain.first.first.compare(rhs_elements[i].first) == 0 &&
 									lhs_elements[j].first.find(notContain.first.second) != std::string::npos) {

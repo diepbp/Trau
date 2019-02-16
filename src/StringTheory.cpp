@@ -5299,6 +5299,26 @@ void compute_parikh(
 	}
 }
 
+///*
+// * check vector of containing only const and node
+// * */
+//std::vector<Z3_ast> onlyConstInVector(
+//		Z3_theory t,
+//		Z3_ast node,
+//		std::vector<Z3_ast> v){
+//	std::vector<Z3_ast> ret;
+//	for (const auto& n : v){
+//		if (isConstStr(t, n)){
+//			ret.push_back(n);
+//		}
+//		else {
+//			if (n != node)
+//				return {};
+//		}
+//	}
+//	return ret;
+//}
+
 /*
  * x = replace y a b --> parikh image of x is almost the same as parikh image of y
  */
@@ -5315,6 +5335,23 @@ void compute_parikh(
 
 	for (const auto& node: replaceNodeMap)
 		compute_parikh(t, node.second, combinationOverVariables, boolMapValues, min_parikhMap, fix_parikhMap);
+
+//	// propagate fix_parikhMap
+//	for (const auto& node : fix_parikhMap){
+//		std::map<std::string, int> newval = node.second;
+//		for (const auto& n : combinationOverVariables){
+//			for (const auto& v: n.second){
+//				std::vector<Z3_ast> ret = onlyConstInVector(t, node.first, v);
+//				if (ret.size() > 0){
+//					for (const auto& c : ret){
+//						std::string tmp = node_to_string(t, c);
+//						for (int i = 1; i < tmp.size() - 1; ++i)
+//							if ()
+//					}
+//				}
+//			}
+//		}
+//	}
 
 	/* test */
 	for (const auto& node : min_parikhMap) {
