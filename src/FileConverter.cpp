@@ -1956,7 +1956,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	if (unused.size() < encoded.size()) {
 		unsigned cnt = 0;
 		for (const char& ch : encoded) {
-			__debugPrint(logFile, "%d *** %s ***: %c --> %c\n", __LINE__, __FUNCTION__, ch, 128 + cnt);
+			__debugPrint(logFile, "%d *** %s ***: %c --> %c (%d)\n", __LINE__, __FUNCTION__, ch, 20 + cnt, 20 + cnt);
 			ENCODEMAP[ch] = 20 + cnt;
 			DECODEMAP[20 + cnt] = ch;
 			cnt++;
@@ -1965,7 +1965,7 @@ bool prepareEncoderDecoderMap(std::string fileName){
 	}
 	unsigned cnt = 0;
 	for (const char& ch : encoded) {
-		__debugPrint(logFile, "%d *** %s ***: %c --> %c\n", __LINE__, __FUNCTION__, ch, unused[cnt]);
+		__debugPrint(logFile, "%d *** %s ***: %c --> %c (%d)\n", __LINE__, __FUNCTION__, ch, unused[cnt], unused[cnt]);
 		ENCODEMAP[ch] = unused[cnt];
 		DECODEMAP[unused[cnt]] = ch;
 		cnt++;
@@ -3024,8 +3024,19 @@ void addConstraintsToSMTFile(
 	/* write everything to the file */
 	for (unsigned i = 0; i < constraints.size(); ++i)
 		if (constraints[i].find("check-sat") == std::string::npos &&
-					constraints[i].find("get-model") == std::string::npos)
-		out << constraints[i];
+				constraints[i].find("get-model") == std::string::npos){
+			/* convert to hex if needed */
+			std::string tmpStr = "";
+			for (int j = 0; j < constraints[i].length(); ++j)
+				if (j != constraints[i].length() - 1 && (constraints[i][j] < 32 || constraints[i][j] > 126)){
+					std::stringstream stream;
+					stream << "\\x" << std::setfill('0') << std::setw(2) << std::hex << (int)constraints[i][j];
+					tmpStr = tmpStr + stream.str();
+				}
+				else
+					tmpStr = tmpStr + constraints[i][j];
+			out << tmpStr;
+		}
 
 	for (unsigned i = 0 ; i < lengthConstraints.size(); ++i) {
 		/* add length constraints */

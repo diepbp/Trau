@@ -2031,7 +2031,18 @@ std::vector<std::string> createSatisfyingAssignments(
 				value.first.find(FLATPREFIX) == std::string::npos &&
 				value.first.find("const") != 0 &&
 				value.first[0] != '"'){
-			additionalAssertions.emplace_back("(assert (= " + value.first + " \"" + value.second + "\"))\n");
+
+			/* convert to hex if needed */
+			std::string tmpStr = "";
+			for (int i = 0; i < value.second.length(); ++i)
+				if (value.second[i] < 32 || value.second[i] > 126){
+					std::stringstream stream;
+					stream << "\\x" << std::setfill('0') << std::setw(2) << std::hex << value.second[i];
+					tmpStr = tmpStr + stream.str();
+				}
+				else
+					tmpStr = tmpStr + value.second[i];
+			additionalAssertions.emplace_back("(assert (= " + value.first + " \"" + tmpStr + "\"))\n");
 		}
 
 	return additionalAssertions;
@@ -4678,16 +4689,22 @@ std::map<std::string, std::string> formatResult(
 						tmp = tmp + "\\\\";
 					else if (value[i] == 9) // tab
 						tmp = tmp + "\\t";
-					else if (value[i] < 32 || value[i] > 126)
-						tmp = tmp + defaultChar;
+//					else if (value[i] < 32 || value[i] > 126){
+//						std::stringstream stream;
+//						stream << "\\x" << std::setfill('0') << std::setw(2) << std::hex << (int)value[i];
+//						tmp = tmp + stream.str();
+//					}
 					else
 						tmp = tmp + value[i];
 					break;
 				case 26:
 					if (value[i] == '"')
 						tmp = tmp + """";
-					else if (value[i] < 32 || value[i] > 126)
-						tmp = tmp + defaultChar;
+//					else if (value[i] < 32 || value[i] > 126){
+//						std::stringstream stream;
+//						stream << "\\x" << std::setfill('0') << std::setw(2) << std::hex << (int)value[i];
+//						tmp = tmp + stream.str();
+//					}
 					else
 						tmp = tmp + value[i];
 					break;
