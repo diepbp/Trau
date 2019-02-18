@@ -52,6 +52,7 @@
 #define QCONSTMAX 2 // number of flats for const
 #define SPLIT_LOWER_BOUND 3
 #define CONNECTINGSIZE 300
+#define REGEX_BOUND 10
 
 #define Z3_PATH "/usr/local/bin/z3 -smt2 "
 #define S3VERIFIER "verifier/run.py "
@@ -406,6 +407,36 @@ int findCorrespondRightParentheses(int leftParentheses, std::vector<std::pair<st
  * (a) | (b) --> {a, b}
  */
 std::vector<std::string> collectAlternativeComponents(std::string str);
+
+/*
+ *
+ */
+std::string underApproxRegex(std::string str);
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> parseRegexComponents(std::string str);
+
+/*
+ *
+ */
+std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list);
+
+
+/**
+ * (abc|cde|ghi)*
+ */
+void optimizeFlatAutomaton(std::string &s);
+
+/*
+ *
+ */
+bool equalVector(std::vector<std::string> a, std::vector<std::string> b);
+
+bool isRegexAll(std::string s);
+
+bool isRegexChar(std::string s);
 
 /*
  *

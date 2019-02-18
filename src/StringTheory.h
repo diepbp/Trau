@@ -757,7 +757,8 @@ typedef struct _AutomatonStringData
  		Z3_ast node,
  		std::vector<std::vector<Z3_ast>> list,
  		std::map<Z3_ast, bool> boolValues,
- 		std::map<Z3_ast, std::map<std::string, int>> parikhMap);
+ 		std::map<Z3_ast, std::map<std::string, int>> min_parikhMap,
+ 		std::map<Z3_ast, std::map<std::string, int>> fix_parikhMap);
 
  /*
   * x = a . b . c = d . e . f --> possible or not

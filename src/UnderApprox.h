@@ -15,7 +15,7 @@
 #define ALLVAR 0
 #define MAXP 6
 #define MAXQ 7
-#define REGEX_BOUND 10
+
 
 extern bool unknownResult;
 
@@ -403,36 +403,11 @@ std::map<std::string, std::string> decodeResultMap(std::map<std::string, std::st
 /*
  *
  */
-std::string underApproxRegex(std::string str);
-
-/**
- * (abc|cde|ghi)*
- */
-void optimizeFlatAutomaton(std::string &s);
-
-/*
- *
- */
-std::vector<std::vector<std::string>> parseRegexComponents(std::string str);
-
-/*
- *
- */
-bool equalVector(std::vector<std::string> a, std::vector<std::string> b);
-
-/*
- *
- */
 bool similarVector(
 		std::vector<std::string> a,
 		std::vector<std::string> b,
 		std::map<std::string, std::vector<std::string>> notEqualMap
 		);
-
-/*
- *
- */
-std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list);
 
 /*
  * a b c (abc)* --> abc (abc)*

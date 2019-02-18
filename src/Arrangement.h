@@ -337,32 +337,6 @@ public:
 		return potentialPos;
 	}
 
-	bool isRegexAll(std::string s){
-		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
-		std::string tmp = "";
-		for (int i = 32; i <= 126; ++i)
-			if (tobeEncoded.find((char)i) == tobeEncoded.end())
-				tmp = tmp + (char)i + "|";
-		tmp =  "(" + tmp.substr(0, tmp.length() - 1) + ")*";
-//		__debugPrint(logFile, "%d %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp.c_str(), s.c_str());
-		if (s.find(tmp) != std::string::npos)
-			return true;
-		else
-			return false;
-	}
-
-	bool isRegexChar(std::string s){
-		std::set<char> tobeEncoded = {'?', '\\', '|', '"', '(', ')', '~', '&', '\'', '+', '%', '#', '*'};
-		std::string tmp = "";
-		for (int i = 32; i <= 126; ++i)
-			if (tobeEncoded.find((char)i) == tobeEncoded.end())
-				tmp = tmp + (char)i + "|";
-		if (s.find(tmp.substr(0, tmp.length() - 1)) != std::string::npos)
-			return true;
-		else
-			return false;
-	}
-
 	/*
 	 * textLeft: length of string
 	 * nMax: number of flats

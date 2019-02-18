@@ -2312,9 +2312,7 @@ void sumConstString(){
 							__debugPrint(logFile, "%d content = %s, index = %d\n", __LINE__, content.c_str(), index);
 							/* parse this regex */
 							std::vector<std::vector<std::string>> regexElements = combineConstStr(refineVectors(parseRegexComponents(underApproxRegex(content))));
-#ifdef DEBUGLOG
 							__debugPrint(logFile, "%d regexElements: %ld\n", __LINE__, regexElements.size());
-#endif
 							/* assume that regexElements size is 1 */
 							assert(regexElements.size() >= 1);
 							if (regexElements.size() > 1)
@@ -2778,203 +2776,6 @@ std::map<std::string, std::string> decodeResultMap(std::map<std::string, std::st
 
 	return update;
 }
-/*
- *
- */
-std::string underApproxRegex(std::string str){
-	/* remove all star-in-star */
-	for (unsigned int i = 0 ; i < str.length(); ++i) {
-		if (str[i] == '('){
-			int counter = 1;
-			bool hasStar = false;
-			for (unsigned int j = i + 1; j < str.length(); ++j) {
-				if (str[j] == ')'){
-					counter--;
-					if (counter == 0 && str[j + 1] == '*' && hasStar == true) {
-						// str.replace(i, j - i + 2, str.substr(i + 1, j - i - 1));
-						str.replace(j + 1, 1, "");
-						return underApproxRegex(str);
-					}
-					else if (counter == 0){
-						break;
-					}
-				}
-				else if (str[j] == '('){
-					counter++;
-				}
-				else if (str[j] == '*')
-					hasStar = true;
-			}
-		}
-	}
-	return str;
-}
-
-/**
- * (abc|cde|ghi)*
- */
-void optimizeFlatAutomaton(std::string &s){
-	std::string org = s;
-	std::string tmp = s.substr(1, s.length() - 3);
-	std::set<std::string> ret = extendComponent(tmp);
-	assert(ret.size() > 0);
-	s = "";
-	for (const auto& it: ret){
-		s = s + "|" + it;
-	}
-
-	if (org[org.length() - 1] == '*')
-		s = "(" + s.substr(1) + ")*";
-	else if (org[org.length() - 1] == '+')
-		s = "(" + s.substr(1) + ")+";
-	else {
-		__debugPrint(logFile, "%d *** %s ***: %s\n", __LINE__, __FUNCTION__, org.c_str());
-		assert(false);
-	}
-}
-
-/*
- *
- */
-std::vector<std::vector<std::string>> parseRegexComponents(std::string str){
-	__debugPrint(logFile, "%d *** %s ***: \"%s\"\n", __LINE__, __FUNCTION__, str.c_str());
-	if (str.length() == 0)
-		return {};
-
-	std::vector<std::vector<std::string>> result;
-
-	std::vector<std::string> components = collectAlternativeComponents(str);
-	__debugPrint(logFile, "%d collectAlternativeComponents: %ld\n", __LINE__, components.size());
-	if (components.size() > 1){
-		for (const auto& c : components) {
-			std::vector<std::vector<std::string>> tmp = parseRegexComponents(c);
-#ifdef DEBUGLOG
-			__debugPrint(logFile, "%d components: %ld\n", __LINE__, tmp.size());
-			for (const auto& re : tmp){
-				__debugPrint(logFile, "%d ", __LINE__);
-				for (const auto &s : re)
-					__debugPrint(logFile, "%s ", s.c_str());
-				__debugPrint(logFile, "\n");
-			}
-#endif
-			for (const auto& comp : tmp)
-				result.emplace_back(comp);
-		}
-		bool merge = true;
-		std::string tmp = "";
-		for (const auto& s : result)
-			if (s.size() > 0 && isRegexStr(s[0])){
-				merge = false;
-				break;
-			}
-			else if (s.size() > 0)
-				tmp = tmp + "|" + s[0];
-
-		if (merge == true) {
-			tmp = tmp.substr(1);
-			__debugPrint(logFile, "%d return %s\n", __LINE__, tmp.c_str());
-			return {{tmp}};
-		}
-		else
-			return result;
-	}
-
-	size_t leftParentheses = str.find('(');
-	//	if (leftParentheses == std::string::npos || str[str.length() - 1] == '*' || str[str.length() - 1] == '+')
-	if (leftParentheses == std::string::npos)
-		return {{str}};
-
-	/* abc(def)* */
-	if (leftParentheses != 0) {
-		std::string header = str.substr(0, leftParentheses);
-		std::vector<std::vector<std::string>> rightComponents = parseRegexComponents(str.substr(leftParentheses));
-		for (unsigned int i = 0; i < rightComponents.size(); ++i) {
-			std::vector<std::string> tmp = {header};
-			tmp.insert(tmp.end(), rightComponents[i].begin(), rightComponents[i].end());
-			result.emplace_back(tmp);
-		}
-		return result;
-	}
-
-	int rightParentheses = findCorrespondRightParentheses(leftParentheses, str);
-	if (rightParentheses < 0) {
-		assert (false);
-	}
-	else if (rightParentheses == (int)str.length() - 1){
-		/* (a) */
-		removeExtraParentheses(str);
-		return parseRegexComponents(str);
-	}
-	else if (rightParentheses == (int)str.length() - 2 && (str[str.length() - 1] == '*' || str[str.length() - 1] == '+')){
-		/* (a)* */
-		optimizeFlatAutomaton(str);
-#ifdef DEBUGLOG
-		__debugPrint(logFile, "%d leaving  %s\n", __LINE__, __FUNCTION__);
-#endif
-		return {{str}};
-	}
-
-	else {
-		int pos = rightParentheses;
-		std::string left, right;
-		if (str[rightParentheses + 1] == '*' || str[rightParentheses + 1] == '+'){
-			pos++;
-			left = str.substr(leftParentheses, pos - leftParentheses + 1);
-			right = str.substr(pos + 1);
-		}
-		else if (str[pos] != '|' || str[pos] != '~') {
-			left = str.substr(leftParentheses + 1, pos - leftParentheses - 1);
-			right = str.substr(pos + 1);
-		}
-		else {
-			assert (false);
-			/* several options ab | cd | ef */
-		}
-
-		__debugPrint(logFile, "%d left = %s --- right = %s\n", __LINE__, left.c_str(), right.c_str());
-
-		if (str[pos] != '|' || str[pos] != '~') {
-			std::vector<std::vector<std::string>> leftComponents = parseRegexComponents(left);
-			std::vector<std::vector<std::string>> rightComponents = parseRegexComponents(right);
-			if (leftComponents.size() > 0) {
-				if (rightComponents.size() > 0) {
-					for (int i = 0; i < std::min(REGEX_BOUND, (int)leftComponents.size()); ++i)
-						for (int j = 0; j < std::min(REGEX_BOUND, (int)rightComponents.size()); ++j) {
-							std::vector<std::string> tmp;
-							tmp.insert(tmp.end(), leftComponents[i].begin(), leftComponents[i].end());
-							tmp.insert(tmp.end(), rightComponents[j].begin(), rightComponents[j].end());
-							result.emplace_back(tmp);
-						}
-				}
-				else {
-					result.insert(result.end(), leftComponents.begin(), leftComponents.end());
-				}
-			}
-			else {
-				if (rightComponents.size() > 0) {
-					result.insert(result.end(), rightComponents.begin(), rightComponents.end());
-				}
-			}
-
-			return result;
-		}
-	}
-	return {};
-}
-
-/*
- *
- */
-bool equalVector(std::vector<std::string> a, std::vector<std::string> b){
-	if (a.size() != b.size()) {
-		return false;
-	}
-	for (unsigned i = 0; i < a.size(); ++i)
-		if (a[i].compare(b[i]) != 0) {
-			return false;
-		}
-	return true;
-}
 
 /*
  *
@@ -3057,43 +2858,6 @@ bool similarVector(
 		__debugPrint(logFile, "\n");
 	}
 	return true;
-}
-
-/*
- * remove duplication
- */
-std::vector<std::vector<std::string>> refineVectors(std::vector<std::vector<std::string>> list){
-	__debugPrint(logFile, "%d *** %s ***: %ld\n", __LINE__, __FUNCTION__, list.size());
-	for (const auto& l : list) {
-		for (const auto& s : l)
-			__debugPrint(logFile, "%s ", s.c_str());
-		__debugPrint(logFile, "\n");
-	}
-	std::vector<std::vector<std::string>> result;
-	if (list.size() < 1000) {
-		bool duplicated[1000];
-		memset(duplicated, false, sizeof duplicated);
-		for (unsigned int i = 0; i < list.size(); ++i)
-			if (!duplicated[i])
-				for (unsigned int j = i + 1; j < list.size(); ++j)
-					if (!duplicated[j]) {
-						if (equalVector(list[i], list[j])) {
-							duplicated[j] = true;
-						}
-					}
-
-		for (unsigned int i = 0 ; i < list.size(); ++i)
-			if (!duplicated[i])
-				result.emplace_back(list[i]);
-	}
-	else
-		result = list;
-
-	for (unsigned int i = 0; i < result.size(); ++i)
-		for (unsigned int j = 0; j < result[i].size(); ++j)
-			if (result[i][j][0] != '(')
-				result[i][j] = "\"" + result[i][j] + "\"";
-	return result;
 }
 
 /*
@@ -3588,6 +3352,9 @@ std::string getValueFromRegex(std::string s, int length){
 		return s;
 	else if (s[0] == '"')
 		s = s.substr(1, s.length() - 2);
+	if (isRegexChar(s) || isRegexAll(s))
+		return NOTFOUND;
+
 	if(isRegexStr(s)) {
 		size_t openPar = s.find('(');
 		assert (openPar != std::string::npos);
