@@ -1404,6 +1404,36 @@ void getNodesInConcat_extended(Z3_theory t, Z3_ast node, std::set<Z3_ast> & node
 		}
 	}
 }
+
+bool findReason(Z3_theory t, Z3_ast node, Z3_ast strNode, std::vector<Z3_ast> &causes){
+	Z3_context ctx = Z3_theory_get_context(t);
+	std::vector<Z3_ast> tmpEq = collect_eqc(t, node);
+	for (const auto& n : tmpEq) {
+		if (strNode == n) {
+			if (node != n)
+				causes.push_back(Z3_mk_eq(ctx, node, n));
+			return true;
+		} else if (isConcatFunc(t, n)){
+			bool found = false;
+			Z3_ast eq = Z3_mk_eq(ctx, node, n);
+			if (node != n)
+				causes.push_back(eq);
+			Z3_ast leftArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 0);
+			Z3_ast rightArg = Z3_get_app_arg(ctx, Z3_to_app(ctx, n), 1);
+			if (std::find(causes.begin(), causes.end(), leftArg) == causes.end())
+				found = findReason(t, leftArg, strNode, causes);
+			if (found)
+				return true;
+			if (std::find(causes.begin(), causes.end(), rightArg) == causes.end())
+				found = findReason(t, rightArg, strNode, causes);
+			if (found)
+				return true;
+			if (node != n)
+				causes.pop_back();
+		}
+	}
+	return false;
+}
 /*
  * There are some exceptions when finding domain for a string variable
  *
@@ -2745,11 +2775,14 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 					std::string tmp01 = getConstString(t, itor);
 					if (tmp00.find(tmp01) == std::string::npos && tmp01.size() > 0) {
 						Z3_ast eq1 = Z3_mk_eq(ctx, nn1, nn2);
-						Z3_ast eq2 = Z3_mk_eq(ctx, itor, it);
+
+						std::vector<Z3_ast> causes;
+						bool found = findReason(t, nn1, itor, causes);
+						assert(found);
+						Z3_ast eq2 = mk_and_fromVector(t, causes);
+
 						Z3_ast eq3 = Z3_mk_eq(ctx, eq02[i], nn2);
-						std::vector<Z3_ast> tmp = {eq1};
-						if (itor != it)
-							tmp.push_back(eq2);
+						std::vector<Z3_ast> tmp = {eq1, eq2};
 						if (eq02[i] != nn2)
 							tmp.push_back(eq3);
 						addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, tmp)), __LINE__, true);
@@ -2779,13 +2812,17 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 					std::string tmp00 = getConstString(t, eq01[i]);
 					std::string tmp01 = getConstString(t, itor);
 					if (tmp00.find(tmp01) == std::string::npos && tmp01.size() > 0) {
-						__debugPrint(logFile, "%d conflict in %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp00.c_str(), tmp01.c_str())
+						__debugPrint(logFile, "%d conflict in %s: %s vs %s\n", __LINE__, __FUNCTION__, tmp00.c_str(), tmp01.c_str());
 						Z3_ast eq1 = Z3_mk_eq(ctx, nn1, nn2);
-						Z3_ast eq2 = Z3_mk_eq(ctx, itor, it);
+
+						std::vector<Z3_ast> causes;
+						bool found = findReason(t, nn2, itor, causes);
+						assert(found);
+						Z3_ast eq2 = mk_and_fromVector(t, causes);
+
 						Z3_ast eq3 = Z3_mk_eq(ctx, eq01[i], nn1);
-						std::vector<Z3_ast> tmp = {eq1};
-						if (itor != it)
-							tmp.push_back(eq2);
+						std::vector<Z3_ast> tmp = {eq1, eq2};
+
 						if (eq01[i] != nn1)
 							tmp.push_back(eq3);
 						addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, tmp)), __LINE__, true);

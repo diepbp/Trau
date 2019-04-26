@@ -215,6 +215,8 @@ typedef struct _AutomatonStringData
   */
  void getNodesInConcat_extended(Z3_theory t, Z3_ast node, std::set<Z3_ast> & nodeList);
 
+ bool findReason(Z3_theory t, Z3_ast node, Z3_ast strNode, std::vector<Z3_ast> &causes);
+
  /*
   * Find domain of variables
   */
