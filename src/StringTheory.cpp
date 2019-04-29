@@ -2780,7 +2780,8 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 						bool found = findReason(t, nn1, itor, causes);
 						assert(found);
 						Z3_ast eq2 = mk_and_fromVector(t, causes);
-
+						if (eq2 == NULL)
+							eq2 = Z3_mk_true(ctx);
 						Z3_ast eq3 = Z3_mk_eq(ctx, eq02[i], nn2);
 						std::vector<Z3_ast> tmp = {eq1, eq2};
 						if (eq02[i] != nn2)
@@ -2817,12 +2818,13 @@ bool checkContainConsistency(Z3_theory t, Z3_ast nn1, Z3_ast nn2){
 
 						std::vector<Z3_ast> causes;
 						bool found = findReason(t, nn2, itor, causes);
+						__debugPrint(logFile, "%d conflict in %s: %d\n", __LINE__, __FUNCTION__, causes.size());
 						assert(found);
 						Z3_ast eq2 = mk_and_fromVector(t, causes);
-
+						if (eq2 == NULL)
+							eq2 = Z3_mk_true(ctx);
 						Z3_ast eq3 = Z3_mk_eq(ctx, eq01[i], nn1);
 						std::vector<Z3_ast> tmp = {eq1, eq2};
-
 						if (eq01[i] != nn1)
 							tmp.push_back(eq3);
 						addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, tmp)), __LINE__, true);
