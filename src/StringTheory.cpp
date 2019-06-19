@@ -32,7 +32,7 @@ bool lengthEnable = false;
 
 bool havingGrmConstraints = false;
 bool unknownResult = false;
-
+bool metRegexPattern = false;
 clock_t timer;
 
 std::map<Z3_ast, Z3_ast> toUpperMap;
@@ -6299,6 +6299,9 @@ Z3_bool Th_final_check(Z3_theory t) {
 
 	if (checkDone(t))
 		return Z3_TRUE;
+
+	if (metRegexPattern)
+		return Z3_FALSE;
 
 	printf(".");
 	//----------------------------------------------------------------------------------
