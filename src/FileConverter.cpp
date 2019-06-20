@@ -1104,6 +1104,7 @@ void updateReplaceAll(
 			found = findTokens(tokens, found, config.languageMap[REPLACEALL], antlrcpptest::SMTLIB26Lexer::SIMPLE_SYM);
 		}
 		else {
+//			__debugPrint(logFile, "%d %s %s\n", __LINE__, __FUNCTION__, node_to_string(t, node).c_str(), tmpStr.c_str());
 			assert(rewriterStrMap.find(op) != rewriterStrMap.end());
 			if (rewriterStrMap.find(op) != rewriterStrMap.end()){
 				if (rewriterStrMap[op][0] != '"')
@@ -2227,8 +2228,6 @@ void toLengthLine(
 	updateStr2Regex(tokens);
 	updateRegexStar(tokens, regexCnt);
 	updateRegexPlus(tokens, regexCnt);
-
-
 
 	updateConcat(tokens); /* Concat --> + */
 	updateLength(tokens); /* Length --> "" */

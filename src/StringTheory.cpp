@@ -1085,6 +1085,8 @@ StringOP node_to_stringOP(Z3_theory t, Z3_ast node) {
 		std::string tmp = Z3_ast_to_string(ctx, node);
 		if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
 			tmp = tmp.substr(1, tmp.length() - 2);
+			if (tmp.length() == 2 && tmp == "\"\"")
+							tmp = "";
 		}
 		return StringOP("\"" + tmp + "\"");
 	}
@@ -1230,10 +1232,14 @@ std::string node_to_string(Z3_theory t, Z3_ast node) {
 	}
 	else if (isConstStr(t, node)){
 		std::string tmp = Z3_ast_to_string(ctx, node);
+		__debugPrint(logFile, " %d %s\n", __LINE__, Z3_ast_to_string(ctx, node));
 		if (tmp.length() > 0 && tmp[0] == '|' && tmp[tmp.length() - 1] == '|' ) {
 			tmp = tmp.substr(1, tmp.length() - 2);
+			if (tmp.length() == 2 && tmp == "\"\"")
+				tmp = "";
 		}
 		tmp = "\"" + tmp + "\"";
+		__debugPrint(logFile, " %d %s\n", __LINE__, tmp.c_str());
 		return tmp;
 	}
 	else if (isVariable(t, node))
@@ -2135,8 +2141,10 @@ void Th_new_eq(Z3_theory t, Z3_ast nn1, Z3_ast nn2) {
 
 		__debugPrint(logFile, "@%d >> Negate of:", __LINE__);
 		printZ3Node(t, toAssert);
-		if (toAssert == NULL)
-			addAxiom(t, negateEquality(t, nn1, nn2), __LINE__, true);
+		if (toAssert == NULL) {
+			std::vector<Z3_ast> ands = collectStrAssignmentsInPositiveContext(t);
+			addAxiom(t, Z3_mk_not(ctx, mk_and_fromVector(t, ands)), __LINE__, true);
+		}
 		return;
 	}
 
@@ -3348,7 +3356,7 @@ bool propagate(Z3_theory t, Z3_ast node){
 				printZ3Node(t, n);
 				printZ3Node(t, it_eqValues[0]);
 				__debugPrint(logFile, "\n");
-				addAxiom(t, Z3_mk_not(ctx, Z3_mk_eq(ctx, it_eqValues[0], n)), __LINE__, true);
+//				addAxiom(t, Z3_mk_not(ctx, Z3_mk_eq(ctx, it_eqValues[0], n)), __LINE__, true);
 				return false;
 			}
 		}
@@ -5659,6 +5667,10 @@ bool parikhCheckRegex(
 					tmpStr = tmpStr.substr(1, tmpStr.length() - 2);
 					std::vector<std::vector<std::string>> regexElements = refineVectors(parseRegexComponents(underApproxRegex(tmpStr)));
 					if (regexElements.size() == 1)
+											for (const auto& s : regexElements[0]){
+												__debugPrint(logFile, "%d %s: %s\n", __LINE__, node_to_string(t, node).c_str(), s.c_str());
+											}
+					if (regexElements.size() == 1)
 						for (const auto& s : regexElements[0]){
 							if (isConstStr(s)){
 								for (const auto& ch : notContainChar)
@@ -6237,7 +6249,7 @@ void reformatInternalVarFunctionMap(){
 		std::map<StringOP, StringOP> tmp = internalVarFunctionMap;
 		for (const auto& var: tmp){
 			StringOP tmpVar = var.second;
-			found = found || formatOPInternal(tmpVar);
+			found = formatOPInternal(tmpVar) || found;
 			internalVarFunctionMap[var.first] = tmpVar;
 		}
 		if (!found)
@@ -8769,6 +8781,40 @@ std::vector<Z3_ast> collectBoolValueInPositiveContext(Z3_theory t) {
 					else {
 						ret.emplace_back(argAst);
 					}
+				}
+			}
+		}
+	}
+
+#ifdef DEBUGLOG
+		displayListNode(t, ret, "");
+		__debugPrint(logFile, "@%d >>  %s ***: finish\n", __LINE__, __FUNCTION__);
+#endif
+	return ret;
+}
+
+/*
+ *
+ */
+std::vector<Z3_ast> collectStrAssignmentsInPositiveContext(Z3_theory t) {
+	__debugPrint(logFile, "@%d *** %s *** \n", __LINE__, __FUNCTION__);
+
+	Z3_context ctx = Z3_theory_get_context(t);
+	Z3_ast ctxAssign = Z3_get_context_assignment(ctx);
+	std::vector<Z3_ast> ret;
+
+	if (Z3_get_decl_kind(ctx, Z3_get_app_decl(ctx, Z3_to_app(ctx, ctxAssign))) == Z3_OP_AND) {
+		int argCount = Z3_get_app_num_args(ctx, Z3_to_app(ctx, ctxAssign));
+
+		for (int i = 0; i < argCount; i++) {
+			Z3_ast argAst = Z3_get_app_arg(ctx, Z3_to_app(ctx, ctxAssign), i);
+			if (Z3_get_app_num_args(ctx, Z3_to_app(ctx, argAst)) == 2){
+				std::string astToString = Z3_ast_to_string(ctx, argAst);
+				if (astToString.find("(=") == 0) {
+					Z3_ast argAst_00 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 0);
+					Z3_ast argAst_01 = Z3_get_app_arg(ctx, Z3_to_app(ctx, argAst), 1);
+					if (isStrVariable(t, argAst_00) || isStrVariable(t, argAst_01) || isConstStr(t, argAst_00) || isConstStr(t, argAst_01))
+						ret.emplace_back(argAst);
 				}
 			}
 		}

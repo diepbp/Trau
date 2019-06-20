@@ -4164,9 +4164,14 @@ std::map<std::string, int> createSimpleEqualMap(
 			}
 		}
 		else {
-			if (index.find(arg01) == index.end()){
+			if (index.find(arg01) == index.end() && index.find(arg02) == index.end()){
 				maxIndex++;
 				index[arg01] = maxIndex;
+			}
+			else {
+				if (index.find(arg01) != index.end())
+					index[arg02] = index[arg01];
+				else index[arg01] = index[arg02];
 			}
 		}
 	}
@@ -4257,6 +4262,17 @@ bool findExistsingValue(
 			foundValue = true;
 			value = strValue[var];
 			break;
+		}
+	}
+
+	if (!foundValue){
+		if (equalitiesMap.find(varName) != equalitiesMap.end()) {
+			for (const auto& v : equalitiesMap[varName])
+				if (v.size() == 1 && !needValue(v[0], len, strValue)) {
+							foundValue = true;
+							value = strValue[v[0]];
+							break;
+						}
 		}
 	}
 

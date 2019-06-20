@@ -1076,6 +1076,11 @@ typedef struct _AutomatonStringData
  /*
   *
   */
+ std::vector<Z3_ast> collectStrAssignmentsInPositiveContext(Z3_theory t);
+
+ /*
+  *
+  */
  void collectBoolValueInPositiveContext(
  		Z3_theory t,
  		Z3_ast boolNode,
