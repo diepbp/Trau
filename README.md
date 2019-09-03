@@ -1,4 +1,5 @@
-This is the [Trau](http://dl.acm.org/citation.cfm?id=3062384) string solver 
+This is the [Trau](http://dl.acm.org/citation.cfm?id=3062384) string solver.
+Trau now has a new version, named [Z3-Trau](https://github.com/guluchen/z3/tree/new_trau), which is built inside Z3.
 
 Installing Trau
 ------------------ 
